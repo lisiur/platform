@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,6 +23,8 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("Auth");
+  const tc = useTranslations("Common");
 
   const {
     register,
@@ -37,7 +40,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       await authClient.signIn.email(data);
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("loginFailed"));
     }
   }
 
@@ -45,7 +48,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium">
-          Email
+          {tc("email")}
         </label>
         <Input
           id="email"
@@ -60,7 +63,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium">
-          Password
+          {tc("password")}
         </label>
         <Input
           id="password"
@@ -76,17 +79,17 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? t("signingIn") : t("signIn")}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t("noAccount")}{" "}
         <button
           type="button"
           onClick={onSwitchToRegister}
           className="text-primary underline-offset-4 hover:underline"
         >
-          Create one
+          {t("createOne")}
         </button>
       </p>
     </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
@@ -25,6 +26,8 @@ export function RegisterForm({
   onSwitchToLogin,
 }: RegisterFormProps) {
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("Auth");
+  const tc = useTranslations("Common");
 
   const {
     register,
@@ -40,7 +43,7 @@ export function RegisterForm({
       await authClient.signUp.email(data);
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : t("registrationFailed"));
     }
   }
 
@@ -48,7 +51,7 @@ export function RegisterForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="name" className="text-sm font-medium">
-          Name
+          {tc("name")}
         </label>
         <Input
           id="name"
@@ -63,7 +66,7 @@ export function RegisterForm({
 
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium">
-          Email
+          {tc("email")}
         </label>
         <Input
           id="email"
@@ -78,7 +81,7 @@ export function RegisterForm({
 
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium">
-          Password
+          {tc("password")}
         </label>
         <Input
           id="password"
@@ -94,17 +97,17 @@ export function RegisterForm({
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Creating account..." : "Create account"}
+        {isSubmitting ? t("creatingAccount") : t("createAccountBtn")}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {t("hasAccount")}{" "}
         <button
           type="button"
           onClick={onSwitchToLogin}
           className="text-primary underline-offset-4 hover:underline"
         >
-          Sign in
+          {t("signIn")}
         </button>
       </p>
     </form>

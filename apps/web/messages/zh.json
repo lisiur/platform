@@ -1,0 +1,88 @@
+{
+  "Common": {
+    "submit": "提交",
+    "reset": "重置",
+    "loading": "加载中...",
+    "email": "邮箱",
+    "password": "密码",
+    "name": "姓名",
+    "locale": "语言"
+  },
+  "Auth": {
+    "welcomeBack": "欢迎回来",
+    "createAccount": "创建账号",
+    "signInDescription": "登录你的账号",
+    "signUpDescription": "填写信息开始使用",
+    "signIn": "登录",
+    "signingIn": "登录中...",
+    "createOne": "创建一个",
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "creatingAccount": "创建中...",
+    "createAccountBtn": "创建账号",
+    "loginFailed": "登录失败",
+    "registrationFailed": "注册失败"
+  },
+  "FormDemo": {
+    "title": "表单演示",
+    "description": "展示所有常见字段类型及验证的综合表单",
+    "submit": "提交",
+    "reset": "重置",
+    "registrationForm": "注册表单",
+    "nameLabel": "姓名",
+    "namePlaceholder": "请输入姓名",
+    "emailLabel": "邮箱",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "密码",
+    "passwordPlaceholder": "••••••••",
+    "bioLabel": "简介",
+    "bioPlaceholder": "介绍一下自己...",
+    "countryLabel": "国家",
+    "countryPlaceholder": "选择国家",
+    "notificationPreference": "通知偏好",
+    "emailNotifications": "邮件通知",
+    "smsNotifications": "短信通知",
+    "pushNotifications": "推送通知",
+    "interestsLabel": "兴趣",
+    "birthDateLabel": "出生日期",
+    "appointmentTimeLabel": "预约时间",
+    "billingMonthLabel": "计费月份",
+    "dateRangeLabel": "日期范围",
+    "avatarLabel": "头像（可选）",
+    "avatarHint": "上传图片文件（JPEG、PNG、GIF）",
+    "termsLabel": "我同意条款和条件",
+    "submitting": "提交中...",
+    "formValues": "表单值（实时）",
+    "submitSuccess": "提交成功！",
+    "submitSuccessDesc": "你的数据已处理。",
+    "submitFailed": "提交失败",
+    "submitFailedDesc": "请稍后重试。",
+    "countries": {
+      "us": "美国",
+      "uk": "英国",
+      "ca": "加拿大",
+      "au": "澳大利亚",
+      "de": "德国",
+      "fr": "法国",
+      "jp": "日本",
+      "cn": "中国"
+    },
+    "interests": {
+      "tech": "科技",
+      "design": "设计",
+      "music": "音乐",
+      "travel": "旅行",
+      "sports": "运动"
+    }
+  },
+  "LoadingDemo": {
+    "title": "加载演示",
+    "manual": "手动",
+    "withMessage": "带消息",
+    "withDuration": "带时长（3秒自动隐藏）",
+    "useAsyncData": "useAsyncData"
+  },
+  "Header": {
+    "brand": "Next101"
+  }
+}

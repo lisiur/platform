@@ -80,9 +80,12 @@ function DateRangePicker({
     });
   };
 
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
+
   React.useEffect(() => {
-    onChange?.(date);
-  }, [date, onChange]);
+    onChangeRef.current?.(date);
+  }, [date]);
 
   return (
     <Popover>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { loading } from "@/utils/loading";
@@ -9,6 +10,8 @@ function wait(ms: number) {
 }
 
 export default function LoadingDemoPage() {
+  const t = useTranslations("LoadingDemo");
+
   const [basicState, basicExecute] = useAsyncData(
     async () => {
       await wait(2000);
@@ -35,10 +38,12 @@ export default function LoadingDemoPage() {
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 overflow-auto p-8">
-      <h1 className="text-xl font-semibold">Loading Demo</h1>
+      <h1 className="text-xl font-semibold">{t("title")}</h1>
 
       <section className="flex flex-col items-center gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Manual</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">
+          {t("manual")}
+        </h2>
         <div className="flex gap-3">
           <Button onClick={() => loading.show()}>show()</Button>
           <Button variant="outline" onClick={() => loading.hide()}>
@@ -49,7 +54,7 @@ export default function LoadingDemoPage() {
 
       <section className="flex flex-col items-center gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
-          With message
+          {t("withMessage")}
         </h2>
         <div className="flex gap-3">
           <Button onClick={() => loading.show({ message: "Loading..." })}>
@@ -63,7 +68,7 @@ export default function LoadingDemoPage() {
 
       <section className="flex flex-col items-center gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
-          With duration (auto-hide 3s)
+          {t("withDuration")}
         </h2>
         <Button
           onClick={() =>
@@ -76,7 +81,7 @@ export default function LoadingDemoPage() {
 
       <section className="flex flex-col items-center gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
-          useAsyncData
+          {t("useAsyncData")}
         </h2>
         <div className="flex gap-3">
           <Button onClick={() => basicExecute()}>basic (2s)</Button>

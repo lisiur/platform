@@ -1,0 +1,88 @@
+{
+  "Common": {
+    "submit": "Submit",
+    "reset": "Reset",
+    "loading": "Loading...",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "locale": "Locale"
+  },
+  "Auth": {
+    "welcomeBack": "Welcome back",
+    "createAccount": "Create an account",
+    "signInDescription": "Sign in to your account",
+    "signUpDescription": "Enter your details to get started",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "createOne": "Create one",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "creatingAccount": "Creating account...",
+    "createAccountBtn": "Create account",
+    "loginFailed": "Login failed",
+    "registrationFailed": "Registration failed"
+  },
+  "FormDemo": {
+    "title": "Form Demo",
+    "description": "A comprehensive form showcasing all common field types with validation",
+    "submit": "Submit",
+    "reset": "Reset",
+    "registrationForm": "Registration Form",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter your name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "••••••••",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "countryLabel": "Country",
+    "countryPlaceholder": "Select a country",
+    "notificationPreference": "Notification Preference",
+    "emailNotifications": "Email notifications",
+    "smsNotifications": "SMS notifications",
+    "pushNotifications": "Push notifications",
+    "interestsLabel": "Interests",
+    "birthDateLabel": "Birth Date",
+    "appointmentTimeLabel": "Appointment Time",
+    "billingMonthLabel": "Billing Month",
+    "dateRangeLabel": "Date Range",
+    "avatarLabel": "Avatar (Optional)",
+    "avatarHint": "Upload an image file (JPEG, PNG, GIF)",
+    "termsLabel": "I agree to the terms and conditions",
+    "submitting": "Submitting...",
+    "formValues": "Form Values (Live)",
+    "submitSuccess": "Form submitted successfully!",
+    "submitSuccessDesc": "Your data has been processed.",
+    "submitFailed": "Submission failed",
+    "submitFailedDesc": "Please try again later.",
+    "countries": {
+      "us": "United States",
+      "uk": "United Kingdom",
+      "ca": "Canada",
+      "au": "Australia",
+      "de": "Germany",
+      "fr": "France",
+      "jp": "Japan",
+      "cn": "China"
+    },
+    "interests": {
+      "tech": "Technology",
+      "design": "Design",
+      "music": "Music",
+      "travel": "Travel",
+      "sports": "Sports"
+    }
+  },
+  "LoadingDemo": {
+    "title": "Loading Demo",
+    "manual": "Manual",
+    "withMessage": "With message",
+    "withDuration": "With duration (auto-hide 3s)",
+    "useAsyncData": "useAsyncData"
+  },
+  "Header": {
+    "brand": "Next101"
+  }
+}
