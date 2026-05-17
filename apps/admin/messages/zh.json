@@ -131,6 +131,13 @@
     "saveFailed": "设置保存失败",
     "loadFailed": "设置加载失败"
   },
+  "Sidebar": {
+    "dashboard": "仪表盘",
+    "users": "用户",
+    "organizations": "组织",
+    "profile": "个人资料",
+    "settings": "设置"
+  },
   "Organizations": {
     "title": "组织管理",
     "description": "管理系统组织",

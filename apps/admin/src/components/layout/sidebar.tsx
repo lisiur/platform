@@ -1,5 +1,6 @@
 "use client";
 
+import { useStore } from "better-auth/react";
 import {
   Building2Icon,
   HomeIcon,
@@ -7,8 +8,10 @@ import {
   UserIcon,
   UsersIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Sidebar,
   SidebarContent,
@@ -17,20 +20,21 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/api/auth-client";
 
 const menuItems = [
   {
-    title: "Dashboard",
+    key: "dashboard",
     url: "/dashboard",
     icon: HomeIcon,
   },
   {
-    title: "Users",
+    key: "users",
     url: "/users",
     icon: UsersIcon,
   },
   {
-    title: "Organizations",
+    key: "organizations",
     url: "/organizations",
     icon: Building2Icon,
   },
@@ -38,12 +42,12 @@ const menuItems = [
 
 const bottomMenuItems = [
   {
-    title: "Profile",
+    key: "profile",
     url: "/profile",
     icon: UserIcon,
   },
   {
-    title: "Settings",
+    key: "settings",
     url: "/settings",
     icon: SettingsIcon,
   },
@@ -51,19 +55,31 @@ const bottomMenuItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const session = useStore(authClient.useSession);
+  const user = session?.data?.user;
+  const t = useTranslations("Sidebar");
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "??";
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarMenu>
           {menuItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem key={item.key}>
               <SidebarMenuButton
                 isActive={pathname === item.url}
                 render={<Link href={item.url} />}
               >
                 <item.icon />
-                <span>{item.title}</span>
+                <span>{t(item.key)}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -72,13 +88,30 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           {bottomMenuItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem key={item.key}>
               <SidebarMenuButton
                 isActive={pathname === item.url}
                 render={<Link href={item.url} />}
               >
                 <item.icon />
-                <span>{item.title}</span>
+                <span>{t(item.key)}</span>
+                {item.url === "/profile" && user && (
+                  <div className="ml-auto relative h-6 w-6 shrink-0 overflow-hidden rounded-sm bg-muted">
+                    {user.image ? (
+                      <Image
+                        src={user.image}
+                        alt={user.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] font-medium text-muted-foreground">
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

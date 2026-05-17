@@ -131,6 +131,13 @@
     "saveFailed": "Failed to save settings",
     "loadFailed": "Failed to load settings"
   },
+  "Sidebar": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "organizations": "Organizations",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
   "Organizations": {
     "title": "Organization Management",
     "description": "Manage system organizations",
