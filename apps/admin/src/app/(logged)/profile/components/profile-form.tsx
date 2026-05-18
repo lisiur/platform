@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -9,19 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/api";
 
-const profileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-});
-
-type ProfileInput = z.infer<typeof profileSchema>;
-
 interface ProfileFormProps {
   initialName: string;
   onNameUpdate: (name: string) => void;
 }
 
 export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
+  const t = useTranslations("Profile");
   const [saving, setSaving] = useState(false);
+
+  const profileSchema = z.object({
+    name: z.string().min(1, t("validation.nameRequired")),
+  });
+
+  type ProfileInput = z.infer<typeof profileSchema>;
 
   const {
     register,
@@ -40,9 +42,9 @@ export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
       });
       if (error) throw new Error(error.message);
       onNameUpdate(data.name);
-      toast.success("Profile updated");
+      toast.success(t("profileUpdated"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -52,7 +54,7 @@ export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label htmlFor="name" className="text-sm font-medium">
-          Name
+          {t("name")}
         </label>
         <Input id="name" {...register("name")} />
         {errors.name && (
@@ -61,7 +63,7 @@ export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
       </div>
       <div className="flex justify-end">
         <Button type="submit" disabled={saving || !isDirty}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? t("saving") : t("save")}
         </Button>
       </div>
     </form>

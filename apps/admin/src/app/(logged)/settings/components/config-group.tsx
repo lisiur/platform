@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ interface ConfigGroupProps {
 }
 
 export function ConfigGroup({ group }: ConfigGroupProps) {
+  const t = useTranslations("Settings");
   const [items, setItems] = useState<ConfigItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,13 +47,13 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
         const data = await res.json();
         setItems(data);
       } catch {
-        toast.error("Failed to load settings");
+        toast.error(t("loadFailed"));
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [group]);
+  }, [group, t]);
 
   const schema = z.object(
     Object.fromEntries(items.map((item) => [item.key, z.string()])),
@@ -84,9 +86,9 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
       for (const item of payload) {
         updateConfig(item.group, item.key, item.value);
       }
-      toast.success("Settings saved");
+      toast.success(t("saveSuccess"));
     } catch {
-      toast.error("Failed to save settings");
+      toast.error(t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -107,7 +109,7 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
       ))}
       <div className="flex justify-end">
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
+          {saving ? t("saving") : t("save")}
         </Button>
       </div>
     </form>

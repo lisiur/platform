@@ -119,21 +119,30 @@
     "next": "下一页",
     "roles": {
       "admin": "管理员",
-      "member": "成员"
+      "manager": "经理",
+      "user": "普通用户"
     }
   },
   "Settings": {
     "title": "系统设置",
     "description": "管理应用配置",
+    "tabs": {
+      "general": "通用",
+      "auth": "认证",
+      "smtp": "邮件 (SMTP)"
+    },
     "save": "保存更改",
     "saving": "保存中...",
     "saveSuccess": "设置保存成功",
     "saveFailed": "设置保存失败",
-    "loadFailed": "设置加载失败"
+    "loadFailed": "设置加载失败",
+    "enable": "启用",
+    "jsonPlaceholder": "输入 JSON"
   },
   "Sidebar": {
     "dashboard": "仪表盘",
     "users": "用户",
+    "roles": "角色",
     "organizations": "组织",
     "profile": "个人资料",
     "settings": "设置"
@@ -168,5 +177,88 @@
     "of": "/",
     "previous": "上一页",
     "next": "下一页"
+  },
+  "Profile": {
+    "title": "个人资料",
+    "description": "管理你的账户设置",
+    "avatar": "头像",
+    "personalInfo": "个人信息",
+    "email": "邮箱",
+    "changePassword": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "name": "姓名",
+    "save": "保存",
+    "saving": "保存中...",
+    "changeBtn": "修改密码",
+    "changing": "修改中...",
+    "chooseFile": "选择文件",
+    "uploading": "上传中...",
+    "cancel": "取消",
+    "avatarHint": "JPEG、PNG、GIF 或 WebP，最大 5MB。",
+    "profileUpdated": "资料更新成功",
+    "passwordChanged": "密码修改成功",
+    "avatarUpdated": "头像更新成功",
+    "updateFailed": "更新失败",
+    "changePasswordFailed": "密码修改失败",
+    "uploadFailed": "上传失败",
+    "fileTooLarge": "文件过大，最大 5MB。",
+    "loadFailed": "加载资料失败",
+    "validation": {
+      "nameRequired": "姓名不能为空",
+      "currentPasswordRequired": "当前密码不能为空",
+      "newPasswordMin": "新密码至少需要 6 个字符",
+      "confirmPasswordRequired": "请确认新密码",
+      "passwordsMismatch": "两次输入的密码不一致"
+    }
+  },
+  "Roles": {
+    "title": "角色管理",
+    "description": "管理系统角色和权限",
+    "name": "角色名称",
+    "description_label": "描述",
+    "permissions": "权限",
+    "userCount": "用户数",
+    "actions": "操作",
+    "viewDetails": "查看详情",
+    "admin": "管理员",
+    "admin_desc": "拥有系统所有权限",
+    "manager": "经理",
+    "manager_desc": "可以管理用户和查看大部分资源",
+    "user": "普通用户",
+    "user_desc": "基础访问权限",
+    "resource": "资源",
+    "action": "操作",
+    "granted": "已授权",
+    "denied": "未授权"
+  },
+  "Remote": {
+    "settings": {
+      "fields": {
+        "siteName": "站点名称",
+        "siteUrl": "站点 URL",
+        "siteDescription": "站点描述",
+        "enableRegistration": "启用注册",
+        "sessionMaxAge": "会话最大时长（天）",
+        "smtpHost": "SMTP 主机",
+        "smtpPort": "SMTP 端口",
+        "smtpUser": "SMTP 用户名",
+        "smtpPassword": "SMTP 密码",
+        "fromEmail": "发件人邮箱"
+      },
+      "fieldsDesc": {
+        "siteName": "应用的名称",
+        "siteUrl": "应用的基础 URL",
+        "siteDescription": "应用的简要描述",
+        "enableRegistration": "允许新用户注册",
+        "sessionMaxAge": "会话最长有效期（天）",
+        "smtpHost": "SMTP 服务器主机名",
+        "smtpPort": "SMTP 服务器端口",
+        "smtpUser": "SMTP 认证用户名",
+        "smtpPassword": "SMTP 认证密码",
+        "fromEmail": "用作发件人的邮箱地址"
+      }
+    }
   }
 }

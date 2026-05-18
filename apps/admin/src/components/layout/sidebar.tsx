@@ -5,6 +5,7 @@ import {
   Building2Icon,
   HomeIcon,
   SettingsIcon,
+  ShieldIcon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
@@ -32,6 +33,11 @@ const menuItems = [
     key: "users",
     url: "/users",
     icon: UsersIcon,
+  },
+  {
+    key: "roles",
+    url: "/roles",
+    icon: ShieldIcon,
   },
   {
     key: "organizations",

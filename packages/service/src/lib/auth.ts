@@ -1,3 +1,4 @@
+import { ac, admin as adminRole, manager, user } from "@repo/shared";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin, openAPI, organization } from "better-auth/plugins";
@@ -19,7 +20,18 @@ export const auth = betterAuth({
       lang: "cn",
     },
   },
-  plugins: [openAPI(), admin(), organization()],
+  plugins: [
+    openAPI(),
+    admin({
+      ac,
+      roles: {
+        admin: adminRole,
+        manager,
+        user,
+      },
+    }),
+    organization(),
+  ],
 });
 
 export type AuthType = {

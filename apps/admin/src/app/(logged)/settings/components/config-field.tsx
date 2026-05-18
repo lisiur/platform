@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type Control, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +24,12 @@ interface ConfigFieldProps {
 }
 
 export function ConfigField({ item, control }: ConfigFieldProps) {
+  const t = useTranslations("Settings");
+  const tr = useTranslations("Remote");
+
   return (
     <div className="space-y-2">
-      <Label htmlFor={item.key}>{item.label}</Label>
+      <Label htmlFor={item.key}>{tr(item.label)}</Label>
       <Controller
         name={item.key}
         control={control}
@@ -43,7 +47,7 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <Label htmlFor={item.key} className="font-normal">
-                  {item.description || "Enable"}
+                  {item.description ? tr(item.description) : t("enable")}
                 </Label>
               </div>
             );
@@ -59,7 +63,7 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                 name={field.name}
                 ref={field.ref}
                 rows={4}
-                placeholder="Enter JSON"
+                placeholder={t("jsonPlaceholder")}
               />
             );
           }
@@ -84,7 +88,7 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
         }}
       />
       {item.description && item.type !== "boolean" && (
-        <p className="text-sm text-muted-foreground">{item.description}</p>
+        <p className="text-sm text-muted-foreground">{tr(item.description)}</p>
       )}
     </div>
   );

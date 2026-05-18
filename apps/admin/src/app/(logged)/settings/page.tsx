@@ -6,15 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigGroup } from "./components/config-group";
 
-const tabs = [
-  { key: "general", label: "General" },
-  { key: "auth", label: "Authentication" },
-  { key: "smtp", label: "Email (SMTP)" },
-];
+const tabKeys = ["general", "auth", "smtp"] as const;
 
 export default function SettingsPage() {
   const t = useTranslations("Settings");
   const [activeTab, setActiveTab] = useState("general");
+
+  const tabs = tabKeys.map((key) => ({ key, label: t(`tabs.${key}`) }));
 
   return (
     <div className="container mx-auto py-8">

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -9,23 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/api";
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(6, "New password must be at least 6 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type PasswordInput = z.infer<typeof passwordSchema>;
-
 export function PasswordForm() {
+  const t = useTranslations("Profile");
   const [saving, setSaving] = useState(false);
+
+  const passwordSchema = z
+    .object({
+      currentPassword: z
+        .string()
+        .min(1, t("validation.currentPasswordRequired")),
+      newPassword: z.string().min(6, t("validation.newPasswordMin")),
+      confirmPassword: z
+        .string()
+        .min(1, t("validation.confirmPasswordRequired")),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t("validation.passwordsMismatch"),
+      path: ["confirmPassword"],
+    });
+
+  type PasswordInput = z.infer<typeof passwordSchema>;
 
   const {
     register,
@@ -44,11 +48,11 @@ export function PasswordForm() {
         currentPassword: data.currentPassword,
       });
       if (error) throw new Error(error.message);
-      toast.success("Password changed");
+      toast.success(t("passwordChanged"));
       reset();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to change password",
+        err instanceof Error ? err.message : t("changePasswordFailed"),
       );
     } finally {
       setSaving(false);
@@ -59,7 +63,7 @@ export function PasswordForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label htmlFor="currentPassword" className="text-sm font-medium">
-          Current Password
+          {t("currentPassword")}
         </label>
         <Input
           id="currentPassword"
@@ -75,7 +79,7 @@ export function PasswordForm() {
 
       <div className="flex flex-col gap-2">
         <label htmlFor="newPassword" className="text-sm font-medium">
-          New Password
+          {t("newPassword")}
         </label>
         <Input id="newPassword" type="password" {...register("newPassword")} />
         {errors.newPassword && (
@@ -87,7 +91,7 @@ export function PasswordForm() {
 
       <div className="flex flex-col gap-2">
         <label htmlFor="confirmPassword" className="text-sm font-medium">
-          Confirm New Password
+          {t("confirmPassword")}
         </label>
         <Input
           id="confirmPassword"
@@ -103,7 +107,7 @@ export function PasswordForm() {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={saving}>
-          {saving ? "Changing..." : "Change Password"}
+          {saving ? t("changing") : t("changeBtn")}
         </Button>
       </div>
     </form>

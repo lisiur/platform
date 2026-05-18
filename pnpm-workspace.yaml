@@ -1,6 +1,14 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  prisma: true
+  sharp: true
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver

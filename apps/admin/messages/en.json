@@ -119,21 +119,30 @@
     "next": "Next",
     "roles": {
       "admin": "Admin",
-      "member": "Member"
+      "manager": "Manager",
+      "user": "User"
     }
   },
   "Settings": {
     "title": "System Settings",
     "description": "Manage your application configuration",
+    "tabs": {
+      "general": "General",
+      "auth": "Authentication",
+      "smtp": "Email (SMTP)"
+    },
     "save": "Save Changes",
     "saving": "Saving...",
     "saveSuccess": "Settings saved successfully",
     "saveFailed": "Failed to save settings",
-    "loadFailed": "Failed to load settings"
+    "loadFailed": "Failed to load settings",
+    "enable": "Enable",
+    "jsonPlaceholder": "Enter JSON"
   },
   "Sidebar": {
     "dashboard": "Dashboard",
     "users": "Users",
+    "roles": "Roles",
     "organizations": "Organizations",
     "profile": "Profile",
     "settings": "Settings"
@@ -168,5 +177,88 @@
     "of": "of",
     "previous": "Previous",
     "next": "Next"
+  },
+  "Profile": {
+    "title": "Profile",
+    "description": "Manage your account settings",
+    "avatar": "Avatar",
+    "personalInfo": "Personal Information",
+    "email": "Email",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "name": "Name",
+    "save": "Save",
+    "saving": "Saving...",
+    "changeBtn": "Change Password",
+    "changing": "Changing...",
+    "chooseFile": "Choose File",
+    "uploading": "Uploading...",
+    "cancel": "Cancel",
+    "avatarHint": "JPEG, PNG, GIF or WebP. Max 5MB.",
+    "profileUpdated": "Profile updated",
+    "passwordChanged": "Password changed",
+    "avatarUpdated": "Avatar updated",
+    "updateFailed": "Update failed",
+    "changePasswordFailed": "Failed to change password",
+    "uploadFailed": "Upload failed",
+    "fileTooLarge": "File too large. Maximum size is 5MB.",
+    "loadFailed": "Failed to load profile",
+    "validation": {
+      "nameRequired": "Name is required",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordMin": "New password must be at least 6 characters",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordsMismatch": "Passwords do not match"
+    }
+  },
+  "Roles": {
+    "title": "Role Management",
+    "description": "Manage system roles and permissions",
+    "name": "Role Name",
+    "description_label": "Description",
+    "permissions": "Permissions",
+    "userCount": "Users",
+    "actions": "Actions",
+    "viewDetails": "View Details",
+    "admin": "Administrator",
+    "admin_desc": "Full system access with all permissions",
+    "manager": "Manager",
+    "manager_desc": "Can manage users and view most resources",
+    "user": "User",
+    "user_desc": "Basic access with limited permissions",
+    "resource": "Resource",
+    "action": "Action",
+    "granted": "Granted",
+    "denied": "Denited"
+  },
+  "Remote": {
+    "settings": {
+      "fields": {
+        "siteName": "Site Name",
+        "siteUrl": "Site URL",
+        "siteDescription": "Site Description",
+        "enableRegistration": "Enable Registration",
+        "sessionMaxAge": "Session Max Age (days)",
+        "smtpHost": "SMTP Host",
+        "smtpPort": "SMTP Port",
+        "smtpUser": "SMTP Username",
+        "smtpPassword": "SMTP Password",
+        "fromEmail": "From Email"
+      },
+      "fieldsDesc": {
+        "siteName": "The name of your application",
+        "siteUrl": "The base URL of your application",
+        "siteDescription": "A brief description of your application",
+        "enableRegistration": "Allow new users to register",
+        "sessionMaxAge": "Maximum session duration in days",
+        "smtpHost": "SMTP server hostname",
+        "smtpPort": "SMTP server port",
+        "smtpUser": "SMTP authentication username",
+        "smtpPassword": "SMTP authentication password",
+        "fromEmail": "Email address used as sender"
+      }
+    }
   }
 }

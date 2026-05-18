@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export function AvatarUpload({
   name,
   onImageUpdate,
 }: AvatarUploadProps) {
+  const t = useTranslations("Profile");
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +30,7 @@ export function AvatarUpload({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 5MB.");
+      toast.error(t("fileTooLarge"));
       return;
     }
 
@@ -55,7 +57,7 @@ export function AvatarUpload({
 
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        throw new Error(err?.message ?? "Upload failed");
+        throw new Error(err?.message ?? t("uploadFailed"));
       }
 
       const data = await res.json();
@@ -68,11 +70,11 @@ export function AvatarUpload({
 
       onImageUpdate(imageUrl);
       setPreview(null);
-      toast.success("Avatar updated");
+      toast.success(t("avatarUpdated"));
 
       await authClient.getSession();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : t("uploadFailed"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -129,7 +131,7 @@ export function AvatarUpload({
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
-            Choose File
+            {t("chooseFile")}
           </Button>
           {preview && (
             <>
@@ -139,7 +141,7 @@ export function AvatarUpload({
                 onClick={handleUpload}
                 disabled={uploading}
               >
-                {uploading ? "Uploading..." : "Save"}
+                {uploading ? t("uploading") : t("save")}
               </Button>
               <Button
                 type="button"
@@ -148,14 +150,12 @@ export function AvatarUpload({
                 onClick={handleCancel}
                 disabled={uploading}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">
-          JPEG, PNG, GIF or WebP. Max 5MB.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("avatarHint")}</p>
       </div>
     </div>
   );

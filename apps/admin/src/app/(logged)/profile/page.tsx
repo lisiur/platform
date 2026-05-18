@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +10,7 @@ import { PasswordForm } from "./components/password-form";
 import { ProfileForm } from "./components/profile-form";
 
 export default function ProfilePage() {
+  const t = useTranslations("Profile");
   const [user, setUser] = useState<{
     id: string;
     name: string;
@@ -49,7 +51,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="container mx-auto py-8">
-        <p className="text-muted-foreground">Failed to load profile.</p>
+        <p className="text-muted-foreground">{t("loadFailed")}</p>
       </div>
     );
   }
@@ -57,14 +59,14 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings</p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
       <div className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Avatar</CardTitle>
+            <CardTitle>{t("avatar")}</CardTitle>
           </CardHeader>
           <CardContent>
             <AvatarUpload
@@ -77,12 +79,12 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle>{t("personalInfo")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-muted-foreground">
-                Email
+                {t("email")}
               </label>
               <p className="text-sm">{user.email}</p>
             </div>
@@ -96,7 +98,7 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Change Password</CardTitle>
+            <CardTitle>{t("changePassword")}</CardTitle>
           </CardHeader>
           <CardContent>
             <PasswordForm />

@@ -67,7 +67,7 @@ export function UserDialog({
       name: user?.name ?? "",
       email: user?.email ?? "",
       password: "",
-      role: user?.role ?? "member",
+      role: user?.role ?? "user",
     },
   });
 
@@ -90,7 +90,7 @@ export function UserDialog({
           name: data.name,
           email: data.email,
           password: data.password,
-          role: data.role as "admin" | "user",
+          role: data.role as "admin" | "manager" | "user",
         });
       }
       reset();
@@ -145,7 +145,7 @@ export function UserDialog({
           <div className="space-y-2">
             <Label htmlFor="role">{t("role")}</Label>
             <Select
-              value={watch("role") ?? "member"}
+              value={watch("role") ?? "user"}
               onValueChange={(value) => setValue("role", value ?? undefined)}
             >
               <SelectTrigger>
@@ -153,7 +153,8 @@ export function UserDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">{t("roles.admin")}</SelectItem>
-                <SelectItem value="member">{t("roles.member")}</SelectItem>
+                <SelectItem value="manager">{t("roles.manager")}</SelectItem>
+                <SelectItem value="user">{t("roles.user")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
