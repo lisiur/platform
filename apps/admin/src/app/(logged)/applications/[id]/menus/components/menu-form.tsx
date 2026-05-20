@@ -24,6 +24,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { IconPicker } from "@/components/ui/icon-picker";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { appClient } from "@/lib/api";
@@ -91,6 +92,7 @@ export function MenuForm({ menu, appId, onSaved, onDeleted }: MenuFormProps) {
 
   const isExternal = watch("isExternal");
   const isVisible = watch("isVisible");
+  const iconValue = watch("icon");
 
   async function onSubmit(data: MenuInput) {
     try {
@@ -178,9 +180,12 @@ export function MenuForm({ menu, appId, onSaved, onDeleted }: MenuFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <Field orientation="vertical">
-              <FieldLabel htmlFor="menu-icon">{t("icon")}</FieldLabel>
+              <FieldLabel>{t("icon")}</FieldLabel>
               <FieldContent>
-                <Input id="menu-icon" {...register("icon")} placeholder={t("iconPlaceholder")} />
+                <IconPicker
+                  value={iconValue || undefined}
+                  onChange={(val) => setValue("icon", val || "")}
+                />
                 <FieldDescription>{t("iconDescription")}</FieldDescription>
               </FieldContent>
             </Field>
