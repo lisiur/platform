@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { applicationRoutes } from "./application";
 import { authRoutes } from "./auth.routes";
 import { organizationRoutes } from "./organization";
 import { systemConfigRoutes } from "./system-config";
@@ -8,6 +9,7 @@ const routes = new OpenAPIHono()
   .route("/auth", authRoutes)
   .route("/system-config", systemConfigRoutes)
   .route("/organizations", organizationRoutes)
+  .route("/applications", applicationRoutes)
   .route("/upload", uploadRoutes);
 
 export { routes };
