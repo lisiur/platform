@@ -355,7 +355,7 @@ export function MenuTree({
     });
   }, []);
 
-  const handleAddChild = useCallback((menu: Menu) => {
+  const handleAddChild = useCallback((menu: Menu | null) => {
     setAddChildTarget(menu);
     setChildName("");
     setChildCode("");
@@ -366,7 +366,7 @@ export function MenuTree({
   }, []);
 
   const handleAddChildSubmit = useCallback(async () => {
-    if (!addChildTarget || !childName.trim() || !childCode.trim()) return;
+    if (!childName.trim() || !childCode.trim()) return;
     setAddingChild(true);
     try {
       await appClient.api.menu.$post({
@@ -374,11 +374,11 @@ export function MenuTree({
           name: childName.trim(),
           code: childCode.trim(),
           appId,
-          parentId: addChildTarget.id,
+          parentId: addChildTarget?.id,
         },
       });
       toast.success(t("addChildSuccess"));
-      setAddChildTarget(false as unknown as Menu);
+      setAddChildTarget(null);
       setChildName("");
       setChildCode("");
       fetchMenus();
@@ -582,7 +582,17 @@ export function MenuTree({
         onDragEnd={handleDragEnd}
       >
         <div className="rounded-md border p-1">
-          <div className="flex gap-1 px-1 pb-1">
+          <div className="flex items-center gap-1 px-1 pb-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs"
+              onClick={() => handleAddChild(null as unknown as Menu)}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              {t("createMenu")}
+            </Button>
+            <span className="text-muted-foreground">|</span>
             <button
               type="button"
               className="text-xs text-muted-foreground hover:text-foreground"
@@ -657,8 +667,14 @@ export function MenuTree({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("addChildTitle")}</DialogTitle>
-            <DialogDescription>{t("addChildDescription")}</DialogDescription>
+            <DialogTitle>
+              {addChildTarget ? t("addChildTitle") : t("createMenu")}
+            </DialogTitle>
+            <DialogDescription>
+              {addChildTarget
+                ? t("addChildDescription")
+                : t("createMenuDescription")}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Field orientation="vertical">

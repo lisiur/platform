@@ -306,6 +306,7 @@
     "reorderFailed": "菜单排序失败",
     "selectMenuToEdit": "选择一个菜单进行编辑",
     "createMenu": "创建菜单",
+    "createMenuDescription": "创建一个新的顶级菜单",
     "editMenu": "编辑菜单",
     "deleteMenu": "删除菜单",
     "name": "名称",
