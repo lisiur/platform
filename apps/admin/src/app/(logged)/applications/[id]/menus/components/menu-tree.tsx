@@ -290,6 +290,8 @@ export function MenuTree({
   const [deleteTarget, setDeleteTarget] = useState<Menu | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const menusRef = useRef<Menu[]>([]);
+
   const parentChangesRef = useRef<Map<string, string | null>>(new Map());
 
   const sensors = useSensors(
@@ -321,6 +323,10 @@ export function MenuTree({
   useEffect(() => {
     fetchMenus();
   }, [fetchMenus]);
+
+  useEffect(() => {
+    menusRef.current = menus;
+  }, [menus]);
 
   const treeData = useMemo(() => buildTree(menus), [menus]);
 
@@ -458,11 +464,7 @@ export function MenuTree({
       const draggedId = String(active.id);
       const overId = String(over.id);
 
-      let latestMenus: Menu[] = [];
-      setMenus((prev) => {
-        latestMenus = prev;
-        return prev;
-      });
+      const latestMenus = menusRef.current;
 
       const overParentId =
         latestMenus.find((m) => m.id === overId)?.parentId ?? null;
