@@ -338,7 +338,8 @@
     "noData": "No data",
     "createSuccess": "Menu created successfully",
     "updateSuccess": "Menu updated successfully",
-    "deleteSuccess": "Menu deleted successfully"
+    "deleteSuccess": "Menu deleted successfully",
+    "backToApps": "Back to Applications"
   },
   "RoleMenus": {
     "title": "Role Menu Assignment",
@@ -352,6 +353,7 @@
     "saveError": "Failed to save assignment. Please retry.",
     "noMenus": "No menus available. Create menus in the menu management page first",
     "expandAll": "Expand All",
-    "collapseAll": "Collapse All"
+    "collapseAll": "Collapse All",
+    "backToRoles": "Back to Roles"
   }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { use, useCallback, useState } from "react";
 import { MenuForm } from "./components/menu-form";
@@ -44,6 +46,13 @@ export default function MenusPage({ params }: MenusPageProps) {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
+        <Link
+          href="/applications"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("backToApps")}
+        </Link>
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground">{t("description")}</p>
       </div>

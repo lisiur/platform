@@ -1,6 +1,7 @@
 "use client";
 
-import { Layers } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { use, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -121,6 +122,13 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
   return (
     <div className="container mx-auto py-8">
       <div className="mb-8">
+        <Link
+          href="/roles"
+          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t("backToRoles")}
+        </Link>
         <h1 className="text-2xl font-bold">
           {t("title")} — {roleNames[roleId] ?? roleId}
         </h1>

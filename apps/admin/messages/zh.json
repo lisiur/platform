@@ -338,7 +338,8 @@
     "noData": "暂无数据",
     "createSuccess": "菜单创建成功",
     "updateSuccess": "菜单更新成功",
-    "deleteSuccess": "菜单删除成功"
+    "deleteSuccess": "菜单删除成功",
+    "backToApps": "返回应用列表"
   },
   "RoleMenus": {
     "title": "角色菜单分配",
@@ -352,6 +353,7 @@
     "saveError": "保存失败，请重试",
     "noMenus": "暂无菜单，请先在菜单管理页面创建菜单",
     "expandAll": "展开全部",
-    "collapseAll": "收起全部"
+    "collapseAll": "收起全部",
+    "backToRoles": "返回角色列表"
   }
 }
