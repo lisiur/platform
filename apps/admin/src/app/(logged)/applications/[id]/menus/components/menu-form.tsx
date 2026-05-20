@@ -25,6 +25,7 @@ const menuSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().min(1, "Code is required"),
   icon: z.string().optional().or(z.literal("")),
+  url: z.string().optional().or(z.literal("")),
   isExternal: z.boolean(),
   isVisible: z.boolean(),
 });
@@ -65,6 +66,7 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
       name: menu.name,
       code: menu.code,
       icon: menu.icon ?? "",
+      url: menu.url ?? "",
       isExternal: menu.isExternal,
       isVisible: menu.isVisible,
     },
@@ -75,6 +77,7 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
       name: menu.name,
       code: menu.code,
       icon: menu.icon ?? "",
+      url: menu.url ?? "",
       isExternal: menu.isExternal,
       isVisible: menu.isVisible,
     });
@@ -92,6 +95,7 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
           name: data.name,
           code: data.code,
           icon: data.icon || null,
+          url: data.url || null,
           isExternal: data.isExternal,
           isVisible: data.isVisible,
         },
@@ -135,6 +139,17 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
               onChange={(val) => setValue("icon", val || "")}
             />
             <FieldDescription>{t("iconDescription")}</FieldDescription>
+          </FieldContent>
+        </Field>
+
+        <Field orientation="vertical">
+          <FieldLabel htmlFor="menu-url">{t("url")}</FieldLabel>
+          <FieldContent>
+            <Input
+              id="menu-url"
+              {...register("url")}
+              placeholder={t("urlPlaceholder")}
+            />
           </FieldContent>
         </Field>
 
