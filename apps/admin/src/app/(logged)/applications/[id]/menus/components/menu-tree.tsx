@@ -329,19 +329,26 @@ export function MenuTree({ appId, selectedMenuId, onSelectMenu }: MenuTreeProps)
 
       if (!over || active.id === over.id) return;
 
-      const activeId = String(active.id);
+      const draggedId = String(active.id);
       const overId = String(over.id);
 
-      // Find the parent of the over item
-      const overParentId = findParentId(overId, treeData);
+      // Use functional form to get the latest menus state (handleDragOver may have updated it)
+      let latestMenus: Menu[] = [];
+      setMenus((prev) => {
+        latestMenus = prev;
+        return prev; // Don't modify yet
+      });
+
+      // Find the parent of the over item from latest state
+      const overParentId = latestMenus.find((m) => m.id === overId)?.parentId ?? null;
 
       // Get all siblings under the same parent
-      const siblings = menus.filter(
+      const siblings = latestMenus.filter(
         (m) => (m.parentId ?? null) === overParentId,
       );
 
       // Find current and target indices
-      const activeIndex = siblings.findIndex((m) => m.id === activeId);
+      const activeIndex = siblings.findIndex((m) => m.id === draggedId);
       const overIndex = siblings.findIndex((m) => m.id === overId);
 
       if (activeIndex === -1 || overIndex === -1) return;
@@ -361,20 +368,35 @@ export function MenuTree({ appId, selectedMenuId, onSelectMenu }: MenuTreeProps)
         return updated;
       });
 
-      // Build reorder payload — include all menus that changed parent or position
-      const reorderItems = menus.map((m, idx) => ({
-        id: m.id,
-        parentId: m.parentId ?? null,
-        sortOrder: m.id === activeId
-          ? overIndex
-          : m.sortOrder,
-      }));
+      // Build reorder payload with all items that changed
+      const changed = reordered
+        .map((item, idx) => {
+          const original = latestMenus.find((m) => m.id === item.id);
+          if (!original) return null;
+          const newParentId = original.parentId ?? null;
+          const newSortOrder = idx;
+          if (original.parentId !== newParentId || original.sortOrder !== newSortOrder) {
+            return { id: item.id, parentId: newParentId, sortOrder: newSortOrder };
+          }
+          return null;
+        })
+        .filter(Boolean) as { id: string; parentId: string | null; sortOrder: number }[];
 
-      // Only send items that actually changed
-      const changed = reorderItems.filter((item) => {
-        const original = menus.find((m) => m.id === item.id);
-        return original && (original.parentId !== item.parentId || original.sortOrder !== item.sortOrder);
-      });
+      // Also include items that changed parentId but weren't in the reorder group
+      for (const item of latestMenus) {
+        if (item.id === draggedId) continue;
+        const inChanged = changed.some((c) => c.id === item.id);
+        if (!inChanged) {
+          const original = latestMenus.find((m) => m.id === item.id);
+          if (original && original.parentId !== item.parentId) {
+            changed.push({
+              id: item.id,
+              parentId: item.parentId ?? null,
+              sortOrder: item.sortOrder,
+            });
+          }
+        }
+      }
 
       if (changed.length === 0) return;
 
@@ -394,7 +416,7 @@ export function MenuTree({ appId, selectedMenuId, onSelectMenu }: MenuTreeProps)
         fetchMenus();
       }
     },
-    [menus, treeData, findParentId, t, fetchMenus],
+    [t, fetchMenus],
   );
 
   const activeMenu = activeId ? menus.find((m) => m.id === activeId) : null;
