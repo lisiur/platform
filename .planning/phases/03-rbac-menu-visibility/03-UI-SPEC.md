@@ -1,7 +1,7 @@
 ---
 phase: 3
 slug: rbac-menu-visibility
-status: draft
+status: approved
 shadcn_initialized: true
 preset: b2fA (nova, neutral base)
 created: 2026-05-20
@@ -62,11 +62,11 @@ System font stack, no custom font loading. Derived from shadcn defaults + global
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (`text-sm`) | 400 (regular) | 1.5 | Tree item labels, form descriptions |
-| Label | 14px (`text-sm`) | 500 (medium) | 1.5 | Form labels, role selector label |
+| Label | 14px (`text-sm`) | 600 (semibold) | 1.5 | Form labels, role selector label |
 | Heading | 20px (`text-xl`) | 600 (semibold) | 1.2 | Page title ("角色菜单分配") |
-| Display | 28px (`text-2xl`) | 700 (bold) | 1.2 | Section headings (if used) |
+| Display | 28px (`text-2xl`) | 600 (semibold) | 1.2 | Section headings (if used) |
 
-**Font weight constraint:** Use exactly 2 weights: regular (400) + semibold (600). Use `font-medium` (500) only for labels and badges.
+**Font weight constraint:** Use exactly 2 weights: regular (400) + semibold (600). Labels and headings use semibold; body text uses regular.
 
 ---
 
@@ -261,11 +261,11 @@ Components to build (new in Phase 3):
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [ ] Dimension 2 Visuals: FLAG (non-blocking — add focal point declaration)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-05-20
