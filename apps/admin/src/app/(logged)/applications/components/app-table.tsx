@@ -1,7 +1,8 @@
 "use client";
 
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, TreePine } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -169,6 +170,13 @@ export function AppTable() {
                     {new Date(app.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      render={<Link href={`/applications/${app.id}/menus`} />}
+                    >
+                      <TreePine className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
