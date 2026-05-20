@@ -58,6 +58,7 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    reset,
     watch,
     setValue,
   } = useForm<MenuInput>({
