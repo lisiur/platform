@@ -285,6 +285,7 @@ export function MenuTree({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const [addChildTarget, setAddChildTarget] = useState<Menu | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [childName, setChildName] = useState("");
   const [childCode, setChildCode] = useState("");
   const [addingChild, setAddingChild] = useState(false);
@@ -359,6 +360,7 @@ export function MenuTree({
     setAddChildTarget(menu);
     setChildName("");
     setChildCode("");
+    setShowAddDialog(true);
   }, []);
 
   const handleDelete = useCallback((menu: Menu) => {
@@ -378,6 +380,7 @@ export function MenuTree({
         },
       });
       toast.success(t("addChildSuccess"));
+      setShowAddDialog(false);
       setAddChildTarget(null);
       setChildName("");
       setChildCode("");
@@ -662,8 +665,13 @@ export function MenuTree({
 
       {/* Add Child Dialog */}
       <Dialog
-        open={!!addChildTarget}
-        onOpenChange={(open) => !open && setAddChildTarget(null)}
+        open={showAddDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddDialog(false);
+            setAddChildTarget(null);
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
