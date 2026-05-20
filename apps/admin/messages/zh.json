@@ -300,8 +300,31 @@
     }
   },
   "Menus": {
+    "title": "菜单管理",
+    "description": "管理应用的菜单结构",
     "fetchFailed": "获取菜单失败",
-    "reorderFailed": "菜单排序失败"
+    "reorderFailed": "菜单排序失败",
+    "selectMenuToEdit": "选择一个菜单进行编辑",
+    "createMenu": "创建菜单",
+    "editMenu": "编辑菜单",
+    "deleteMenu": "删除菜单",
+    "menuName": "菜单名称",
+    "menuCode": "菜单编码",
+    "menuIcon": "图标",
+    "menuUrl": "链接地址",
+    "sortOrder": "排序",
+    "isVisible": "可见",
+    "isExternal": "外部链接",
+    "parentMenu": "父级菜单",
+    "noParent": "无（顶级菜单）",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "菜单已保存",
+    "deleteConfirm": "确定要删除这个菜单吗？子菜单也会被删除。",
+    "deleted": "菜单已删除",
+    "createSuccess": "菜单创建成功",
+    "updateSuccess": "菜单更新成功",
+    "deleteSuccess": "菜单删除成功"
   },
   "RoleMenus": {
     "title": "角色菜单分配",

@@ -300,8 +300,31 @@
     }
   },
   "Menus": {
+    "title": "Menu Management",
+    "description": "Manage the menu structure of an application",
     "fetchFailed": "Failed to fetch menus",
-    "reorderFailed": "Failed to reorder menus"
+    "reorderFailed": "Failed to reorder menus",
+    "selectMenuToEdit": "Select a menu to edit",
+    "createMenu": "Create Menu",
+    "editMenu": "Edit Menu",
+    "deleteMenu": "Delete Menu",
+    "menuName": "Menu Name",
+    "menuCode": "Menu Code",
+    "menuIcon": "Icon",
+    "menuUrl": "URL",
+    "sortOrder": "Sort Order",
+    "isVisible": "Visible",
+    "isExternal": "External Link",
+    "parentMenu": "Parent Menu",
+    "noParent": "None (Top Level)",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Menu saved successfully",
+    "deleteConfirm": "Are you sure you want to delete this menu? Child menus will also be deleted.",
+    "deleted": "Menu deleted",
+    "createSuccess": "Menu created successfully",
+    "updateSuccess": "Menu updated successfully",
+    "deleteSuccess": "Menu deleted successfully"
   },
   "RoleMenus": {
     "title": "Role Menu Assignment",
