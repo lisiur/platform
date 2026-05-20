@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
+import { useEffect, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,18 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
       isVisible: menu.isVisible,
     },
   });
+
+  useEffect(() => {
+    reset({
+      name: menu.name,
+      code: menu.code,
+      icon: menu.icon ?? "",
+      url: menu.url ?? "",
+      sortOrder: menu.sortOrder,
+      isExternal: menu.isExternal,
+      isVisible: menu.isVisible,
+    });
+  }, [menu, reset]);
 
   const isExternal = watch("isExternal");
   const isVisible = watch("isVisible");
