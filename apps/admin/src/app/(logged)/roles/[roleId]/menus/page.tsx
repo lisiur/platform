@@ -55,8 +55,8 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
     async (appId: string) => {
       setLoading(true);
       try {
-        const res = await appClient.api.applications[":appId"].menu.$get({
-          param: { appId },
+        const res = await appClient.api.menu.$get({
+          query: { appId },
         });
         if (res.ok) {
           const data = await res.json();
