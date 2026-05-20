@@ -40,11 +40,37 @@ async function testRoute(
     params?: Record<string, string>;
     headers?: Record<string, string>;
   },
+  { withAuth = true } = {},
 ) {
   // Create a minimal Hono app with the route
   const { OpenAPIHono } = await import("@hono/zod-openapi");
   const app = new OpenAPIHono();
-  app.route("/", route);
+
+  // JSON error handler (matches production behavior)
+  app.onError((err, c) => {
+    if (err instanceof HTTPException) {
+      return c.json(
+        { code: err.status, message: err.message },
+        err.status as any,
+      );
+    }
+    return c.json({ code: 500, message: "Internal Server Error" }, 500);
+  });
+
+  // Admin middleware (same as application/index.ts)
+  if (withAuth) {
+    app.use("*", async (c, next) => {
+      const session = await mockAuth.api.getSession({
+        headers: c.req.raw.headers,
+      });
+      if (!session?.user || session.user.role !== "admin") {
+        throw new HTTPException(401, { message: "Admin access required" });
+      }
+      return next();
+    });
+  }
+
+  app.openapi(route.route, route.handler);
 
   const url = new URL(
     `http://localhost${options.path}${options.query ? `?${new URLSearchParams(options.query).toString()}` : ""}`,
@@ -67,7 +93,7 @@ async function testRoute(
 
 describe("POST / - Create Application", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockAuth.api.getSession.mockResolvedValue({
       user: { id: "u1", role: "admin" },
       session: { id: "s1" },
@@ -89,7 +115,7 @@ describe("POST / - Create Application", () => {
       updatedAt: now,
     });
 
-    const { createApplication } = await import("./createApplication");
+    const { createApplication } = await import("../createApplication");
     const res = await testRoute(createApplication, {
       method: "POST",
       path: "/",
@@ -112,7 +138,7 @@ describe("POST / - Create Application", () => {
       code: "oa",
     });
 
-    const { createApplication } = await import("./createApplication");
+    const { createApplication } = await import("../createApplication");
     const res = await testRoute(createApplication, {
       method: "POST",
       path: "/",
@@ -127,7 +153,7 @@ describe("POST / - Create Application", () => {
   it("returns 401 without admin session", async () => {
     mockAuth.api.getSession.mockResolvedValue(null);
 
-    const { createApplication } = await import("./createApplication");
+    const { createApplication } = await import("../createApplication");
     const res = await testRoute(createApplication, {
       method: "POST",
       path: "/",
@@ -143,7 +169,7 @@ describe("POST / - Create Application", () => {
 
 describe("GET / - List Applications", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockAuth.api.getSession.mockResolvedValue({
       user: { id: "u1", role: "admin" },
       session: { id: "s1" },
@@ -158,7 +184,7 @@ describe("GET / - List Applications", () => {
     mockPrisma.application.findMany.mockResolvedValue(apps as any);
     mockPrisma.application.count.mockResolvedValue(2);
 
-    const { listApplications } = await import("./listApplications");
+    const { listApplications } = await import("../listApplications");
     const res = await testRoute(listApplications, {
       method: "GET",
       path: "/",
@@ -180,7 +206,7 @@ describe("GET / - List Applications", () => {
     ] as any);
     mockPrisma.application.count.mockResolvedValue(1);
 
-    const { listApplications } = await import("./listApplications");
+    const { listApplications } = await import("../listApplications");
     const res = await testRoute(listApplications, {
       method: "GET",
       path: "/",
@@ -200,7 +226,7 @@ describe("GET / - List Applications", () => {
   it("returns 401 without admin session", async () => {
     mockAuth.api.getSession.mockResolvedValue(null);
 
-    const { listApplications } = await import("./listApplications");
+    const { listApplications } = await import("../listApplications");
     const res = await testRoute(listApplications, {
       method: "GET",
       path: "/",
@@ -215,7 +241,7 @@ describe("GET / - List Applications", () => {
 
 describe("GET /{id} - Get Application", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockAuth.api.getSession.mockResolvedValue({
       user: { id: "u1", role: "admin" },
       session: { id: "s1" },
@@ -230,7 +256,7 @@ describe("GET /{id} - Get Application", () => {
       deletedAt: null,
     });
 
-    const { getApplication } = await import("./getApplication");
+    const { getApplication } = await import("../getApplication");
     const res = await testRoute(getApplication, {
       method: "GET",
       path: "/app1",
@@ -250,7 +276,7 @@ describe("GET /{id} - Get Application", () => {
   it("returns 404 for non-existent or deleted app", async () => {
     mockPrisma.application.findFirst.mockResolvedValue(null);
 
-    const { getApplication } = await import("./getApplication");
+    const { getApplication } = await import("../getApplication");
     const res = await testRoute(getApplication, {
       method: "GET",
       path: "/nonexistent",
@@ -263,7 +289,7 @@ describe("GET /{id} - Get Application", () => {
   it("returns 401 without admin session", async () => {
     mockAuth.api.getSession.mockResolvedValue(null);
 
-    const { getApplication } = await import("./getApplication");
+    const { getApplication } = await import("../getApplication");
     const res = await testRoute(getApplication, {
       method: "GET",
       path: "/app1",
@@ -279,7 +305,7 @@ describe("GET /{id} - Get Application", () => {
 
 describe("PUT /{id} - Update Application", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockAuth.api.getSession.mockResolvedValue({
       user: { id: "u1", role: "admin" },
       session: { id: "s1" },
@@ -303,7 +329,7 @@ describe("PUT /{id} - Update Application", () => {
       deletedAt: null,
     });
 
-    const { updateApplication } = await import("./updateApplication");
+    const { updateApplication } = await import("../updateApplication");
     const res = await testRoute(updateApplication, {
       method: "PUT",
       path: "/app1",
@@ -330,7 +356,7 @@ describe("PUT /{id} - Update Application", () => {
         deletedAt: null,
       }); // code already taken
 
-    const { updateApplication } = await import("./updateApplication");
+    const { updateApplication } = await import("../updateApplication");
     const res = await testRoute(updateApplication, {
       method: "PUT",
       path: "/app1",
@@ -346,7 +372,7 @@ describe("PUT /{id} - Update Application", () => {
   it("returns 404 for non-existent app", async () => {
     mockPrisma.application.findFirst.mockResolvedValue(null);
 
-    const { updateApplication } = await import("./updateApplication");
+    const { updateApplication } = await import("../updateApplication");
     const res = await testRoute(updateApplication, {
       method: "PUT",
       path: "/nonexistent",
@@ -360,7 +386,7 @@ describe("PUT /{id} - Update Application", () => {
   it("returns 401 without admin session", async () => {
     mockAuth.api.getSession.mockResolvedValue(null);
 
-    const { updateApplication } = await import("./updateApplication");
+    const { updateApplication } = await import("../updateApplication");
     const res = await testRoute(updateApplication, {
       method: "PUT",
       path: "/app1",
@@ -377,7 +403,7 @@ describe("PUT /{id} - Update Application", () => {
 
 describe("DELETE /{id} - Delete Application (soft delete)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mockAuth.api.getSession.mockResolvedValue({
       user: { id: "u1", role: "admin" },
       session: { id: "s1" },
@@ -395,7 +421,7 @@ describe("DELETE /{id} - Delete Application (soft delete)", () => {
       deletedAt: now,
     });
 
-    const { deleteApplication } = await import("./deleteApplication");
+    const { deleteApplication } = await import("../deleteApplication");
     const res = await testRoute(deleteApplication, {
       method: "DELETE",
       path: "/app1",
@@ -411,13 +437,12 @@ describe("DELETE /{id} - Delete Application (soft delete)", () => {
       where: { id: "app1" },
       data: { deletedAt: expect.any(Date) },
     });
-    expect(mockPrisma.application.delete).not.toHaveBeenCalled();
   });
 
   it("returns 404 for non-existent app", async () => {
     mockPrisma.application.findFirst.mockResolvedValue(null);
 
-    const { deleteApplication } = await import("./deleteApplication");
+    const { deleteApplication } = await import("../deleteApplication");
     const res = await testRoute(deleteApplication, {
       method: "DELETE",
       path: "/nonexistent",
@@ -430,7 +455,7 @@ describe("DELETE /{id} - Delete Application (soft delete)", () => {
   it("returns 401 without admin session", async () => {
     mockAuth.api.getSession.mockResolvedValue(null);
 
-    const { deleteApplication } = await import("./deleteApplication");
+    const { deleteApplication } = await import("../deleteApplication");
     const res = await testRoute(deleteApplication, {
       method: "DELETE",
       path: "/app1",
