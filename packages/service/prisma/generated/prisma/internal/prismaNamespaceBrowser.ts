@@ -59,7 +59,10 @@ export const ModelName = {
   Member: 'Member',
   Invitation: 'Invitation',
   SystemConfig: 'SystemConfig',
-  Upload: 'Upload'
+  Upload: 'Upload',
+  Application: 'Application',
+  Menu: 'Menu',
+  MenuRole: 'MenuRole'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -207,6 +210,49 @@ export const UploadScalarFieldEnum = {
 } as const
 
 export type UploadScalarFieldEnum = (typeof UploadScalarFieldEnum)[keyof typeof UploadScalarFieldEnum]
+
+
+export const ApplicationScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  logo: 'logo',
+  sortOrder: 'sortOrder',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
+
+
+export const MenuScalarFieldEnum = {
+  id: 'id',
+  appId: 'appId',
+  parentId: 'parentId',
+  name: 'name',
+  code: 'code',
+  icon: 'icon',
+  url: 'url',
+  sortOrder: 'sortOrder',
+  isExternal: 'isExternal',
+  isVisible: 'isVisible',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MenuScalarFieldEnum = (typeof MenuScalarFieldEnum)[keyof typeof MenuScalarFieldEnum]
+
+
+export const MenuRoleScalarFieldEnum = {
+  id: 'id',
+  menuId: 'menuId',
+  roleId: 'roleId',
+  createdAt: 'createdAt'
+} as const
+
+export type MenuRoleScalarFieldEnum = (typeof MenuRoleScalarFieldEnum)[keyof typeof MenuRoleScalarFieldEnum]
 
 
 export const SortOrder = {

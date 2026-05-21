@@ -1,11 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "../../lib/db";
-import {
-  createMenuBodySchema,
-  errorSchema,
-  menuSchema,
-} from "./schema";
+import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({
   route: createRoute({

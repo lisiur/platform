@@ -1,10 +1,9 @@
 "use client";
 
-import { use } from "react";
-import { Folder, Settings, ArrowLeft } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { ArrowLeft, Settings } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { use, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -24,7 +23,9 @@ interface ApplicationDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function ApplicationDetailPage({ params }: ApplicationDetailPageProps) {
+export default function ApplicationDetailPage({
+  params,
+}: ApplicationDetailPageProps) {
   const t = useTranslations("Applications");
   const { id } = use(params);
   const [app, setApp] = useState<Application | null>(null);
@@ -33,7 +34,9 @@ export default function ApplicationDetailPage({ params }: ApplicationDetailPageP
   const fetchApp = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api.applications[":id"].$get({ param: { id } });
+      const res = await appClient.api.applications[":id"].$get({
+        param: { id },
+      });
       if (res.ok) {
         setApp(await res.json());
       } else {

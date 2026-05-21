@@ -60,9 +60,5 @@ export const listApplicationsResponseSchema = z
   .openapi("ListApplicationsResponse");
 
 export type Application = z.infer<typeof applicationSchema>;
-export type CreateApplicationBody = z.infer<
-  typeof createApplicationBodySchema
->;
-export type UpdateApplicationBody = z.infer<
-  typeof updateApplicationBodySchema
->;
+export type CreateApplicationBody = z.infer<typeof createApplicationBodySchema>;
+export type UpdateApplicationBody = z.infer<typeof updateApplicationBodySchema>;

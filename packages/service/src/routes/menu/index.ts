@@ -18,8 +18,13 @@ menuRoutes.use("*", async (c, next) => {
   return next();
 });
 
-const routes = menuRoutes.openapiRoutes(
-  [listMenus, getMenu, createMenu, updateMenu, deleteMenu, reorderMenus] as const,
-);
+const routes = menuRoutes.openapiRoutes([
+  listMenus,
+  getMenu,
+  createMenu,
+  updateMenu,
+  deleteMenu,
+  reorderMenus,
+] as const);
 
 export { routes as menuRoutes };

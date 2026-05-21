@@ -1,11 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "../../lib/db";
-import {
-  deleteSuccessSchema,
-  errorSchema,
-  menuIdParamSchema,
-} from "./schema";
+import { deleteSuccessSchema, errorSchema, menuIdParamSchema } from "./schema";
 
 export const deleteMenu = defineOpenAPIRoute({
   route: createRoute({

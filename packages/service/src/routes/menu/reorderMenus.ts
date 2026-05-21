@@ -1,5 +1,4 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { z } from "@hono/zod-openapi";
+import { createRoute, defineOpenAPIRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "../../lib/db";
 import { errorSchema, menuSchema } from "./schema";

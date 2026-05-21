@@ -2,9 +2,9 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "../../lib/db";
 import {
+  applicationSchema,
   createApplicationBodySchema,
   errorSchema,
-  applicationSchema,
 } from "./schema";
 
 export const createApplication = defineOpenAPIRoute({

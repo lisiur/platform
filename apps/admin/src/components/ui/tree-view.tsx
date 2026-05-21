@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { ChevronRight } from 'lucide-react';
-import { useState, useCallback, useMemo } from 'react';
-import { cn } from '@/utils/cn';
+import { ChevronRight } from "lucide-react";
+import { useCallback, useState } from "react";
+import { cn } from "@/utils/cn";
 
 export interface TreeNode {
   id: string;
@@ -46,8 +46,8 @@ function TreeNodeItem({
       <button
         type="button"
         className={cn(
-          'flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
-          isSelected && 'bg-accent font-medium text-accent-foreground',
+          "flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+          isSelected && "bg-accent font-medium text-accent-foreground",
         )}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
         onClick={() => {
@@ -60,8 +60,8 @@ function TreeNodeItem({
         {hasChildren ? (
           <ChevronRight
             className={cn(
-              'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-              isExpanded && 'rotate-90',
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              isExpanded && "rotate-90",
             )}
           />
         ) : (
@@ -72,7 +72,7 @@ function TreeNodeItem({
       </button>
       {hasChildren && isExpanded && (
         <div>
-          {node.children!.map((child) => (
+          {node.children?.map((child) => (
             <TreeNodeItem
               key={child.id}
               node={child}
@@ -131,7 +131,7 @@ export function TreeView({
   }, []);
 
   return (
-    <div className={cn('rounded-md border p-1', className)}>
+    <div className={cn("rounded-md border p-1", className)}>
       <div className="flex gap-1 px-1 pb-1">
         <button
           type="button"

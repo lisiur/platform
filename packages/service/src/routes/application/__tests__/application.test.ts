@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { HTTPException } from "hono/http-exception";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock prisma
 vi.mock("../../../lib/db", () => ({
@@ -23,8 +23,8 @@ vi.mock("../../../lib/auth", () => ({
   },
 }));
 
-import { prisma } from "../../../lib/db";
 import { auth } from "../../../lib/auth";
+import { prisma } from "../../../lib/db";
 
 const mockPrisma = vi.mocked(prisma);
 const mockAuth = vi.mocked(auth);

@@ -17,9 +17,10 @@ adminRoutes.use("*", async (c, next) => {
 
 const publicRoutes = new OpenAPIHono();
 
-const adminPart = adminRoutes.openapiRoutes(
-  [batchAssignMenus, getRoleMenus] as const,
-);
+const adminPart = adminRoutes.openapiRoutes([
+  batchAssignMenus,
+  getRoleMenus,
+] as const);
 
 const publicPart = publicRoutes.openapiRoutes([getMine] as const);
 

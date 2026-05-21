@@ -12,7 +12,8 @@ export const listApplications = defineOpenAPIRoute({
     path: "/",
     tags: ["Application"],
     summary: "List all applications",
-    description: "Returns a paginated list of applications with optional search.",
+    description:
+      "Returns a paginated list of applications with optional search.",
     request: {
       query: listApplicationsQuerySchema,
     },

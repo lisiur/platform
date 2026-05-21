@@ -44,8 +44,8 @@ export default function MenusPage({ params }: MenusPageProps) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 py-8">
+    <div className="flex h-full flex-col py-8 gap-4">
+      <div className="shrink-0">
         <div className="container mx-auto">
           <Link
             href="/applications"
@@ -58,9 +58,9 @@ export default function MenusPage({ params }: MenusPageProps) {
           <p className="text-muted-foreground">{t("description")}</p>
         </div>
       </div>
-      <div className="container mx-auto flex min-h-0 flex-1 gap-6">
+      <div className="container mx-auto flex flex-1 gap-6">
         {/* Left panel — Tree navigation */}
-        <div className="w-80 shrink-0 overflow-auto rounded-md border py-2">
+        <div className="w-80 h-full overflow-auto rounded-md border p-2">
           <MenuTree
             appId={id}
             selectedMenuId={selectedMenu?.id}

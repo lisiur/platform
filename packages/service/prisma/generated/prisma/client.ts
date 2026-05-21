@@ -86,3 +86,18 @@ export type SystemConfig = Prisma.SystemConfigModel
  * 
  */
 export type Upload = Prisma.UploadModel
+/**
+ * Model Application
+ * 
+ */
+export type Application = Prisma.ApplicationModel
+/**
+ * Model Menu
+ * 
+ */
+export type Menu = Prisma.MenuModel
+/**
+ * Model MenuRole
+ * 
+ */
+export type MenuRole = Prisma.MenuRoleModel
