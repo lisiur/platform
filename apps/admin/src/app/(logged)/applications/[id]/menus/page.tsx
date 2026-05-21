@@ -44,19 +44,21 @@ export default function MenusPage({ params }: MenusPageProps) {
   }, []);
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <Link
-          href="/applications"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("backToApps")}
-        </Link>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("description")}</p>
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 py-8">
+        <div className="container mx-auto">
+          <Link
+            href="/applications"
+            className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("backToApps")}
+          </Link>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("description")}</p>
+        </div>
       </div>
-      <div className="flex gap-6">
+      <div className="container mx-auto flex min-h-0 flex-1 gap-6 pb-8">
         {/* Left panel — Tree navigation */}
         <div className="w-80 shrink-0 overflow-auto rounded-md border">
           <MenuTree
