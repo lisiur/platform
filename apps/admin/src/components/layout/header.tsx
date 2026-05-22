@@ -3,10 +3,10 @@
 import { PanelLeftIcon } from "lucide-react";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { useAppName } from "@/hooks/use-app-name";
+import { useCurrentApp } from "@/hooks/use-current-app";
 
 export function Header({ className }: { className?: string }) {
-  const { appName } = useAppName();
+  const { app } = useCurrentApp();
 
   return (
     <header
@@ -21,7 +21,7 @@ export function Header({ className }: { className?: string }) {
           <PanelLeftIcon />
           <span className="sr-only">Toggle Sidebar</span>
         </button>
-        <span className="text-lg font-semibold">{appName}</span>
+        <span className="text-lg font-semibold">{app?.name ?? ""}</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <LocaleSwitcher />

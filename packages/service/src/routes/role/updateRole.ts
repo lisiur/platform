@@ -1,5 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { roleRepository } from "../../repositories/role.repository";
+import { requireAdmin } from "@/middleware/require-admin";
+import { roleRepository } from "@/repositories/role.repository";
 import {
   errorSchema,
   roleIdParamSchema,
@@ -13,6 +14,7 @@ export const updateRole = defineOpenAPIRoute({
     path: "/{id}",
     tags: ["Role"],
     summary: "Update a role",
+    middleware: requireAdmin,
     request: {
       params: roleIdParamSchema,
       body: {

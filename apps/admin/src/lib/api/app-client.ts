@@ -1,4 +1,8 @@
 import { hc } from "hono/client";
 import type { AppType } from "@/app/api/[[...route]]/route";
 
-export const appClient = hc<AppType>("");
+const APP_CODE = "admin";
+
+export const appClient = hc<AppType>("", {
+  headers: { "X-App-Code": APP_CODE },
+});

@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   errorSchema,
   menuIdParamSchema,
@@ -15,6 +16,7 @@ export const updateMenu = defineOpenAPIRoute({
     tags: ["Menu"],
     summary: "Update a menu",
     description: "Update a menu by ID.",
+    middleware: requireAdmin,
     request: {
       params: menuIdParamSchema,
       body: {

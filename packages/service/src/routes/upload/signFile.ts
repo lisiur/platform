@@ -1,8 +1,8 @@
 import { createHmac } from "node:crypto";
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { auth } from "../../lib/auth";
-import { prisma } from "../../lib/db";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import {
   errorSchema,
   signedUrlResponseSchema,

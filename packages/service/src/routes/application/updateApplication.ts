@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   applicationIdParamSchema,
   applicationSchema,
@@ -15,6 +16,7 @@ export const updateApplication = defineOpenAPIRoute({
     tags: ["Application"],
     summary: "Update an application",
     description: "Update an application by ID.",
+    middleware: requireAdmin,
     request: {
       params: applicationIdParamSchema,
       body: {

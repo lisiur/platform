@@ -1,5 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { menuRoleRepository } from "../../repositories/menu-role.repository";
+import { requireAdmin } from "@/middleware/require-admin";
+import { menuRoleRepository } from "@/repositories/menu-role.repository";
 import {
   batchAssignBodySchema,
   errorSchema,
@@ -26,6 +27,7 @@ export const batchAssignMenus = defineOpenAPIRoute({
     summary: "Batch assign menus to role",
     description:
       "Replaces all menu assignments for a role. Automatically includes descendant menus.",
+    middleware: requireAdmin,
     request: {
       body: {
         content: { "application/json": { schema: batchAssignBodySchema } },

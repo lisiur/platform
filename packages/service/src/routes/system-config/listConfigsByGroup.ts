@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "../../lib/config-cache";
-import { systemConfigRepository } from "../../repositories/system-config.repository";
+import { configCache } from "@/lib/config-cache";
+import { requireAdmin } from "@/middleware/require-admin";
+import { systemConfigRepository } from "@/repositories/system-config.repository";
 import {
   errorSchema,
   getConfigsByGroupParamSchema,
@@ -14,6 +15,7 @@ export const listConfigsByGroup = defineOpenAPIRoute({
     tags: ["SystemConfig"],
     summary: "List configurations by group",
     description: "Returns all system configurations for a specific group.",
+    middleware: requireAdmin,
     request: {
       params: getConfigsByGroupParamSchema,
     },

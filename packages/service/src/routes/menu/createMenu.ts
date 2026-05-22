@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({
@@ -11,6 +12,7 @@ export const createMenu = defineOpenAPIRoute({
     summary: "Create a menu",
     description:
       "Create a new menu item. If parentId is provided, the menu is nested under that parent.",
+    middleware: requireAdmin,
     request: {
       body: {
         content: {

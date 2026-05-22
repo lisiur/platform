@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "../../lib/config-cache";
-import { systemConfigRepository } from "../../repositories/system-config.repository";
+import { configCache } from "@/lib/config-cache";
+import { requireAdmin } from "@/middleware/require-admin";
+import { systemConfigRepository } from "@/repositories/system-config.repository";
 import {
   errorSchema,
   systemConfigItemSchema,
@@ -15,6 +16,7 @@ export const upsertConfig = defineOpenAPIRoute({
     tags: ["SystemConfig"],
     summary: "Upsert a configuration",
     description: "Create or update a system configuration item.",
+    middleware: requireAdmin,
     request: {
       params: upsertConfigParamSchema,
       body: {

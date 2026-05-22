@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import { deleteSuccessSchema, errorSchema, menuIdParamSchema } from "./schema";
 
 export const deleteMenu = defineOpenAPIRoute({
@@ -11,6 +12,7 @@ export const deleteMenu = defineOpenAPIRoute({
     summary: "Delete a menu",
     description:
       "Delete a menu by ID. All children are cascade-deleted via Prisma.",
+    middleware: requireAdmin,
     request: {
       params: menuIdParamSchema,
     },

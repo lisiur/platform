@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   errorSchema,
   organizationIdParamSchema,
@@ -14,6 +15,7 @@ export const getOrganization = defineOpenAPIRoute({
     tags: ["Organization"],
     summary: "Get an organization",
     description: "Returns a single organization by ID.",
+    middleware: requireAdmin,
     request: {
       params: organizationIdParamSchema,
     },

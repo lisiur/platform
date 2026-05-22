@@ -142,10 +142,12 @@ export function UserDialog({
 
   useEffect(() => {
     if (open) {
-      appClient.api.applications.$get({ query: { limit: 100, offset: 0 } }).then((res) => {
-        if (res.ok)
-          res.json().then((d) => setApplications(d.applications ?? []));
-      });
+      appClient.api.applications
+        .$get({ query: { limit: 100, offset: 0 } })
+        .then((res) => {
+          if (res.ok)
+            res.json().then((d) => setApplications(d.applications ?? []));
+        });
     }
   }, [open]);
 
@@ -270,7 +272,10 @@ export function UserDialog({
                 </div>
               )}
               <div className="flex gap-2">
-                <Select value={selectedAppId} onValueChange={(v) => setSelectedAppId(v ?? "")}>
+                <Select
+                  value={selectedAppId}
+                  onValueChange={(v) => setSelectedAppId(v ?? "")}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder={t("selectApp")} />
                   </SelectTrigger>

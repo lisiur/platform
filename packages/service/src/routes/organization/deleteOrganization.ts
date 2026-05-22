@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   deleteSuccessSchema,
   errorSchema,
@@ -15,6 +16,7 @@ export const deleteOrganization = defineOpenAPIRoute({
     summary: "Delete an organization",
     description:
       "Delete an organization by ID. Cascades to members and invitations.",
+    middleware: requireAdmin,
     request: {
       params: organizationIdParamSchema,
     },

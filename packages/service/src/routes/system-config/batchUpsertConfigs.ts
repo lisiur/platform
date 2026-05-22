@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "../../lib/config-cache";
-import { systemConfigRepository } from "../../repositories/system-config.repository";
+import { configCache } from "@/lib/config-cache";
+import { requireAdmin } from "@/middleware/require-admin";
+import { systemConfigRepository } from "@/repositories/system-config.repository";
 import {
   batchUpsertBodySchema,
   errorSchema,
@@ -15,6 +16,7 @@ export const batchUpsertConfigs = defineOpenAPIRoute({
     summary: "Batch upsert configurations",
     description:
       "Create or update multiple system configuration items at once.",
+    middleware: requireAdmin,
     request: {
       body: {
         content: {

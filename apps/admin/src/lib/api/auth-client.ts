@@ -6,9 +6,7 @@ import { toast } from "sonner";
 
 export const authClient = createAuthClient({
   basePath: "/api/auth",
-  plugins: [
-    adminClient(),
-  ],
+  plugins: [adminClient()],
   fetchOptions: {
     onError: async (ctx) => {
       const error = await ctx.response?.json().catch(() => null);

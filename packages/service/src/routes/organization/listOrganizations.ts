@@ -1,5 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   errorSchema,
   listOrganizationsQuerySchema,
@@ -13,6 +14,7 @@ export const listOrganizations = defineOpenAPIRoute({
     tags: ["Organization"],
     summary: "List all organizations",
     description: "Returns a paginated list of all organizations.",
+    middleware: requireAdmin,
     request: {
       query: listOrganizationsQuerySchema,
     },

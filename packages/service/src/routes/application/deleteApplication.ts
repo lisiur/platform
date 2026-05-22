@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   applicationIdParamSchema,
   deleteSuccessSchema,
@@ -14,6 +15,7 @@ export const deleteApplication = defineOpenAPIRoute({
     tags: ["Application"],
     summary: "Delete an application",
     description: "Soft-delete an application by ID.",
+    middleware: requireAdmin,
     request: {
       params: applicationIdParamSchema,
     },

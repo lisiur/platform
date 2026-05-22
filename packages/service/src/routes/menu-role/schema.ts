@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { menuSchema } from "../menu/schema";
+import { menuSchema } from "@/routes/menu/schema";
 
 export const batchAssignBodySchema = z.object({
   roleId: z.string().min(1).openapi({ example: "admin" }),

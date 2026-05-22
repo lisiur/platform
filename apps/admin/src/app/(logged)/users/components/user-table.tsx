@@ -118,9 +118,7 @@ export function UserTable() {
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
-                <Badge
-                  variant={user.role === "admin" ? "default" : "outline"}
-                >
+                <Badge variant={user.role === "admin" ? "default" : "outline"}>
                   {user.role ?? "user"}
                 </Badge>
               </TableCell>

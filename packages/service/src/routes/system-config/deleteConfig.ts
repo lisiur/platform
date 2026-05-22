@@ -1,7 +1,8 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { configCache } from "../../lib/config-cache";
-import { systemConfigRepository } from "../../repositories/system-config.repository";
+import { configCache } from "@/lib/config-cache";
+import { requireAdmin } from "@/middleware/require-admin";
+import { systemConfigRepository } from "@/repositories/system-config.repository";
 import {
   deleteConfigParamSchema,
   deleteSuccessSchema,
@@ -15,6 +16,7 @@ export const deleteConfig = defineOpenAPIRoute({
     tags: ["SystemConfig"],
     summary: "Delete a configuration",
     description: "Delete a system configuration item.",
+    middleware: requireAdmin,
     request: {
       params: deleteConfigParamSchema,
     },

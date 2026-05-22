@@ -1,5 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "../../lib/db";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/middleware/require-admin";
 import {
   errorSchema,
   listMenusQuerySchema,
@@ -14,6 +15,7 @@ export const listMenus = defineOpenAPIRoute({
     summary: "List menus",
     description:
       "Returns a flat list of menus for the given appId, sorted by sortOrder.",
+    middleware: requireAdmin,
     request: {
       query: listMenusQuerySchema,
     },

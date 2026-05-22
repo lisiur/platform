@@ -19,11 +19,7 @@ export const auth = betterAuth({
       lang: "cn",
     },
   },
-  plugins: [
-    openAPI(),
-    admin(),
-    organization(),
-  ],
+  plugins: [openAPI(), admin(), organization()],
 });
 
 export type AuthType = {

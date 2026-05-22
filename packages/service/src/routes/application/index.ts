@@ -1,25 +1,17 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { auth } from "../../lib/auth";
 import { createApplication } from "./createApplication";
 import { deleteApplication } from "./deleteApplication";
 import { getApplication } from "./getApplication";
+import { getCurrentApplication } from "./getCurrentApplication";
 import { listApplications } from "./listApplications";
 import { updateApplication } from "./updateApplication";
 
 const applicationRoutes = new OpenAPIHono();
 
-applicationRoutes.use("*", async (c, next) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  if (!session?.user || session.user.role !== "admin") {
-    throw new HTTPException(401, { message: "Admin access required" });
-  }
-  return next();
-});
-
 const routes = applicationRoutes.openapiRoutes([
   listApplications,
   getApplication,
+  getCurrentApplication,
   createApplication,
   updateApplication,
   deleteApplication,

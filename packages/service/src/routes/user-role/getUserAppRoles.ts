@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { auth } from "../../lib/auth";
-import { userRoleRepository } from "../../repositories/user-role.repository";
+import { auth } from "@/lib/auth";
+import { userRoleRepository } from "@/repositories/user-role.repository";
 import { errorSchema, mineMenusResponseSchema } from "./schema";
 
 export const getUserAppRoles = defineOpenAPIRoute({
