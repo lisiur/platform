@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -142,6 +142,9 @@ export function AppSidebar() {
   const t = useTranslations("Sidebar");
   const { treeMenus, loading, fetched, fetchMenus } = useMenuStore();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const skeletonIds = useRef(
+    Array.from({ length: 4 }, () => crypto.randomUUID()),
+  );
 
   useEffect(() => {
     fetchMenus();

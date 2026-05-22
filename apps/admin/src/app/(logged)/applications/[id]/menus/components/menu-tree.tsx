@@ -78,7 +78,8 @@ function buildTree(menus: Menu[]): MenuTreeNode[] {
   }
 
   for (const menu of menus) {
-    const node = map.get(menu.id)!;
+    const node = map.get(menu.id);
+    if (!node) continue;
     if (menu.parentId) {
       const parent = map.get(menu.parentId);
       if (parent) {
@@ -279,14 +280,15 @@ export function MenuTree({
           } ${props.isDragging ? "opacity-50" : ""}`}
           style={{ paddingLeft: `${props.level * 16 + 8}px` }}
         >
-          <span
+          <button
+            type="button"
             className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground"
             {...props.attributes}
             {...props.listeners}
             onClick={(e) => e.stopPropagation()}
           >
             <GripVertical className="h-4 w-4" />
-          </span>
+          </button>
           {node.icon && <span className="shrink-0">{node.icon}</span>}
           <button
             type="button"

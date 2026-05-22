@@ -10,8 +10,8 @@ const applicationRoutes = new OpenAPIHono();
 
 const routes = applicationRoutes.openapiRoutes([
   listApplications,
-  getApplication,
   getCurrentApplication,
+  getApplication,
   createApplication,
   updateApplication,
   deleteApplication,

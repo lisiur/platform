@@ -7,8 +7,8 @@ const menuRoleRoutes = new OpenAPIHono();
 
 const routes = menuRoleRoutes.openapiRoutes([
   batchAssignMenus,
-  getRoleMenus,
   getMine,
+  getRoleMenus,
 ] as const);
 
 export { routes as menuRoleRoutes };

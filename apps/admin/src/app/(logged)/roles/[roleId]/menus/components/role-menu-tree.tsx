@@ -55,7 +55,8 @@ function buildTree(menus: Menu[]): TreeNode[] {
   }
 
   for (const menu of menus) {
-    const node = map.get(menu.id)!;
+    const node = map.get(menu.id);
+    if (!node) continue;
     if (menu.parentId) {
       const parent = map.get(menu.parentId);
       if (parent) {

@@ -81,7 +81,12 @@ export const reorderMenus = defineOpenAPIRoute({
     // Collect all unique parentIds affected (old + new)
     const affectedParentIds = new Set<string | null>();
     for (const item of body.items) {
-      const existing = existingMenus.find((m) => m.id === item.id)!;
+      const existing = existingMenus.find((m) => m.id === item.id);
+      if (!existing) {
+        throw new HTTPException(400, {
+          message: "One or more menu items not found",
+        });
+      }
       if (existing.parentId !== item.parentId) {
         affectedParentIds.add(existing.parentId);
       }
