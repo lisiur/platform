@@ -30,7 +30,7 @@ const userSchema = z.object({
   name: z.string().min(1),
   email: z.email(),
   password: z.string().optional(),
-  role: z.string().optional(),
+  role: z.enum(["admin", "manager", "user"]).optional(),
 });
 
 type UserInput = z.infer<typeof userSchema>;
@@ -100,7 +100,7 @@ export function UserDialog({
       name: user?.name ?? "",
       email: user?.email ?? "",
       password: "",
-      role: user?.role ?? "user",
+      role: (user?.role as "admin" | "manager" | "user") ?? "user",
     },
   });
 
@@ -115,8 +115,7 @@ export function UserDialog({
           data: {
             name: data.name,
             email: data.email,
-          // biome-ignore lint/suspicious/noExplicitAny: better-auth role types don't include custom roles
-          role: data.role as any,
+            role: data.role,
           },
         });
       } else {
@@ -124,8 +123,7 @@ export function UserDialog({
           name: data.name,
           email: data.email,
           password: data.password,
-          // biome-ignore lint/suspicious/noExplicitAny: better-auth role types don't include custom roles
-          role: data.role as any,
+          role: data.role,
         });
       }
       reset();
