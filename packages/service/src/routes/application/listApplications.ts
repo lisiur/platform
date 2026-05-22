@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/middleware/require-admin";
+import { prisma } from "#lib/db";
+import { requireAdmin } from "#middleware/require-admin";
 import {
   errorSchema,
   listApplicationsQuerySchema,

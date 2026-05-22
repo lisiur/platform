@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "@/lib/config-cache";
-import { requireAdmin } from "@/middleware/require-admin";
-import { systemConfigRepository } from "@/repositories/system-config.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { systemConfigRepository } from "#repositories/system-config.repository";
 import {
   errorSchema,
   getConfigsByGroupParamSchema,
@@ -41,13 +40,7 @@ export const listConfigsByGroup = defineOpenAPIRoute({
   handler: async (c) => {
     const { group } = c.req.valid("param");
 
-    const cached = configCache.get(group);
-    if (cached) {
-      return c.json(cached, 200);
-    }
-
     const configs = await systemConfigRepository.findByGroup(group);
-    configCache.set(group, configs);
     return c.json(configs, 200);
   },
 });

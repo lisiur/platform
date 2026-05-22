@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { menuSchema } from "@/routes/menu/schema";
+import { menuSchema } from "#routes/menu/schema";
 
 export const userRoleSchema = z
   .object({

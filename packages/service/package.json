@@ -4,6 +4,12 @@
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "imports": {
+    "#lib/*": "./src/lib/*.ts",
+    "#middleware/*": "./src/middleware/*.ts",
+    "#repositories/*": "./src/repositories/*.ts",
+    "#routes/*": "./src/routes/*.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "db:reset": "prisma migrate reset",

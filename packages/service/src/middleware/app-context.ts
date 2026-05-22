@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "@/lib/db";
+import { prisma } from "#lib/db";
 
 export const appContext = createMiddleware(async (c, next) => {
   const code = c.req.header("X-App-Code");

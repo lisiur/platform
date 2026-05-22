@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/middleware/require-admin";
-import { roleRepository } from "@/repositories/role.repository";
+import { prisma } from "#lib/db";
+import { requireAdmin } from "#middleware/require-admin";
+import { roleRepository } from "#repositories/role.repository";
 import { errorSchema, roleIdParamSchema, successSchema } from "./schema";
 
 export const deleteRole = defineOpenAPIRoute({

@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "@/lib/config-cache";
-import { requireAdmin } from "@/middleware/require-admin";
-import { systemConfigRepository } from "@/repositories/system-config.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { systemConfigRepository } from "#repositories/system-config.repository";
 import {
   batchUpsertBodySchema,
   errorSchema,
@@ -58,11 +57,6 @@ export const batchUpsertConfigs = defineOpenAPIRoute({
     const { items } = c.req.valid("json");
 
     const configs = await systemConfigRepository.batchUpsert(items);
-
-    const groups = new Set(items.map((item) => item.group));
-    for (const group of groups) {
-      configCache.invalidate(group);
-    }
 
     return c.json(configs, 200);
   },

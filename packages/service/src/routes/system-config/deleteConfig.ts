@@ -1,8 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { configCache } from "@/lib/config-cache";
-import { requireAdmin } from "@/middleware/require-admin";
-import { systemConfigRepository } from "@/repositories/system-config.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { systemConfigRepository } from "#repositories/system-config.repository";
 import {
   deleteConfigParamSchema,
   deleteSuccessSchema,
@@ -52,7 +51,6 @@ export const deleteConfig = defineOpenAPIRoute({
 
     try {
       await systemConfigRepository.delete(group, key);
-      configCache.invalidate(group);
       return c.json({ success: true as const }, 200);
     } catch {
       throw new HTTPException(404, { message: "Config not found" });

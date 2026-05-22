@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "@/middleware/require-admin";
-import { menuRoleRepository } from "@/repositories/menu-role.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { menuRoleRepository } from "#repositories/menu-role.repository";
 import {
   batchAssignBodySchema,
   errorSchema,

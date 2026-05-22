@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { configCache } from "@/lib/config-cache";
-import { requireAdmin } from "@/middleware/require-admin";
-import { systemConfigRepository } from "@/repositories/system-config.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { systemConfigRepository } from "#repositories/system-config.repository";
 import {
   errorSchema,
   systemConfigItemSchema,
@@ -60,7 +59,6 @@ export const upsertConfig = defineOpenAPIRoute({
     const body = c.req.valid("json");
 
     const config = await systemConfigRepository.upsert(group, key, body);
-    configCache.invalidate(group);
     return c.json(config, 200);
   },
 });

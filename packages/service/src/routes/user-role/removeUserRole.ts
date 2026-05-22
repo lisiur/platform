@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute, z } from "@hono/zod-openapi";
-import { requireAdmin } from "@/middleware/require-admin";
-import { userRoleRepository } from "@/repositories/user-role.repository";
+import { requireAdmin } from "#middleware/require-admin";
+import { userRoleRepository } from "#repositories/user-role.repository";
 
 const removeBodySchema = z.object({
   userId: z.string().min(1),

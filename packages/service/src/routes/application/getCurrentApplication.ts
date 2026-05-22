@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { appContext } from "@/middleware/app-context";
-import { requireAdmin } from "@/middleware/require-admin";
+import { appContext } from "#middleware/app-context";
+import { requireAdmin } from "#middleware/require-admin";
 import { applicationSchema, errorSchema } from "./schema";
 
 export const getCurrentApplication = defineOpenAPIRoute({

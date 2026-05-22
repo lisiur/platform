@@ -4,7 +4,7 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "@/lib/db";
+import { prisma } from "#lib/db";
 import { errorSchema, getFileParamSchema, getFileQuerySchema } from "./schema";
 
 const UPLOADS_ROOT = join(process.cwd(), "uploads");

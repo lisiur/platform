@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/middleware/require-admin";
+import { prisma } from "#lib/db";
+import { requireAdmin } from "#middleware/require-admin";
 import {
   deleteSuccessSchema,
   errorSchema,
