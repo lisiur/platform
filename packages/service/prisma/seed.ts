@@ -229,7 +229,6 @@ async function seedRoles(appId: string) {
 
   const roleDefinitions = [
     { name: "Administrator", code: "admin" },
-    { name: "Manager", code: "manager" },
     { name: "User", code: "user" },
   ];
 
@@ -335,15 +334,6 @@ async function seed() {
     globalRole: "admin",
   });
   await seedUserRoles(adminUser.id, roleIds);
-
-  const managerUser = await seedUser({
-    id: "user-manager",
-    name: "Manager",
-    email: "manager@system.local",
-    password: "admin123",
-    globalRole: "manager",
-  });
-  await seedUserRoles(managerUser.id, roleIds);
 }
 
 seed()

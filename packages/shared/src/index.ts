@@ -1,1 +1,1 @@
-export { ac, admin, manager, statement, user } from "./permissions";
+export { ac, admin, statement, user } from "./permissions";

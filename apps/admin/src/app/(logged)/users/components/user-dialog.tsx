@@ -30,7 +30,7 @@ const userSchema = z.object({
   name: z.string().min(1),
   email: z.email(),
   password: z.string().optional(),
-  role: z.enum(["admin", "manager", "user"]).optional(),
+  role: z.enum(["admin", "user"]).optional(),
 });
 
 type UserInput = z.infer<typeof userSchema>;
@@ -100,7 +100,7 @@ export function UserDialog({
       name: user?.name ?? "",
       email: user?.email ?? "",
       password: "",
-      role: (user?.role as "admin" | "manager" | "user") ?? "user",
+      role: (user?.role as "admin" | "user") ?? "user",
     },
   });
 
@@ -243,7 +243,6 @@ export function UserDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">{t("roles.admin")}</SelectItem>
-                <SelectItem value="manager">{t("roles.manager")}</SelectItem>
                 <SelectItem value="user">{t("roles.user")}</SelectItem>
               </SelectContent>
             </Select>

@@ -15,13 +15,6 @@ export const admin = ac.newRole({
   config: ["read", "update"],
 });
 
-export const manager = ac.newRole({
-  user: ["list", "set-role"],
-  session: ["list"],
-  project: ["create", "read", "update"],
-  config: ["read"],
-});
-
 export const user = ac.newRole({
   user: [],
   session: [],

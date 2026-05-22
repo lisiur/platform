@@ -1,6 +1,6 @@
 "use client";
 
-import { ac, admin, manager, user } from "@repo/shared";
+import { ac, admin, user } from "@repo/shared";
 import { createAuthClient } from "better-auth/client";
 import { adminClient } from "better-auth/client/plugins";
 import type { AccessControl } from "better-auth/plugins/access";
@@ -13,7 +13,6 @@ export const authClient = createAuthClient({
       ac: ac as AccessControl,
       roles: {
         admin,
-        manager,
         user,
       },
     }),

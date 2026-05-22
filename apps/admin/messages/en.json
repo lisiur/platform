@@ -119,7 +119,6 @@
     "next": "Next",
     "roles": {
       "admin": "Admin",
-      "manager": "Manager",
       "user": "User"
     },
     "appRoles": "App Roles",
@@ -272,8 +271,6 @@
     "deleteError": "Failed to delete",
     "admin": "Administrator",
     "admin_desc": "Full system access with all permissions",
-    "manager": "Manager",
-    "manager_desc": "Can manage users and view most resources",
     "user": "User",
     "user_desc": "Basic access with limited permissions",
     "resource": "Resource",
