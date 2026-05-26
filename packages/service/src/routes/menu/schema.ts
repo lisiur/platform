@@ -1,5 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
+export const linkTypeSchema = z.enum(["GROUP", "INTERNAL", "EXTERNAL"]);
+
 export const menuSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -8,10 +10,9 @@ export const menuSchema = z
     name: z.string().openapi({ example: "Dashboard" }),
     code: z.string().openapi({ example: "dashboard" }),
     icon: z.string().nullable().optional(),
+    linkType: linkTypeSchema.openapi({ example: "INTERNAL" }),
     url: z.string().nullable().optional(),
     sortOrder: z.number().openapi({ example: 0 }),
-    isExternal: z.boolean().openapi({ example: false }),
-    isVisible: z.boolean().openapi({ example: true }),
     createdAt: z.date(),
     updatedAt: z.date(),
   })
@@ -25,26 +26,38 @@ export const menuIdParamSchema = z.object({
   id: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
 
-export const createMenuBodySchema = z.object({
-  name: z.string().min(1).openapi({ example: "Dashboard" }),
-  code: z.string().min(1).openapi({ example: "dashboard" }),
-  appId: z.string().min(1).openapi({ example: "clx1234567890" }),
-  parentId: z.string().optional(),
-  icon: z.string().optional(),
-  url: z.string().optional(),
-  isExternal: z.boolean().default(false),
-  isVisible: z.boolean().default(true),
-});
+export const createMenuBodySchema = z
+  .object({
+    name: z.string().min(1).openapi({ example: "Dashboard" }),
+    code: z.string().min(1).openapi({ example: "dashboard" }),
+    appId: z.string().min(1).openapi({ example: "clx1234567890" }),
+    parentId: z.string().optional(),
+    icon: z.string().optional(),
+    linkType: linkTypeSchema.default("GROUP"),
+    url: z.string().optional(),
+  })
+  .refine(
+    (data) => !(data.linkType === "EXTERNAL" && !data.url),
+    "URL is required when linkType is EXTERNAL",
+  );
 
-export const updateMenuBodySchema = z.object({
-  name: z.string().min(1).optional(),
-  code: z.string().min(1).optional(),
-  icon: z.string().nullable().optional(),
-  url: z.string().nullable().optional(),
-  sortOrder: z.number().int().optional(),
-  isExternal: z.boolean().optional(),
-  isVisible: z.boolean().optional(),
-});
+export const updateMenuBodySchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    code: z.string().min(1).optional(),
+    icon: z.string().nullable().optional(),
+    linkType: linkTypeSchema.optional(),
+    url: z.string().nullable().optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .refine(
+    (data) =>
+      !(
+        data.linkType === "EXTERNAL" &&
+        (data.url === null || data.url === undefined)
+      ),
+    "URL is required when linkType is EXTERNAL",
+  );
 
 export const errorSchema = z
   .object({

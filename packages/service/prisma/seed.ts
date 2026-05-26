@@ -145,7 +145,7 @@ async function seedMenus(appId: string) {
       name: "Dashboard",
       code: "dashboard",
       icon: "LayoutDashboard",
-      url: "/dashboard",
+      linkType: "INTERNAL" as const,
       sortOrder: 0,
     },
     {
@@ -153,7 +153,7 @@ async function seedMenus(appId: string) {
       name: "Applications",
       code: "applications",
       icon: "Layers",
-      url: "/applications",
+      linkType: "INTERNAL" as const,
       sortOrder: 1,
     },
     {
@@ -161,7 +161,7 @@ async function seedMenus(appId: string) {
       name: "Organizations",
       code: "organizations",
       icon: "Building2",
-      url: "/organizations",
+      linkType: "INTERNAL" as const,
       sortOrder: 2,
     },
     {
@@ -169,7 +169,7 @@ async function seedMenus(appId: string) {
       name: "Users",
       code: "users",
       icon: "Users",
-      url: "/users",
+      linkType: "INTERNAL" as const,
       sortOrder: 3,
     },
     {
@@ -177,7 +177,7 @@ async function seedMenus(appId: string) {
       name: "Logs",
       code: "logs",
       icon: "FileText",
-      url: "/logs",
+      linkType: "INTERNAL" as const,
       sortOrder: 4,
     },
     {
@@ -185,7 +185,7 @@ async function seedMenus(appId: string) {
       name: "Settings",
       code: "settings",
       icon: "Settings",
-      url: "/settings",
+      linkType: "INTERNAL" as const,
       sortOrder: 5,
     },
   ];
@@ -198,7 +198,7 @@ async function seedMenus(appId: string) {
       update: {
         name: menu.name,
         icon: menu.icon,
-        url: menu.url,
+        linkType: menu.linkType,
         sortOrder: menu.sortOrder,
       },
       create: {
@@ -207,7 +207,7 @@ async function seedMenus(appId: string) {
         name: menu.name,
         code: menu.code,
         icon: menu.icon,
-        url: menu.url,
+        linkType: menu.linkType,
         sortOrder: menu.sortOrder,
       },
     });

@@ -492,7 +492,7 @@ export function DraggableTree<T extends DraggableTreeNode>({
   }, [activeNode, expandedIds]);
 
   return (
-    <div className={cn("rounded-md border p-1", className)}>
+    <div className={cn(className)}>
       <div className="flex items-center gap-1 px-1 pb-1">
         <button
           type="button"

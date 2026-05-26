@@ -41,10 +41,9 @@ export type MenuMinAggregateOutputType = {
   name: string | null
   code: string | null
   icon: string | null
+  linkType: $Enums.LinkType | null
   url: string | null
   sortOrder: number | null
-  isExternal: boolean | null
-  isVisible: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,10 +55,9 @@ export type MenuMaxAggregateOutputType = {
   name: string | null
   code: string | null
   icon: string | null
+  linkType: $Enums.LinkType | null
   url: string | null
   sortOrder: number | null
-  isExternal: boolean | null
-  isVisible: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -71,10 +69,9 @@ export type MenuCountAggregateOutputType = {
   name: number
   code: number
   icon: number
+  linkType: number
   url: number
   sortOrder: number
-  isExternal: number
-  isVisible: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -96,10 +93,9 @@ export type MenuMinAggregateInputType = {
   name?: true
   code?: true
   icon?: true
+  linkType?: true
   url?: true
   sortOrder?: true
-  isExternal?: true
-  isVisible?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -111,10 +107,9 @@ export type MenuMaxAggregateInputType = {
   name?: true
   code?: true
   icon?: true
+  linkType?: true
   url?: true
   sortOrder?: true
-  isExternal?: true
-  isVisible?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -126,10 +121,9 @@ export type MenuCountAggregateInputType = {
   name?: true
   code?: true
   icon?: true
+  linkType?: true
   url?: true
   sortOrder?: true
-  isExternal?: true
-  isVisible?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -228,10 +222,9 @@ export type MenuGroupByOutputType = {
   name: string
   code: string
   icon: string | null
+  linkType: $Enums.LinkType
   url: string | null
   sortOrder: number
-  isExternal: boolean
-  isVisible: boolean
   createdAt: Date
   updatedAt: Date
   _count: MenuCountAggregateOutputType | null
@@ -266,10 +259,9 @@ export type MenuWhereInput = {
   name?: Prisma.StringFilter<"Menu"> | string
   code?: Prisma.StringFilter<"Menu"> | string
   icon?: Prisma.StringNullableFilter<"Menu"> | string | null
+  linkType?: Prisma.EnumLinkTypeFilter<"Menu"> | $Enums.LinkType
   url?: Prisma.StringNullableFilter<"Menu"> | string | null
   sortOrder?: Prisma.IntFilter<"Menu"> | number
-  isExternal?: Prisma.BoolFilter<"Menu"> | boolean
-  isVisible?: Prisma.BoolFilter<"Menu"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
   app?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
@@ -285,10 +277,9 @@ export type MenuOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
+  linkType?: Prisma.SortOrder
   url?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  isExternal?: Prisma.SortOrder
-  isVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   app?: Prisma.ApplicationOrderByWithRelationInput
@@ -307,10 +298,9 @@ export type MenuWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Menu"> | string
   code?: Prisma.StringFilter<"Menu"> | string
   icon?: Prisma.StringNullableFilter<"Menu"> | string | null
+  linkType?: Prisma.EnumLinkTypeFilter<"Menu"> | $Enums.LinkType
   url?: Prisma.StringNullableFilter<"Menu"> | string | null
   sortOrder?: Prisma.IntFilter<"Menu"> | number
-  isExternal?: Prisma.BoolFilter<"Menu"> | boolean
-  isVisible?: Prisma.BoolFilter<"Menu"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
   app?: Prisma.XOR<Prisma.ApplicationScalarRelationFilter, Prisma.ApplicationWhereInput>
@@ -326,10 +316,9 @@ export type MenuOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
+  linkType?: Prisma.SortOrder
   url?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  isExternal?: Prisma.SortOrder
-  isVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MenuCountOrderByAggregateInput
@@ -349,10 +338,9 @@ export type MenuScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Menu"> | string
   code?: Prisma.StringWithAggregatesFilter<"Menu"> | string
   icon?: Prisma.StringNullableWithAggregatesFilter<"Menu"> | string | null
+  linkType?: Prisma.EnumLinkTypeWithAggregatesFilter<"Menu"> | $Enums.LinkType
   url?: Prisma.StringNullableWithAggregatesFilter<"Menu"> | string | null
   sortOrder?: Prisma.IntWithAggregatesFilter<"Menu"> | number
-  isExternal?: Prisma.BoolWithAggregatesFilter<"Menu"> | boolean
-  isVisible?: Prisma.BoolWithAggregatesFilter<"Menu"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Menu"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Menu"> | Date | string
 }
@@ -362,10 +350,9 @@ export type MenuCreateInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   app: Prisma.ApplicationCreateNestedOneWithoutMenusInput
@@ -381,10 +368,9 @@ export type MenuUncheckedCreateInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.MenuUncheckedCreateNestedManyWithoutParentInput
@@ -396,10 +382,9 @@ export type MenuUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   app?: Prisma.ApplicationUpdateOneRequiredWithoutMenusNestedInput
@@ -415,10 +400,9 @@ export type MenuUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.MenuUncheckedUpdateManyWithoutParentNestedInput
@@ -432,10 +416,9 @@ export type MenuCreateManyInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -445,10 +428,9 @@ export type MenuUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -460,10 +442,9 @@ export type MenuUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -490,10 +471,9 @@ export type MenuCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
   icon?: Prisma.SortOrder
+  linkType?: Prisma.SortOrder
   url?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  isExternal?: Prisma.SortOrder
-  isVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -509,10 +489,9 @@ export type MenuMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
   icon?: Prisma.SortOrder
+  linkType?: Prisma.SortOrder
   url?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  isExternal?: Prisma.SortOrder
-  isVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -524,10 +503,9 @@ export type MenuMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
   icon?: Prisma.SortOrder
+  linkType?: Prisma.SortOrder
   url?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  isExternal?: Prisma.SortOrder
-  isVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -603,6 +581,10 @@ export type MenuUncheckedCreateNestedManyWithoutParentInput = {
   connect?: Prisma.MenuWhereUniqueInput | Prisma.MenuWhereUniqueInput[]
 }
 
+export type EnumLinkTypeFieldUpdateOperationsInput = {
+  set?: $Enums.LinkType
+}
+
 export type MenuUpdateOneWithoutChildrenNestedInput = {
   create?: Prisma.XOR<Prisma.MenuCreateWithoutChildrenInput, Prisma.MenuUncheckedCreateWithoutChildrenInput>
   connectOrCreate?: Prisma.MenuCreateOrConnectWithoutChildrenInput
@@ -660,10 +642,9 @@ export type MenuCreateWithoutAppInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.MenuCreateNestedOneWithoutChildrenInput
@@ -677,10 +658,9 @@ export type MenuUncheckedCreateWithoutAppInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.MenuUncheckedCreateNestedManyWithoutParentInput
@@ -723,10 +703,9 @@ export type MenuScalarWhereInput = {
   name?: Prisma.StringFilter<"Menu"> | string
   code?: Prisma.StringFilter<"Menu"> | string
   icon?: Prisma.StringNullableFilter<"Menu"> | string | null
+  linkType?: Prisma.EnumLinkTypeFilter<"Menu"> | $Enums.LinkType
   url?: Prisma.StringNullableFilter<"Menu"> | string | null
   sortOrder?: Prisma.IntFilter<"Menu"> | number
-  isExternal?: Prisma.BoolFilter<"Menu"> | boolean
-  isVisible?: Prisma.BoolFilter<"Menu"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Menu"> | Date | string
 }
@@ -736,10 +715,9 @@ export type MenuCreateWithoutChildrenInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   app: Prisma.ApplicationCreateNestedOneWithoutMenusInput
@@ -754,10 +732,9 @@ export type MenuUncheckedCreateWithoutChildrenInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   menuRoles?: Prisma.MenuRoleUncheckedCreateNestedManyWithoutMenuInput
@@ -773,10 +750,9 @@ export type MenuCreateWithoutParentInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   app: Prisma.ApplicationCreateNestedOneWithoutMenusInput
@@ -790,10 +766,9 @@ export type MenuUncheckedCreateWithoutParentInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.MenuUncheckedCreateNestedManyWithoutParentInput
@@ -826,10 +801,9 @@ export type MenuUpdateWithoutChildrenInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   app?: Prisma.ApplicationUpdateOneRequiredWithoutMenusNestedInput
@@ -844,10 +818,9 @@ export type MenuUncheckedUpdateWithoutChildrenInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   menuRoles?: Prisma.MenuRoleUncheckedUpdateManyWithoutMenuNestedInput
@@ -874,10 +847,9 @@ export type MenuCreateWithoutMenuRolesInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   app: Prisma.ApplicationCreateNestedOneWithoutMenusInput
@@ -892,10 +864,9 @@ export type MenuUncheckedCreateWithoutMenuRolesInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.MenuUncheckedCreateNestedManyWithoutParentInput
@@ -922,10 +893,9 @@ export type MenuUpdateWithoutMenuRolesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   app?: Prisma.ApplicationUpdateOneRequiredWithoutMenusNestedInput
@@ -940,10 +910,9 @@ export type MenuUncheckedUpdateWithoutMenuRolesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.MenuUncheckedUpdateManyWithoutParentNestedInput
@@ -955,10 +924,9 @@ export type MenuCreateManyAppInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -968,10 +936,9 @@ export type MenuUpdateWithoutAppInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.MenuUpdateOneWithoutChildrenNestedInput
@@ -985,10 +952,9 @@ export type MenuUncheckedUpdateWithoutAppInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.MenuUncheckedUpdateManyWithoutParentNestedInput
@@ -1001,10 +967,9 @@ export type MenuUncheckedUpdateManyWithoutAppInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1015,10 +980,9 @@ export type MenuCreateManyParentInput = {
   name: string
   code: string
   icon?: string | null
+  linkType?: $Enums.LinkType
   url?: string | null
   sortOrder?: number
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1028,10 +992,9 @@ export type MenuUpdateWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   app?: Prisma.ApplicationUpdateOneRequiredWithoutMenusNestedInput
@@ -1045,10 +1008,9 @@ export type MenuUncheckedUpdateWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.MenuUncheckedUpdateManyWithoutParentNestedInput
@@ -1061,10 +1023,9 @@ export type MenuUncheckedUpdateManyWithoutParentInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkType?: Prisma.EnumLinkTypeFieldUpdateOperationsInput | $Enums.LinkType
   url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isExternal?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1116,10 +1077,9 @@ export type MenuSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   name?: boolean
   code?: boolean
   icon?: boolean
+  linkType?: boolean
   url?: boolean
   sortOrder?: boolean
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   app?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
@@ -1136,10 +1096,9 @@ export type MenuSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   name?: boolean
   code?: boolean
   icon?: boolean
+  linkType?: boolean
   url?: boolean
   sortOrder?: boolean
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   app?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
@@ -1153,10 +1112,9 @@ export type MenuSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   name?: boolean
   code?: boolean
   icon?: boolean
+  linkType?: boolean
   url?: boolean
   sortOrder?: boolean
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   app?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
@@ -1170,15 +1128,14 @@ export type MenuSelectScalar = {
   name?: boolean
   code?: boolean
   icon?: boolean
+  linkType?: boolean
   url?: boolean
   sortOrder?: boolean
-  isExternal?: boolean
-  isVisible?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MenuOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "appId" | "parentId" | "name" | "code" | "icon" | "url" | "sortOrder" | "isExternal" | "isVisible" | "createdAt" | "updatedAt", ExtArgs["result"]["menu"]>
+export type MenuOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "appId" | "parentId" | "name" | "code" | "icon" | "linkType" | "url" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["menu"]>
 export type MenuInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   app?: boolean | Prisma.ApplicationDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.Menu$parentArgs<ExtArgs>
@@ -1210,10 +1167,9 @@ export type $MenuPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     name: string
     code: string
     icon: string | null
+    linkType: $Enums.LinkType
     url: string | null
     sortOrder: number
-    isExternal: boolean
-    isVisible: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["menu"]>
@@ -1649,10 +1605,9 @@ export interface MenuFieldRefs {
   readonly name: Prisma.FieldRef<"Menu", 'String'>
   readonly code: Prisma.FieldRef<"Menu", 'String'>
   readonly icon: Prisma.FieldRef<"Menu", 'String'>
+  readonly linkType: Prisma.FieldRef<"Menu", 'LinkType'>
   readonly url: Prisma.FieldRef<"Menu", 'String'>
   readonly sortOrder: Prisma.FieldRef<"Menu", 'Int'>
-  readonly isExternal: Prisma.FieldRef<"Menu", 'Boolean'>
-  readonly isVisible: Prisma.FieldRef<"Menu", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Menu", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Menu", 'DateTime'>
 }

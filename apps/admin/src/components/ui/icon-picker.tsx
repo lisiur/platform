@@ -1,5 +1,6 @@
 "use client";
 
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { icons, type LucideIcon, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,8 @@ interface IconPickerProps {
 
 const iconsRecord = icons as Record<string, LucideIcon>;
 
-// Build a sorted list of icon names from lucide-react
 const iconNames = Object.keys(iconsRecord) as string[];
 
-// Pre-compute lowercase names for fast search
 const iconLookup = iconNames.map((name) => ({
   name,
   label: name.replace(/-/g, " "),
@@ -29,10 +28,12 @@ const iconLookup = iconNames.map((name) => ({
 }));
 
 const GRID_COLUMNS = 8;
+const ROW_HEIGHT = 34;
 
 export function IconPicker({ value, onChange, className }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return iconLookup;
@@ -41,6 +42,21 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
       (item) => item.lower.includes(q) || item.label.includes(q),
     );
   }, [search]);
+
+  const rows = useMemo(() => {
+    const result: (typeof filtered)[] = [];
+    for (let i = 0; i < filtered.length; i += GRID_COLUMNS) {
+      result.push(filtered.slice(i, i + GRID_COLUMNS));
+    }
+    return result;
+  }, [filtered]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollEl,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 5,
+  });
 
   const CurrentIcon = value ? iconsRecord[value] : undefined;
 
@@ -103,34 +119,58 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
             />
           </div>
         </div>
-        <div className="max-h-64 overflow-y-auto px-2.5 pb-2.5">
-          <div className="text-xs text-muted-foreground mb-1.5">
-            {filtered.length} icons
-          </div>
+        <div className="text-xs text-muted-foreground px-2.5 mb-1.5">
+          {filtered.length} icons
+        </div>
+        <div
+          ref={setScrollEl}
+          className="overflow-y-auto px-2.5 pb-2.5"
+          style={{ height: 256 }}
+        >
           <div
-            className="grid gap-0.5"
             style={{
-              gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
             }}
           >
-            {filtered.map((item) => {
-              const Icon = iconsRecord[item.name];
-              if (!Icon) return null;
-              const isSelected = value === item.name;
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index];
               return (
-                <button
-                  key={item.name}
-                  type="button"
-                  title={item.label}
-                  onClick={() => handleSelect(item.name)}
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent",
-                    isSelected &&
-                      "bg-accent text-accent-foreground ring-1 ring-ring",
-                  )}
+                <div
+                  key={virtualRow.index}
+                  className="grid gap-0.5"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+                  }}
                 >
-                  <Icon className="h-4 w-4" />
-                </button>
+                  {row.map((item) => {
+                    const Icon = iconsRecord[item.name];
+                    if (!Icon) return null;
+                    const isSelected = value === item.name;
+                    return (
+                      <button
+                        key={item.name}
+                        type="button"
+                        title={item.label}
+                        onClick={() => handleSelect(item.name)}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent",
+                          isSelected &&
+                            "bg-accent text-accent-foreground ring-1 ring-ring",
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>

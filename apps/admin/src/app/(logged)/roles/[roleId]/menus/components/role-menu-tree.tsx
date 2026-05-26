@@ -19,10 +19,9 @@ interface Menu {
   name: string;
   code: string;
   icon?: string | null;
+  linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
   url?: string | null;
   sortOrder: number;
-  isExternal: boolean;
-  isVisible: boolean;
 }
 
 interface TreeNode {

@@ -21,7 +21,6 @@ export const menuRoleRepository = {
     return prisma.menu.findMany({
       where: {
         menuRoles: { some: { roleId } },
-        isVisible: true,
       },
       orderBy: { sortOrder: "asc" },
     });

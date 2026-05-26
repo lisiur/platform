@@ -30,10 +30,16 @@ import {
   type DraggableTreeNode,
   type ReorderChange,
 } from "@/components/ui/draggable-tree";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { appClient } from "@/lib/api";
+import type { LinkType } from "@/lib/api/menu";
+import { MenuForm, type MenuFormRef, type MenuInput } from "./menu-form";
 
 interface Menu {
   id: string;
@@ -42,10 +48,9 @@ interface Menu {
   name: string;
   code: string;
   icon?: string | null;
+  linkType: LinkType;
   url?: string | null;
   sortOrder: number;
-  isExternal: boolean;
-  isVisible: boolean;
 }
 
 interface MenuTreeNode extends DraggableTreeNode {
@@ -118,14 +123,15 @@ export function MenuTree({
 
   const [addChildTarget, setAddChildTarget] = useState<Menu | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [childName, setChildName] = useState("");
-  const [childCode, setChildCode] = useState("");
-  const [addingChild, setAddingChild] = useState(false);
+  const [dialogKey, setDialogKey] = useState(0);
+  const [defaultLinkType, setDefaultLinkType] = useState<LinkType>("GROUP");
+  const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<Menu | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const menusRef = useRef<Menu[]>([]);
+  const createFormRef = useRef<MenuFormRef>(null);
 
   const fetchMenus = useCallback(async () => {
     setLoading(true);
@@ -165,42 +171,52 @@ export function MenuTree({
     [onSelectMenu],
   );
 
-  const handleAddChild = useCallback((menu: Menu | null) => {
-    setAddChildTarget(menu);
-    setChildName("");
-    setChildCode("");
-    setShowAddDialog(true);
-  }, []);
+  const handleAddChild = useCallback(
+    (menu: Menu | null, linkType: LinkType = "GROUP") => {
+      setAddChildTarget(menu);
+      setDefaultLinkType(linkType);
+      setDialogKey((k) => k + 1);
+      setShowAddDialog(true);
+    },
+    [],
+  );
 
   const handleDelete = useCallback((menu: Menu) => {
     setDeleteTarget(menu);
   }, []);
 
   const handleAddChildSubmit = useCallback(async () => {
-    if (!childName.trim() || !childCode.trim()) return;
-    setAddingChild(true);
+    if (!createFormRef.current) return;
+    let data: MenuInput;
+    try {
+      data = await createFormRef.current.validate();
+    } catch {
+      return;
+    }
+    setSaving(true);
     try {
       await appClient.api.menu.$post({
         json: {
-          name: childName.trim(),
-          code: childCode.trim(),
+          name: data.name,
+          code: data.code,
           appId,
           parentId: addChildTarget?.id,
+          icon: data.icon || null,
+          linkType: data.linkType,
+          url: data.url || null,
         },
       });
-      toast.success(t("addChildSuccess"));
+      toast.success(addChildTarget ? t("addChildSuccess") : t("createSuccess"));
       setShowAddDialog(false);
       setAddChildTarget(null);
-      setChildName("");
-      setChildCode("");
       fetchMenus();
       onMenuAdded?.();
     } catch {
       // Error handled by client
     } finally {
-      setAddingChild(false);
+      setSaving(false);
     }
-  }, [addChildTarget, childName, childCode, appId, t, fetchMenus, onMenuAdded]);
+  }, [addChildTarget, appId, t, fetchMenus, onMenuAdded]);
 
   const handleDeleteSubmit = useCallback(async () => {
     if (!deleteTarget) return;
@@ -300,17 +316,35 @@ export function MenuTree({
             <span className="truncate">{node.name}</span>
           </button>
           <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddChild(node.menu);
-              }}
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
+            {node.menu.linkType === "GROUP" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant="ghost" size="icon" className="h-5 w-5" />
+                  }
+                >
+                  <Plus className="h-3 w-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="min-w-fit">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddChild(node.menu, "INTERNAL");
+                    }}
+                  >
+                    {t("createSubMenu")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddChild(node.menu, "GROUP");
+                    }}
+                  >
+                    {t("createSubGroup")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -326,7 +360,7 @@ export function MenuTree({
         </div>
       );
     },
-    [handleSelect, handleAddChild, handleDelete],
+    [handleSelect, handleAddChild, handleDelete, t],
   );
 
   if (loading) {
@@ -350,15 +384,30 @@ export function MenuTree({
         emptyLabel={t("noData")}
         renderNode={renderNode}
         toolbar={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-6 text-xs"
-            onClick={() => handleAddChild(null as unknown as Menu)}
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            {t("createMenu")}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-6 text-xs"
+                />
+              }
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              {t("createMenu")}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="min-w-fit">
+              <DropdownMenuItem
+                onClick={() => handleAddChild(null, "INTERNAL")}
+              >
+                {t("createSubMenu")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAddChild(null, "GROUP")}>
+                {t("createSubGroup")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
       />
 
@@ -383,37 +432,29 @@ export function MenuTree({
                 : t("createMenuDescription")}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Field orientation="vertical">
-              <FieldLabel htmlFor="child-name">{t("name")} *</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="child-name"
-                  value={childName}
-                  onChange={(e) => setChildName(e.target.value)}
-                />
-              </FieldContent>
-            </Field>
-            <Field orientation="vertical">
-              <FieldLabel htmlFor="child-code">{t("code")} *</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="child-code"
-                  value={childCode}
-                  onChange={(e) => setChildCode(e.target.value)}
-                />
-              </FieldContent>
-            </Field>
-          </div>
+          <MenuForm
+            key={dialogKey}
+            ref={createFormRef}
+            defaultValues={{
+              name: "",
+              code: "",
+              icon: "",
+              linkType: defaultLinkType,
+              url: "",
+            }}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddChildTarget(null)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddDialog(false);
+                setAddChildTarget(null);
+              }}
+            >
               {t("cancel")}
             </Button>
-            <Button
-              onClick={handleAddChildSubmit}
-              disabled={addingChild || !childName.trim() || !childCode.trim()}
-            >
-              {addingChild && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleAddChildSubmit} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t("add")}
             </Button>
           </DialogFooter>

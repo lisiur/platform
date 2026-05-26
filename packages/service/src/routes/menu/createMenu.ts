@@ -58,6 +58,12 @@ export const createMenu = defineOpenAPIRoute({
           message: "Parent menu not found in the same application",
         });
       }
+      if (parent.linkType !== "GROUP") {
+        throw new HTTPException(400, {
+          message:
+            "Cannot add children to a non-grouping menu (linkType must be GROUP)",
+        });
+      }
     }
 
     // Auto-calculate sortOrder: max sibling sortOrder + 1
@@ -74,10 +80,9 @@ export const createMenu = defineOpenAPIRoute({
         appId: body.appId,
         parentId: body.parentId,
         icon: body.icon,
+        linkType: body.linkType,
         url: body.url,
         sortOrder,
-        isExternal: body.isExternal,
-        isVisible: body.isVisible,
       },
     });
 

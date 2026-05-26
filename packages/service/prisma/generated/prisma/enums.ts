@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const LinkType = {
+  GROUP: 'GROUP',
+  INTERNAL: 'INTERNAL',
+  EXTERNAL: 'EXTERNAL'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type LinkType = (typeof LinkType)[keyof typeof LinkType]

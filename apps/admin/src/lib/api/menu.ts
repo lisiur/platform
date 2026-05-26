@@ -1,4 +1,7 @@
 import { appClient } from "./app-client";
+import { withFeedbackApi } from "./utils";
+
+export type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
 
 export interface Menu {
   id: string;
@@ -7,10 +10,9 @@ export interface Menu {
   name: string;
   code: string;
   icon?: string | null;
+  linkType: LinkType;
   url?: string | null;
   sortOrder: number;
-  isExternal: boolean;
-  isVisible: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,37 +23,38 @@ export interface CreateMenuInput {
   appId: string;
   parentId?: string;
   icon?: string;
+  linkType?: LinkType;
   url?: string;
-  isExternal?: boolean;
-  isVisible?: boolean;
 }
 
 export interface UpdateMenuInput {
   name?: string;
   code?: string;
   icon?: string | null;
+  linkType?: LinkType;
   url?: string | null;
   sortOrder?: number;
-  isExternal?: boolean;
-  isVisible?: boolean;
 }
 
 export async function listMenus(appId: string): Promise<Menu[]> {
-  const res = await appClient.api.menu.$get({ query: { appId } });
-  if (!res.ok) throw new Error("Failed to list menus");
+  const res = await withFeedbackApi(appClient.api.menu.$get)({
+    query: { appId },
+  });
   const data = await res.json();
   return data.menus;
 }
 
 export async function getMenu(id: string): Promise<Menu> {
-  const res = await appClient.api.menu[":id"].$get({ param: { id } });
-  if (!res.ok) throw new Error("Failed to get menu");
+  const res = await withFeedbackApi(appClient.api.menu[":id"].$get)({
+    param: { id },
+  });
   return res.json();
 }
 
 export async function createMenu(input: CreateMenuInput): Promise<Menu> {
-  const res = await appClient.api.menu.$post({ json: input });
-  if (!res.ok) throw new Error("Failed to create menu");
+  const res = await withFeedbackApi(appClient.api.menu.$post)({
+    json: input,
+  });
   return res.json();
 }
 
@@ -59,17 +62,17 @@ export async function updateMenu(
   id: string,
   input: UpdateMenuInput,
 ): Promise<Menu> {
-  const res = await appClient.api.menu[":id"].$put({
+  const res = await withFeedbackApi(appClient.api.menu[":id"].$put)({
     param: { id },
     json: input,
   });
-  if (!res.ok) throw new Error("Failed to update menu");
   return res.json();
 }
 
 export async function deleteMenu(id: string): Promise<void> {
-  const res = await appClient.api.menu[":id"].$delete({ param: { id } });
-  if (!res.ok) throw new Error("Failed to delete menu");
+  await withFeedbackApi(appClient.api.menu[":id"].$delete)({
+    param: { id },
+  });
 }
 
 export interface ReorderItem {
@@ -79,8 +82,9 @@ export interface ReorderItem {
 }
 
 export async function reorderMenus(items: ReorderItem[]): Promise<Menu[]> {
-  const res = await appClient.api.menu.reorder.$post({ json: { items } });
-  if (!res.ok) throw new Error("Failed to reorder menus");
+  const res = await withFeedbackApi(appClient.api.menu.reorder.$post)({
+    json: { items },
+  });
   const data = await res.json();
   return data.menus;
 }

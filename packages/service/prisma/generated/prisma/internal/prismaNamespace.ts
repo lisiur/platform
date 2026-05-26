@@ -1720,10 +1720,9 @@ export const MenuScalarFieldEnum = {
   name: 'name',
   code: 'code',
   icon: 'icon',
+  linkType: 'linkType',
   url: 'url',
   sortOrder: 'sortOrder',
-  isExternal: 'isExternal',
-  isVisible: 'isVisible',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1856,6 +1855,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkType'
+ */
+export type EnumLinkTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkType'>
+    
+
+
+/**
+ * Reference to a field of type 'LinkType[]'
+ */
+export type ListEnumLinkTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LinkType[]'>
     
 
 

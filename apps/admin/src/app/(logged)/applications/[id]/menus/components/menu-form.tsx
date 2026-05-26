@@ -1,13 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { forwardRef, type Ref, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldContent,
@@ -17,89 +14,67 @@ import {
 } from "@/components/ui/field";
 import { IconPicker } from "@/components/ui/icon-picker";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { appClient } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { LinkType } from "@/lib/api/menu";
 
 const menuSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().min(1, "Code is required"),
   icon: z.string().optional().or(z.literal("")),
+  linkType: z.enum(["GROUP", "INTERNAL", "EXTERNAL"]),
   url: z.string().optional().or(z.literal("")),
-  isExternal: z.boolean(),
-  isVisible: z.boolean(),
 });
 
-type MenuInput = z.infer<typeof menuSchema>;
+export type MenuInput = z.infer<typeof menuSchema>;
 
-interface Menu {
-  id: string;
-  appId: string;
-  parentId?: string | null;
-  name: string;
-  code: string;
-  icon?: string | null;
-  url?: string | null;
-  sortOrder: number;
-  isExternal: boolean;
-  isVisible: boolean;
+export interface MenuFormRef {
+  validate: () => Promise<MenuInput>;
 }
 
 interface MenuFormProps {
-  menu: Menu;
-  onSaved: () => void;
+  ref: Ref<MenuFormRef>;
+  defaultValues: MenuInput;
 }
 
-export function MenuForm({ menu, onSaved }: MenuFormProps) {
-  const t = useTranslations("Menus");
+export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
+  function MenuForm({ defaultValues }, ref) {
+    const t = useTranslations("Menus");
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
-    setValue,
-  } = useForm<MenuInput>({
-    resolver: zodResolver(menuSchema),
-    defaultValues: {
-      name: menu.name,
-      code: menu.code,
-      icon: menu.icon ?? "",
-      url: menu.url ?? "",
-      isExternal: menu.isExternal,
-      isVisible: menu.isVisible,
-    },
-  });
+    const form = useForm<MenuInput>({
+      resolver: zodResolver(menuSchema),
+      defaultValues: {
+        ...defaultValues,
+        icon:
+          defaultValues.icon ||
+          (defaultValues.linkType === "GROUP" ? "Folder" : "Link"),
+      },
+    });
 
-  const isExternal = watch("isExternal");
-  const isVisible = watch("isVisible");
-  const iconValue = watch("icon");
+    const {
+      register,
+      formState: { errors },
+      watch,
+      setValue,
+    } = form;
 
-  async function onSubmit(data: MenuInput) {
-    try {
-      await appClient.api.menu[":id"].$put({
-        param: { id: menu.id },
-        json: {
-          name: data.name,
-          code: data.code,
-          icon: data.icon || null,
-          url: data.url || null,
-          isExternal: data.isExternal,
-          isVisible: data.isVisible,
-        },
-      });
-      toast.success(t("saveSuccess"));
-      onSaved();
-    } catch {
-      // Error handled by client
-    }
-  }
+    useImperativeHandle(ref, () => ({
+      validate: () =>
+        new Promise<MenuInput>((resolve, reject) => {
+          form.handleSubmit(resolve, reject)();
+        }),
+    }));
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    const linkType = watch("linkType");
+    const iconValue = watch("icon");
+
+    return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{t("editMenu")}</h3>
-        <Separator />
-
         <div className="grid grid-cols-2 gap-4">
           <Field orientation="vertical">
             <FieldLabel htmlFor="menu-name">{t("name")} *</FieldLabel>
@@ -129,41 +104,49 @@ export function MenuForm({ menu, onSaved }: MenuFormProps) {
           </FieldContent>
         </Field>
 
-        <Field orientation="vertical">
-          <FieldLabel htmlFor="menu-url">{t("url")}</FieldLabel>
-          <FieldContent>
-            <Input
-              id="menu-url"
-              {...register("url")}
-              placeholder={t("urlPlaceholder")}
-            />
-          </FieldContent>
-        </Field>
+        {linkType !== "GROUP" && (
+          <Field orientation="vertical">
+            <FieldLabel>{t("linkType")}</FieldLabel>
+            <FieldContent>
+              <Select
+                value={linkType}
+                onValueChange={(val) => setValue("linkType", val as LinkType)}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {linkType === "INTERNAL"
+                      ? t("linkTypeInternal")
+                      : linkType === "EXTERNAL"
+                        ? t("linkTypeExternal")
+                        : ""}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INTERNAL">
+                    {t("linkTypeInternal")}
+                  </SelectItem>
+                  <SelectItem value="EXTERNAL">
+                    {t("linkTypeExternal")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldContent>
+          </Field>
+        )}
 
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={isExternal}
-              onCheckedChange={(checked) => setValue("isExternal", !!checked)}
-            />
-            {t("isExternal")}
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={isVisible}
-              onCheckedChange={(checked) => setValue("isVisible", !!checked)}
-            />
-            {t("isVisible")}
-          </label>
-        </div>
+        {linkType === "EXTERNAL" && (
+          <Field orientation="vertical">
+            <FieldLabel htmlFor="menu-url">{t("url")} *</FieldLabel>
+            <FieldContent>
+              <Input
+                id="menu-url"
+                {...register("url")}
+                placeholder="https://example.com"
+              />
+            </FieldContent>
+          </Field>
+        )}
       </div>
-
-      <Separator />
-
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {t("save")}
-      </Button>
-    </form>
-  );
-}
+    );
+  },
+);

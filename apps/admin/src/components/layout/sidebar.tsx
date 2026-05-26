@@ -52,6 +52,7 @@ interface SidebarTreeNode {
   name: string;
   code: string;
   icon?: string | null;
+  linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
   url?: string | null;
   children: SidebarTreeNode[];
 }
@@ -72,7 +73,13 @@ function SidebarMenuNode({
   const t = useTranslations("Sidebar");
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
-  const isActive = node.url ? pathname === node.url : false;
+  const href =
+    node.linkType === "INTERNAL"
+      ? `/${node.code}`
+      : node.linkType === "EXTERNAL"
+        ? node.url
+        : undefined;
+  const isActive = href ? pathname === href : false;
 
   const label = (() => {
     try {
@@ -122,10 +129,28 @@ function SidebarMenuNode({
             </div>
           )}
         </>
+      ) : node.linkType === "EXTERNAL" ? (
+        <SidebarMenuButton
+          isActive={isActive}
+          render={
+            // biome-ignore lint/a11y/useAnchorContent: SidebarMenuButton renders children inside the anchor
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+            />
+          }
+        >
+          <span className="shrink-0">
+            {node.icon ? getIcon(node.icon) : <span className="h-4 w-4" />}
+          </span>
+          <span className="truncate">{label}</span>
+        </SidebarMenuButton>
       ) : (
         <SidebarMenuButton
           isActive={isActive}
-          render={<Link href={node.url ?? "#"} />}
+          render={<Link href={href ?? "#"} />}
         >
           <span className="shrink-0">
             {node.icon ? getIcon(node.icon) : <span className="h-4 w-4" />}

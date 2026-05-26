@@ -40,7 +40,6 @@ export const userRoleRepository = {
             },
           },
         },
-        isVisible: true,
       },
       orderBy: { sortOrder: "asc" },
     });
@@ -59,7 +58,7 @@ export const userRoleRepository = {
       return [];
     }
 
-    // For global admin role, return all visible menus
+    // For global admin role, return all menus
     // For other global roles, find roles with matching code across all apps
     return prisma.menu.findMany({
       where: {
@@ -70,7 +69,6 @@ export const userRoleRepository = {
             },
           },
         },
-        isVisible: true,
       },
       orderBy: { sortOrder: "asc" },
     });

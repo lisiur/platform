@@ -2,13 +2,14 @@
 
 import { create } from "zustand";
 import { appClient } from "@/lib/api";
-import type { Menu } from "@/lib/api/menu";
+import type { LinkType, Menu } from "@/lib/api/menu";
 
 interface TreeNode {
   id: string;
   name: string;
   code: string;
   icon?: string | null;
+  linkType: LinkType;
   url?: string | null;
   children: TreeNode[];
 }
@@ -32,6 +33,7 @@ function buildTree(menus: Menu[]): TreeNode[] {
       name: menu.name,
       code: menu.code,
       icon: menu.icon,
+      linkType: menu.linkType,
       url: menu.url,
       children: [],
     });

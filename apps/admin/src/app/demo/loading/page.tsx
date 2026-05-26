@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncFn } from "react-use";
 import { loading } from "@/utils/loading";
 
 function wait(ms: number) {
@@ -12,29 +12,35 @@ function wait(ms: number) {
 export default function LoadingDemoPage() {
   const t = useTranslations("LoadingDemo");
 
-  const [basicState, basicExecute] = useAsyncData(
-    async () => {
+  const [basicState, basicExecute] = useAsyncFn(async () => {
+    loading.show();
+    try {
       await wait(2000);
       return "done";
-    },
-    { showLoading: true },
-  );
+    } finally {
+      loading.hide();
+    }
+  }, []);
 
-  const [msgState, msgExecute] = useAsyncData(
-    async () => {
+  const [msgState, msgExecute] = useAsyncFn(async () => {
+    loading.show({ message: "Fetching data..." });
+    try {
       await wait(2000);
       return "done";
-    },
-    { showLoading: { message: "Fetching data..." } },
-  );
+    } finally {
+      loading.hide();
+    }
+  }, []);
 
-  const [durState, durExecute] = useAsyncData(
-    async () => {
+  const [durState, durExecute] = useAsyncFn(async () => {
+    loading.show({ message: "Saving...", duration: 3000 });
+    try {
       await wait(500);
       return "done";
-    },
-    { showLoading: { message: "Saving...", duration: 3000 } },
-  );
+    } finally {
+      loading.hide();
+    }
+  }, []);
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 overflow-auto p-8">

@@ -237,10 +237,9 @@ export const MenuScalarFieldEnum = {
   name: 'name',
   code: 'code',
   icon: 'icon',
+  linkType: 'linkType',
   url: 'url',
   sortOrder: 'sortOrder',
-  isExternal: 'isExternal',
-  isVisible: 'isVisible',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
