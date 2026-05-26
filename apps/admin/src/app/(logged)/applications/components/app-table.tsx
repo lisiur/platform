@@ -87,15 +87,15 @@ export function AppTable() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center py-8">
         <Spinner />
       </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -108,20 +108,22 @@ export function AppTable() {
       </div>
 
       {applications.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
+        <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
           {t("noApps")}
         </div>
       ) : (
-        <>
-          <Table>
-            <TableHeader>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
               <TableRow>
                 <TableHead>{t("name")}</TableHead>
                 <TableHead>{t("code")}</TableHead>
                 <TableHead>{t("description_label")}</TableHead>
                 <TableHead>{t("logo")}</TableHead>
                 <TableHead>{t("createdAt")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
+                <TableHead className="sticky right-0 z-30 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                  {t("actions")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -147,7 +149,7 @@ export function AppTable() {
                     )}
                   </TableCell>
                   <TableCell>{formatDate(app.createdAt)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -171,13 +173,14 @@ export function AppTable() {
 
           {total > pageSize && (
             <DataTablePagination
+              className="shrink-0"
               page={page}
               total={total}
               pageSize={pageSize}
               onPageChange={setPage}
             />
           )}
-        </>
+        </div>
       )}
 
       {editApp && (
@@ -188,6 +191,6 @@ export function AppTable() {
           onSuccess={handleEditSuccess}
         />
       )}
-    </>
+    </div>
   );
 }

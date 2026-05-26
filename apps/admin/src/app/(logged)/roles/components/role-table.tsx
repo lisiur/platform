@@ -94,8 +94,8 @@ export function RoleTable() {
   }
 
   return (
-    <div className="flex gap-6">
-      <div className="w-48 shrink-0">
+    <div className="flex min-h-0 flex-1 gap-6">
+      <div className="w-48 shrink-0 overflow-auto">
         <h3 className="mb-2 text-xs font-medium text-muted-foreground uppercase">
           {t("applications")}
         </h3>
@@ -115,26 +115,28 @@ export function RoleTable() {
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         {selectedApp ? (
-          <>
-            <div className="mb-4 flex items-center justify-between">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="mb-4 flex shrink-0 items-center justify-between">
               <h2 className="text-lg font-semibold">
                 {selectedApp.name} — {t("title")}
               </h2>
             </div>
 
             {loading ? (
-              <div className="flex justify-center py-8">
+              <div className="flex min-h-0 flex-1 justify-center py-8">
                 <Spinner />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
+              <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
                   <TableRow>
                     <TableHead>{t("name")}</TableHead>
                     <TableHead>{t("code")}</TableHead>
-                    <TableHead className="text-right">{t("actions")}</TableHead>
+                    <TableHead className="sticky right-0 z-30 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                      {t("actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,7 +146,7 @@ export function RoleTable() {
                       <TableCell>
                         <Badge variant="secondary">{role.code}</Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -178,9 +180,9 @@ export function RoleTable() {
                 </TableBody>
               </Table>
             )}
-          </>
+          </div>
         ) : (
-          <div className="flex h-64 items-center justify-center rounded-md border border-dashed">
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-md border border-dashed">
             <p className="text-sm text-muted-foreground">{t("selectApp")}</p>
           </div>
         )}

@@ -83,7 +83,7 @@ export function UserTable() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center py-8">
         <Spinner />
       </div>
     );
@@ -91,104 +91,109 @@ export function UserTable() {
 
   if (users.length === 0) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
+      <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
         {t("noUsers")}
       </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-4 flex justify-end">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 justify-end">
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t("addUser")}
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("email")}</TableHead>
-            <TableHead>{t("role")}</TableHead>
-            <TableHead>{t("status")}</TableHead>
-            <TableHead>{t("createdAt")}</TableHead>
-            <TableHead className="text-right">{t("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => {
-            const protectedUser = isProtectedUser(user.flags);
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableRow>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("email")}</TableHead>
+              <TableHead>{t("role")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
+              <TableHead className="sticky right-0 z-30 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                {t("actions")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => {
+              const protectedUser = isProtectedUser(user.flags);
 
-            return (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span>{user.name}</span>
-                    {protectedUser && (
-                      <Badge
-                        variant="secondary"
-                        className="px-1.5"
-                        title={t("protected")}
-                        aria-label={t("protected")}
-                      >
-                        <ShieldCheck className="h-3 w-3" />
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={user.role === "admin" ? "default" : "outline"}
-                  >
-                    {t(user.role === "admin" ? "roles.admin" : "roles.user")}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={user.banned ? "destructive" : "outline"}>
-                    {user.banned ? t("banned") : t("active")}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDate(user.createdAt)}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title={
-                      protectedUser ? t("protectedActionDisabled") : undefined
-                    }
-                    onClick={() => setEditUser(user)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title={
-                      protectedUser ? t("protectedActionDisabled") : undefined
-                    }
-                    disabled={protectedUser}
-                    onClick={() => setDeleteUser(user)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              return (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{user.name}</span>
+                      {protectedUser && (
+                        <Badge
+                          variant="secondary"
+                          className="px-1.5"
+                          title={t("protected")}
+                          aria-label={t("protected")}
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={user.role === "admin" ? "default" : "outline"}
+                    >
+                      {t(user.role === "admin" ? "roles.admin" : "roles.user")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.banned ? "destructive" : "outline"}>
+                      {user.banned ? t("banned") : t("active")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(user.createdAt)}</TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={
+                        protectedUser ? t("protectedActionDisabled") : undefined
+                      }
+                      onClick={() => setEditUser(user)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={
+                        protectedUser ? t("protectedActionDisabled") : undefined
+                      }
+                      disabled={protectedUser}
+                      onClick={() => setDeleteUser(user)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
 
-      {total > pageSize && (
-        <DataTablePagination
-          page={page}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-        />
-      )}
+        {total > pageSize && (
+          <DataTablePagination
+            className="shrink-0"
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
+        )}
+      </div>
 
       {showCreate && (
         <UserDialog
@@ -215,6 +220,6 @@ export function UserTable() {
           onSuccess={handleDeleteSuccess}
         />
       )}
-    </>
+    </div>
   );
 }

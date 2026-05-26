@@ -83,7 +83,7 @@ export function OrganizationTable() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center py-8">
         <Spinner />
       </div>
     );
@@ -91,14 +91,14 @@ export function OrganizationTable() {
 
   if (organizations.length === 0) {
     return (
-      <>
-        <div className="mb-4 flex justify-end">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-4 flex shrink-0 justify-end">
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
             {t("addOrg")}
           </Button>
         </div>
-        <div className="py-8 text-center text-muted-foreground">
+        <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
           {t("noOrgs")}
         </div>
         {showCreate && (
@@ -108,77 +108,82 @@ export function OrganizationTable() {
             onSuccess={handleCreateSuccess}
           />
         )}
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-4 flex justify-end">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 justify-end">
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {t("addOrg")}
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("slug")}</TableHead>
-            <TableHead>{t("logo")}</TableHead>
-            <TableHead>{t("createdAt")}</TableHead>
-            <TableHead className="text-right">{t("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {organizations.map((org) => (
-            <TableRow key={org.id}>
-              <TableCell>{org.name}</TableCell>
-              <TableCell>{org.slug}</TableCell>
-              <TableCell>
-                {org.logo ? (
-                  <Image
-                    src={org.logo}
-                    alt={org.name}
-                    width={24}
-                    height={24}
-                    className="rounded"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell>{formatDate(org.createdAt)}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setEditOrg(org)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteOrg(org)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableRow>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("slug")}</TableHead>
+              <TableHead>{t("logo")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
+              <TableHead className="sticky right-0 z-30 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                {t("actions")}
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {organizations.map((org) => (
+              <TableRow key={org.id}>
+                <TableCell>{org.name}</TableCell>
+                <TableCell>{org.slug}</TableCell>
+                <TableCell>
+                  {org.logo ? (
+                    <Image
+                      src={org.logo}
+                      alt={org.name}
+                      width={24}
+                      height={24}
+                      className="rounded"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell>{formatDate(org.createdAt)}</TableCell>
+                <TableCell className="sticky right-0 z-10 bg-background text-right shadow-[-1px_0_0_0_var(--border)]">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditOrg(org)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteOrg(org)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
 
-      {total > pageSize && (
-        <DataTablePagination
-          page={page}
-          total={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-        />
-      )}
+        {total > pageSize && (
+          <DataTablePagination
+            className="shrink-0"
+            page={page}
+            total={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
+        )}
+      </div>
 
       {showCreate && (
         <OrganizationDialog
@@ -205,6 +210,6 @@ export function OrganizationTable() {
           onSuccess={handleDeleteSuccess}
         />
       )}
-    </>
+    </div>
   );
 }

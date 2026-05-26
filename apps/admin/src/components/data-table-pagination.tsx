@@ -10,11 +10,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { cn } from "@/utils/cn";
 
 interface DataTablePaginationProps {
   page: number;
   total: number;
   pageSize?: number;
+  className?: string;
   onPageChange: (page: number) => void;
 }
 
@@ -48,6 +50,7 @@ export function DataTablePagination({
   page,
   total,
   pageSize = 10,
+  className,
   onPageChange,
 }: DataTablePaginationProps) {
   const t = useTranslations("Common");
@@ -60,8 +63,8 @@ export function DataTablePagination({
   const pages = getPageNumbers(page, totalPages);
 
   return (
-    <div className="flex items-center justify-between py-4">
-      <p className="text-sm text-muted-foreground">
+    <div className={cn("flex items-center justify-between py-4", className)}>
+      <p className="text-sm text-muted-foreground whitespace-nowrap">
         {t("showing")} {start}-{end} {t("of")} {total}
       </p>
       <Pagination>

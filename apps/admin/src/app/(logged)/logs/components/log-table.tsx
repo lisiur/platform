@@ -145,8 +145,8 @@ export function LogTable() {
   }
 
   return (
-    <>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <LogFilter filters={filters} onFiltersChange={handleFiltersChange} />
         {selectedIds.size > 0 && (
           <Button variant="destructive" size="sm" onClick={handleBatchDelete}>
@@ -157,17 +157,17 @@ export function LogTable() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex min-h-0 flex-1 items-center justify-center py-8">
           <Spinner />
         </div>
       ) : logs.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
+        <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
           {t("noLogs")}
         </div>
       ) : (
-        <>
-          <Table>
-            <TableHeader>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
@@ -240,12 +240,13 @@ export function LogTable() {
           </Table>
 
           <DataTablePagination
+            className="shrink-0"
             page={page}
             total={total}
             pageSize={pageSize}
             onPageChange={setPage}
           />
-        </>
+        </div>
       )}
       <Dialog
         open={!!detailLog}
@@ -267,6 +268,6 @@ export function LogTable() {
           </pre>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

@@ -16,3 +16,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Inside `<form>`, wrap form controls with the shared Field primitives from `@/components/ui/field`.
 - Use `FieldGroup` to group related fields, `Field` for each form item, `FieldLabel` instead of raw `<label>` or `Label`, `FieldError` for validation messages, and `FieldDescription` for helper text.
 - Do not add new raw label/error wrapper markup inside forms unless there is a specific component-level reason.
+
+# Table Handling
+
+- For any table with an operation/action column, fix that column to the right side of the horizontally scrollable table.
+- Apply the fixed-right behavior to both the header and body cells, for example: `className="sticky right-0 bg-background text-right shadow-[-1px_0_0_0_var(--border)]"`.
+- Do not treat data fields named `action` as operation columns unless they contain row-level action controls such as edit, delete, view, configure, or permission buttons.
