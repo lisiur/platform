@@ -12,6 +12,16 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 1,
   },
+  user: {
+    additionalFields: {
+      flags: {
+        type: "string[]",
+        required: false,
+        input: false,
+        defaultValue: [],
+      },
+    },
+  },
   socialProviders: {
     wechat: {
       enabled: !!process.env.WECHAT_CLIENT_ID,
@@ -24,8 +34,8 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        after(session) {
-          logOperation({
+        async after(session) {
+          await logOperation({
             userId: session.userId,
             action: "login",
             module: "auth",
@@ -38,8 +48,8 @@ export const auth = betterAuth({
         },
       },
       delete: {
-        after(session) {
-          logOperation({
+        async after(session) {
+          await logOperation({
             userId: session.userId,
             action: "logout",
             module: "auth",

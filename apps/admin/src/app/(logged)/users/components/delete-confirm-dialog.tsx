@@ -17,6 +17,7 @@ interface DeleteConfirmDialogProps {
   user: {
     id: string;
     name: string;
+    flags?: string[] | null;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;

@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 interface Role {
   id: string;
@@ -42,13 +43,11 @@ export function RoleTable() {
 
   const fetchApplications = useCallback(async () => {
     try {
-      const res = await appClient.api.applications.$get({
+      const res = await apiWithFeedback(appClient.api.applications.$get)({
         query: { limit: 100, offset: 0 },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data.applications ?? []);
-      }
+      const data = await res.json();
+      setApplications(data.applications ?? []);
     } catch {
       toast.error(t("loadError"));
     }
@@ -58,11 +57,11 @@ export function RoleTable() {
     async (appId: string) => {
       setLoading(true);
       try {
-        const res = await appClient.api.roles.$get({ query: { appId } });
-        if (res.ok) {
-          const data = await res.json();
-          setRoles(data);
-        }
+        const res = await apiWithFeedback(appClient.api.roles.$get)({
+          query: { appId },
+        });
+        const data = await res.json();
+        setRoles(data);
       } catch {
         toast.error(t("loadError"));
       } finally {
@@ -84,13 +83,11 @@ export function RoleTable() {
 
   async function handleDelete(role: Role) {
     try {
-      const res = await appClient.api.roles[":id"].$delete({
+      await apiWithFeedback(appClient.api.roles[":id"].$delete)({
         param: { id: role.id },
       });
-      if (res.ok) {
-        toast.success(t("deleteSuccess"));
-        if (selectedApp) fetchRoles(selectedApp.id);
-      }
+      toast.success(t("deleteSuccess"));
+      if (selectedApp) fetchRoles(selectedApp.id);
     } catch {
       toast.error(t("deleteError"));
     }

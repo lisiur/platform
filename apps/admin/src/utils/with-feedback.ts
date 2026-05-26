@@ -14,6 +14,13 @@ export function withFeedback<T extends (...args: any[]) => any>(
 ) {
   const showLoading = config?.showLoading ?? false;
   const showError = config?.showError ?? true;
+  const handleError = (err: unknown) => {
+    const error = err instanceof Error ? err : new Error(String(err));
+
+    if (showError) {
+      toast.error(config?.errorMessage ?? error.message);
+    }
+  };
 
   return (...args: Parameters<T>): ReturnType<T> => {
     if (showLoading) {
@@ -22,15 +29,17 @@ export function withFeedback<T extends (...args: any[]) => any>(
     }
 
     try {
-      return fn(...args) as ReturnType<T>;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-
-      if (showError) {
-        toast.error(config?.errorMessage ?? error.message);
+      const res = fn(...args);
+      if (res instanceof Promise) {
+        return res.catch((err) => {
+          handleError(err);
+          throw err;
+        }) as ReturnType<T>;
       }
-
-      throw error;
+      return res as ReturnType<T>;
+    } catch (err) {
+      handleError(err);
+      throw err;
     } finally {
       if (showLoading) {
         loading.hide();

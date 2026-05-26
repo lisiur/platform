@@ -17,6 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
+import { formatDate } from "@/utils/date";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { OrganizationDialog } from "./organization-dialog";
 
@@ -44,14 +46,12 @@ export function OrganizationTable() {
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api.organizations.$get({
+      const res = await apiWithFeedback(appClient.api.organizations.$get)({
         query: { limit: pageSize, offset: (page - 1) * pageSize },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setOrganizations(data.organizations);
-        setTotal(data.total);
-      }
+      const data = await res.json();
+      setOrganizations(data.organizations);
+      setTotal(data.total);
     } catch {
       toast.error(t("fetchFailed"));
     } finally {
@@ -149,9 +149,7 @@ export function OrganizationTable() {
                   <span className="text-muted-foreground">-</span>
                 )}
               </TableCell>
-              <TableCell>
-                {new Date(org.createdAt).toLocaleDateString()}
-              </TableCell>
+              <TableCell>{formatDate(org.createdAt)}</TableCell>
               <TableCell className="text-right">
                 <Button
                   variant="ghost"

@@ -19,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
+import { formatDate } from "@/utils/date";
 import { AppDialog } from "./app-dialog";
 
 interface Application {
@@ -56,18 +58,16 @@ export function AppTable() {
   const fetchApplications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api.applications.$get({
+      const res = await apiWithFeedback(appClient.api.applications.$get)({
         query: {
           limit: pageSize,
           offset: (page - 1) * pageSize,
           search: debouncedSearch || undefined,
         },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data.applications);
-        setTotal(data.total);
-      }
+      const data = await res.json();
+      setApplications(data.applications);
+      setTotal(data.total);
     } catch {
       toast.error(t("fetchFailed"));
     } finally {
@@ -146,9 +146,7 @@ export function AppTable() {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {new Date(app.createdAt).toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{formatDate(app.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"

@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 interface SystemConfigState {
   configs: Record<string, string>;
@@ -21,20 +22,20 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
 
     set({ loading: true });
     try {
-      const res = await appClient.api["system-config"][":group"].$get({
+      const res = await apiWithFeedback(
+        appClient.api["system-config"][":group"].$get,
+      )({
         param: { group },
       });
-      if (res.ok) {
-        const items = await res.json();
-        const configs: Record<string, string> = {};
-        for (const item of items) {
-          configs[item.key] = item.value;
-        }
-        set((state) => ({
-          configs: { ...state.configs, ...configs },
-          fetchedGroups: new Set([...state.fetchedGroups, group]),
-        }));
+      const items = await res.json();
+      const configs: Record<string, string> = {};
+      for (const item of items) {
+        configs[item.key] = item.value;
       }
+      set((state) => ({
+        configs: { ...state.configs, ...configs },
+        fetchedGroups: new Set([...state.fetchedGroups, group]),
+      }));
     } catch {
       // Keep existing values on error
     } finally {

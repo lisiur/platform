@@ -25,6 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
+import { formatDateTime } from "@/utils/date";
 import type { LogFilters } from "./log-filter";
 import { LogFilter } from "./log-filter";
 
@@ -80,13 +82,11 @@ export function LogTable() {
       if (filters.startDate) query.startDate = filters.startDate.toISOString();
       if (filters.endDate) query.endDate = filters.endDate.toISOString();
 
-      const res = await appClient.api.log.$get({ query });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.logs);
-        setTotal(data.total);
-        setSelectedIds(new Set());
-      }
+      const res = await apiWithFeedback(appClient.api.log.$get)({ query });
+      const data = await res.json();
+      setLogs(data.logs);
+      setTotal(data.total);
+      setSelectedIds(new Set());
     } catch {
       toast.error(t("fetchFailed"));
     } finally {
@@ -108,13 +108,11 @@ export function LogTable() {
   async function handleBatchDelete() {
     if (selectedIds.size === 0) return;
     try {
-      const res = await appClient.api.log.$delete({
+      await apiWithFeedback(appClient.api.log.$delete)({
         json: { ids: Array.from(selectedIds) },
       });
-      if (res.ok) {
-        toast.success(t("deleteSuccess"));
-        fetchLogs();
-      }
+      toast.success(t("deleteSuccess"));
+      fetchLogs();
     } catch {
       toast.error(t("deleteFailed"));
     }
@@ -143,7 +141,7 @@ export function LogTable() {
   }
 
   function formatTime(dateStr: string) {
-    return new Date(dateStr).toLocaleString();
+    return formatDateTime(dateStr);
   }
 
   return (

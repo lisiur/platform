@@ -38,8 +38,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { appClient } from "@/lib/api";
-import type { LinkType } from "@/lib/api/menu";
+import { apiWithFeedback } from "@/lib/api/utils";
 import { MenuForm, type MenuFormRef, type MenuInput } from "./menu-form";
+
+type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
 
 interface Menu {
   id: string;
@@ -136,12 +138,12 @@ export function MenuTree({
   const fetchMenus = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api.menu.$get({ query: { appId } });
-      if (res.ok) {
-        const data = await res.json();
-        setMenus(data.menus);
-        menusRef.current = data.menus;
-      }
+      const res = await apiWithFeedback(appClient.api.menu.$get)({
+        query: { appId },
+      });
+      const data = await res.json();
+      setMenus(data.menus);
+      menusRef.current = data.menus;
     } catch {
       toast.error(t("fetchFailed"));
     } finally {
@@ -195,13 +197,13 @@ export function MenuTree({
     }
     setSaving(true);
     try {
-      await appClient.api.menu.$post({
+      await apiWithFeedback(appClient.api.menu.$post)({
         json: {
           name: data.name,
           code: data.code,
           appId,
           parentId: addChildTarget?.id,
-          icon: data.icon || null,
+          icon: data.icon,
           linkType: data.linkType,
           url: data.url || null,
         },
@@ -222,7 +224,7 @@ export function MenuTree({
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await appClient.api.menu[":id"].$delete({
+      await apiWithFeedback(appClient.api.menu[":id"].$delete)({
         param: { id: deleteTarget.id },
       });
       toast.success(t("deleteSuccess"));
@@ -255,17 +257,12 @@ export function MenuTree({
       });
 
       try {
-        const res = await appClient.api.menu.reorder.$post({
+        const res = await apiWithFeedback(appClient.api.menu.reorder.$post)({
           json: { items: changed },
         });
-        if (res.ok) {
-          const data = await res.json();
-          setMenus(data.menus);
-          menusRef.current = data.menus;
-        } else {
-          toast.error(t("reorderFailed"));
-          fetchMenus();
-        }
+        const data = await res.json();
+        setMenus(data.menus);
+        menusRef.current = data.menus;
       } catch {
         toast.error(t("reorderFailed"));
         fetchMenus();

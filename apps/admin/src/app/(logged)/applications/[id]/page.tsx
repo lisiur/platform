@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 interface Application {
   id: string;
@@ -34,14 +35,12 @@ export default function ApplicationDetailPage({
   const fetchApp = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api.applications[":id"].$get({
-        param: { id },
-      });
-      if (res.ok) {
-        setApp(await res.json());
-      } else {
-        toast.error(t("fetchFailed"));
-      }
+      const res = await apiWithFeedback(appClient.api.applications[":id"].$get)(
+        {
+          param: { id },
+        },
+      );
+      setApp(await res.json());
     } catch {
       toast.error(t("fetchFailed"));
     } finally {

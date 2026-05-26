@@ -8,7 +8,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { appClient } from "@/lib/api";
-import type { Menu } from "@/lib/api/menu";
+import { apiWithFeedback } from "@/lib/api/utils";
+
+interface Menu {
+  id: string;
+  appId: string;
+  parentId?: string | null;
+  name: string;
+  code: string;
+  icon?: string | null;
+  linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
+  url?: string | null;
+  sortOrder: number;
+}
+
 import { cn } from "@/utils/cn";
 import { RoleMenuTree } from "./components/role-menu-tree";
 
@@ -39,13 +52,11 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
 
   const fetchApplications = useCallback(async () => {
     try {
-      const res = await appClient.api.applications.$get({
+      const res = await apiWithFeedback(appClient.api.applications.$get)({
         query: { limit: 100, offset: 0 },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data.applications ?? []);
-      }
+      const data = await res.json();
+      setApplications(data.applications ?? []);
     } catch {
       toast.error(t("loadError"));
     }
@@ -55,13 +66,11 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
     async (appId: string) => {
       setLoading(true);
       try {
-        const res = await appClient.api.menu.$get({
+        const res = await apiWithFeedback(appClient.api.menu.$get)({
           query: { appId },
         });
-        if (res.ok) {
-          const data = await res.json();
-          setAppMenus(data.menus);
-        }
+        const data = await res.json();
+        setAppMenus(data.menus);
       } catch {
         toast.error(t("loadError"));
       } finally {
@@ -73,13 +82,13 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
 
   const fetchRoleMenus = useCallback(async () => {
     try {
-      const res = await appClient.api["menu-role"][":roleId"].$get({
+      const res = await apiWithFeedback(
+        appClient.api["menu-role"][":roleId"].$get,
+      )({
         param: { roleId },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setAssignedMenuIds(new Set(data.menus.map((m: Menu) => m.id)));
-      }
+      const data = await res.json();
+      setAssignedMenuIds(new Set(data.menus.map((m: Menu) => m.id)));
     } catch {
       toast.error(t("loadError"));
     }
@@ -100,17 +109,15 @@ export default function RoleMenusPage({ params }: RoleMenusPageProps) {
     if (!selectedApp) return;
     setSaving(true);
     try {
-      const res = await appClient.api["menu-role"].batch.$put({
-        json: {
-          roleId,
-          menuIds: Array.from(assignedMenuIds),
+      const _res = await apiWithFeedback(appClient.api["menu-role"].batch.$put)(
+        {
+          json: {
+            roleId,
+            menuIds: Array.from(assignedMenuIds),
+          },
         },
-      });
-      if (res.ok) {
-        toast.success(t("saved"));
-      } else {
-        toast.error(t("saveError"));
-      }
+      );
+      toast.success(t("saved"));
     } catch {
       toast.error(t("saveError"));
     } finally {

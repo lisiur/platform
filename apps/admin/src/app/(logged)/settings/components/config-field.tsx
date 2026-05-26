@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { type Control, Controller } from "react-hook-form";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ConfigItem {
@@ -28,15 +28,15 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
   const tr = useTranslations("Remote");
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={item.key}>{tr(item.label)}</Label>
+    <Field>
+      <FieldLabel htmlFor={item.key}>{tr(item.label)}</FieldLabel>
       <Controller
         name={item.key}
         control={control}
         render={({ field }) => {
           if (item.type === "boolean") {
             return (
-              <div className="flex items-center space-x-2">
+              <Field orientation="horizontal" className="gap-2">
                 <input
                   type="checkbox"
                   id={item.key}
@@ -46,10 +46,10 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <Label htmlFor={item.key} className="font-normal">
+                <FieldLabel htmlFor={item.key} className="font-normal">
                   {item.description ? tr(item.description) : t("enable")}
-                </Label>
-              </div>
+                </FieldLabel>
+              </Field>
             );
           }
 
@@ -88,8 +88,8 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
         }}
       />
       {item.description && item.type !== "boolean" && (
-        <p className="text-sm text-muted-foreground">{tr(item.description)}</p>
+        <FieldDescription>{tr(item.description)}</FieldDescription>
       )}
-    </div>
+    </Field>
   );
 }

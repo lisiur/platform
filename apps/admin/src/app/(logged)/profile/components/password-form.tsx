@@ -7,6 +7,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/api";
 
@@ -61,49 +67,51 @@ export function PasswordForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <label htmlFor="currentPassword" className="text-sm font-medium">
-          {t("currentPassword")}
-        </label>
-        <Input
-          id="currentPassword"
-          type="password"
-          {...register("currentPassword")}
-        />
-        {errors.currentPassword && (
-          <p className="text-sm text-destructive">
-            {errors.currentPassword.message}
-          </p>
-        )}
-      </div>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="currentPassword">
+            {t("currentPassword")}
+          </FieldLabel>
+          <Input
+            id="currentPassword"
+            type="password"
+            {...register("currentPassword")}
+          />
+          <FieldError
+            errors={
+              errors.currentPassword ? [errors.currentPassword] : undefined
+            }
+          />
+        </Field>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="newPassword" className="text-sm font-medium">
-          {t("newPassword")}
-        </label>
-        <Input id="newPassword" type="password" {...register("newPassword")} />
-        {errors.newPassword && (
-          <p className="text-sm text-destructive">
-            {errors.newPassword.message}
-          </p>
-        )}
-      </div>
+        <Field>
+          <FieldLabel htmlFor="newPassword">{t("newPassword")}</FieldLabel>
+          <Input
+            id="newPassword"
+            type="password"
+            {...register("newPassword")}
+          />
+          <FieldError
+            errors={errors.newPassword ? [errors.newPassword] : undefined}
+          />
+        </Field>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="confirmPassword" className="text-sm font-medium">
-          {t("confirmPassword")}
-        </label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          {...register("confirmPassword")}
-        />
-        {errors.confirmPassword && (
-          <p className="text-sm text-destructive">
-            {errors.confirmPassword.message}
-          </p>
-        )}
-      </div>
+        <Field>
+          <FieldLabel htmlFor="confirmPassword">
+            {t("confirmPassword")}
+          </FieldLabel>
+          <Input
+            id="confirmPassword"
+            type="password"
+            {...register("confirmPassword")}
+          />
+          <FieldError
+            errors={
+              errors.confirmPassword ? [errors.confirmPassword] : undefined
+            }
+          />
+        </Field>
+      </FieldGroup>
 
       <div className="flex justify-end">
         <Button type="submit" disabled={saving}>

@@ -6,6 +6,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/api";
 
@@ -49,50 +55,42 @@ export function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <label htmlFor="name" className="text-sm font-medium">
-          {tc("name")}
-        </label>
-        <Input
-          id="name"
-          type="text"
-          placeholder="Your name"
-          {...register("name")}
-        />
-        {errors.name && (
-          <p className="text-sm text-destructive">{errors.name.message}</p>
-        )}
-      </div>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="name">{tc("name")}</FieldLabel>
+          <Input
+            id="name"
+            type="text"
+            placeholder="Your name"
+            {...register("name")}
+          />
+          <FieldError errors={errors.name ? [errors.name] : undefined} />
+        </Field>
 
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
-          {tc("email")}
-        </label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="you@example.com"
-          {...register("email")}
-        />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
+        <Field>
+          <FieldLabel htmlFor="email">{tc("email")}</FieldLabel>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            {...register("email")}
+          />
+          <FieldError errors={errors.email ? [errors.email] : undefined} />
+        </Field>
 
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          {tc("password")}
-        </label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          {...register("password")}
-        />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
-      </div>
+        <Field>
+          <FieldLabel htmlFor="password">{tc("password")}</FieldLabel>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            {...register("password")}
+          />
+          <FieldError
+            errors={errors.password ? [errors.password] : undefined}
+          />
+        </Field>
+      </FieldGroup>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -7,7 +7,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { FieldGroup } from "@/components/ui/field";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 import { useSystemConfigStore } from "@/stores/system-config-store";
 import { ConfigField } from "./config-field";
 
@@ -38,12 +40,13 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
     async function load() {
       setLoading(true);
       try {
-        const res = await appClient.api["system-config"][":group"].$get({
+        const res = await apiWithFeedback(
+          appClient.api["system-config"][":group"].$get,
+        )({
           param: {
             group,
           },
         });
-        if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
         setItems(data);
       } catch {
@@ -77,12 +80,11 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
         isSecret: item.isSecret,
         sortOrder: item.sortOrder,
       }));
-      const res = await appClient.api["system-config"].batch.$put({
+      await apiWithFeedback(appClient.api["system-config"].batch.$put)({
         json: {
           items: payload,
         },
       });
-      if (!res.ok) throw new Error("Failed to save");
       for (const item of payload) {
         updateConfig(item.group, item.key, item.value);
       }
@@ -104,9 +106,11 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
 
   return (
     <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
-      {items.map((item) => (
-        <ConfigField key={item.key} item={item} control={form.control} />
-      ))}
+      <FieldGroup>
+        {items.map((item) => (
+          <ConfigField key={item.key} item={item} control={form.control} />
+        ))}
+      </FieldGroup>
       <div className="flex justify-end">
         <Button type="submit" disabled={saving}>
           {saving ? t("saving") : t("save")}

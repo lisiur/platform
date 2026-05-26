@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import { useAsyncFn } from "react-use";
+import { Button } from "@/components/ui/button";
 import { loading } from "@/utils/loading";
 
 function wait(ms: number) {

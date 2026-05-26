@@ -7,7 +7,10 @@ import { use, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { appClient } from "@/lib/api";
-import type { LinkType } from "@/lib/api/menu";
+import { apiWithFeedback } from "@/lib/api/utils";
+
+type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
+
 import {
   MenuForm,
   type MenuFormRef,
@@ -62,7 +65,7 @@ export default function MenusPage({ params }: MenusPageProps) {
     }
     setSaving(true);
     try {
-      await appClient.api.menu[":id"].$put({
+      await apiWithFeedback(appClient.api.menu[":id"].$put)({
         param: { id: selectedMenu.id },
         json: {
           name: data.name,

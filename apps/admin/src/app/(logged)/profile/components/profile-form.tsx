@@ -7,6 +7,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/api";
 
@@ -52,15 +58,13 @@ export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <label htmlFor="name" className="text-sm font-medium">
-          {t("name")}
-        </label>
-        <Input id="name" {...register("name")} />
-        {errors.name && (
-          <p className="text-sm text-destructive">{errors.name.message}</p>
-        )}
-      </div>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+          <Input id="name" {...register("name")} />
+          <FieldError errors={errors.name ? [errors.name] : undefined} />
+        </Field>
+      </FieldGroup>
       <div className="flex justify-end">
         <Button type="submit" disabled={saving || !isDirty}>
           {saving ? t("saving") : t("save")}

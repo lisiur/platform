@@ -16,10 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 const orgSchema = z.object({
   name: z.string().min(1),
@@ -114,7 +120,7 @@ export function OrganizationDialog({
   async function onSubmit(data: OrgInput) {
     try {
       if (isEdit) {
-        await appClient.api.organizations[":id"].$put({
+        await apiWithFeedback(appClient.api.organizations[":id"].$put)({
           param: { id: organization.id },
           json: {
             name: data.name,
@@ -124,7 +130,7 @@ export function OrganizationDialog({
           },
         });
       } else {
-        await appClient.api.organizations.$post({
+        await apiWithFeedback(appClient.api.organizations.$post)({
           json: {
             name: data.name,
             slug: data.slug,
@@ -158,72 +164,66 @@ export function OrganizationDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("name")}</Label>
-            <Input id="name" {...register("name")} />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="slug">{t("slug")}</Label>
-            <Input id="slug" {...register("slug")} />
-            {errors.slug && (
-              <p className="text-sm text-destructive">{errors.slug.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>{t("logo")}</Label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            {logoPreview ? (
-              <div className="relative inline-block">
-                <Image
-                  src={logoPreview}
-                  alt="Logo preview"
-                  width={80}
-                  height={80}
-                  className="rounded-lg border object-cover"
-                  unoptimized
-                />
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+              <Input id="name" {...register("name")} />
+              <FieldError errors={errors.name ? [errors.name] : undefined} />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="slug">{t("slug")}</FieldLabel>
+              <Input id="slug" {...register("slug")} />
+              <FieldError errors={errors.slug ? [errors.slug] : undefined} />
+            </Field>
+            <Field>
+              <FieldLabel>{t("logo")}</FieldLabel>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {logoPreview ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={logoPreview}
+                    alt="Logo preview"
+                    width={80}
+                    height={80}
+                    className="rounded-lg border object-cover"
+                    unoptimized
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={handleRemoveLogo}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -top-2 -right-2 h-6 w-6"
-                  onClick={handleRemoveLogo}
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <X className="h-3 w-3" />
+                  <ImagePlus className="mr-2 h-4 w-4" />
+                  {t("uploadLogo")}
                 </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <ImagePlus className="mr-2 h-4 w-4" />
-                {t("uploadLogo")}
-              </Button>
-            )}
-            {errors.logo && (
-              <p className="text-sm text-destructive">{errors.logo.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="metadata">{t("metadata")}</Label>
-            <Textarea id="metadata" {...register("metadata")} rows={3} />
-            {errors.metadata && (
-              <p className="text-sm text-destructive">
-                {errors.metadata.message}
-              </p>
-            )}
-          </div>
+              )}
+              <FieldError errors={errors.logo ? [errors.logo] : undefined} />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="metadata">{t("metadata")}</FieldLabel>
+              <Textarea id="metadata" {...register("metadata")} rows={3} />
+              <FieldError
+                errors={errors.metadata ? [errors.metadata] : undefined}
+              />
+            </Field>
+          </FieldGroup>
           <DialogFooter>
             <Button
               type="button"

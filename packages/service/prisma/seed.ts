@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PROTECTED_USER_FLAG } from "@repo/shared";
 import { hashPassword } from "better-auth/crypto";
 import { PrismaClient } from "./generated/prisma/client";
 
@@ -261,16 +262,18 @@ async function seedUser(params: {
   email: string;
   password: string;
   globalRole: string;
+  flags?: string[];
 }) {
   const user = await prisma.user.upsert({
     where: { email: params.email },
-    update: { role: params.globalRole },
+    update: { role: params.globalRole, flags: params.flags ?? [] },
     create: {
       id: params.id,
       name: params.name,
       email: params.email,
       emailVerified: true,
       role: params.globalRole,
+      flags: params.flags ?? [],
     },
   });
 
@@ -340,6 +343,7 @@ async function seed() {
     email: "admin@system.local",
     password: "admin123",
     globalRole: "admin",
+    flags: [PROTECTED_USER_FLAG],
   });
   await seedUserRoles(adminUser.id, roleIds);
 }

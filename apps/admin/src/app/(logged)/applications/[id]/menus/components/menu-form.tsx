@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LinkType } from "@/lib/api/menu";
+
+type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
 
 const menuSchema = z.object({
   name: z.string().min(1, "Name is required"),

@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 interface DeleteConfirmDialogProps {
   organization: {
@@ -35,7 +36,7 @@ export function DeleteConfirmDialog({
   async function handleDelete() {
     setLoading(true);
     try {
-      await appClient.api.organizations[":id"].$delete({
+      await apiWithFeedback(appClient.api.organizations[":id"].$delete)({
         param: { id: organization.id },
       });
       onSuccess();

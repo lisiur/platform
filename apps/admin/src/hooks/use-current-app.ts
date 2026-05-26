@@ -3,6 +3,7 @@
 import { useStore } from "better-auth/react";
 import { useEffect, useState } from "react";
 import { appClient, authClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 interface Application {
   id: string;
@@ -30,13 +31,10 @@ export function useCurrentApp() {
     }
 
     setLoading(true);
-    appClient.api.applications.current
-      .$get()
-      .then(async (res: Response) => {
-        if (res.ok) {
-          const data = (await res.json()) as Application;
-          setApp(data);
-        }
+    apiWithFeedback(appClient.api.applications.current.$get)()
+      .then(async (res) => {
+        const data = (await res.json()) as Application;
+        setApp(data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

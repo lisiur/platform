@@ -2,7 +2,21 @@
 
 import { create } from "zustand";
 import { appClient } from "@/lib/api";
-import type { LinkType, Menu } from "@/lib/api/menu";
+import { apiWithFeedback } from "@/lib/api/utils";
+
+type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
+
+interface Menu {
+  id: string;
+  appId: string;
+  parentId?: string | null;
+  name: string;
+  code: string;
+  icon?: string | null;
+  linkType: LinkType;
+  url?: string | null;
+  sortOrder: number;
+}
 
 interface TreeNode {
   id: string;
@@ -80,13 +94,11 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
     set({ loading: true });
     try {
-      const res = await appClient.api["menu-role"].mine.$get();
-      if (res.ok) {
-        const data = await res.json();
-        const menus = data.menus;
-        const treeMenus = buildTree(menus);
-        set({ menus, treeMenus, fetched: true });
-      }
+      const res = await apiWithFeedback(appClient.api["menu-role"].mine.$get)();
+      const data = await res.json();
+      const menus = data.menus;
+      const treeMenus = buildTree(menus);
+      set({ menus, treeMenus, fetched: true });
     } catch {
       // Keep existing state on error
     } finally {

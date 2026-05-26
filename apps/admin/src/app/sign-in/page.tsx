@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 import { getFirstMenuUrl } from "@/lib/menu-utils";
 
 export default function LoginPage() {
@@ -19,14 +20,12 @@ export default function LoginPage() {
 
   const handleLoginSuccess = async () => {
     try {
-      const res = await appClient.api["menu-role"].mine.$get();
-      if (res.ok) {
-        const data = await res.json();
-        const firstUrl = getFirstMenuUrl(data.menus);
-        if (firstUrl) {
-          router.push(firstUrl);
-          return;
-        }
+      const res = await apiWithFeedback(appClient.api["menu-role"].mine.$get)();
+      const data = await res.json();
+      const firstUrl = getFirstMenuUrl(data.menus);
+      if (firstUrl) {
+        router.push(firstUrl);
+        return;
       }
     } catch {
       // Fallback to dashboard

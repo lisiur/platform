@@ -1,5 +1,7 @@
 CodeDiff
+Hono
 lazygit
 noExplicitAny
+noNonNullAssertion
 opencode
 stylua

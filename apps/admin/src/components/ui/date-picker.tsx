@@ -1,6 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import * as React from "react";
 import type { DateRange, OnSelectHandler } from "react-day-picker";
@@ -13,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/utils/cn";
+import { formatDate } from "@/utils/date";
 
 function DatePicker({
   value,
@@ -42,7 +42,7 @@ function DatePicker({
         }
       >
         <CalendarIcon />
-        {value ? format(value, "PPP") : <span>{placeholder}</span>}
+        {value ? formatDate(value) : <span>{placeholder}</span>}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
@@ -117,10 +117,10 @@ function DateRangePicker({
         {date?.from ? (
           date.to ? (
             <>
-              {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+              {formatDate(date.from)} - {formatDate(date.to)}
             </>
           ) : (
-            format(date.from, "LLL dd, y")
+            formatDate(date.from)
           )
         ) : (
           <span>Pick a date range</span>

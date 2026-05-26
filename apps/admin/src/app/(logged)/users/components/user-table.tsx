@@ -1,7 +1,8 @@
 "use client";
 
+import { isProtectedUser } from "@repo/shared";
 import type { UserWithRole } from "better-auth/plugins";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,18 +19,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { authClient } from "@/lib/api";
+import { formatDate } from "@/utils/date";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { UserDialog } from "./user-dialog";
 
+type UserRow = UserWithRole & {
+  flags?: string[] | null;
+};
+
 export function UserTable() {
   const t = useTranslations("Users");
-  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [editUser, setEditUser] = useState<UserWithRole | null>(null);
-  const [deleteUser, setDeleteUser] = useState<UserWithRole | null>(null);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
 
   const pageSize = 10;
 
@@ -112,41 +118,66 @@ export function UserTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <Badge variant={user.role === "admin" ? "default" : "outline"}>
-                  {user.role ?? "user"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant={user.banned ? "destructive" : "outline"}>
-                  {user.banned ? t("banned") : t("active")}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {new Date(user.createdAt).toLocaleDateString()}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setEditUser(user)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteUser(user)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {users.map((user) => {
+            const protectedUser = isProtectedUser(user.flags);
+
+            return (
+              <TableRow key={user.id}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span>{user.name}</span>
+                    {protectedUser && (
+                      <Badge
+                        variant="secondary"
+                        className="px-1.5"
+                        title={t("protected")}
+                        aria-label={t("protected")}
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={user.role === "admin" ? "default" : "outline"}
+                  >
+                    {t(user.role === "admin" ? "roles.admin" : "roles.user")}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={user.banned ? "destructive" : "outline"}>
+                    {user.banned ? t("banned") : t("active")}
+                  </Badge>
+                </TableCell>
+                <TableCell>{formatDate(user.createdAt)}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title={
+                      protectedUser ? t("protectedActionDisabled") : undefined
+                    }
+                    onClick={() => setEditUser(user)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title={
+                      protectedUser ? t("protectedActionDisabled") : undefined
+                    }
+                    disabled={protectedUser}
+                    onClick={() => setDeleteUser(user)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 
