@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PROTECTED_USER_FLAG } from "@repo/shared";
+import { BUILTIN_ROLE_FLAG, BUILTIN_USER_FLAG } from "@repo/shared";
 import { hashPassword } from "better-auth/crypto";
 import { PrismaClient } from "./generated/prisma/client";
 
@@ -127,7 +127,7 @@ async function seedAdminApplication() {
       description: "Administrative dashboard application",
     },
     create: {
-      id: "app-admin",
+      id: "admin",
       name: "Admin Panel",
       code: "admin",
       description: "Administrative dashboard application",
@@ -142,7 +142,7 @@ async function seedMenus(appId: string) {
 
   const menuDefinitions = [
     {
-      id: "menu-dashboard",
+      id: "dashboard",
       name: "Dashboard",
       code: "dashboard",
       icon: "LayoutDashboard",
@@ -150,7 +150,7 @@ async function seedMenus(appId: string) {
       sortOrder: 0,
     },
     {
-      id: "menu-applications",
+      id: "applications",
       name: "Applications",
       code: "applications",
       icon: "Layers",
@@ -158,7 +158,7 @@ async function seedMenus(appId: string) {
       sortOrder: 1,
     },
     {
-      id: "menu-organizations",
+      id: "organizations",
       name: "Organizations",
       code: "organizations",
       icon: "Building2",
@@ -166,7 +166,7 @@ async function seedMenus(appId: string) {
       sortOrder: 2,
     },
     {
-      id: "menu-users",
+      id: "users",
       name: "Users",
       code: "users",
       icon: "Users",
@@ -174,7 +174,7 @@ async function seedMenus(appId: string) {
       sortOrder: 3,
     },
     {
-      id: "menu-logs",
+      id: "logs",
       name: "Logs",
       code: "logs",
       icon: "FileText",
@@ -182,7 +182,7 @@ async function seedMenus(appId: string) {
       sortOrder: 4,
     },
     {
-      id: "menu-settings",
+      id: "settings",
       name: "Settings",
       code: "settings",
       icon: "Settings",
@@ -237,8 +237,18 @@ async function seedRoles(appId: string) {
   console.log("Seeding roles...");
 
   const roleDefinitions = [
-    { name: "Administrator", code: "admin" },
-    { name: "User", code: "user" },
+    {
+      name: "Administrator",
+      code: "admin",
+      authRole: "admin",
+      flags: [BUILTIN_ROLE_FLAG],
+    },
+    {
+      name: "User",
+      code: "user",
+      authRole: "user",
+      flags: [BUILTIN_ROLE_FLAG],
+    },
   ];
 
   const roleIds: Record<string, string> = {};
@@ -246,8 +256,18 @@ async function seedRoles(appId: string) {
   for (const def of roleDefinitions) {
     const role = await prisma.role.upsert({
       where: { appId_code: { appId, code: def.code } },
-      update: { name: def.name },
-      create: { appId, name: def.name, code: def.code },
+      update: {
+        name: def.name,
+        authRole: def.authRole,
+        flags: def.flags,
+      },
+      create: {
+        appId,
+        name: def.name,
+        code: def.code,
+        authRole: def.authRole,
+        flags: def.flags,
+      },
     });
     roleIds[def.code] = role.id;
   }
@@ -302,14 +322,12 @@ async function seedUser(params: {
   return user;
 }
 
-async function seedUserRoles(userId: string, roleIds: Record<string, string>) {
-  for (const roleId of Object.values(roleIds)) {
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId, roleId } },
-      update: {},
-      create: { userId, roleId },
-    });
-  }
+async function seedUserRole(userId: string, roleId: string) {
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId, roleId } },
+    update: {},
+    create: { userId, roleId },
+  });
 }
 
 async function seed() {
@@ -338,14 +356,14 @@ async function seed() {
 
   // Seed users
   const adminUser = await seedUser({
-    id: "user-admin",
+    id: "admin",
     name: "Admin",
     email: "admin@system.local",
     password: "admin123",
     globalRole: "admin",
-    flags: [PROTECTED_USER_FLAG],
+    flags: [BUILTIN_USER_FLAG],
   });
-  await seedUserRoles(adminUser.id, roleIds);
+  await seedUserRole(adminUser.id, roleIds.admin);
 }
 
 seed()

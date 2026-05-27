@@ -112,6 +112,8 @@
     "confirmDelete": "确定要删除",
     "cancel": "取消",
     "password": "密码",
+    "newPassword": "新密码",
+    "passwordOptional": "留空则保持当前密码",
     "save": "保存",
     "saving": "保存中...",
     "delete": "删除",
@@ -120,13 +122,21 @@
     "createSuccess": "用户创建成功",
     "deleteSuccess": "用户删除成功",
     "fetchFailed": "获取用户列表失败",
-    "roles": {
+    "fetchRolesFailed": "获取角色列表失败",
+    "updateFailed": "更新用户失败",
+    "createFailed": "创建用户失败",
+    "deleteFailed": "删除用户失败",
+    "roles": "角色",
+    "roleLabels": {
       "admin": "管理员",
       "user": "普通用户"
     },
     "appRoles": "应用角色",
     "selectApp": "选择应用",
-    "selectRole": "选择角色"
+    "selectRole": "选择角色",
+    "loadingRoles": "加载角色中...",
+    "noRolesAvailable": "暂无可用角色",
+    "noRoles": "暂无角色"
   },
   "Settings": {
     "title": "系统设置",

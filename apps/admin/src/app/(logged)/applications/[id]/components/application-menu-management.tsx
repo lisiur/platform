@@ -96,7 +96,7 @@ export function ApplicationMenuManagement({
           refreshKey={refreshKey}
         />
       </div>
-      <div className="min-w-0 flex-1 overflow-auto pb-8">
+      <div className="min-w-0 flex-1 overflow-auto">
         {selectedMenu ? (
           <div className="space-y-6">
             <h3 className="text-lg font-medium">{t("editMenu")}</h3>

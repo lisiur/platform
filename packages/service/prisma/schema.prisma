@@ -224,12 +224,15 @@ model Role {
   app       Application @relation(fields: [appId], references: [id], onDelete: Cascade)
   name      String
   code      String
+  authRole  String?
+  flags     String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   menuRoles MenuRole[]
   userRoles UserRole[]
 
   @@unique([appId, code])
+  @@unique([appId, authRole])
   @@index([appId])
   @@map("role")
 }

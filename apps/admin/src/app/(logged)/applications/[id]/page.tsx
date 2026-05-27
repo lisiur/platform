@@ -88,7 +88,7 @@ export default function ApplicationDetailPage({
 
       <Tabs
         defaultValue="roles"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        className="flex min-h-0 flex-col overflow-hidden"
       >
         <TabsList className="mb-6 w-fit shrink-0">
           <TabsTrigger value="roles">{t("tabs.roles")}</TabsTrigger>

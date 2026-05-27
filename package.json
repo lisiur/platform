@@ -11,6 +11,7 @@
     "db:reset": "pnpm --filter @repo/service db:reset",
     "db:generate": "pnpm --filter @repo/service db:generate",
     "db:push": "pnpm --filter @repo/service db:push",
+    "db:seed": "pnpm --filter @repo/service db:seed",
     "db:migrate": "pnpm --filter @repo/service db:migrate"
   },
   "devDependencies": {

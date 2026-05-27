@@ -18,11 +18,31 @@ export const roleRepository = {
     });
   },
 
-  create(data: { appId: string; name: string; code: string }) {
+  findSystemRoleByApp(appId: string, authRole: string) {
+    return prisma.role.findUnique({
+      where: { appId_authRole: { appId, authRole } },
+    });
+  },
+
+  create(data: {
+    appId: string;
+    name: string;
+    code: string;
+    authRole?: string;
+    flags?: string[];
+  }) {
     return prisma.role.create({ data });
   },
 
-  update(id: string, data: { name?: string; code?: string }) {
+  update(
+    id: string,
+    data: {
+      name?: string;
+      code?: string;
+      authRole?: string | null;
+      flags?: string[];
+    },
+  ) {
     return prisma.role.update({ where: { id }, data });
   },
 

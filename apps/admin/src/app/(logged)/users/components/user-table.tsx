@@ -1,7 +1,6 @@
 "use client";
 
-import { isProtectedUser } from "@repo/shared";
-import type { UserWithRole } from "better-auth/plugins";
+import { isBuiltinUser } from "@repo/shared";
 import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -18,14 +17,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { authClient } from "@/lib/api";
+import { appClient } from "@/lib/api";
 import { formatDate } from "@/utils/date";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { UserDialog } from "./user-dialog";
 
-type UserRow = UserWithRole & {
+interface Role {
+  id: string;
+  appId: string;
+  name: string;
+  code: string;
+}
+
+interface UserRole {
+  id: string;
+  roleId: string;
+  role: Role;
+}
+
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  role?: string | null;
+  banned?: boolean | null;
   flags?: string[] | null;
-};
+  createdAt: string;
+  updatedAt: string;
+  userRoles?: UserRole[];
+}
 
 export function UserTable() {
   const t = useTranslations("Users");
@@ -42,15 +62,19 @@ export function UserTable() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await authClient.admin.listUsers({
+      const res = await appClient.api["admin-users"].$get({
         query: {
           limit: pageSize,
           offset: (page - 1) * pageSize,
         },
       });
-      if (result.data) {
-        setUsers(result.data.users);
-        setTotal(result.data.total);
+
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users);
+        setTotal(data.total);
+      } else {
+        toast.error(t("fetchFailed"));
       }
     } catch {
       toast.error(t("fetchFailed"));
@@ -112,7 +136,7 @@ export function UserTable() {
             <TableRow>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("email")}</TableHead>
-              <TableHead>{t("role")}</TableHead>
+              <TableHead>{t("roles")}</TableHead>
               <TableHead>{t("status")}</TableHead>
               <TableHead>{t("createdAt")}</TableHead>
               <TableHead sticky="right" align="right">
@@ -122,14 +146,14 @@ export function UserTable() {
           </TableHeader>
           <TableBody>
             {users.map((user) => {
-              const protectedUser = isProtectedUser(user.flags);
+              const builtinUser = isBuiltinUser(user.flags);
 
               return (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span>{user.name}</span>
-                      {protectedUser && (
+                      {builtinUser && (
                         <Badge
                           variant="secondary"
                           className="px-1.5"
@@ -143,11 +167,17 @@ export function UserTable() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={user.role === "admin" ? "default" : "outline"}
-                    >
-                      {t(user.role === "admin" ? "roles.admin" : "roles.user")}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {user.userRoles && user.userRoles.length > 0 ? (
+                        user.userRoles.map((ur) => (
+                          <Badge key={ur.id} variant="secondary">
+                            {ur.role.name}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline">{t("noRoles")}</Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.banned ? "destructive" : "outline"}>
@@ -160,7 +190,7 @@ export function UserTable() {
                       variant="ghost"
                       size="icon"
                       title={
-                        protectedUser ? t("protectedActionDisabled") : undefined
+                        builtinUser ? t("protectedActionDisabled") : undefined
                       }
                       onClick={() => setEditUser(user)}
                     >
@@ -170,9 +200,9 @@ export function UserTable() {
                       variant="ghost"
                       size="icon"
                       title={
-                        protectedUser ? t("protectedActionDisabled") : undefined
+                        builtinUser ? t("protectedActionDisabled") : undefined
                       }
-                      disabled={protectedUser}
+                      disabled={builtinUser}
                       onClick={() => setDeleteUser(user)}
                     >
                       <Trash2 className="h-4 w-4" />

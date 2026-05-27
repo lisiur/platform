@@ -112,6 +112,8 @@
     "confirmDelete": "Are you sure you want to delete",
     "cancel": "Cancel",
     "password": "Password",
+    "newPassword": "New Password",
+    "passwordOptional": "Leave empty to keep current password",
     "save": "Save",
     "saving": "Saving...",
     "delete": "Delete",
@@ -120,13 +122,21 @@
     "createSuccess": "User created successfully",
     "deleteSuccess": "User deleted successfully",
     "fetchFailed": "Failed to fetch users",
-    "roles": {
+    "fetchRolesFailed": "Failed to fetch roles",
+    "updateFailed": "Failed to update user",
+    "createFailed": "Failed to create user",
+    "deleteFailed": "Failed to delete user",
+    "roles": "Roles",
+    "roleLabels": {
       "admin": "Admin",
       "user": "User"
     },
     "appRoles": "App Roles",
     "selectApp": "Select App",
-    "selectRole": "Select Role"
+    "selectRole": "Select Role",
+    "loadingRoles": "Loading roles...",
+    "noRolesAvailable": "No roles available",
+    "noRoles": "No roles"
   },
   "Settings": {
     "title": "System Settings",

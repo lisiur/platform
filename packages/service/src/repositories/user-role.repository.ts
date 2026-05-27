@@ -30,47 +30,47 @@ export const userRoleRepository = {
   },
 
   async getMenusForUser(userId: string) {
-    // First try app-scoped roles via UserRole
-    const scopedMenus = await prisma.menu.findMany({
-      where: {
-        menuRoles: {
-          some: {
-            role: {
-              userRoles: { some: { userId } },
-            },
-          },
-        },
-      },
-      orderBy: { sortOrder: "asc" },
-    });
-
-    if (scopedMenus.length > 0) {
-      return scopedMenus;
-    }
-
-    // Fallback: check global User.role (for users without UserRole records)
+    // Get user's better-auth role for mapping
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });
 
-    if (!user?.role) {
+    if (!user) {
       return [];
     }
 
-    // For global admin role, return all menus
-    // For other global roles, find roles with matching code across all apps
-    return prisma.menu.findMany({
+    // Union of:
+    // 1. Explicit custom roles via UserRole
+    // 2. Mapped roles where Role.authRole === User.role (from any app)
+    const menus = await prisma.menu.findMany({
       where: {
         menuRoles: {
           some: {
             role: {
-              code: user.role,
+              OR: [
+                // Explicit custom role assignments
+                {
+                  userRoles: {
+                    some: { userId },
+                  },
+                },
+                // Mapped roles based on better-auth role
+                ...(user.role
+                  ? [
+                      {
+                        authRole: user.role,
+                      },
+                    ]
+                  : []),
+              ],
             },
           },
         },
       },
       orderBy: { sortOrder: "asc" },
     });
+
+    return menus;
   },
 };

@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import type { AuthType } from "#lib/auth";
 import { auth } from "#lib/auth";
-import { assertUserIsNotProtected } from "#lib/protected-user";
+import { assertUserIsNotBuiltin } from "#lib/protected-user";
 
 const authRoutes = new OpenAPIHono<{ Bindings: AuthType }>({ strict: false });
 
@@ -45,7 +45,7 @@ authRoutes.use("/*", async (c, next) => {
     return next();
   }
 
-  await assertUserIsNotProtected(userId);
+  await assertUserIsNotBuiltin(userId);
   return next();
 });
 
@@ -71,7 +71,7 @@ authRoutes.use("/*", async (c, next) => {
   }
 
   if (isUpdateUser && userId && data && Object.hasOwn(data, "role")) {
-    await assertUserIsNotProtected(userId);
+    await assertUserIsNotBuiltin(userId);
   }
 
   return next();

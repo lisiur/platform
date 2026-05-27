@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { authClient } from "@/lib/api";
+import { appClient } from "@/lib/api";
 
 interface DeleteConfirmDialogProps {
   user: {
@@ -36,12 +37,18 @@ export function DeleteConfirmDialog({
   async function handleDelete() {
     setLoading(true);
     try {
-      await authClient.admin.removeUser({
-        userId: user.id,
+      const res = await appClient.api["admin-users"][":id"].$delete({
+        param: { id: user.id },
       });
-      onSuccess();
+
+      if (res.ok) {
+        onSuccess();
+      } else {
+        const error = await res.json();
+        toast.error(error.message || t("deleteFailed"));
+      }
     } catch {
-      // Error handled by auth client
+      toast.error(t("deleteFailed"));
     } finally {
       setLoading(false);
     }

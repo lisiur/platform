@@ -1,5 +1,5 @@
-export const PROTECTED_USER_FLAG = "protected";
+export const BUILTIN_USER_FLAG = "builtin";
 
-export function isProtectedUser(flags?: string[] | null) {
-  return flags?.includes(PROTECTED_USER_FLAG) ?? false;
+export function isBuiltinUser(flags?: string[] | null) {
+  return flags?.includes(BUILTIN_USER_FLAG) ?? false;
 }
