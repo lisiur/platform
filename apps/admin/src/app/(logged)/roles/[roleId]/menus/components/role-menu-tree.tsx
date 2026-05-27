@@ -142,15 +142,7 @@ export function RoleMenuTree({
   onSelectedChange,
 }: RoleMenuTreeProps) {
   const t = useTranslations("RoleMenus");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
-    const allIds = new Set<string>();
-    for (const menu of menus) {
-      if (!menu.parentId) {
-        allIds.add(menu.id);
-      }
-    }
-    return allIds;
-  });
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const treeData = useMemo(() => buildTree(menus), [menus]);
 

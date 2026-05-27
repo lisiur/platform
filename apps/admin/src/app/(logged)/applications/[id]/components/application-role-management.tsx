@@ -138,7 +138,11 @@ export function ApplicationRoleManagement({
             </SheetTitle>
             <SheetDescription>{roleMenusT("description")}</SheetDescription>
           </SheetHeader>
-          <RoleMenuAssignment appId={appId} role={selectedRole} />
+          <RoleMenuAssignment
+            appId={appId}
+            role={selectedRole}
+            onSaved={() => setMenuDrawerOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

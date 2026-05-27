@@ -55,9 +55,14 @@ function getLocalSelectedMenuIds(menus: Menu[], persistedIds: Set<string>) {
 interface RoleMenuAssignmentProps {
   appId: string;
   role: Role | null;
+  onSaved?: () => void;
 }
 
-export function RoleMenuAssignment({ appId, role }: RoleMenuAssignmentProps) {
+export function RoleMenuAssignment({
+  appId,
+  role,
+  onSaved,
+}: RoleMenuAssignmentProps) {
   const t = useTranslations("RoleMenus");
   const [appMenus, setAppMenus] = useState<Menu[]>([]);
   const [selectedMenuIds, setSelectedMenuIds] = useState<Set<string>>(
@@ -119,12 +124,13 @@ export function RoleMenuAssignment({ appId, role }: RoleMenuAssignmentProps) {
         },
       });
       toast.success(t("saved"));
+      onSaved?.();
     } catch {
       toast.error(t("saveError"));
     } finally {
       setSaving(false);
     }
-  }, [role, selectedMenuIds, t]);
+  }, [role, selectedMenuIds, t, onSaved]);
 
   if (!role) {
     return (
