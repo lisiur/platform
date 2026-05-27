@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
 import { apiWithFeedback } from "@/lib/api/utils";
+import { cn } from "@/utils/cn";
 import { RoleMenuAssignment } from "./role-menu-assignment";
 
 interface Role {
@@ -37,10 +38,12 @@ interface Role {
 
 interface ApplicationRoleManagementProps {
   appId: string;
+  className?: string;
 }
 
 export function ApplicationRoleManagement({
   appId,
+  className,
 }: ApplicationRoleManagementProps) {
   const t = useTranslations("Roles");
   const roleMenusT = useTranslations("RoleMenus");
@@ -84,7 +87,12 @@ export function ApplicationRoleManagement({
 
   return (
     <>
-      <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+      <Table
+        containerClassName={cn(
+          "min-h-0 flex-1 overflow-auto rounded-md border",
+          className,
+        )}
+      >
         <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
           <TableRow>
             <TableHead>{t("name")}</TableHead>

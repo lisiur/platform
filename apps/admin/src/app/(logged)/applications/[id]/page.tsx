@@ -95,11 +95,17 @@ export default function ApplicationDetailPage({
           <TabsTrigger value="menus">{t("tabs.menus")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="roles" className="min-h-0 flex-1 overflow-hidden">
+        <TabsContent
+          value="roles"
+          className="flex min-h-0 flex-1 overflow-hidden"
+        >
           <ApplicationRoleManagement appId={id} />
         </TabsContent>
 
-        <TabsContent value="menus" className="min-h-0 flex-1 overflow-hidden">
+        <TabsContent
+          value="menus"
+          className="flex min-h-0 flex-1 overflow-hidden"
+        >
           <ApplicationMenuManagement appId={id} />
         </TabsContent>
       </Tabs>

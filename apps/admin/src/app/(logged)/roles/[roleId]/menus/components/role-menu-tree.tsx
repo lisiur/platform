@@ -187,7 +187,7 @@ export function RoleMenuTree({
   }
 
   return (
-    <div className="rounded-md border p-1">
+    <div className="p-1">
       <div className="flex gap-1 px-1 pb-1">
         <button
           type="button"
@@ -259,7 +259,7 @@ function TreeNodeComponent({
   return (
     <div>
       <div
-        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
         style={{ paddingLeft: `${level * 16 + 8}px` }}
       >
         <Checkbox
