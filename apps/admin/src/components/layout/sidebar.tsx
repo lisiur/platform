@@ -81,13 +81,7 @@ function SidebarMenuNode({
         : undefined;
   const isActive = href ? pathname === href : false;
 
-  const label = (() => {
-    try {
-      return t(node.code);
-    } catch {
-      return node.name;
-    }
-  })();
+  const label = t.has(node.code) ? t(node.code) : node.name;
 
   return (
     <SidebarMenuItem>
@@ -115,7 +109,7 @@ function SidebarMenuNode({
             />
           </SidebarMenuButton>
           {isExpanded && (
-            <div className="ml-2">
+            <SidebarMenu className="ml-2">
               {node.children.map((child) => (
                 <SidebarMenuNode
                   key={child.id}
@@ -126,7 +120,7 @@ function SidebarMenuNode({
                   onToggle={onToggle}
                 />
               ))}
-            </div>
+            </SidebarMenu>
           )}
         </>
       ) : node.linkType === "EXTERNAL" ? (
@@ -226,15 +220,15 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu className="flex flex-col gap-1 py-2">
           {loading && !fetched ? (
-            <div className="space-y-2 px-2">
+            <SidebarMenuItem className="space-y-2 px-2">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={skeletonIds.current[i]} className="h-8 w-full" />
               ))}
-            </div>
+            </SidebarMenuItem>
           ) : fetched && treeMenus.length === 0 ? (
-            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+            <SidebarMenuItem className="px-2 py-4 text-center text-sm text-muted-foreground">
               {t("noMenus")}
-            </div>
+            </SidebarMenuItem>
           ) : (
             treeMenus.map((node) => (
               <SidebarMenuNode
