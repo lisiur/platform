@@ -1,10 +1,8 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import {
-  deleteApplication as deleteApplicationService,
-  getApplicationById,
-} from "../../services/application.service";
+// TODO: use #services/application alias once #services/* is added to package.json imports
+import { deleteApplication as deleteApplicationService } from "../../services/application.service";
 import {
   applicationIdParamSchema,
   deleteSuccessSchema,
@@ -46,14 +44,13 @@ export const deleteApplication = defineOpenAPIRoute({
   handler: async (c) => {
     const { id } = c.req.valid("param");
 
-    const existing = await getApplicationById(id);
-    await deleteApplicationService(id);
+    const app = await deleteApplicationService(id);
 
     logAudit({
       event: "application.deleted",
       category: "application",
       targetId: id,
-      targetName: existing.name,
+      targetName: app.name,
       c,
     });
 

@@ -35,8 +35,8 @@ export async function updateApplication(
   data: {
     name?: string;
     code?: string;
-    description?: string;
-    logo?: string;
+    description?: string | null;
+    logo?: string | null;
     sortOrder?: number;
   },
 ) {
@@ -68,10 +68,11 @@ export async function deleteApplication(id: string) {
   if (!existing) {
     throw new HTTPException(404, { message: "Application not found" });
   }
-  return prisma.application.update({
+  const deleted = await prisma.application.update({
     where: { id },
     data: { deletedAt: new Date() },
   });
+  return { ...deleted, name: existing.name };
 }
 
 export async function listApplications(params: {
