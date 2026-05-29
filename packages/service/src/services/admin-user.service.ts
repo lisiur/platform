@@ -201,32 +201,38 @@ export async function updateUser(
   }
 
   if (!builtin && roleIds !== undefined) {
-    await prisma.userRole.deleteMany({
-      where: { userId: id },
-    });
-
-    for (const roleId of roleIds) {
-      await userRoleRepository.assign(id, roleId);
-    }
-
-    const hasAdminRole = await prisma.userRole.findFirst({
-      where: {
-        userId: id,
-        role: {
-          appId: ADMIN_APP_ID,
-          authRole: "admin",
-        },
-      },
-    });
-
-    const derivedRole = hasAdminRole ? "admin" : "user";
-
-    if (derivedRole !== existingUser.role) {
-      await prisma.user.update({
-        where: { id },
-        data: { role: derivedRole },
+    await prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({
+        where: { userId: id },
       });
-    }
+
+      for (const roleId of roleIds) {
+        await tx.userRole.upsert({
+          where: { userId_roleId: { userId: id, roleId } },
+          update: {},
+          create: { userId: id, roleId },
+        });
+      }
+
+      const hasAdminRole = await tx.userRole.findFirst({
+        where: {
+          userId: id,
+          role: {
+            appId: ADMIN_APP_ID,
+            authRole: "admin",
+          },
+        },
+      });
+
+      const derivedRole = hasAdminRole ? "admin" : "user";
+
+      if (derivedRole !== existingUser.role) {
+        await tx.user.update({
+          where: { id },
+          data: { role: derivedRole },
+        });
+      }
+    });
   }
 
   const user = await prisma.user.findUnique({

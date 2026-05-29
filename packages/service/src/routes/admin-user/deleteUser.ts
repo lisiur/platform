@@ -22,6 +22,10 @@ export const deleteUser = defineOpenAPIRoute({
         content: { "application/json": { schema: errorSchema } },
         description: "Bad Request",
       },
+      403: {
+        content: { "application/json": { schema: errorSchema } },
+        description: "Forbidden - cannot delete builtin users",
+      },
       404: {
         content: { "application/json": { schema: errorSchema } },
         description: "User not found",
