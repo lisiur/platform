@@ -1,14 +1,14 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { systemConfigRepository } from "#repositories/system-config.repository";
+import { batchUpsertConfigs } from "../../services/system-config.service";
 import {
   batchUpsertBodySchema,
   errorSchema,
   systemConfigItemSchema,
 } from "./schema";
 
-export const batchUpsertConfigs = defineOpenAPIRoute({
+export const batchUpsertConfigsRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "put",
     path: "/batch",
@@ -57,9 +57,9 @@ export const batchUpsertConfigs = defineOpenAPIRoute({
   handler: async (c) => {
     const { items } = c.req.valid("json");
 
-    const configs = await systemConfigRepository.batchUpsert(items);
+    const configs = await batchUpsertConfigs(items);
 
-    logAudit({
+    await logAudit({
       event: "system_config.batch_updated",
       category: "system_config",
       metadata: {

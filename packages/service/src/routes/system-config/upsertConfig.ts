@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { systemConfigRepository } from "#repositories/system-config.repository";
+import { upsertConfig } from "../../services/system-config.service";
 import {
   errorSchema,
   systemConfigItemSchema,
@@ -9,7 +9,7 @@ import {
   upsertConfigParamSchema,
 } from "./schema";
 
-export const upsertConfig = defineOpenAPIRoute({
+export const upsertConfigRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "put",
     path: "/{group}/{key}",
@@ -59,9 +59,9 @@ export const upsertConfig = defineOpenAPIRoute({
     const { group, key } = c.req.valid("param");
     const body = c.req.valid("json");
 
-    const config = await systemConfigRepository.upsert(group, key, body);
+    const config = await upsertConfig(group, key, body);
 
-    logAudit({
+    await logAudit({
       event: "system_config.updated",
       category: "system_config",
       targetName: `${group}.${key}`,

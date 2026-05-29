@@ -1,15 +1,14 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { systemConfigRepository } from "#repositories/system-config.repository";
+import { deleteConfig } from "../../services/system-config.service";
 import {
   deleteConfigParamSchema,
   deleteSuccessSchema,
   errorSchema,
 } from "./schema";
 
-export const deleteConfig = defineOpenAPIRoute({
+export const deleteConfigRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "delete",
     path: "/{group}/{key}",
@@ -50,19 +49,15 @@ export const deleteConfig = defineOpenAPIRoute({
   handler: async (c) => {
     const { group, key } = c.req.valid("param");
 
-    try {
-      await systemConfigRepository.delete(group, key);
+    await deleteConfig(group, key);
 
-      logAudit({
-        event: "system_config.deleted",
-        category: "system_config",
-        targetName: `${group}.${key}`,
-        c,
-      });
+    await logAudit({
+      event: "system_config.deleted",
+      category: "system_config",
+      targetName: `${group}.${key}`,
+      c,
+    });
 
-      return c.json({ success: true as const }, 200);
-    } catch {
-      throw new HTTPException(404, { message: "Config not found" });
-    }
+    return c.json({ success: true as const }, 200);
   },
 });

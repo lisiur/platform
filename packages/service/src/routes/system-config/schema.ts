@@ -78,13 +78,13 @@ export const errorSchema = z
     code: z.number().openapi({ example: 400 }),
     message: z.string().openapi({ example: "Bad Request" }),
   })
-  .openapi("Error");
+  .openapi("SystemConfigError");
 
 export const deleteSuccessSchema = z
   .object({
     success: z.literal(true),
   })
-  .openapi("DeleteSuccess");
+  .openapi("SystemConfigDeleteSuccess");
 
 // ---- Types ----
 
