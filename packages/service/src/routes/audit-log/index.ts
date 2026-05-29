@@ -1,11 +1,11 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { getAuditLog } from "./getAuditLog";
-import { listAuditLogs } from "./listAuditLogs";
+import { listAuditLogsRoute } from "./listAuditLogs";
 
 const auditLogRoutesHono = new OpenAPIHono();
 
 const routes = auditLogRoutesHono.openapiRoutes([
-  listAuditLogs,
+  listAuditLogsRoute,
   getAuditLog,
 ] as const);
 

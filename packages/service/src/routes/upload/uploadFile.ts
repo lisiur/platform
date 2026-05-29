@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "#lib/auth";
-import { uploadFile as uploadFileToStorage } from "../../services/upload.service";
+import { uploadFile as uploadFileToStorage } from "#services/upload.service";
 import { errorSchema, uploadResponseSchema } from "./schema";
 
 export const uploadFile = defineOpenAPIRoute({

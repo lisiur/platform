@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { setSessionCookie } from "#lib/session";
-import { signInWithEmail } from "../../services/auth.service";
+import { signInWithEmail } from "#services/auth.service";
 import {
   authMutationResponseSchema,
   errorSchema,

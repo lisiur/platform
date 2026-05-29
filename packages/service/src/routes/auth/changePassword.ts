@@ -1,5 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { changePassword as changePasswordService } from "../../services/auth.service";
+import { changePassword as changePasswordService } from "#services/auth.service";
 import {
   authMutationResponseSchema,
   changePasswordBodySchema,

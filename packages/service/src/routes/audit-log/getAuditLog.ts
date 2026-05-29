@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { getAuditLogById } from "#services/audit-log.service";
 import { auditLogIdParamSchema, auditLogSchema, errorSchema } from "./schema";
 
 export const getAuditLog = defineOpenAPIRoute({
@@ -38,12 +37,7 @@ export const getAuditLog = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-
-    const log = await prisma.auditLog.findUnique({ where: { id } });
-    if (!log) {
-      throw new HTTPException(404, { message: "Audit log not found" });
-    }
-
+    const log = await getAuditLogById(id);
     return c.json(log, 200);
   },
 });

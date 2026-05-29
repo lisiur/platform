@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { createMenu as createMenuService } from "../../services/menu.service";
+import { createMenu as createMenuService } from "#services/menu.service";
 import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({

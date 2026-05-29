@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { removeUserRole as removeUserRoleSvc } from "../../services/user-role.service";
+import { removeUserRole as removeUserRoleSvc } from "#services/user-role.service";
 import { removeUserRoleParamSchema, successResponseSchema } from "./schema";
 
 export const removeUserRole = defineOpenAPIRoute({

@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "#lib/auth";
-import { signFile as generateSignedUrl } from "../../services/upload.service";
+import { signFile as generateSignedUrl } from "#services/upload.service";
 import {
   errorSchema,
   signedUrlResponseSchema,

@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { assignUserRole as assignUserRoleSvc } from "../../services/user-role.service";
+import { assignUserRole as assignUserRoleSvc } from "#services/user-role.service";
 import {
   assignUserRoleBodySchema,
   errorSchema,

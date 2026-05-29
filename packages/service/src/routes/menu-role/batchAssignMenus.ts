@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { batchAssignMenus as batchAssignMenusService } from "../../services/menu-role.service";
+import { batchAssignMenus as batchAssignMenusService } from "#services/menu-role.service";
 import {
   batchAssignBodySchema,
   errorSchema,

@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-// TODO: use #services/application alias once #services/* is added to package.json imports
-import { getApplicationById } from "../../services/application.service";
+import { getApplicationById } from "#services/application.service";
 import {
   applicationIdParamSchema,
   applicationSchema,

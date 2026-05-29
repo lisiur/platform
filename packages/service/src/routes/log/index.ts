@@ -1,14 +1,14 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { deleteLogs } from "./deleteLogs";
+import { deleteLogsRoute } from "./deleteLogs";
 import { getLog } from "./getLog";
-import { listLogs } from "./listLogs";
+import { listLogsRoute } from "./listLogs";
 
 const logRoutesHono = new OpenAPIHono();
 
 const routes = logRoutesHono.openapiRoutes([
-  listLogs,
+  listLogsRoute,
   getLog,
-  deleteLogs,
+  deleteLogsRoute,
 ] as const);
 
 export { routes as logRoutes };

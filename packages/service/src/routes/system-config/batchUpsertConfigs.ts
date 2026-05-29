@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { batchUpsertConfigs } from "../../services/system-config.service";
+import { batchUpsertConfigs } from "#services/system-config.service";
 import {
   batchUpsertBodySchema,
   errorSchema,

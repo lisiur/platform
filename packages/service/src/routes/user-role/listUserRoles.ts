@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { listUserRoles as listUserRolesSvc } from "../../services/user-role.service";
+import { listUserRoles as listUserRolesSvc } from "#services/user-role.service";
 import { listUserRolesQuerySchema, userRoleSchema } from "./schema";
 
 export const listUserRoles = defineOpenAPIRoute({

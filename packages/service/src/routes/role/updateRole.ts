@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { updateRole as updateRoleService } from "../../services/role.service";
+import { updateRole as updateRoleService } from "#services/role.service";
 import {
   errorSchema,
   roleIdParamSchema,

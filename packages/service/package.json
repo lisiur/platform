@@ -8,7 +8,8 @@
     "#lib/*": "./src/lib/*.ts",
     "#middleware/*": "./src/middleware/*.ts",
     "#repositories/*": "./src/repositories/*.ts",
-    "#routes/*": "./src/routes/*.ts"
+    "#routes/*": "./src/routes/*.ts",
+    "#services/*": "./src/services/*.ts"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -26,7 +27,7 @@
     "@prisma/client": "^7.8.0",
     "@repo/shared": "workspace:*",
     "@scalar/hono-api-reference": "^0.10.14",
-    "better-auth": "^1.6.10",
+    "argon2": "^0.44.0",
     "hono": "^4.0.0",
     "pg": "^8.20.0",
     "zod": "^4.4.3"

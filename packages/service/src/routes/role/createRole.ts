@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { createRole as createRoleService } from "../../services/role.service";
+import { createRole as createRoleService } from "#services/role.service";
 import { createRoleBodySchema, errorSchema, roleSchema } from "./schema";
 
 export const createRole = defineOpenAPIRoute({

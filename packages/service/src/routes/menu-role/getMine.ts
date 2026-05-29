@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "#lib/auth";
-import { getMenusForUser } from "../../services/menu-role.service";
+import { getMenusForUser } from "#services/menu-role.service";
 import { errorSchema, mineMenusResponseSchema } from "./schema";
 
 export const getMine = defineOpenAPIRoute({

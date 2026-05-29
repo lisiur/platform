@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { deleteOrganization as deleteOrganizationService } from "../../services/organization.service";
+import { deleteOrganization as deleteOrganizationService } from "#services/organization.service";
 import {
   deleteSuccessSchema,
   errorSchema,

@@ -1,13 +1,13 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { systemConfigRepository } from "#repositories/system-config.repository";
+import { listAllConfigs } from "#services/system-config.service";
 import {
   errorSchema,
   getConfigsQuerySchema,
   systemConfigItemSchema,
 } from "./schema";
 
-export const listAllConfigs = defineOpenAPIRoute({
+export const listAllConfigsRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
     path: "/",
@@ -30,9 +30,7 @@ export const listAllConfigs = defineOpenAPIRoute({
       },
       401: {
         content: {
-          "application/json": {
-            schema: errorSchema,
-          },
+          "application/json": { schema: errorSchema },
         },
         description: "Unauthorized",
       },
@@ -40,13 +38,7 @@ export const listAllConfigs = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { group } = c.req.valid("query");
-
-    if (group) {
-      const configs = await systemConfigRepository.findByGroup(group);
-      return c.json(configs, 200);
-    }
-
-    const configs = await systemConfigRepository.findAll();
+    const configs = await listAllConfigs(group);
     return c.json(configs, 200);
   },
 });

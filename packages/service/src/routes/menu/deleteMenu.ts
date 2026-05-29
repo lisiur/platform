@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
-import { deleteMenu as deleteMenuService } from "../../services/menu.service";
+import { deleteMenu as deleteMenuService } from "#services/menu.service";
 import { deleteSuccessSchema, errorSchema, menuIdParamSchema } from "./schema";
 
 export const deleteMenu = defineOpenAPIRoute({

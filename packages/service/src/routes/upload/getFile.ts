@@ -1,5 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { getFileAccess } from "../../services/upload.service";
+import { getFileAccess } from "#services/upload.service";
 import { errorSchema, getFileParamSchema, getFileQuerySchema } from "./schema";
 
 export const getFile = defineOpenAPIRoute({

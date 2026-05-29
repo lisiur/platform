@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { listOrganizations as listOrganizationsService } from "../../services/organization.service";
+import { listOrganizations as listOrganizationsService } from "#services/organization.service";
 import {
   errorSchema,
   listOrganizationsQuerySchema,

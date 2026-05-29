@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { getMenusForRole } from "../../services/menu-role.service";
+import { getMenusForRole } from "#services/menu-role.service";
 import {
   errorSchema,
   roleIdParamSchema,

@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { reorderMenus as reorderMenusService } from "../../services/menu.service";
+import { reorderMenus as reorderMenusService } from "#services/menu.service";
 import {
   errorSchema,
   reorderMenusBodySchema,

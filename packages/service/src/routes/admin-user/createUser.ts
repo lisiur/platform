@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { createUser as createUserSvc } from "../../services/admin-user.service";
+import { createUser as createUserSvc } from "#services/admin-user.service";
 import { adminUserSchema, createUserBodySchema, errorSchema } from "./schema";
 
 export const createUser = defineOpenAPIRoute({

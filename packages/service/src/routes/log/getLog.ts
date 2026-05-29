@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { getLogById } from "#services/log.service";
 import { errorSchema, logIdParamSchema, operationLogSchema } from "./schema";
 
 export const getLog = defineOpenAPIRoute({
@@ -38,12 +37,7 @@ export const getLog = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-
-    const log = await prisma.operationLog.findUnique({ where: { id } });
-    if (!log) {
-      throw new HTTPException(404, { message: "Log not found" });
-    }
-
+    const log = await getLogById(id);
     return c.json(log, 200);
   },
 });

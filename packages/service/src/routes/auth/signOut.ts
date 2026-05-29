@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { deleteSessionCookie, getSessionTokenFromContext } from "#lib/session";
-import { signOut as signOutService } from "../../services/auth.service";
+import { signOut as signOutService } from "#services/auth.service";
 import { authMutationResponseSchema } from "./schema";
 
 export const signOut = defineOpenAPIRoute({

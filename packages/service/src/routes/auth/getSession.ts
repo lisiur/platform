@@ -1,5 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { getSession as getSessionService } from "../../services/auth.service";
+import { getSession as getSessionService } from "#services/auth.service";
 import { sessionResponseSchema } from "./schema";
 
 export const getSession = defineOpenAPIRoute({
