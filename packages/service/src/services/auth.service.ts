@@ -42,8 +42,10 @@ export async function signUpWithEmail(params: {
   ipAddress?: string | null;
   userAgent?: string | null;
 }) {
+  const email = params.email.toLowerCase();
+
   const existingUser = await prisma.user.findUnique({
-    where: { email: params.email.toLowerCase() },
+    where: { email },
   });
   if (existingUser) {
     throw new HTTPException(400, { message: "User already exists" });
@@ -52,7 +54,7 @@ export async function signUpWithEmail(params: {
   const { user } = await auth.api.createUser({
     body: {
       name: params.name,
-      email: params.email,
+      email,
       password: params.password,
       role: "user",
     },
