@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { menuRoleRepository } from "#repositories/menu-role.repository";
+import { getMenusForRole } from "../../services/menu-role.service";
 import {
   errorSchema,
   roleIdParamSchema,
@@ -35,7 +35,7 @@ export const getRoleMenus = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { roleId } = c.req.valid("param");
-    const menus = await menuRoleRepository.getMenusForRole(roleId);
+    const menus = await getMenusForRole(roleId);
     return c.json({ menus }, 200);
   },
 });
