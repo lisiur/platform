@@ -1,8 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
+import { updateMenu as updateMenuService } from "../../services/menu.service";
 import {
   errorSchema,
   menuIdParamSchema,
@@ -54,44 +53,7 @@ export const updateMenu = defineOpenAPIRoute({
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
 
-    const existing = await prisma.menu.findUnique({
-      where: { id },
-      include: { children: true },
-    });
-    if (!existing) {
-      throw new HTTPException(404, { message: "Menu not found" });
-    }
-
-    const effectiveLinkType = body.linkType ?? existing.linkType;
-
-    if (
-      effectiveLinkType !== "GROUP" &&
-      existing.children.length > 0 &&
-      body.linkType !== undefined
-    ) {
-      throw new HTTPException(400, {
-        message:
-          "Cannot change linkType of a menu that has children. Remove children first.",
-      });
-    }
-
-    if (effectiveLinkType === "EXTERNAL" && !body.url && !existing.url) {
-      throw new HTTPException(400, {
-        message: "URL is required when linkType is EXTERNAL",
-      });
-    }
-
-    const menu = await prisma.menu.update({
-      where: { id },
-      data: {
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.code !== undefined && { code: body.code }),
-        ...(body.icon !== undefined && { icon: body.icon }),
-        ...(body.linkType !== undefined && { linkType: body.linkType }),
-        ...(body.url !== undefined && { url: body.url }),
-        ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
-      },
-    });
+    const menu = await updateMenuService(id, body);
 
     logAudit({
       event: "menu.updated",

@@ -1,8 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
+import { createMenu as createMenuService } from "../../services/menu.service";
 import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({
@@ -48,43 +47,7 @@ export const createMenu = defineOpenAPIRoute({
   handler: async (c) => {
     const body = c.req.valid("json");
 
-    // Validate parentId belongs to same appId if provided
-    if (body.parentId) {
-      const parent = await prisma.menu.findFirst({
-        where: { id: body.parentId, appId: body.appId },
-      });
-      if (!parent) {
-        throw new HTTPException(400, {
-          message: "Parent menu not found in the same application",
-        });
-      }
-      if (parent.linkType !== "GROUP") {
-        throw new HTTPException(400, {
-          message:
-            "Cannot add children to a non-grouping menu (linkType must be GROUP)",
-        });
-      }
-    }
-
-    // Auto-calculate sortOrder: max sibling sortOrder + 1
-    const maxSort = await prisma.menu.aggregate({
-      where: { appId: body.appId, parentId: body.parentId ?? null },
-      _max: { sortOrder: true },
-    });
-    const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
-
-    const menu = await prisma.menu.create({
-      data: {
-        name: body.name,
-        code: body.code,
-        appId: body.appId,
-        parentId: body.parentId,
-        icon: body.icon,
-        linkType: body.linkType,
-        url: body.url,
-        sortOrder,
-      },
-    });
+    const menu = await createMenuService(body);
 
     logAudit({
       event: "menu.created",

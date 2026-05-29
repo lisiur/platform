@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { listMenus as listMenusService } from "../../services/menu.service";
 import {
   errorSchema,
   listMenusQuerySchema,
@@ -39,11 +39,8 @@ export const listMenus = defineOpenAPIRoute({
   handler: async (c) => {
     const { appId } = c.req.valid("query");
 
-    const menus = await prisma.menu.findMany({
-      where: { appId },
-      orderBy: { sortOrder: "asc" },
-    });
+    const result = await listMenusService(appId);
 
-    return c.json({ menus }, 200);
+    return c.json(result, 200);
   },
 });

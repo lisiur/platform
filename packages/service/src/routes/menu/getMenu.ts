@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { getMenuById } from "../../services/menu.service";
 import { errorSchema, menuIdParamSchema, menuSchema } from "./schema";
 
 export const getMenu = defineOpenAPIRoute({
@@ -39,10 +38,7 @@ export const getMenu = defineOpenAPIRoute({
   handler: async (c) => {
     const { id } = c.req.valid("param");
 
-    const menu = await prisma.menu.findUnique({ where: { id } });
-    if (!menu) {
-      throw new HTTPException(404, { message: "Menu not found" });
-    }
+    const menu = await getMenuById(id);
 
     return c.json(menu, 200);
   },
