@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { listApplications as listApplicationsService } from "../../services/application.service";
 import {
   errorSchema,
   listApplicationsQuerySchema,
@@ -38,35 +38,7 @@ export const listApplications = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { search, limit, offset } = c.req.valid("query");
-
-    const where = {
-      deletedAt: null,
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" as const } },
-              { code: { contains: search, mode: "insensitive" as const } },
-              {
-                description: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
-            ],
-          }
-        : {}),
-    };
-
-    const [applications, total] = await Promise.all([
-      prisma.application.findMany({
-        where,
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        take: limit,
-        skip: offset,
-      }),
-      prisma.application.count({ where }),
-    ]);
-
-    return c.json({ applications, total }, 200);
+    const result = await listApplicationsService({ search, limit, offset });
+    return c.json(result, 200);
   },
 });

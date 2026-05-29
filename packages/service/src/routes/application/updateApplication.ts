@@ -1,8 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
+import { updateApplication as updateApplicationService } from "../../services/application.service";
 import {
   applicationIdParamSchema,
   applicationSchema,
@@ -59,29 +58,7 @@ export const updateApplication = defineOpenAPIRoute({
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
-
-    const existing = await prisma.application.findFirst({
-      where: { id, deletedAt: null },
-    });
-    if (!existing) {
-      throw new HTTPException(404, { message: "Application not found" });
-    }
-
-    if (body.code && body.code !== existing.code) {
-      const codeTaken = await prisma.application.findFirst({
-        where: { code: body.code, deletedAt: null },
-      });
-      if (codeTaken) {
-        throw new HTTPException(409, {
-          message: "Application code already exists",
-        });
-      }
-    }
-
-    const app = await prisma.application.update({
-      where: { id },
-      data: body,
-    });
+    const app = await updateApplicationService(id, body);
 
     logAudit({
       event: "application.updated",

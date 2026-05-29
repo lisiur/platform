@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { requireAdmin } from "#middleware/require-admin";
+import { getApplicationById } from "../../services/application.service";
 import {
   applicationIdParamSchema,
   applicationSchema,
@@ -42,14 +41,7 @@ export const getApplication = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-
-    const app = await prisma.application.findFirst({
-      where: { id, deletedAt: null },
-    });
-    if (!app) {
-      throw new HTTPException(404, { message: "Application not found" });
-    }
-
+    const app = await getApplicationById(id);
     return c.json(app, 200);
   },
 });

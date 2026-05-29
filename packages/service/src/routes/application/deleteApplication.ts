@@ -1,8 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
-import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { requireAdmin } from "#middleware/require-admin";
+import {
+  deleteApplication as deleteApplicationService,
+  getApplicationById,
+} from "../../services/application.service";
 import {
   applicationIdParamSchema,
   deleteSuccessSchema,
@@ -44,17 +46,8 @@ export const deleteApplication = defineOpenAPIRoute({
   handler: async (c) => {
     const { id } = c.req.valid("param");
 
-    const existing = await prisma.application.findFirst({
-      where: { id, deletedAt: null },
-    });
-    if (!existing) {
-      throw new HTTPException(404, { message: "Application not found" });
-    }
-
-    await prisma.application.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    const existing = await getApplicationById(id);
+    await deleteApplicationService(id);
 
     logAudit({
       event: "application.deleted",
