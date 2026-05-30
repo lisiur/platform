@@ -14,11 +14,17 @@ const ALLOWED_TYPES = [
 ];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const UPLOADS_ROOT = join(process.cwd(), "uploads");
-const SIGN_SECRET = process.env.UPLOAD_SIGN_SECRET;
-if (!SIGN_SECRET) {
-  throw new Error("UPLOAD_SIGN_SECRET environment variable is required");
-}
 const SIGN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+function getSignSecret(): string {
+  const secret = process.env.UPLOAD_SIGN_SECRET;
+  if (!secret) {
+    throw new HTTPException(500, {
+      message: "UPLOAD_SIGN_SECRET required for private file operations",
+    });
+  }
+  return secret;
+}
 
 function computeHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
@@ -79,7 +85,7 @@ export function verifySignature(
   expires: string,
   token: string,
 ): boolean {
-  const expected = createHmac("sha256", SIGN_SECRET)
+  const expected = createHmac("sha256", getSignSecret())
     .update(`${id}:${expires}`)
     .digest("hex");
   try {
@@ -165,7 +171,7 @@ export async function signFile(params: {
   }
 
   const expiresAt = Date.now() + SIGN_EXPIRY_MS;
-  const token = createHmac("sha256", SIGN_SECRET)
+  const token = createHmac("sha256", getSignSecret())
     .update(`${id}:${expiresAt}`)
     .digest("hex");
 

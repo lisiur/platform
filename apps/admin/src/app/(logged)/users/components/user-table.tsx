@@ -62,7 +62,7 @@ export function UserTable() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await appClient.api["admin-users"].$get({
+      const res = await appClient.api.users.$get({
         query: {
           limit: pageSize,
           offset: (page - 1) * pageSize,

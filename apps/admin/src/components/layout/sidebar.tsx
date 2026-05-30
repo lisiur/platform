@@ -1,6 +1,5 @@
 "use client";
 
-import { useStore } from "better-auth/react";
 import {
   ChevronRight,
   ChevronsUpDown,
@@ -34,7 +33,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authClient } from "@/lib/api/auth-client";
+import { authClient, useSession } from "@/lib/api/auth-client";
 import { useMenuStore } from "@/stores/menu-store";
 import { cn } from "@/utils/cn";
 
@@ -159,8 +158,8 @@ function SidebarMenuNode({
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const session = useStore(authClient.useSession);
-  const user = session?.data?.user;
+  const session = useSession();
+  const user = session.data?.user;
   const t = useTranslations("Sidebar");
   const { treeMenus, loading, fetched, fetchMenus } = useMenuStore();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());

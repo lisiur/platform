@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { deleteUser as deleteUserSvc } from "#services/admin-user.service";
+import { deleteUser as deleteUserSvc } from "#services/user.service";
 import { errorSchema, successSchema, userIdParamSchema } from "./schema";
 
 export const deleteUser = defineOpenAPIRoute({

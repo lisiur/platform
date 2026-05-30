@@ -1,71 +1,81 @@
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, openAPI, organization } from "better-auth/plugins";
-import { prisma } from "./db";
-import { logAudit } from "./logger";
+import { prisma } from "#lib/db";
+import { hashPassword } from "#lib/password";
+import { getSessionByToken, getSessionTokenFromHeaders } from "#lib/session";
 
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 1,
-  },
-  user: {
-    additionalFields: {
-      flags: {
-        type: "string[]",
-        required: false,
-        input: false,
-        defaultValue: [],
-      },
-    },
-  },
-  socialProviders: {
-    wechat: {
-      enabled: !!process.env.WECHAT_CLIENT_ID,
-      clientId: process.env.WECHAT_CLIENT_ID ?? "",
-      clientSecret: process.env.WECHAT_CLIENT_SECRET ?? "",
-      lang: "cn",
-    },
-  },
-  plugins: [openAPI(), admin(), organization()],
-  databaseHooks: {
-    session: {
-      create: {
-        async after(session) {
-          await logAudit({
-            userId: session.userId,
-            sessionId: session.id,
-            event: "auth.login",
-            category: "authentication",
-            targetType: "session",
-            targetId: session.id,
-            metadata: {
-              ipAddress: session.ipAddress,
-              userAgent: session.userAgent,
-            },
-          });
-        },
-      },
-      delete: {
-        async after(session) {
-          await logAudit({
-            userId: session.userId,
-            sessionId: session.id,
-            event: "auth.logout",
-            category: "authentication",
-            targetType: "session",
-            targetId: session.id,
-          });
-        },
-      },
-    },
-  },
-});
+export type AuthSessionUser = {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image?: string | null;
+  role?: string | null;
+  banned?: boolean | null;
+  banReason?: string | null;
+  banExpires?: Date | null;
+  flags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type AuthSession = {
+  id: string;
+  expiresAt: Date;
+  token: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type AuthType = {
-  user: typeof auth.$Infer.Session.user | null;
-  session: typeof auth.$Infer.Session.session | null;
+  user: AuthSessionUser | null;
+  session: AuthSession | null;
+};
+
+export const auth = {
+  api: {
+    async getSession({
+      headers,
+    }: {
+      headers: Headers;
+    }): Promise<AuthType | null> {
+      const token = getSessionTokenFromHeaders(headers);
+      const result = await getSessionByToken(token);
+      if (!result) return null;
+
+      const { user, ...session } = result;
+      return { user, session };
+    },
+
+    async createUser({
+      body,
+    }: {
+      body: {
+        name: string;
+        email: string;
+        password: string;
+        role?: string | null;
+      };
+    }) {
+      const user = await prisma.user.create({
+        data: {
+          name: body.name,
+          email: body.email.toLowerCase(),
+          emailVerified: false,
+          role: body.role ?? "user",
+          flags: [],
+          accounts: {
+            create: {
+              accountId: body.email.toLowerCase(),
+              providerId: "credential",
+              password: await hashPassword(body.password),
+            },
+          },
+        },
+      });
+
+      return { user };
+    },
+  },
 };

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { BUILTIN_ROLE_FLAG, BUILTIN_USER_FLAG } from "@repo/shared";
-import { hashPassword } from "better-auth/crypto";
+import { hashPassword } from "../src/lib/password";
 import { PrismaClient } from "./generated/prisma/client";
 
 const adapter = new PrismaPg({

@@ -4,13 +4,13 @@ import { deleteUser } from "./deleteUser";
 import { listUsers } from "./listUsers";
 import { updateUser } from "./updateUser";
 
-const adminUserRoutes = new OpenAPIHono();
+const userRoutes = new OpenAPIHono();
 
-const routes = adminUserRoutes.openapiRoutes([
+const routes = userRoutes.openapiRoutes([
   listUsers,
   createUser,
   updateUser,
   deleteUser,
 ] as const);
 
-export { routes as adminUserRoutes };
+export { routes as userRoutes };

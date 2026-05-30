@@ -3,7 +3,7 @@
 ## Workspace
 - pnpm workspace: `apps/*` and `packages/*` from `pnpm-workspace.yaml`.
 - `apps/admin`: Next.js 16.2.6 admin UI. Extra rules live in `apps/admin/AGENTS.md`; read them before editing UI files.
-- `packages/service`: Hono API with `@hono/zod-openapi`, better-auth, Prisma 7, PostgreSQL. Exported from `src/index.ts` and mounted into Next at `apps/admin/src/app/api/[[...route]]/route.ts` through `hono/vercel`.
+- `packages/service`: Hono API with `@hono/zod-openapi`, Prisma 7, PostgreSQL. Exported from `src/index.ts` and mounted into Next at `apps/admin/src/app/api/[[...route]]/route.ts` through `hono/vercel`.
 - `packages/shared`: shared permissions/types consumed by app and service.
 
 ## Commands

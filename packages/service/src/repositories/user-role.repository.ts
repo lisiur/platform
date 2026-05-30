@@ -30,7 +30,7 @@ export const userRoleRepository = {
   },
 
   async getMenusForUser(userId: string) {
-    // Get user's better-auth role for mapping
+    // Get user's role for mapping
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
@@ -55,7 +55,7 @@ export const userRoleRepository = {
                     some: { userId },
                   },
                 },
-                // Mapped roles based on better-auth role
+                // Mapped roles based on auth role
                 ...(user.role
                   ? [
                       {

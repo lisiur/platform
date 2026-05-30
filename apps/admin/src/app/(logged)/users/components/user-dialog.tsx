@@ -142,7 +142,7 @@ export function UserDialog({
   async function onSubmit(data: UserInput) {
     try {
       if (isEdit) {
-        const res = await appClient.api["admin-users"][":id"].$put({
+        const res = await appClient.api.users[":id"].$put({
           param: { id: user.id },
           json: {
             name: data.name,
@@ -157,7 +157,7 @@ export function UserDialog({
           return;
         }
       } else {
-        const res = await appClient.api["admin-users"].$post({
+        const res = await appClient.api.users.$post({
           json: {
             name: data.name,
             email: data.email,

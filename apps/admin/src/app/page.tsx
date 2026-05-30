@@ -1,15 +1,14 @@
 "use client";
 
-import { useStore } from "better-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { appClient, authClient } from "@/lib/api";
+import { appClient, useSession } from "@/lib/api";
 import { apiWithFeedback } from "@/lib/api/utils";
 import { getFirstMenuUrl } from "@/lib/menu-utils";
 
 export default function HomePage() {
   const router = useRouter();
-  const session = useStore(authClient.useSession);
+  const session = useSession();
 
   useEffect(() => {
     if (session.isPending) return;
@@ -32,7 +31,7 @@ export default function HomePage() {
       .catch(() => {
         router.replace("/");
       });
-  }, [session, router]);
+  }, [session.isPending, session.data, router]);
 
   return null;
 }

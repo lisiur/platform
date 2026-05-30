@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireAdmin } from "#middleware/require-admin";
-import { updateUser as updateUserSvc } from "#services/admin-user.service";
+import { updateUser as updateUserSvc } from "#services/user.service";
 import {
   adminUserSchema,
   errorSchema,

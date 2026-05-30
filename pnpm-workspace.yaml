@@ -5,6 +5,7 @@ allowBuilds:
   '@parcel/watcher': true
   '@prisma/engines': true
   '@swc/core': true
+  argon2: true
   esbuild: true
   msw: true
   prisma: true

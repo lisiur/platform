@@ -4,7 +4,6 @@ import { auth } from "#lib/auth";
 import { prisma } from "#lib/db";
 import { hashPassword } from "#lib/password";
 import { assertUserIsNotBuiltin } from "#lib/protected-user";
-import { userRoleRepository } from "#repositories/user-role.repository";
 
 const ADMIN_APP_ID = "admin";
 

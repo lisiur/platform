@@ -37,7 +37,7 @@ export function DeleteConfirmDialog({
   async function handleDelete() {
     setLoading(true);
     try {
-      const res = await appClient.api["admin-users"][":id"].$delete({
+      const res = await appClient.api.users[":id"].$delete({
         param: { id: user.id },
       });
 

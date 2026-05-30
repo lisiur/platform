@@ -19,10 +19,7 @@ const app = openAPIApp
   .get(
     "/docs",
     Scalar({
-      sources: [
-        { url: "/api/openapi.json", title: "Main" },
-        { url: "/api/auth/open-api/generate-schema", title: "Authentication" },
-      ],
+      sources: [{ url: "/api/openapi.json", title: "Main" }],
     }),
   );
 
