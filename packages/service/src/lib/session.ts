@@ -88,8 +88,12 @@ export async function getSessionByToken(token: string | null) {
 
   if (!result) return null;
 
+  if (result.revokedAt) return null;
+
   if (result.expiresAt.getTime() <= Date.now()) {
-    await prisma.session.delete({ where: { id: result.id } }).catch(() => null);
+    await prisma.session
+      .update({ where: { id: result.id }, data: { revokedAt: new Date() } })
+      .catch(() => null);
     return null;
   }
 
@@ -112,7 +116,10 @@ export async function deleteSessionByToken(token: string | null) {
   const session = await prisma.session.findUnique({ where: { token } });
   if (!session) return null;
 
-  await prisma.session.delete({ where: { id: session.id } });
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { revokedAt: new Date() },
+  });
   await logAudit({
     userId: session.userId,
     sessionId: session.id,

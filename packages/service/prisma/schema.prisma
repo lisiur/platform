@@ -32,17 +32,18 @@ model User {
 }
 
 model Session {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   expiresAt            DateTime
   token                String
   ipAddress            String?
   userAgent            String?
   userId               String
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   impersonatedBy       String?
   activeOrganizationId String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  revokedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([token])
   @@index([userId])
