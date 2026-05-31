@@ -155,9 +155,7 @@ export function OperationLogTable({
     });
   }
 
-  function shortTrace(value: string) {
-    return value.length > 12 ? `${value.slice(0, 12)}...` : value;
-  }
+
 
   return (
     <div className="flex min-h-0 w-full flex-col">
@@ -251,10 +249,10 @@ export function OperationLogTable({
                   <TableCell>{log.statusCode ?? "-"}</TableCell>
                   <TableCell>{log.durationMs ?? "-"}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {shortTrace(log.traceId)}
+                    {log.traceId}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {log.sessionId ? shortTrace(log.sessionId) : "-"}
+                    {log.sessionId || "-"}
                   </TableCell>
                   <TableCell className="max-w-64 truncate">
                     {log.errorMessage || log.message || "-"}

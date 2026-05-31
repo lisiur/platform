@@ -94,7 +94,7 @@ export function OperationLogFilter({
         }
       >
         <SelectTrigger className="h-9 w-36">
-          {filters.level ?? labels.allLevels}
+          {filters.level ? filters.level.toUpperCase() : labels.allLevels}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{labels.allLevels}</SelectItem>
