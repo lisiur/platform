@@ -106,11 +106,13 @@ export function OperationLogTable({
       setTotal(data.total);
       setSelectedIds(new Set());
     } catch {
-      toast.error(t("fetchFailed"));
+      setLogs([]);
+      setTotal(0);
+      setSelectedIds(new Set());
     } finally {
       setLoading(false);
     }
-  }, [t, page, filters]);
+  }, [page, filters]);
 
   useEffect(() => {
     if (lastEffectFetchKeyRef.current === effectFetchKey) return;
@@ -136,7 +138,7 @@ export function OperationLogTable({
       toast.success(t("deleteSuccess"));
       fetchLogs();
     } catch {
-      toast.error(t("deleteFailed"));
+      // Error handled by API feedback.
     }
   }
 
@@ -202,7 +204,7 @@ export function OperationLogTable({
             className="w-[1650px] min-w-[1650px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableHeader sticky>
               <TableRow>
                 <TableHead className="w-10">
                   <Checkbox checked={allSelected} onCheckedChange={toggleAll} />

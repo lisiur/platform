@@ -147,11 +147,12 @@ export function MenuTree({
       setMenus(data.menus);
       menusRef.current = data.menus;
     } catch {
-      toast.error(t("fetchFailed"));
+      setMenus([]);
+      menusRef.current = [];
     } finally {
       setLoading(false);
     }
-  }, [appId, t]);
+  }, [appId]);
 
   useEffect(() => {
     fetchMenus();
@@ -261,11 +262,10 @@ export function MenuTree({
         setMenus(data.menus);
         menusRef.current = data.menus;
       } catch {
-        toast.error(t("reorderFailed"));
         fetchMenus();
       }
     },
-    [t, fetchMenus],
+    [fetchMenus],
   );
 
   const renderNode = useCallback(

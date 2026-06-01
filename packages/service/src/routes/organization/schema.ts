@@ -1,4 +1,7 @@
 import { z } from "@hono/zod-openapi";
+import { idParamSchema, paginationQuerySchema } from "../shared/schema";
+
+export { deleteSuccessSchema, errorSchema } from "../shared/schema";
 
 export const organizationSchema = z
   .object({
@@ -11,14 +14,9 @@ export const organizationSchema = z
   })
   .openapi("Organization");
 
-export const listOrganizationsQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-  offset: z.coerce.number().int().min(0).default(0),
-});
+export const listOrganizationsQuerySchema = paginationQuerySchema;
 
-export const organizationIdParamSchema = z.object({
-  id: z.string().min(1).openapi({ example: "clx1234567890" }),
-});
+export const organizationIdParamSchema = idParamSchema();
 
 export const createOrganizationBodySchema = z.object({
   name: z.string().min(1).openapi({ example: "Acme Corp" }),
@@ -27,7 +25,7 @@ export const createOrganizationBodySchema = z.object({
     .min(1)
     .regex(/^[a-z0-9-]+$/)
     .openapi({ example: "acme-corp" }),
-  logo: z.string().url().optional(),
+  logo: z.url().optional(),
   metadata: z.string().optional(),
 });
 
@@ -38,22 +36,9 @@ export const updateOrganizationBodySchema = z.object({
     .min(1)
     .regex(/^[a-z0-9-]+$/)
     .optional(),
-  logo: z.string().url().nullable().optional(),
+  logo: z.url().nullable().optional(),
   metadata: z.string().nullable().optional(),
 });
-
-export const errorSchema = z
-  .object({
-    code: z.number().openapi({ example: 400 }),
-    message: z.string().openapi({ example: "Bad Request" }),
-  })
-  .openapi("Error");
-
-export const deleteSuccessSchema = z
-  .object({
-    success: z.literal(true),
-  })
-  .openapi("DeleteSuccess");
 
 export const listOrganizationsResponseSchema = z
   .object({

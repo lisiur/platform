@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { appClient } from "@/lib/api";
+import { withApiFeedback } from "@/lib/api/utils";
 
 interface DeleteConfirmDialogProps {
   user: {
@@ -37,18 +37,12 @@ export function DeleteConfirmDialog({
   async function handleDelete() {
     setLoading(true);
     try {
-      const res = await appClient.api.users[":id"].$delete({
+      await withApiFeedback(appClient.api.users[":id"].$delete)({
         param: { id: user.id },
       });
-
-      if (res.ok) {
-        onSuccess();
-      } else {
-        const error = await res.json();
-        toast.error(error.message || t("deleteFailed"));
-      }
+      onSuccess();
     } catch {
-      toast.error(t("deleteFailed"));
+      // Error handled by API feedback.
     } finally {
       setLoading(false);
     }

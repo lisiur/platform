@@ -22,6 +22,54 @@ const userWithRolesInclude = {
   },
 } as const;
 
+type UserRoleSyncTx = {
+  userRole: Pick<typeof prisma.userRole, "deleteMany" | "findFirst" | "upsert">;
+  user: Pick<typeof prisma.user, "update">;
+};
+
+async function syncUserRolesAndAuthRole(
+  tx: UserRoleSyncTx,
+  params: {
+    userId: string;
+    roleIds: string[];
+    replace?: boolean;
+    currentRole?: string | null;
+  },
+) {
+  if (params.replace) {
+    await tx.userRole.deleteMany({
+      where: { userId: params.userId },
+    });
+  }
+
+  for (const roleId of params.roleIds) {
+    await tx.userRole.upsert({
+      where: { userId_roleId: { userId: params.userId, roleId } },
+      update: {},
+      create: { userId: params.userId, roleId },
+    });
+  }
+
+  const hasAdminRole = await tx.userRole.findFirst({
+    where: {
+      userId: params.userId,
+      role: {
+        appId: ADMIN_APP_ID,
+        authRole: "admin",
+      },
+    },
+  });
+
+  const derivedRole = hasAdminRole ? "admin" : "user";
+
+  if (derivedRole !== (params.currentRole ?? "user")) {
+    await tx.user.update({
+      where: { id: params.userId },
+      data: { role: derivedRole },
+    });
+  }
+}
+
 export async function listUsers(limit: number, offset: number) {
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -79,35 +127,8 @@ export async function createUser(data: {
   const userId = result.user.id;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      if (roleIds.length > 0) {
-        for (const roleId of roleIds) {
-          await tx.userRole.upsert({
-            where: { userId_roleId: { userId, roleId } },
-            update: {},
-            create: { userId, roleId },
-          });
-        }
-      }
-
-      const hasAdminRole = await tx.userRole.findFirst({
-        where: {
-          userId,
-          role: {
-            appId: ADMIN_APP_ID,
-            authRole: "admin",
-          },
-        },
-      });
-
-      const derivedRole = hasAdminRole ? "admin" : "user";
-
-      if (derivedRole !== "user") {
-        await tx.user.update({
-          where: { id: userId },
-          data: { role: derivedRole },
-        });
-      }
+    await prisma.$transaction(async (tx: UserRoleSyncTx) => {
+      await syncUserRolesAndAuthRole(tx, { userId, roleIds });
     });
   } catch {
     await prisma.user.delete({ where: { id: userId } }).catch(() => null);
@@ -196,37 +217,13 @@ export async function updateUser(
   }
 
   if (!builtin && roleIds !== undefined) {
-    await prisma.$transaction(async (tx) => {
-      await tx.userRole.deleteMany({
-        where: { userId: id },
+    await prisma.$transaction(async (tx: UserRoleSyncTx) => {
+      await syncUserRolesAndAuthRole(tx, {
+        userId: id,
+        roleIds,
+        replace: true,
+        currentRole: existingUser.role,
       });
-
-      for (const roleId of roleIds) {
-        await tx.userRole.upsert({
-          where: { userId_roleId: { userId: id, roleId } },
-          update: {},
-          create: { userId: id, roleId },
-        });
-      }
-
-      const hasAdminRole = await tx.userRole.findFirst({
-        where: {
-          userId: id,
-          role: {
-            appId: ADMIN_APP_ID,
-            authRole: "admin",
-          },
-        },
-      });
-
-      const derivedRole = hasAdminRole ? "admin" : "user";
-
-      if (derivedRole !== existingUser.role) {
-        await tx.user.update({
-          where: { id },
-          data: { role: derivedRole },
-        });
-      }
     });
   }
 

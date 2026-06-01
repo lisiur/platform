@@ -3,7 +3,6 @@
 import { Eye, GitBranch } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,11 +115,12 @@ export function AuditLogTable({
       setLogs(data.logs);
       setTotal(data.total);
     } catch {
-      toast.error(t("fetchFailed"));
+      setLogs([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [t, page, filters]);
+  }, [page, filters]);
 
   useEffect(() => {
     if (lastEffectFetchKeyRef.current === effectFetchKey) return;
@@ -176,7 +176,7 @@ export function AuditLogTable({
             className="w-[1650px] min-w-[1650px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableHeader sticky>
               <TableRow>
                 <TableHead className="w-44">{t("columns.createdAt")}</TableHead>
                 <TableHead className="w-44">{t("columns.userName")}</TableHead>

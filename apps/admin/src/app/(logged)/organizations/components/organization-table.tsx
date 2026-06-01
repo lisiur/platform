@@ -3,7 +3,7 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
@@ -33,35 +34,30 @@ interface Organization {
 
 export function OrganizationTable() {
   const t = useTranslations("Organizations");
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
 
-  const pageSize = 10;
-
-  const fetchOrganizations = useCallback(async () => {
-    setLoading(true);
-    try {
+  const fetchOrganizationsPage = useCallback(
+    async ({ limit, offset }: { limit: number; offset: number }) => {
       const res = await withApiFeedback(appClient.api.organizations.$get)({
-        query: { limit: pageSize, offset: (page - 1) * pageSize },
+        query: { limit, offset },
       });
       const data = await res.json();
-      setOrganizations(data.organizations);
-      setTotal(data.total);
-    } catch {
-      toast.error(t("fetchFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, page]);
+      return { items: data.organizations, total: data.total };
+    },
+    [],
+  );
 
-  useEffect(() => {
-    fetchOrganizations();
-  }, [fetchOrganizations]);
+  const {
+    items: organizations,
+    total,
+    page,
+    pageSize,
+    loading,
+    setPage,
+    refresh: fetchOrganizations,
+  } = usePaginatedApiQuery<Organization>({ fetchPage: fetchOrganizationsPage });
 
   function handleEditSuccess() {
     setEditOrg(null);
@@ -123,7 +119,7 @@ export function OrganizationTable() {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
-          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+          <TableHeader sticky>
             <TableRow>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("slug")}</TableHead>

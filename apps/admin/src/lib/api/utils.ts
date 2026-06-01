@@ -12,6 +12,33 @@ type ExtractSuccessResponse<T> = T extends ClientResponse<
     : never
   : never;
 
+function getContentType(res: Response) {
+  return res.headers.get("Content-Type")?.split(";")[0];
+}
+
+function getErrorMessage(json: unknown) {
+  if (typeof json === "object" && json !== null) {
+    if ("message" in json && typeof json.message === "string") {
+      return json.message;
+    }
+    if ("error" in json) {
+      const { error } = json;
+      if (typeof error === "string") return error;
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        return error.message;
+      }
+      return JSON.stringify(error);
+    }
+  }
+
+  return JSON.stringify(json);
+}
+
 export function withApiFeedback<
   // biome-ignore lint/suspicious/noExplicitAny: Hono client has overloaded signatures, need permissive constraint
   T extends (...args: any[]) => Promise<ClientResponse<any, any, any>>,
@@ -24,14 +51,10 @@ export function withApiFeedback<
       if (res.ok) {
         return res as ExtractSuccessResponse<Awaited<ReturnType<T>>>;
       } else {
-        const contentType = res.headers.get("Content-Type");
-        switch (contentType) {
+        switch (getContentType(res)) {
           case "application/json": {
             const json = await res.json();
-            if (json.error) {
-              throw new Error(JSON.stringify(json.error));
-            }
-            throw new Error(JSON.stringify(json));
+            throw new Error(getErrorMessage(json));
           }
           default: {
             throw new Error(res.statusText);

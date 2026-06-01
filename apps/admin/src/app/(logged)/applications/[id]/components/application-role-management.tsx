@@ -3,7 +3,6 @@
 import { ListChecks } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,11 +66,12 @@ export function ApplicationRoleManagement({
         return null;
       });
     } catch {
-      toast.error(t("loadError"));
+      setRoles([]);
+      setSelectedRole(null);
     } finally {
       setLoading(false);
     }
-  }, [appId, t]);
+  }, [appId]);
 
   useEffect(() => {
     fetchRoles();
@@ -93,7 +93,7 @@ export function ApplicationRoleManagement({
           className,
         )}
       >
-        <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+        <TableHeader sticky>
           <TableRow>
             <TableHead>{t("name")}</TableHead>
             <TableHead>{t("code")}</TableHead>

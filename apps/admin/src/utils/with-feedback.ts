@@ -22,27 +22,38 @@ export function withFeedback<T extends (...args: any[]) => any>(
     }
   };
 
+  const hideLoading = () => {
+    if (showLoading) {
+      loading.hide();
+    }
+  };
+
   return (...args: Parameters<T>): ReturnType<T> => {
     if (showLoading) {
       const opts = typeof showLoading === "object" ? showLoading : undefined;
       loading.show(opts);
     }
 
+    let returnedPromise = false;
+
     try {
       const res = fn(...args);
       if (res instanceof Promise) {
-        return res.catch((err) => {
-          handleError(err);
-          throw err;
-        }) as ReturnType<T>;
+        returnedPromise = true;
+        return res
+          .catch((err) => {
+            handleError(err);
+            throw err;
+          })
+          .finally(hideLoading) as ReturnType<T>;
       }
       return res as ReturnType<T>;
     } catch (err) {
       handleError(err);
       throw err;
     } finally {
-      if (showLoading) {
-        loading.hide();
+      if (!returnedPromise) {
+        hideLoading();
       }
     }
   };

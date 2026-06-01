@@ -3,7 +3,7 @@
 import { isBuiltinUser } from "@repo/shared";
 import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
 import { appClient } from "@/lib/api";
+import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { UserDialog } from "./user-dialog";
@@ -49,43 +51,34 @@ interface UserRow {
 
 export function UserTable() {
   const t = useTranslations("Users");
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
   const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
 
-  const pageSize = 10;
-
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await appClient.api.users.$get({
+  const fetchUsersPage = useCallback(
+    async ({ limit, offset }: { limit: number; offset: number }) => {
+      const res = await withApiFeedback(appClient.api.users.$get)({
         query: {
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
+          limit,
+          offset,
         },
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-        setTotal(data.total);
-      } else {
-        toast.error(t("fetchFailed"));
-      }
-    } catch {
-      toast.error(t("fetchFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, page]);
+      const data = await res.json();
+      return { items: data.users, total: data.total };
+    },
+    [],
+  );
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  const {
+    items: users,
+    total,
+    page,
+    pageSize,
+    loading,
+    setPage,
+    refresh: fetchUsers,
+  } = usePaginatedApiQuery<UserRow>({ fetchPage: fetchUsersPage });
 
   function handleEditSuccess() {
     setEditUser(null);
@@ -129,7 +122,7 @@ export function UserTable() {
       ) : (
         <div className="flex min-h-0 flex-col">
           <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableHeader sticky>
               <TableRow>
                 <TableHead>{t("name")}</TableHead>
                 <TableHead>{t("email")}</TableHead>

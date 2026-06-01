@@ -4,7 +4,7 @@ import { Pencil, Search, Settings } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DataTablePagination } from "@/components/data-table-pagination";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
@@ -36,16 +37,35 @@ interface Application {
 export function AppTable() {
   const router = useRouter();
   const t = useTranslations("Applications");
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const pageSize = 10;
+  const fetchApplicationsPage = useCallback(
+    async ({ limit, offset }: { limit: number; offset: number }) => {
+      const res = await withApiFeedback(appClient.api.applications.$get)({
+        query: {
+          limit,
+          offset,
+          search: debouncedSearch || undefined,
+        },
+      });
+      const data = await res.json();
+      return { items: data.applications, total: data.total };
+    },
+    [debouncedSearch],
+  );
+
+  const {
+    items: applications,
+    total,
+    page,
+    pageSize,
+    loading,
+    setPage,
+    refresh: fetchApplications,
+  } = usePaginatedApiQuery<Application>({ fetchPage: fetchApplicationsPage });
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -55,30 +75,6 @@ export function AppTable() {
       setPage(1);
     }, 300);
   }
-
-  const fetchApplications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await withApiFeedback(appClient.api.applications.$get)({
-        query: {
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-          search: debouncedSearch || undefined,
-        },
-      });
-      const data = await res.json();
-      setApplications(data.applications);
-      setTotal(data.total);
-    } catch {
-      toast.error(t("fetchFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, t, page]);
-
-  useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
 
   function handleEditSuccess() {
     setEditApp(null);
@@ -115,7 +111,7 @@ export function AppTable() {
       ) : (
         <div className="flex min-h-0 flex-col">
           <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background">
+            <TableHeader sticky>
               <TableRow>
                 <TableHead>{t("name")}</TableHead>
                 <TableHead>{t("code")}</TableHead>

@@ -1,4 +1,7 @@
 import { z } from "@hono/zod-openapi";
+import { idParamSchema, paginationQuerySchema } from "../shared/schema";
+
+export { deleteSuccessSchema, errorSchema } from "../shared/schema";
 
 export const applicationSchema = z
   .object({
@@ -13,15 +16,11 @@ export const applicationSchema = z
   })
   .openapi("Application");
 
-export const listApplicationsQuerySchema = z.object({
+export const listApplicationsQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export const applicationIdParamSchema = z.object({
-  id: z.string().min(1).openapi({ example: "clx1234567890" }),
-});
+export const applicationIdParamSchema = idParamSchema();
 
 export const createApplicationBodySchema = z.object({
   name: z.string().min(1).openapi({ example: "OA System" }),
@@ -38,19 +37,6 @@ export const updateApplicationBodySchema = z.object({
   logo: z.string().nullable().optional(),
   sortOrder: z.number().int().optional(),
 });
-
-export const errorSchema = z
-  .object({
-    code: z.number().openapi({ example: 400 }),
-    message: z.string().openapi({ example: "Bad Request" }),
-  })
-  .openapi("Error");
-
-export const deleteSuccessSchema = z
-  .object({
-    success: z.literal(true),
-  })
-  .openapi("DeleteSuccess");
 
 export const listApplicationsResponseSchema = z
   .object({

@@ -50,13 +50,13 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
         const data = await res.json();
         setItems(data);
       } catch {
-        toast.error(t("loadFailed"));
+        setItems([]);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [group, t]);
+  }, [group]);
 
   const schema = z.object(
     Object.fromEntries(items.map((item) => [item.key, z.string()])),
@@ -90,7 +90,7 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
       }
       toast.success(t("saveSuccess"));
     } catch {
-      toast.error(t("saveFailed"));
+      // Error handled by API feedback.
     } finally {
       setSaving(false);
     }

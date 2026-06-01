@@ -2,6 +2,68 @@ import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import type { LinkType } from "../../prisma/generated/prisma/enums";
 
+type ReorderItem = {
+  id: string;
+  parentId: string | null;
+  sortOrder: number;
+};
+
+type SortableMenu = {
+  id: string;
+  parentId: string | null;
+  sortOrder: number;
+};
+
+type MenuReorderTx = {
+  menu: Pick<typeof prisma.menu, "findMany" | "update">;
+};
+
+export function getAffectedParentIds(
+  items: ReorderItem[],
+  existingMenus: SortableMenu[],
+) {
+  const existingById = new Map(existingMenus.map((menu) => [menu.id, menu]));
+  const affectedParentIds = new Set<string | null>();
+
+  for (const item of items) {
+    const existing = existingById.get(item.id);
+    if (!existing) {
+      throw new HTTPException(400, {
+        message: "One or more menu items not found",
+      });
+    }
+    if (existing.parentId !== item.parentId) {
+      affectedParentIds.add(existing.parentId);
+    }
+    affectedParentIds.add(item.parentId);
+  }
+
+  return affectedParentIds;
+}
+
+export function getNormalizedSortOrderUpdates<T extends SortableMenu>(
+  menus: T[],
+) {
+  const groups = new Map<string | null, T[]>();
+
+  for (const menu of menus) {
+    const key = menu.parentId ?? null;
+    const group = groups.get(key) || [];
+    group.push(menu);
+    groups.set(key, group);
+  }
+
+  return [...groups.values()].flatMap((group) =>
+    group
+      .toSorted((a, b) => a.sortOrder - b.sortOrder)
+      .map((menu, sortOrder) => ({ id: menu.id, sortOrder }))
+      .filter((update) => {
+        const menu = group.find((item) => item.id === update.id);
+        return menu?.sortOrder !== update.sortOrder;
+      }),
+  );
+}
+
 export async function getMenuById(id: string) {
   const menu = await prisma.menu.findUnique({ where: { id } });
   if (!menu) {
@@ -131,9 +193,7 @@ export async function listMenus(appId: string) {
   return { menus };
 }
 
-export async function reorderMenus(
-  items: Array<{ id: string; parentId: string | null; sortOrder: number }>,
-) {
+export async function reorderMenus(items: ReorderItem[]) {
   const itemIds = items.map((i) => i.id);
 
   const existingMenus = await prisma.menu.findMany({
@@ -146,21 +206,9 @@ export async function reorderMenus(
     });
   }
 
-  const affectedParentIds = new Set<string | null>();
-  for (const item of items) {
-    const existing = existingMenus.find((m) => m.id === item.id);
-    if (!existing) {
-      throw new HTTPException(400, {
-        message: "One or more menu items not found",
-      });
-    }
-    if (existing.parentId !== item.parentId) {
-      affectedParentIds.add(existing.parentId);
-    }
-    affectedParentIds.add(item.parentId);
-  }
+  const affectedParentIds = getAffectedParentIds(items, existingMenus);
 
-  const updatedMenus = await prisma.$transaction(async (tx) => {
+  const updatedMenus = await prisma.$transaction(async (tx: MenuReorderTx) => {
     for (const item of items) {
       await tx.menu.update({
         where: { id: item.id },
@@ -180,23 +228,11 @@ export async function reorderMenus(
       orderBy: { sortOrder: "asc" },
     });
 
-    const groups = new Map<string | null, typeof allMenus>();
-    for (const menu of allMenus) {
-      const key = menu.parentId ?? null;
-      const group = groups.get(key) || [];
-      group.push(menu);
-      groups.set(key, group);
-    }
-
-    for (const [, group] of groups) {
-      for (let i = 0; i < group.length; i++) {
-        if (group[i].sortOrder !== i) {
-          await tx.menu.update({
-            where: { id: group[i].id },
-            data: { sortOrder: i },
-          });
-        }
-      }
+    for (const update of getNormalizedSortOrderUpdates(allMenus)) {
+      await tx.menu.update({
+        where: { id: update.id },
+        data: { sortOrder: update.sortOrder },
+      });
     }
 
     const appId = existingMenus[0].appId;

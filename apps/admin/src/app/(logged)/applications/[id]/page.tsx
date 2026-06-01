@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { use, useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appClient } from "@/lib/api";
@@ -44,11 +43,11 @@ export default function ApplicationDetailPage({
       );
       setApp(await res.json());
     } catch {
-      toast.error(t("fetchFailed"));
+      setApp(null);
     } finally {
       setLoading(false);
     }
-  }, [id, t]);
+  }, [id]);
 
   useEffect(() => {
     fetchApp();

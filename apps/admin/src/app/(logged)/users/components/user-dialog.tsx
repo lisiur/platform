@@ -5,7 +5,6 @@ import { isBuiltinUser } from "@repo/shared";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { type Resolver, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { appClient } from "@/lib/api";
+import { withApiFeedback } from "@/lib/api/utils";
 
 type UserInput = {
   name: string;
@@ -88,19 +88,17 @@ export function UserDialog({
   const fetchRoles = useCallback(async () => {
     setLoadingRoles(true);
     try {
-      const res = await appClient.api.roles.$get({
+      const res = await withApiFeedback(appClient.api.roles.$get)({
         query: { appId: "admin" },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setRoles(data);
-      }
+      const data = await res.json();
+      setRoles(data);
     } catch {
-      toast.error(t("fetchRolesFailed"));
+      setRoles([]);
     } finally {
       setLoadingRoles(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     if (open && !builtinUser) {
@@ -142,7 +140,7 @@ export function UserDialog({
   async function onSubmit(data: UserInput) {
     try {
       if (isEdit) {
-        const res = await appClient.api.users[":id"].$put({
+        await withApiFeedback(appClient.api.users[":id"].$put)({
           param: { id: user.id },
           json: {
             name: data.name,
@@ -150,14 +148,8 @@ export function UserDialog({
             ...(builtinUser ? {} : { roleIds: data.roleIds }),
           },
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          toast.error(error.message || t("updateFailed"));
-          return;
-        }
       } else {
-        const res = await appClient.api.users.$post({
+        await withApiFeedback(appClient.api.users.$post)({
           json: {
             name: data.name,
             email: data.email,
@@ -165,17 +157,11 @@ export function UserDialog({
             roleIds: data.roleIds,
           },
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          toast.error(error.message || t("createFailed"));
-          return;
-        }
       }
       reset();
       onSuccess();
     } catch {
-      toast.error(isEdit ? t("updateFailed") : t("createFailed"));
+      // Error handled by API feedback.
     }
   }
 

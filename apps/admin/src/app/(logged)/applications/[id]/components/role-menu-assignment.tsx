@@ -102,11 +102,12 @@ export function RoleMenuAssignment({
         getLocalSelectedMenuIds(menusData.menus, persistedIds),
       );
     } catch {
-      toast.error(t("loadError"));
+      setAppMenus([]);
+      setSelectedMenuIds(new Set());
     } finally {
       setLoading(false);
     }
-  }, [appId, role, t]);
+  }, [appId, role]);
 
   useEffect(() => {
     fetchAssignment();
@@ -126,7 +127,7 @@ export function RoleMenuAssignment({
       toast.success(t("saved"));
       onSaved?.();
     } catch {
-      toast.error(t("saveError"));
+      // Error handled by API feedback.
     } finally {
       setSaving(false);
     }
