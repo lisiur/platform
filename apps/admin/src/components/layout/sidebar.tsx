@@ -33,8 +33,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authClient } from "@/lib/api/auth-client";
+import { appClient } from "@/lib/api";
 import { useSession } from "@/lib/api/use-session";
+import { apiWithFeedback } from "@/lib/api/utils";
 import { useMenuStore } from "@/stores/menu-store";
 import { cn } from "@/utils/cn";
 
@@ -165,7 +166,7 @@ export function AppSidebar() {
   );
 
   const handleSignOut = async () => {
-    await authClient.signOut();
+    await apiWithFeedback(appClient.api.auth["sign-out"].$post)();
     router.push("/sign-in");
   };
 

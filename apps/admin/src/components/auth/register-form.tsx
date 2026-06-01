@@ -13,7 +13,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/api";
+import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -46,7 +47,9 @@ export function RegisterForm({
   async function onSubmit(data: RegisterInput) {
     setError(null);
     try {
-      await authClient.signUp.email(data);
+      await apiWithFeedback(appClient.api.auth["sign-up"].email.$post)({
+        json: data,
+      });
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("registrationFailed"));

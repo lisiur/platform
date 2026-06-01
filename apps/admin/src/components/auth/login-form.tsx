@@ -13,7 +13,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/api";
+import { appClient } from "@/lib/api";
+import { apiWithFeedback } from "@/lib/api/utils";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -43,7 +44,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   async function onSubmit(data: LoginInput) {
     setError(null);
     try {
-      await authClient.signIn.email(data);
+      await apiWithFeedback(appClient.api.auth["sign-in"].email.$post)({
+        json: data,
+      });
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loginFailed"));

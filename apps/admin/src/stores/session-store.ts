@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { authClient } from "@/lib/api/auth-client";
+import { appClient } from "@/lib/api/app-client";
 
 type AuthUser = {
   id: string;
@@ -37,9 +37,12 @@ let inflight: Promise<SessionData> | null = null;
 async function fetchSessionOnce(): Promise<SessionData> {
   if (inflight) return inflight;
 
-  inflight = authClient
-    .getSession()
-    .then((result) => result.data ?? null)
+  inflight = appClient.api.auth["get-session"]
+    .$get()
+    .then(async (res) => {
+      if (!res.ok) return null;
+      return (await res.json()) as SessionData;
+    })
     .finally(() => {
       inflight = null;
     });
