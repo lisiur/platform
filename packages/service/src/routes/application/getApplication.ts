@@ -1,20 +1,18 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
 import { getApplicationById } from "#services/application.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   applicationIdParamSchema,
   applicationSchema,
   errorSchema,
 } from "./schema";
 
-export const getApplication = defineOpenAPIRoute({
-  route: createRoute({
+export const getApplication = defineAdminRoute({
+  route: {
     method: "get",
     path: "/{id}",
     tags: ["Application"],
     summary: "Get an application",
     description: "Returns a single application by ID.",
-    middleware: requireAdmin,
     request: {
       params: applicationIdParamSchema,
     },
@@ -25,12 +23,6 @@ export const getApplication = defineOpenAPIRoute({
         },
         description: "The application",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -38,7 +30,7 @@ export const getApplication = defineOpenAPIRoute({
         description: "Not found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const app = await getApplicationById(id);

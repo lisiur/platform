@@ -1,7 +1,6 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { updateApplication as updateApplicationService } from "#services/application.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   applicationIdParamSchema,
   applicationSchema,
@@ -9,14 +8,13 @@ import {
   updateApplicationBodySchema,
 } from "./schema";
 
-export const updateApplication = defineOpenAPIRoute({
-  route: createRoute({
+export const updateApplication = defineAdminRoute({
+  route: {
     method: "put",
     path: "/{id}",
     tags: ["Application"],
     summary: "Update an application",
     description: "Update an application by ID.",
-    middleware: requireAdmin,
     request: {
       params: applicationIdParamSchema,
       body: {
@@ -35,12 +33,6 @@ export const updateApplication = defineOpenAPIRoute({
         },
         description: "The updated application",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -54,7 +46,7 @@ export const updateApplication = defineOpenAPIRoute({
         description: "Application code already exists",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

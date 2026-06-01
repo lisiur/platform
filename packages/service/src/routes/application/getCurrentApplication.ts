@@ -1,16 +1,15 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { appContext } from "#middleware/app-context";
-import { requireAdmin } from "#middleware/require-admin";
+import { defineAdminRoute } from "../shared/admin-route";
 import { applicationSchema, errorSchema } from "./schema";
 
-export const getCurrentApplication = defineOpenAPIRoute({
-  route: createRoute({
+export const getCurrentApplication = defineAdminRoute({
+  route: {
     method: "get",
     path: "/current",
     tags: ["Application"],
     summary: "Get current application",
     description: "Returns the application resolved from the X-App-Code header.",
-    middleware: [requireAdmin, appContext],
+    middleware: appContext,
     responses: {
       200: {
         content: {
@@ -24,12 +23,6 @@ export const getCurrentApplication = defineOpenAPIRoute({
         },
         description: "Missing X-App-Code header",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -37,7 +30,7 @@ export const getCurrentApplication = defineOpenAPIRoute({
         description: "Application not found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     // biome-ignore lint/suspicious/noExplicitAny: defineOpenAPIRoute doesn't support env type inference
     const app = (c as any).get("currentApp");

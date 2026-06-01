@@ -18,6 +18,12 @@ export const deleteSuccessSchema = z
   })
   .openapi("DeleteSuccess");
 
+export const successSchema = z
+  .object({
+    success: z.boolean(),
+  })
+  .openapi("Success");
+
 export function idParamSchema(example = "clx1234567890") {
   return z.object({
     id: z.string().min(1).openapi({ example }),

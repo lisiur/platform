@@ -1,7 +1,6 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { updateRole as updateRoleService } from "#services/role.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   errorSchema,
   roleIdParamSchema,
@@ -9,13 +8,12 @@ import {
   updateRoleBodySchema,
 } from "./schema";
 
-export const updateRole = defineOpenAPIRoute({
-  route: createRoute({
+export const updateRole = defineAdminRoute({
+  route: {
     method: "put",
     path: "/{id}",
     tags: ["Role"],
     summary: "Update a role",
-    middleware: requireAdmin,
     request: {
       params: roleIdParamSchema,
       body: {
@@ -35,7 +33,7 @@ export const updateRole = defineOpenAPIRoute({
         description: "Not Found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const data = c.req.valid("json");

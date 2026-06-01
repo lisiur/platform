@@ -1,16 +1,14 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { deleteRole as deleteRoleService } from "#services/role.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import { errorSchema, roleIdParamSchema, successSchema } from "./schema";
 
-export const deleteRole = defineOpenAPIRoute({
-  route: createRoute({
+export const deleteRole = defineAdminRoute({
+  route: {
     method: "delete",
     path: "/{id}",
     tags: ["Role"],
     summary: "Delete a role",
-    middleware: requireAdmin,
     request: {
       params: roleIdParamSchema,
     },
@@ -26,7 +24,7 @@ export const deleteRole = defineOpenAPIRoute({
         description: "Not Found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const { name } = await deleteRoleService(id);

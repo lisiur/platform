@@ -1,16 +1,14 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { createRole as createRoleService } from "#services/role.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import { createRoleBodySchema, errorSchema, roleSchema } from "./schema";
 
-export const createRole = defineOpenAPIRoute({
-  route: createRoute({
+export const createRole = defineAdminRoute({
+  route: {
     method: "post",
     path: "/",
     tags: ["Role"],
     summary: "Create a role",
-    middleware: requireAdmin,
     request: {
       body: {
         content: {
@@ -29,7 +27,7 @@ export const createRole = defineOpenAPIRoute({
         description: "Bad Request",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const data = c.req.valid("json");
     const role = await createRoleService(data);

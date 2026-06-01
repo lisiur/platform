@@ -1,5 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
+export { errorSchema, successSchema } from "../shared/schema";
+
 export const roleSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -29,16 +31,3 @@ export const updateRoleBodySchema = z.object({
 export const roleIdParamSchema = z.object({
   id: z.string().min(1),
 });
-
-export const errorSchema = z
-  .object({
-    code: z.number().openapi({ example: 400 }),
-    message: z.string().openapi({ example: "Bad Request" }),
-  })
-  .openapi("Error");
-
-export const successSchema = z
-  .object({
-    success: z.boolean(),
-  })
-  .openapi("Success");

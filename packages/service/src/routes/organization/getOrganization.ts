@@ -1,20 +1,18 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
 import { getOrganizationById } from "#services/organization.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   errorSchema,
   organizationIdParamSchema,
   organizationSchema,
 } from "./schema";
 
-export const getOrganization = defineOpenAPIRoute({
-  route: createRoute({
+export const getOrganization = defineAdminRoute({
+  route: {
     method: "get",
     path: "/{id}",
     tags: ["Organization"],
     summary: "Get an organization",
     description: "Returns a single organization by ID.",
-    middleware: requireAdmin,
     request: {
       params: organizationIdParamSchema,
     },
@@ -25,12 +23,6 @@ export const getOrganization = defineOpenAPIRoute({
         },
         description: "The organization",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -38,7 +30,7 @@ export const getOrganization = defineOpenAPIRoute({
         description: "Not found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const org = await getOrganizationById(id);

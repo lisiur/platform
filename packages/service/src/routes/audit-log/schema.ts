@@ -1,5 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
+export { errorSchema } from "../shared/schema";
+
 export const auditLogSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -43,13 +45,6 @@ export const listAuditLogsQuerySchema = z.object({
 export const auditLogIdParamSchema = z.object({
   id: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
-
-export const errorSchema = z
-  .object({
-    code: z.number().openapi({ example: 400 }),
-    message: z.string().openapi({ example: "Bad Request" }),
-  })
-  .openapi("AuditLogError");
 
 export const listAuditLogsResponseSchema = z
   .object({

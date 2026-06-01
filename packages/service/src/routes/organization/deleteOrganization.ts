@@ -1,22 +1,20 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { deleteOrganization as deleteOrganizationService } from "#services/organization.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   deleteSuccessSchema,
   errorSchema,
   organizationIdParamSchema,
 } from "./schema";
 
-export const deleteOrganization = defineOpenAPIRoute({
-  route: createRoute({
+export const deleteOrganization = defineAdminRoute({
+  route: {
     method: "delete",
     path: "/{id}",
     tags: ["Organization"],
     summary: "Delete an organization",
     description:
       "Delete an organization by ID. Cascades to members and invitations.",
-    middleware: requireAdmin,
     request: {
       params: organizationIdParamSchema,
     },
@@ -27,12 +25,6 @@ export const deleteOrganization = defineOpenAPIRoute({
         },
         description: "Successfully deleted",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -40,7 +32,7 @@ export const deleteOrganization = defineOpenAPIRoute({
         description: "Not found",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const { name } = await deleteOrganizationService(id);

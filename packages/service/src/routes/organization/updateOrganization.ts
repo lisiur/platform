@@ -1,7 +1,6 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { updateOrganization as updateOrganizationService } from "#services/organization.service";
+import { defineAdminRoute } from "../shared/admin-route";
 import {
   errorSchema,
   organizationIdParamSchema,
@@ -9,14 +8,13 @@ import {
   updateOrganizationBodySchema,
 } from "./schema";
 
-export const updateOrganization = defineOpenAPIRoute({
-  route: createRoute({
+export const updateOrganization = defineAdminRoute({
+  route: {
     method: "put",
     path: "/{id}",
     tags: ["Organization"],
     summary: "Update an organization",
     description: "Update an organization by ID.",
-    middleware: requireAdmin,
     request: {
       params: organizationIdParamSchema,
       body: {
@@ -35,12 +33,6 @@ export const updateOrganization = defineOpenAPIRoute({
         },
         description: "The updated organization",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -54,7 +46,7 @@ export const updateOrganization = defineOpenAPIRoute({
         description: "Slug already taken",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
