@@ -1,10 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { applicationRoutes } from "./application";
 import { auditLogRoutes } from "./audit-log";
-import { authRoutes } from "./auth.routes";
-import { logRoutes } from "./log";
+import { authRoutes } from "./auth";
 import { menuRoutes } from "./menu";
 import { menuRoleRoutes } from "./menu-role";
+import { operationLogRoutes } from "./operation-log";
 import { organizationRoutes } from "./organization";
 import { roleRoutes } from "./role";
 import { systemConfigRoutes } from "./system-config";
@@ -24,7 +24,7 @@ const routes = new OpenAPIHono()
   .route("/system-info", systemInfoRoutes)
   .route("/upload", uploadRoutes)
   .route("/user-role", userRoleRoutes)
-  .route("/log", logRoutes)
+  .route("/operation-log", operationLogRoutes)
   .route("/audit-log", auditLogRoutes)
   .route("/users", userRoutes);
 

@@ -1,5 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
+export { deleteSuccessSchema, errorSchema } from "../shared/schema";
+
 export const operationLogSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -48,19 +50,6 @@ export const deleteLogsBodySchema = z.object({
     .min(1)
     .openapi({ example: ["clx1234567890"] }),
 });
-
-export const errorSchema = z
-  .object({
-    code: z.number().openapi({ example: 400 }),
-    message: z.string().openapi({ example: "Bad Request" }),
-  })
-  .openapi("LogError");
-
-export const deleteSuccessSchema = z
-  .object({
-    success: z.literal(true),
-  })
-  .openapi("LogDeleteSuccess");
 
 export const listLogsResponseSchema = z
   .object({

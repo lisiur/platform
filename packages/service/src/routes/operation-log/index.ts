@@ -3,12 +3,12 @@ import { deleteLogsRoute } from "./deleteLogs";
 import { getLog } from "./getLog";
 import { listLogsRoute } from "./listLogs";
 
-const logRoutesHono = new OpenAPIHono();
+const operationLogRoutesHono = new OpenAPIHono();
 
-const routes = logRoutesHono.openapiRoutes([
+const routes = operationLogRoutesHono.openapiRoutes([
   listLogsRoute,
   getLog,
   deleteLogsRoute,
 ] as const);
 
-export { routes as logRoutes };
+export { routes as operationLogRoutes };
