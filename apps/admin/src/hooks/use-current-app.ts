@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { appClient, useSession } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 interface Application {
   id: string;
@@ -30,7 +30,7 @@ export function useCurrentApp() {
     }
 
     setLoading(true);
-    apiWithFeedback(appClient.api.applications.current.$get)()
+    withApiFeedback(appClient.api.applications.current.$get)()
       .then(async (res) => {
         const data = (await res.json()) as Application;
         setApp(data);

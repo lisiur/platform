@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { getFirstMenuUrl } from "@/lib/menu-utils";
 
 export default function LoginPage() {
@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   const handleLoginSuccess = async () => {
     try {
-      const res = await apiWithFeedback(appClient.api["menu-role"].mine.$get)();
+      const res = await withApiFeedback(appClient.api["menu-role"].mine.$get)();
       const data = await res.json();
       const firstUrl = getFirstMenuUrl(data.menus);
       if (firstUrl) {

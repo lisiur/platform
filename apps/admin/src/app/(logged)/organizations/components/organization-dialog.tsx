@@ -25,7 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 const orgSchema = z.object({
   name: z.string().min(1),
@@ -120,7 +120,7 @@ export function OrganizationDialog({
   async function onSubmit(data: OrgInput) {
     try {
       if (isEdit) {
-        await apiWithFeedback(appClient.api.organizations[":id"].$put)({
+        await withApiFeedback(appClient.api.organizations[":id"].$put)({
           param: { id: organization.id },
           json: {
             name: data.name,
@@ -130,7 +130,7 @@ export function OrganizationDialog({
           },
         });
       } else {
-        await apiWithFeedback(appClient.api.organizations.$post)({
+        await withApiFeedback(appClient.api.organizations.$post)({
           json: {
             name: data.name,
             slug: data.slug,

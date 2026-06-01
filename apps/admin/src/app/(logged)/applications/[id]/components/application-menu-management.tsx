@@ -6,7 +6,7 @@ import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import {
   MenuForm,
   type MenuFormRef,
@@ -66,7 +66,7 @@ export function ApplicationMenuManagement({
 
     setSaving(true);
     try {
-      await apiWithFeedback(appClient.api.menu[":id"].$put)({
+      await withApiFeedback(appClient.api.menu[":id"].$put)({
         param: { id: selectedMenu.id },
         json: {
           name: data.name,

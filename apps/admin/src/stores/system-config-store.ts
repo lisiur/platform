@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 interface SystemConfigState {
   configs: Record<string, string>;
@@ -22,7 +22,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
 
     set({ loading: true });
     try {
-      const res = await apiWithFeedback(
+      const res = await withApiFeedback(
         appClient.api["system-config"][":group"].$get,
       )({
         param: { group },

@@ -35,7 +35,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { appClient } from "@/lib/api";
 import { useSession } from "@/lib/api/use-session";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { useMenuStore } from "@/stores/menu-store";
 import { cn } from "@/utils/cn";
 
@@ -166,7 +166,7 @@ export function AppSidebar() {
   );
 
   const handleSignOut = async () => {
-    await apiWithFeedback(appClient.api.auth["sign-out"].$post)();
+    await withApiFeedback(appClient.api.auth["sign-out"].$post)();
     router.push("/sign-in");
   };
 

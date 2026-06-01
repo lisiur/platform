@@ -7,7 +7,7 @@ import { RoleMenuTree } from "@/components/role-menu-tree";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 interface Role {
   id: string;
@@ -80,10 +80,10 @@ export function RoleMenuAssignment({
     setLoading(true);
     try {
       const [menusRes, roleMenusRes] = await Promise.all([
-        apiWithFeedback(appClient.api.menu.$get)({
+        withApiFeedback(appClient.api.menu.$get)({
           query: { appId },
         }),
-        apiWithFeedback(appClient.api["menu-role"][":roleId"].$get)({
+        withApiFeedback(appClient.api["menu-role"][":roleId"].$get)({
           param: { roleId: role.id },
         }),
       ]);
@@ -117,7 +117,7 @@ export function RoleMenuAssignment({
 
     setSaving(true);
     try {
-      await apiWithFeedback(appClient.api["menu-role"].batch.$put)({
+      await withApiFeedback(appClient.api["menu-role"].batch.$put)({
         json: {
           roleId: role.id,
           menuIds: Array.from(selectedMenuIds),

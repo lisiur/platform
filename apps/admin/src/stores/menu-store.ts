@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
 
@@ -94,7 +94,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
     set({ loading: true });
     try {
-      const res = await apiWithFeedback(appClient.api["menu-role"].mine.$get)();
+      const res = await withApiFeedback(appClient.api["menu-role"].mine.$get)();
       const data = await res.json();
       const menus = data.menus;
       const treeMenus = buildTree(menus);

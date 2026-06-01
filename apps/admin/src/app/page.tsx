@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { appClient, useSession } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { getFirstMenuUrl } from "@/lib/menu-utils";
 
 export default function HomePage() {
@@ -18,7 +18,7 @@ export default function HomePage() {
       return;
     }
 
-    apiWithFeedback(appClient.api["menu-role"].mine.$get)()
+    withApiFeedback(appClient.api["menu-role"].mine.$get)()
       .then(async (res) => {
         const data = await res.json();
         const firstUrl = getFirstMenuUrl(data.menus);

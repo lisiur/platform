@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { ApplicationMenuManagement } from "./components/application-menu-management";
 import { ApplicationRoleManagement } from "./components/application-role-management";
 
@@ -37,7 +37,7 @@ export default function ApplicationDetailPage({
   const fetchApp = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiWithFeedback(appClient.api.applications[":id"].$get)(
+      const res = await withApiFeedback(appClient.api.applications[":id"].$get)(
         {
           param: { id },
         },

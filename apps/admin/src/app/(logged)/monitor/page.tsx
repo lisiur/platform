@@ -17,7 +17,7 @@ import {
   ProgressValue,
 } from "@/components/ui/progress";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 interface SystemInfo {
   cpu: { usage: number; cores: number; model: string };
@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
   const fetchInfo = useCallback(async () => {
     try {
-      const res = await apiWithFeedback(appClient.api["system-info"].$get)();
+      const res = await withApiFeedback(appClient.api["system-info"].$get)();
       const data = await res.json();
       setInfo(data as SystemInfo);
     } catch {

@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 const appSchema = z.object({
   name: z.string().min(1),
@@ -104,7 +104,7 @@ export function AppDialog({
   async function onSubmit(data: AppInput) {
     try {
       if (isEdit) {
-        await apiWithFeedback(appClient.api.applications[":id"].$put)({
+        await withApiFeedback(appClient.api.applications[":id"].$put)({
           param: { id: app.id },
           json: {
             name: data.name,
@@ -114,7 +114,7 @@ export function AppDialog({
           },
         });
       } else {
-        await apiWithFeedback(appClient.api.applications.$post)({
+        await withApiFeedback(appClient.api.applications.$post)({
           json: {
             name: data.name,
             code: data.code,

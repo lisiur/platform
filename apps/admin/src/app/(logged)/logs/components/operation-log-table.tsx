@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import { LogDetailDialog } from "./log-detail-dialog";
 import {
@@ -100,7 +100,7 @@ export function OperationLogTable({
       if (filters.startDate) query.startDate = filters.startDate.toISOString();
       if (filters.endDate) query.endDate = filters.endDate.toISOString();
 
-      const res = await apiWithFeedback(appClient.api.log.$get)({ query });
+      const res = await withApiFeedback(appClient.api.log.$get)({ query });
       const data = await res.json();
       setLogs(data.logs);
       setTotal(data.total);
@@ -130,7 +130,7 @@ export function OperationLogTable({
   async function handleBatchDelete() {
     if (selectedIds.size === 0) return;
     try {
-      await apiWithFeedback(appClient.api.log.$delete)({
+      await withApiFeedback(appClient.api.log.$delete)({
         json: { ids: Array.from(selectedIds) },
       });
       toast.success(t("deleteSuccess"));

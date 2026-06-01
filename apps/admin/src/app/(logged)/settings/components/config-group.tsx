@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { useSystemConfigStore } from "@/stores/system-config-store";
 import { ConfigField } from "./config-field";
 
@@ -40,7 +40,7 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
     async function load() {
       setLoading(true);
       try {
-        const res = await apiWithFeedback(
+        const res = await withApiFeedback(
           appClient.api["system-config"][":group"].$get,
         )({
           param: {
@@ -80,7 +80,7 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
         isSecret: item.isSecret,
         sortOrder: item.sortOrder,
       }));
-      await apiWithFeedback(appClient.api["system-config"].batch.$put)({
+      await withApiFeedback(appClient.api["system-config"].batch.$put)({
         json: {
           items: payload,
         },

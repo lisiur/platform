@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
 import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { OrganizationDialog } from "./organization-dialog";
@@ -46,7 +46,7 @@ export function OrganizationTable() {
   const fetchOrganizations = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiWithFeedback(appClient.api.organizations.$get)({
+      const res = await withApiFeedback(appClient.api.organizations.$get)({
         query: { limit: pageSize, offset: (page - 1) * pageSize },
       });
       const data = await res.json();

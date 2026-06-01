@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -44,7 +44,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
   async function onSubmit(data: LoginInput) {
     setError(null);
     try {
-      await apiWithFeedback(appClient.api.auth["sign-in"].email.$post)({
+      await withApiFeedback(appClient.api.auth["sign-in"].email.$post)({
         json: data,
       });
       onSuccess?.();

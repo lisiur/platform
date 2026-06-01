@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { MenuForm, type MenuFormRef, type MenuInput } from "./menu-form";
 
 type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";
@@ -140,7 +140,7 @@ export function MenuTree({
   const fetchMenus = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiWithFeedback(appClient.api.menu.$get)({
+      const res = await withApiFeedback(appClient.api.menu.$get)({
         query: { appId },
       });
       const data = await res.json();
@@ -194,7 +194,7 @@ export function MenuTree({
     }
     setSaving(true);
     try {
-      await apiWithFeedback(appClient.api.menu.$post)({
+      await withApiFeedback(appClient.api.menu.$post)({
         json: {
           name: data.name,
           code: data.code,
@@ -221,7 +221,7 @@ export function MenuTree({
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await apiWithFeedback(appClient.api.menu[":id"].$delete)({
+      await withApiFeedback(appClient.api.menu[":id"].$delete)({
         param: { id: deleteTarget.id },
       });
       toast.success(t("deleteSuccess"));
@@ -254,7 +254,7 @@ export function MenuTree({
       });
 
       try {
-        const res = await apiWithFeedback(appClient.api.menu.reorder.$post)({
+        const res = await withApiFeedback(appClient.api.menu.reorder.$post)({
           json: { items: changed },
         });
         const data = await res.json();

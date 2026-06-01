@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -47,7 +47,7 @@ export function RegisterForm({
   async function onSubmit(data: RegisterInput) {
     setError(null);
     try {
-      await apiWithFeedback(appClient.api.auth["sign-up"].email.$post)({
+      await withApiFeedback(appClient.api.auth["sign-up"].email.$post)({
         json: data,
       });
       onSuccess?.();

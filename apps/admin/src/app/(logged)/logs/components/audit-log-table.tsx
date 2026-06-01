@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import { AuditLogFilter, type AuditLogFilters } from "./audit-log-filter";
 import { LogDetailDialog } from "./log-detail-dialog";
@@ -109,7 +109,7 @@ export function AuditLogTable({
       if (filters.startDate) query.startDate = filters.startDate.toISOString();
       if (filters.endDate) query.endDate = filters.endDate.toISOString();
 
-      const res = await apiWithFeedback(appClient.api["audit-log"].$get)({
+      const res = await withApiFeedback(appClient.api["audit-log"].$get)({
         query,
       });
       const data = await res.json();

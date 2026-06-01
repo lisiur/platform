@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
 import { AppDialog } from "./app-dialog";
 
@@ -59,7 +59,7 @@ export function AppTable() {
   const fetchApplications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiWithFeedback(appClient.api.applications.$get)({
+      const res = await withApiFeedback(appClient.api.applications.$get)({
         query: {
           limit: pageSize,
           offset: (page - 1) * pageSize,

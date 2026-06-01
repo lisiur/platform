@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { appClient } from "@/lib/api";
-import { apiWithFeedback } from "@/lib/api/utils";
+import { withApiFeedback } from "@/lib/api/utils";
 import { cn } from "@/utils/cn";
 import { RoleMenuAssignment } from "./role-menu-assignment";
 
@@ -55,7 +55,7 @@ export function ApplicationRoleManagement({
   const fetchRoles = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiWithFeedback(appClient.api.roles.$get)({
+      const res = await withApiFeedback(appClient.api.roles.$get)({
         query: { appId },
       });
       const data = await res.json();

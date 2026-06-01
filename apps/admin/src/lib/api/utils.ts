@@ -12,7 +12,7 @@ type ExtractSuccessResponse<T> = T extends ClientResponse<
     : never
   : never;
 
-export function apiWithFeedback<
+export function withApiFeedback<
   // biome-ignore lint/suspicious/noExplicitAny: Hono client has overloaded signatures, need permissive constraint
   T extends (...args: any[]) => Promise<ClientResponse<any, any, any>>,
 >(fn: T, config?: WithFeedbackConfig) {
