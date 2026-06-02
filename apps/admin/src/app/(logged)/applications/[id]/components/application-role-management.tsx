@@ -1,6 +1,7 @@
 "use client";
 
-import { ListChecks } from "lucide-react";
+import { isBuiltinRole } from "@repo/shared";
+import { ListChecks, ShieldUser } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ interface Role {
   appId: string;
   name: string;
   code: string;
+  flags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -105,7 +107,21 @@ export function ApplicationRoleManagement({
         <TableBody>
           {roles.map((role) => (
             <TableRow key={role.id}>
-              <TableCell className="font-medium">{role.name}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  <span>{role.name}</span>
+                  {isBuiltinRole(role.flags) && (
+                    <Badge
+                      variant="secondary"
+                      className="px-1.5"
+                      title={t("protected")}
+                      aria-label={t("protected")}
+                    >
+                      <ShieldUser className="h-3 w-3" />
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <Badge variant="secondary">{role.code}</Badge>
               </TableCell>

@@ -300,7 +300,8 @@
     "resource": "Resource",
     "action": "Action",
     "granted": "Granted",
-    "denied": "Denied"
+    "denied": "Denied",
+    "protected": "Protected"
   },
   "Remote": {
     "settings": {

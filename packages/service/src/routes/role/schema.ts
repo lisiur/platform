@@ -8,6 +8,7 @@ export const roleSchema = z
     appId: z.string().openapi({ example: "app-admin" }),
     name: z.string().openapi({ example: "Administrator" }),
     code: z.string().openapi({ example: "admin" }),
+    flags: z.array(z.string()).openapi({ example: ["builtin"] }),
     createdAt: z.date(),
     updatedAt: z.date(),
   })

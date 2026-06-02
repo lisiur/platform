@@ -300,7 +300,8 @@
     "resource": "资源",
     "action": "操作",
     "granted": "已授权",
-    "denied": "未授权"
+    "denied": "未授权",
+    "protected": "受保护"
   },
   "Remote": {
     "settings": {
