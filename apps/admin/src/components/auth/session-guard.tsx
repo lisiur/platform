@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +15,17 @@ import {
 import { useSession } from "@/lib/api";
 
 export function SessionGuard({ children }: { children: React.ReactNode }) {
-  const { data, isPending, fetched } = useSession();
+  const { data, isPending, fetched, refetch } = useSession();
   const router = useRouter();
   const t = useTranslations("Auth");
+  const retriedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetched && !data && !retriedRef.current) {
+      retriedRef.current = true;
+      void refetch();
+    }
+  }, [fetched, data, refetch]);
 
   if (isPending) {
     return (
