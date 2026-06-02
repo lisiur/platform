@@ -1,13 +1,14 @@
 import { logAudit } from "#lib/logger";
 import { createOrganization as createOrganizationService } from "#services/organization.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   createOrganizationBodySchema,
   errorSchema,
   organizationSchema,
 } from "./schema";
 
-export const createOrganization = defineAdminRoute({
+export const createOrganization = definePermissionRoute({
+  permission: "organization::create",
   route: {
     method: "post",
     path: "/",

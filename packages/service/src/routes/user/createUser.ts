@@ -1,8 +1,9 @@
 import { createUser as createUserSvc } from "#services/user.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { adminUserSchema, createUserBodySchema, errorSchema } from "./schema";
 
-export const createUser = defineAdminRoute({
+export const createUser = definePermissionRoute({
+  permission: "user::create",
   route: {
     method: "post",
     path: "/",

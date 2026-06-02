@@ -1,15 +1,14 @@
-import { appContext } from "#middleware/app-context";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { applicationSchema, errorSchema } from "./schema";
 
-export const getCurrentApplication = defineAdminRoute({
+export const getCurrentApplication = definePermissionRoute({
+  permission: "application::view",
   route: {
     method: "get",
     path: "/current",
     tags: ["Application"],
     summary: "Get current application",
     description: "Returns the application resolved from the X-App-Code header.",
-    middleware: appContext,
     responses: {
       200: {
         content: {

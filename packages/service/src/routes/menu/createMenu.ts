@@ -1,10 +1,10 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { createRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
+import { definePermissionRoute } from "#routes/shared/admin-route";
 import { createMenu as createMenuService } from "#services/menu.service";
 import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
 
-export const createMenu = defineOpenAPIRoute({
+export const createMenu = definePermissionRoute({
   route: createRoute({
     method: "post",
     path: "/",
@@ -12,7 +12,6 @@ export const createMenu = defineOpenAPIRoute({
     summary: "Create a menu",
     description:
       "Create a new menu item. If parentId is provided, the menu is nested under that parent.",
-    middleware: requireAdmin,
     request: {
       body: {
         content: {
@@ -30,12 +29,6 @@ export const createMenu = defineOpenAPIRoute({
         },
         description: "The created menu",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       400: {
         content: {
           "application/json": { schema: errorSchema },
@@ -44,6 +37,7 @@ export const createMenu = defineOpenAPIRoute({
       },
     },
   }),
+  permission: "menu::create",
   handler: async (c) => {
     const body = c.req.valid("json");
 

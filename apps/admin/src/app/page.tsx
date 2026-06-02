@@ -18,7 +18,7 @@ export default function HomePage() {
       return;
     }
 
-    withApiFeedback(appClient.api["menu-role"].mine.$get)()
+    withApiFeedback(appClient.api.menu.mine.$get)()
       .then(async (res) => {
         const data = await res.json();
         const firstUrl = getFirstMenuUrl(data.menus);

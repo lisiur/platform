@@ -97,6 +97,12 @@ export const reorderMenusResponseSchema = z
   })
   .openapi("ReorderMenusResponse");
 
+export const mineMenusResponseSchema = z
+  .object({
+    menus: menuSchema.array(),
+  })
+  .openapi("MineMenusResponse");
+
 export type Menu = z.infer<typeof menuSchema>;
 export type CreateMenuBody = z.infer<typeof createMenuBodySchema>;
 export type UpdateMenuBody = z.infer<typeof updateMenuBodySchema>;

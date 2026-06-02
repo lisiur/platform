@@ -1,5 +1,5 @@
 import { updateUser as updateUserSvc } from "#services/user.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   adminUserSchema,
   errorSchema,
@@ -7,7 +7,8 @@ import {
   userIdParamSchema,
 } from "./schema";
 
-export const updateUser = defineAdminRoute({
+export const updateUser = definePermissionRoute({
+  permission: "user::update",
   route: {
     method: "put",
     path: "/{id}",

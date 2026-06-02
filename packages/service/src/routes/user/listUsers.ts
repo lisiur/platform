@@ -1,8 +1,9 @@
 import { listUsers as listUsersSvc } from "#services/user.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { listUsersQuerySchema, listUsersResponseSchema } from "./schema";
 
-export const listUsers = defineAdminRoute({
+export const listUsers = definePermissionRoute({
+  permission: "user::list",
   route: {
     method: "get",
     path: "/",

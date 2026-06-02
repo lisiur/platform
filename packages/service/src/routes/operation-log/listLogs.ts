@@ -1,8 +1,9 @@
 import { listLogs } from "#services/operation-log.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { listLogsQuerySchema, listLogsResponseSchema } from "./schema";
 
-export const listLogsRoute = defineAdminRoute({
+export const listLogsRoute = definePermissionRoute({
+  permission: "operation-log::list",
   route: {
     method: "get",
     path: "/",

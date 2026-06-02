@@ -1,13 +1,14 @@
 import { logAudit } from "#lib/logger";
 import { deleteOrganization as deleteOrganizationService } from "#services/organization.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   deleteSuccessSchema,
   errorSchema,
   organizationIdParamSchema,
 } from "./schema";
 
-export const deleteOrganization = defineAdminRoute({
+export const deleteOrganization = definePermissionRoute({
+  permission: "organization::delete",
   route: {
     method: "delete",
     path: "/{id}",

@@ -1,5 +1,5 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
+import { createRoute } from "@hono/zod-openapi";
+import { definePermissionRoute } from "#routes/shared/admin-route";
 import { reorderMenus as reorderMenusService } from "#services/menu.service";
 import {
   errorSchema,
@@ -7,7 +7,7 @@ import {
   reorderMenusResponseSchema,
 } from "./schema";
 
-export const reorderMenus = defineOpenAPIRoute({
+export const reorderMenus = definePermissionRoute({
   route: createRoute({
     method: "post",
     path: "/reorder",
@@ -15,7 +15,6 @@ export const reorderMenus = defineOpenAPIRoute({
     summary: "Reorder menus",
     description:
       "Batch update menu positions after drag-and-drop. Recalculates sortOrder for all siblings atomically.",
-    middleware: requireAdmin,
     request: {
       body: {
         content: {
@@ -33,12 +32,6 @@ export const reorderMenus = defineOpenAPIRoute({
         },
         description: "Updated menus with recalculated sortOrder",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       400: {
         content: {
           "application/json": { schema: errorSchema },
@@ -47,6 +40,7 @@ export const reorderMenus = defineOpenAPIRoute({
       },
     },
   }),
+  permission: "menu::reorder",
   handler: async (c) => {
     const body = c.req.valid("json");
 

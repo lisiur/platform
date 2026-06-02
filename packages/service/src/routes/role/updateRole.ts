@@ -1,6 +1,6 @@
 import { logAudit } from "#lib/logger";
 import { updateRole as updateRoleService } from "#services/role.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   errorSchema,
   roleIdParamSchema,
@@ -8,7 +8,8 @@ import {
   updateRoleBodySchema,
 } from "./schema";
 
-export const updateRole = defineAdminRoute({
+export const updateRole = definePermissionRoute({
+  permission: "role::update",
   route: {
     method: "put",
     path: "/{id}",

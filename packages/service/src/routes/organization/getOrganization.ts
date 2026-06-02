@@ -1,12 +1,13 @@
 import { getOrganizationById } from "#services/organization.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   errorSchema,
   organizationIdParamSchema,
   organizationSchema,
 } from "./schema";
 
-export const getOrganization = defineAdminRoute({
+export const getOrganization = definePermissionRoute({
+  permission: "organization::view",
   route: {
     method: "get",
     path: "/{id}",

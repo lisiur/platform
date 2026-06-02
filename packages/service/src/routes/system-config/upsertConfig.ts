@@ -1,7 +1,6 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { upsertConfig } from "#services/system-config.service";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   errorSchema,
   systemConfigItemSchema,
@@ -9,14 +8,14 @@ import {
   upsertConfigParamSchema,
 } from "./schema";
 
-export const upsertConfigRoute = defineOpenAPIRoute({
-  route: createRoute({
+export const upsertConfigRoute = definePermissionRoute({
+  permission: "system-config::upsert",
+  route: {
     method: "put",
     path: "/{group}/{key}",
     tags: ["SystemConfig"],
     summary: "Upsert a configuration",
     description: "Create or update a system configuration item.",
-    middleware: requireAdmin,
     request: {
       params: upsertConfigParamSchema,
       body: {
@@ -45,16 +44,8 @@ export const upsertConfigRoute = defineOpenAPIRoute({
         },
         description: "Validation error",
       },
-      401: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Unauthorized",
-      },
     },
-  }),
+  },
   handler: async (c) => {
     const { group, key } = c.req.valid("param");
     const body = c.req.valid("json");

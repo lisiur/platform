@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   const handleLoginSuccess = async () => {
     try {
-      const res = await withApiFeedback(appClient.api["menu-role"].mine.$get)();
+      const res = await withApiFeedback(appClient.api.menu.mine.$get)();
       const data = await res.json();
       const firstUrl = getFirstMenuUrl(data.menus);
       if (firstUrl) {

@@ -1,16 +1,15 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { removeUserRole as removeUserRoleSvc } from "#services/user-role.service";
+import { definePermissionRoute } from "../shared/admin-route";
 import { removeUserRoleParamSchema, successResponseSchema } from "./schema";
 
-export const removeUserRole = defineOpenAPIRoute({
-  route: createRoute({
+export const removeUserRole = definePermissionRoute({
+  permission: "user-role::remove",
+  route: {
     method: "post",
     path: "/remove",
     tags: ["UserRole"],
     summary: "Remove a role from a user",
-    middleware: requireAdmin,
     request: {
       body: {
         content: {
@@ -27,7 +26,7 @@ export const removeUserRole = defineOpenAPIRoute({
         description: "Removed",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { userId, roleId } = c.req.valid("json");
     await removeUserRoleSvc(userId, roleId);

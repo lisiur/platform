@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
-import { errorSchema, systemInfoSchema } from "./schema";
+import { definePermissionRoute } from "../shared/admin-route";
+import { systemInfoSchema } from "./schema";
 
 function sampleCpuTimes(): { idle: number; total: number } {
   const cpus = os.cpus();
@@ -156,26 +155,21 @@ function getProcessCpuUsage(): number {
   return 0;
 }
 
-export const getSystemInfo = defineOpenAPIRoute({
-  route: createRoute({
+export const getSystemInfo = definePermissionRoute({
+  permission: "system-info::view",
+  route: {
     method: "get",
     path: "/",
     tags: ["SystemInfo"],
     summary: "Get system resource info",
-    description:
-      "Returns current CPU, memory, and storage usage information. Requires admin role.",
-    middleware: requireAdmin,
+    description: "Returns current CPU, memory, and storage usage information.",
     responses: {
       200: {
         content: { "application/json": { schema: systemInfoSchema } },
         description: "System resource information",
       },
-      401: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Unauthorized",
-      },
     },
-  }),
+  },
   handler: async (c) => {
     const cpuUsage = await getCpuUsage();
     const cpus = os.cpus();

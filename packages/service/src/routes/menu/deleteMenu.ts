@@ -1,10 +1,10 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { createRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
+import { definePermissionRoute } from "#routes/shared/admin-route";
 import { deleteMenu as deleteMenuService } from "#services/menu.service";
 import { deleteSuccessSchema, errorSchema, menuIdParamSchema } from "./schema";
 
-export const deleteMenu = defineOpenAPIRoute({
+export const deleteMenu = definePermissionRoute({
   route: createRoute({
     method: "delete",
     path: "/{id}",
@@ -12,7 +12,6 @@ export const deleteMenu = defineOpenAPIRoute({
     summary: "Delete a menu",
     description:
       "Delete a menu by ID. All children are cascade-deleted via Prisma.",
-    middleware: requireAdmin,
     request: {
       params: menuIdParamSchema,
     },
@@ -23,12 +22,6 @@ export const deleteMenu = defineOpenAPIRoute({
         },
         description: "Successfully deleted",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -37,6 +30,7 @@ export const deleteMenu = defineOpenAPIRoute({
       },
     },
   }),
+  permission: "menu::delete",
   handler: async (c) => {
     const { id } = c.req.valid("param");
 

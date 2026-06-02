@@ -14,7 +14,6 @@ export async function createRole(data: {
   appId: string;
   name: string;
   code: string;
-  authRole?: string;
   flags?: string[];
 }) {
   const existing = await roleRepository.findByAppAndCode(data.appId, data.code);
@@ -31,7 +30,6 @@ export async function updateRole(
   data: {
     name?: string;
     code?: string;
-    authRole?: string | null;
     flags?: string[];
   },
 ) {
@@ -59,7 +57,6 @@ export async function deleteRole(id: string) {
     throw new HTTPException(404, { message: "Role not found" });
   }
   await prisma.$transaction([
-    prisma.menuRole.deleteMany({ where: { roleId: id } }),
     prisma.userRole.deleteMany({ where: { roleId: id } }),
     prisma.role.delete({ where: { id } }),
   ]);

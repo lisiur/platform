@@ -62,9 +62,10 @@ export const ModelName = {
   Upload: 'Upload',
   Application: 'Application',
   Menu: 'Menu',
-  MenuRole: 'MenuRole',
-  Role: 'Role',
+  Permission: 'Permission',
+  RolePermission: 'RolePermission',
   UserRole: 'UserRole',
+  Role: 'Role',
   OperationLog: 'OperationLog',
   AuditLog: 'AuditLog'
 } as const
@@ -91,7 +92,6 @@ export const UserScalarFieldEnum = {
   email: 'email',
   emailVerified: 'emailVerified',
   image: 'image',
-  role: 'role',
   banned: 'banned',
   banReason: 'banReason',
   banExpires: 'banExpires',
@@ -243,6 +243,7 @@ export const MenuScalarFieldEnum = {
   linkType: 'linkType',
   url: 'url',
   sortOrder: 'sortOrder',
+  permissionId: 'permissionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -250,28 +251,28 @@ export const MenuScalarFieldEnum = {
 export type MenuScalarFieldEnum = (typeof MenuScalarFieldEnum)[keyof typeof MenuScalarFieldEnum]
 
 
-export const MenuRoleScalarFieldEnum = {
-  id: 'id',
-  menuId: 'menuId',
-  roleId: 'roleId',
-  createdAt: 'createdAt'
-} as const
-
-export type MenuRoleScalarFieldEnum = (typeof MenuRoleScalarFieldEnum)[keyof typeof MenuRoleScalarFieldEnum]
-
-
-export const RoleScalarFieldEnum = {
+export const PermissionScalarFieldEnum = {
   id: 'id',
   appId: 'appId',
   name: 'name',
   code: 'code',
-  authRole: 'authRole',
-  flags: 'flags',
+  group: 'group',
+  description: 'description',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
+export type PermissionScalarFieldEnum = (typeof PermissionScalarFieldEnum)[keyof typeof PermissionScalarFieldEnum]
+
+
+export const RolePermissionScalarFieldEnum = {
+  id: 'id',
+  roleId: 'roleId',
+  permissionId: 'permissionId',
+  createdAt: 'createdAt'
+} as const
+
+export type RolePermissionScalarFieldEnum = (typeof RolePermissionScalarFieldEnum)[keyof typeof RolePermissionScalarFieldEnum]
 
 
 export const UserRoleScalarFieldEnum = {
@@ -282,6 +283,19 @@ export const UserRoleScalarFieldEnum = {
 } as const
 
 export type UserRoleScalarFieldEnum = (typeof UserRoleScalarFieldEnum)[keyof typeof UserRoleScalarFieldEnum]
+
+
+export const RoleScalarFieldEnum = {
+  id: 'id',
+  appId: 'appId',
+  name: 'name',
+  code: 'code',
+  flags: 'flags',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
 
 
 export const OperationLogScalarFieldEnum = {

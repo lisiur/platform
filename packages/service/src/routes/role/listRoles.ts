@@ -1,8 +1,9 @@
 import { listRoles as listRolesService } from "#services/role.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { listRolesQuerySchema, roleSchema } from "./schema";
 
-export const listRoles = defineAdminRoute({
+export const listRoles = definePermissionRoute({
+  permission: "role::list",
   route: {
     method: "get",
     path: "/",

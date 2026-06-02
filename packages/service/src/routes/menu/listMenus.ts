@@ -1,13 +1,9 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
+import { createRoute } from "@hono/zod-openapi";
+import { definePermissionRoute } from "#routes/shared/admin-route";
 import { listMenus as listMenusService } from "#services/menu.service";
-import {
-  errorSchema,
-  listMenusQuerySchema,
-  listMenusResponseSchema,
-} from "./schema";
+import { listMenusQuerySchema, listMenusResponseSchema } from "./schema";
 
-export const listMenus = defineOpenAPIRoute({
+export const listMenus = definePermissionRoute({
   route: createRoute({
     method: "get",
     path: "/",
@@ -15,7 +11,6 @@ export const listMenus = defineOpenAPIRoute({
     summary: "List menus",
     description:
       "Returns a flat list of menus for the given appId, sorted by sortOrder.",
-    middleware: requireAdmin,
     request: {
       query: listMenusQuerySchema,
     },
@@ -28,14 +23,9 @@ export const listMenus = defineOpenAPIRoute({
         },
         description: "Flat list of menus",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
     },
   }),
+  permission: "menu::list",
   handler: async (c) => {
     const { appId } = c.req.valid("query");
 

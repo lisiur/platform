@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import type { LinkType } from "../../prisma/generated/prisma/enums";
+import { createPermission } from "./permission.service";
 
 type ReorderItem = {
   id: string;
@@ -17,6 +18,10 @@ type SortableMenu = {
 type MenuReorderTx = {
   menu: Pick<typeof prisma.menu, "findMany" | "update">;
 };
+
+function menuPermissionCode(menuCode: string) {
+  return `menu-item:${menuCode}::view`;
+}
 
 export function getAffectedParentIds(
   items: ReorderItem[],
@@ -111,6 +116,15 @@ export async function createMenu(data: {
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
 
+  const permCode = menuPermissionCode(data.code);
+  const permission = await createPermission({
+    appId: data.appId,
+    name: `Menu: ${data.name}`,
+    code: permCode,
+    group: "menu-item",
+    description: `View access for menu "${data.name}"`,
+  });
+
   return prisma.menu.create({
     data: {
       name: data.name,
@@ -121,6 +135,7 @@ export async function createMenu(data: {
       linkType: data.linkType,
       url: data.url,
       sortOrder,
+      permissionId: permission.id,
     },
   });
 }
@@ -138,7 +153,7 @@ export async function updateMenu(
 ) {
   const existing = await prisma.menu.findUnique({
     where: { id },
-    include: { children: true },
+    include: { children: true, permission: true },
   });
   if (!existing) {
     throw new HTTPException(404, { message: "Menu not found" });
@@ -163,6 +178,23 @@ export async function updateMenu(
     });
   }
 
+  let permissionId = existing.permissionId;
+
+  if (data.code && data.code !== existing.code) {
+    const newPermCode = menuPermissionCode(data.code);
+    await prisma.permission.delete({
+      where: { id: existing.permissionId },
+    });
+    const newPermission = await createPermission({
+      appId: existing.appId,
+      name: `Menu: ${data.name ?? existing.name}`,
+      code: newPermCode,
+      group: "menu-item",
+      description: `View access for menu "${data.name ?? existing.name}"`,
+    });
+    permissionId = newPermission.id;
+  }
+
   return prisma.menu.update({
     where: { id },
     data: {
@@ -172,12 +204,16 @@ export async function updateMenu(
       ...(data.linkType !== undefined && { linkType: data.linkType }),
       ...(data.url !== undefined && { url: data.url }),
       ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      permissionId,
     },
   });
 }
 
 export async function deleteMenu(id: string) {
-  const existing = await prisma.menu.findUnique({ where: { id } });
+  const existing = await prisma.menu.findUnique({
+    where: { id },
+    include: { permission: true },
+  });
   if (!existing) {
     throw new HTTPException(404, { message: "Menu not found" });
   }

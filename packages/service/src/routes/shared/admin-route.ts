@@ -63,7 +63,7 @@ export function definePermissionRoute<
   const middleware = requirePermission(permission);
   const route = createRoute({
     ...routeDef.route,
-    middleware: prepend(routeDef.route.middleware ?? [], middleware),
+    middleware: prepend(routeDef.route.middleware, middleware),
     responses: {
       401: unauthorizedResponse,
       403: forbiddenResponse,

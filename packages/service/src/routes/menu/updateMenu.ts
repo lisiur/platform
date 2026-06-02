@@ -1,6 +1,6 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { createRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
+import { definePermissionRoute } from "#routes/shared/admin-route";
 import { updateMenu as updateMenuService } from "#services/menu.service";
 import {
   errorSchema,
@@ -9,14 +9,13 @@ import {
   updateMenuBodySchema,
 } from "./schema";
 
-export const updateMenu = defineOpenAPIRoute({
+export const updateMenu = definePermissionRoute({
   route: createRoute({
     method: "put",
     path: "/{id}",
     tags: ["Menu"],
     summary: "Update a menu",
     description: "Update a menu by ID.",
-    middleware: requireAdmin,
     request: {
       params: menuIdParamSchema,
       body: {
@@ -35,12 +34,6 @@ export const updateMenu = defineOpenAPIRoute({
         },
         description: "The updated menu",
       },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -49,6 +42,7 @@ export const updateMenu = defineOpenAPIRoute({
       },
     },
   }),
+  permission: "menu::update",
   handler: async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");

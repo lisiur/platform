@@ -1,11 +1,12 @@
 import { listAuditLogs } from "#services/audit-log.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   listAuditLogsQuerySchema,
   listAuditLogsResponseSchema,
 } from "./schema";
 
-export const listAuditLogsRoute = defineAdminRoute({
+export const listAuditLogsRoute = definePermissionRoute({
+  permission: "audit-log::list",
   route: {
     method: "get",
     path: "/",

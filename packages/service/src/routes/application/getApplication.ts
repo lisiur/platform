@@ -1,12 +1,13 @@
 import { getApplicationById } from "#services/application.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   applicationIdParamSchema,
   applicationSchema,
   errorSchema,
 } from "./schema";
 
-export const getApplication = defineAdminRoute({
+export const getApplication = definePermissionRoute({
+  permission: "application::view",
   route: {
     method: "get",
     path: "/{id}",

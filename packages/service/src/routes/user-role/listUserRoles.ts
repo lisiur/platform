@@ -1,15 +1,14 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { requireAdmin } from "#middleware/require-admin";
 import { listUserRoles as listUserRolesSvc } from "#services/user-role.service";
+import { definePermissionRoute } from "../shared/admin-route";
 import { listUserRolesQuerySchema, userRoleSchema } from "./schema";
 
-export const listUserRoles = defineOpenAPIRoute({
-  route: createRoute({
+export const listUserRoles = definePermissionRoute({
+  permission: "user-role::list",
+  route: {
     method: "get",
     path: "/",
     tags: ["UserRole"],
     summary: "List roles for a user",
-    middleware: requireAdmin,
     request: {
       query: listUserRolesQuerySchema,
     },
@@ -19,7 +18,7 @@ export const listUserRoles = defineOpenAPIRoute({
         description: "User roles",
       },
     },
-  }),
+  },
   handler: async (c) => {
     const { userId } = c.req.valid("query");
     const userRoles = await listUserRolesSvc(userId);

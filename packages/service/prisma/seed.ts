@@ -5,13 +5,135 @@ import { hashPassword } from "../src/lib/password";
 import { PrismaClient } from "./generated/prisma/client";
 
 const adapter = new PrismaPg({
-  // biome-ignore lint/style/noNonNullAssertion: seed script, DATABASE_URL is required
   connectionString: process.env.DATABASE_URL!,
 });
 const prisma = new PrismaClient({ adapter });
 
+const menuPermissionCode = (code: string) => `menu-item:${code}::view`;
+
+const permissionDefinitions = [
+  {
+    code: "system-config::list",
+    group: "system-config",
+    name: "List System Configs",
+  },
+  {
+    code: "system-config::listByGroup",
+    group: "system-config",
+    name: "List System Configs by Group",
+  },
+  {
+    code: "system-config::upsert",
+    group: "system-config",
+    name: "Upsert System Config",
+  },
+  {
+    code: "system-config::batchUpsert",
+    group: "system-config",
+    name: "Batch Upsert System Configs",
+  },
+  {
+    code: "system-config::delete",
+    group: "system-config",
+    name: "Delete System Config",
+  },
+  { code: "system-info::view", group: "system-info", name: "View System Info" },
+  { code: "user::list", group: "user", name: "List Users" },
+  { code: "user::create", group: "user", name: "Create User" },
+  { code: "user::update", group: "user", name: "Update User" },
+  { code: "user::delete", group: "user", name: "Delete User" },
+  { code: "role::list", group: "role", name: "List Roles" },
+  { code: "role::create", group: "role", name: "Create Role" },
+  { code: "role::update", group: "role", name: "Update Role" },
+  { code: "role::delete", group: "role", name: "Delete Role" },
+  {
+    code: "user-role::list",
+    group: "user-role",
+    name: "List User-Role Assignments",
+  },
+  {
+    code: "user-role::assign",
+    group: "user-role",
+    name: "Assign Role to User",
+  },
+  {
+    code: "user-role::remove",
+    group: "user-role",
+    name: "Remove Role from User",
+  },
+  { code: "menu::list", group: "menu", name: "List Menus" },
+  { code: "menu::view", group: "menu", name: "View Menu" },
+  { code: "menu::create", group: "menu", name: "Create Menu" },
+  { code: "menu::update", group: "menu", name: "Update Menu" },
+  { code: "menu::delete", group: "menu", name: "Delete Menu" },
+  { code: "menu::reorder", group: "menu", name: "Reorder Menus" },
+  {
+    code: "application::list",
+    group: "application",
+    name: "List Applications",
+  },
+  { code: "application::view", group: "application", name: "View Application" },
+  {
+    code: "application::create",
+    group: "application",
+    name: "Create Application",
+  },
+  {
+    code: "application::update",
+    group: "application",
+    name: "Update Application",
+  },
+  {
+    code: "application::delete",
+    group: "application",
+    name: "Delete Application",
+  },
+  {
+    code: "organization::list",
+    group: "organization",
+    name: "List Organizations",
+  },
+  {
+    code: "organization::view",
+    group: "organization",
+    name: "View Organization",
+  },
+  {
+    code: "organization::create",
+    group: "organization",
+    name: "Create Organization",
+  },
+  {
+    code: "organization::update",
+    group: "organization",
+    name: "Update Organization",
+  },
+  {
+    code: "organization::delete",
+    group: "organization",
+    name: "Delete Organization",
+  },
+  { code: "audit-log::list", group: "audit-log", name: "List Audit Logs" },
+  { code: "audit-log::view", group: "audit-log", name: "View Audit Log" },
+  {
+    code: "operation-log::list",
+    group: "operation-log",
+    name: "List Operation Logs",
+  },
+  {
+    code: "operation-log::view",
+    group: "operation-log",
+    name: "View Operation Log",
+  },
+  {
+    code: "operation-log::delete",
+    group: "operation-log",
+    name: "Delete Operation Logs",
+  },
+  { code: "upload::sign", group: "upload", name: "Sign Upload URL" },
+];
+
 const defaultConfigs = [
-  // General settings
   {
     group: "general",
     key: "site.name",
@@ -42,8 +164,6 @@ const defaultConfigs = [
     isSecret: false,
     sortOrder: 2,
   },
-
-  // Auth settings
   {
     group: "auth",
     key: "registration.enabled",
@@ -64,8 +184,6 @@ const defaultConfigs = [
     isSecret: false,
     sortOrder: 1,
   },
-
-  // SMTP settings
   {
     group: "smtp",
     key: "host",
@@ -116,8 +234,6 @@ const defaultConfigs = [
     isSecret: false,
     sortOrder: 4,
   },
-
-  // WeChat settings
   {
     group: "wechat",
     key: "appid",
@@ -157,6 +273,28 @@ async function seedAdminApplication() {
   });
   console.log(`Admin application ready: ${app.id}`);
   return app;
+}
+
+async function seedPermissions(appId: string) {
+  console.log("Seeding permissions...");
+  const permissionIds: Record<string, string> = {};
+
+  for (const def of permissionDefinitions) {
+    const perm = await prisma.permission.upsert({
+      where: { appId_code: { appId, code: def.code } },
+      update: { name: def.name, group: def.group },
+      create: {
+        appId,
+        name: def.name,
+        code: def.code,
+        group: def.group,
+      },
+    });
+    permissionIds[def.code] = perm.id;
+  }
+
+  console.log(`Seeded ${permissionDefinitions.length} permissions.`);
+  return permissionIds;
 }
 
 async function seedMenus(appId: string) {
@@ -222,6 +360,20 @@ async function seedMenus(appId: string) {
   const menuIds: string[] = [];
 
   for (const menu of menuDefinitions) {
+    const permCode = menuPermissionCode(menu.code);
+
+    const permission = await prisma.permission.upsert({
+      where: { appId_code: { appId, code: permCode } },
+      update: { name: `Menu: ${menu.name}` },
+      create: {
+        appId,
+        name: `Menu: ${menu.name}`,
+        code: permCode,
+        group: "menu-item",
+        description: `View access for menu "${menu.name}"`,
+      },
+    });
+
     await prisma.menu.upsert({
       where: { id: menu.id },
       update: {
@@ -230,6 +382,7 @@ async function seedMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
+        permissionId: permission.id,
       },
       create: {
         id: menu.id,
@@ -240,6 +393,7 @@ async function seedMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
+        permissionId: permission.id,
       },
     });
     menuIds.push(menu.id);
@@ -249,20 +403,6 @@ async function seedMenus(appId: string) {
   return menuIds;
 }
 
-async function seedMenuRoles(menuIds: string[], roleId: string) {
-  console.log(`Assigning menus to role "${roleId}"...`);
-
-  for (const menuId of menuIds) {
-    await prisma.menuRole.upsert({
-      where: { menuId_roleId: { menuId, roleId } },
-      update: {},
-      create: { menuId, roleId },
-    });
-  }
-
-  console.log(`Assigned ${menuIds.length} menus to role "${roleId}".`);
-}
-
 async function seedRoles(appId: string) {
   console.log("Seeding roles...");
 
@@ -270,13 +410,11 @@ async function seedRoles(appId: string) {
     {
       name: "Administrator",
       code: "admin",
-      authRole: "admin",
       flags: [BUILTIN_ROLE_FLAG],
     },
     {
       name: "User",
       code: "user",
-      authRole: "user",
       flags: [BUILTIN_ROLE_FLAG],
     },
   ];
@@ -288,14 +426,12 @@ async function seedRoles(appId: string) {
       where: { appId_code: { appId, code: def.code } },
       update: {
         name: def.name,
-        authRole: def.authRole,
         flags: def.flags,
       },
       create: {
         appId,
         name: def.name,
         code: def.code,
-        authRole: def.authRole,
         flags: def.flags,
       },
     });
@@ -306,23 +442,40 @@ async function seedRoles(appId: string) {
   return roleIds;
 }
 
+async function seedRolePermissions(
+  roleId: string,
+  permissionIds: Record<string, string>,
+) {
+  console.log(`Assigning permissions to role...`);
+
+  const allPermissionIds = Object.values(permissionIds);
+
+  for (const permissionId of allPermissionIds) {
+    await prisma.rolePermission.upsert({
+      where: { roleId_permissionId: { roleId, permissionId } },
+      update: {},
+      create: { roleId, permissionId },
+    });
+  }
+
+  console.log(`Assigned ${allPermissionIds.length} permissions to role.`);
+}
+
 async function seedUser(params: {
   id: string;
   name: string;
   email: string;
   password: string;
-  globalRole: string;
   flags?: string[];
 }) {
   const user = await prisma.user.upsert({
     where: { email: params.email },
-    update: { role: params.globalRole, flags: params.flags ?? [] },
+    update: { flags: params.flags ?? [] },
     create: {
       id: params.id,
       name: params.name,
       email: params.email,
       emailVerified: true,
-      role: params.globalRole,
       flags: params.flags ?? [],
     },
   });
@@ -348,7 +501,7 @@ async function seedUser(params: {
     });
   }
 
-  console.log(`User ready: ${params.email} (role: ${params.globalRole})`);
+  console.log(`User ready: ${params.email}`);
   return user;
 }
 
@@ -378,19 +531,27 @@ async function seed() {
 
   console.log(`Seeded ${defaultConfigs.length} default configurations.`);
 
-  // Seed application, menus, roles, and menu roles
   const adminApp = await seedAdminApplication();
-  const menuIds = await seedMenus(adminApp.id);
+  await seedPermissions(adminApp.id);
+  const _menuIds = await seedMenus(adminApp.id);
   const roleIds = await seedRoles(adminApp.id);
-  await seedMenuRoles(menuIds, roleIds.admin);
 
-  // Seed users
+  const allPermissions = await prisma.permission.findMany({
+    where: { appId: adminApp.id },
+    select: { id: true, code: true },
+  });
+  const permIds: Record<string, string> = {};
+  for (const p of allPermissions) {
+    permIds[p.code] = p.id;
+  }
+
+  await seedRolePermissions(roleIds.admin, permIds);
+
   const adminUser = await seedUser({
     id: "admin",
     name: "Admin",
     email: "admin@system.local",
     password: "admin123",
-    globalRole: "admin",
     flags: [BUILTIN_USER_FLAG],
   });
   await seedUserRole(adminUser.id, roleIds.admin);

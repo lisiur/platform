@@ -73,20 +73,25 @@ export type Application = Prisma.ApplicationModel
  */
 export type Menu = Prisma.MenuModel
 /**
- * Model MenuRole
+ * Model Permission
  * 
  */
-export type MenuRole = Prisma.MenuRoleModel
+export type Permission = Prisma.PermissionModel
 /**
- * Model Role
+ * Model RolePermission
  * 
  */
-export type Role = Prisma.RoleModel
+export type RolePermission = Prisma.RolePermissionModel
 /**
  * Model UserRole
  * 
  */
 export type UserRole = Prisma.UserRoleModel
+/**
+ * Model Role
+ * 
+ */
+export type Role = Prisma.RoleModel
 /**
  * Model OperationLog
  * 

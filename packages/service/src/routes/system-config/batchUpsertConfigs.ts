@@ -1,22 +1,21 @@
-import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { requireAdmin } from "#middleware/require-admin";
 import { batchUpsertConfigs } from "#services/system-config.service";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   batchUpsertBodySchema,
   errorSchema,
   systemConfigItemSchema,
 } from "./schema";
 
-export const batchUpsertConfigsRoute = defineOpenAPIRoute({
-  route: createRoute({
+export const batchUpsertConfigsRoute = definePermissionRoute({
+  permission: "system-config::batchUpsert",
+  route: {
     method: "put",
     path: "/batch",
     tags: ["SystemConfig"],
     summary: "Batch upsert configurations",
     description:
       "Create or update multiple system configuration items at once.",
-    middleware: requireAdmin,
     request: {
       body: {
         content: {
@@ -44,16 +43,8 @@ export const batchUpsertConfigsRoute = defineOpenAPIRoute({
         },
         description: "Validation error",
       },
-      401: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Unauthorized",
-      },
     },
-  }),
+  },
   handler: async (c) => {
     const { items } = c.req.valid("json");
 

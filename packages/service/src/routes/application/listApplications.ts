@@ -1,11 +1,12 @@
 import { listApplications as listApplicationsService } from "#services/application.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   listApplicationsQuerySchema,
   listApplicationsResponseSchema,
 } from "./schema";
 
-export const listApplications = defineAdminRoute({
+export const listApplications = definePermissionRoute({
+  permission: "application::list",
   route: {
     method: "get",
     path: "/",

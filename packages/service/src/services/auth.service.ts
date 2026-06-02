@@ -16,7 +16,6 @@ export type AuthSessionUser = {
   email: string;
   emailVerified: boolean;
   image?: string | null;
-  role?: string | null;
   banned?: boolean | null;
   banReason?: string | null;
   banExpires?: Date | null;
@@ -92,7 +91,6 @@ export async function signUpWithEmail(params: {
     name: params.name,
     email,
     password: params.password,
-    role: "user",
   });
 
   const session = await createSession({
@@ -120,14 +118,12 @@ export async function createUser(body: {
   name: string;
   email: string;
   password: string;
-  role?: string | null;
 }) {
   const user = await prisma.user.create({
     data: {
       name: body.name,
       email: body.email.toLowerCase(),
       emailVerified: false,
-      role: body.role ?? "user",
       flags: [],
       accounts: {
         create: {
@@ -248,7 +244,6 @@ export async function signInWithWechat(params: {
       name: `wx_${wechatResult.openid.slice(0, 8)}`,
       email: `${wechatResult.openid}@wechat.placeholder`,
       emailVerified: false,
-      role: "user",
       flags: [],
       accounts: {
         create: {

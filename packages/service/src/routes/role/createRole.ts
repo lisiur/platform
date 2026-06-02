@@ -1,9 +1,10 @@
 import { logAudit } from "#lib/logger";
 import { createRole as createRoleService } from "#services/role.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { createRoleBodySchema, errorSchema, roleSchema } from "./schema";
 
-export const createRole = defineAdminRoute({
+export const createRole = definePermissionRoute({
+  permission: "role::create",
   route: {
     method: "post",
     path: "/",

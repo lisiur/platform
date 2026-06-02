@@ -118,7 +118,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
     set({ loading: true });
     try {
-      const res = await withApiFeedback(appClient.api["menu-role"].mine.$get)();
+      const res = await withApiFeedback(appClient.api.menu.mine.$get)();
       const data = await res.json();
       const menus = data.menus;
       const treeMenus = buildTree(menus);

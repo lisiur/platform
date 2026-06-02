@@ -152,21 +152,16 @@ export async function getFileAccess(params: {
   };
 }
 
-export async function signFile(params: {
-  id: string;
-  userId: string;
-  userRole?: string | null;
-}) {
-  const { id, userId, userRole } = params;
+export async function signFile(params: { id: string; userId: string }) {
+  const { id, userId } = params;
 
   const upload = await prisma.upload.findUnique({ where: { id } });
   if (!upload) {
     throw new HTTPException(404, { message: "File not found" });
   }
 
-  const isAdmin = userRole === "admin";
   const isOwner = upload.uploaderId === userId;
-  if (!isAdmin && !isOwner) {
+  if (!isOwner) {
     throw new HTTPException(403, { message: "Not file owner" });
   }
 

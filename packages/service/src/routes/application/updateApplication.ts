@@ -1,6 +1,6 @@
 import { logAudit } from "#lib/logger";
 import { updateApplication as updateApplicationService } from "#services/application.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   applicationIdParamSchema,
   applicationSchema,
@@ -8,7 +8,8 @@ import {
   updateApplicationBodySchema,
 } from "./schema";
 
-export const updateApplication = defineAdminRoute({
+export const updateApplication = definePermissionRoute({
+  permission: "application::update",
   route: {
     method: "put",
     path: "/{id}",

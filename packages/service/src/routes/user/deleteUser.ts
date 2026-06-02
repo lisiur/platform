@@ -1,8 +1,9 @@
 import { deleteUser as deleteUserSvc } from "#services/user.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { errorSchema, successSchema, userIdParamSchema } from "./schema";
 
-export const deleteUser = defineAdminRoute({
+export const deleteUser = definePermissionRoute({
+  permission: "user::delete",
   route: {
     method: "delete",
     path: "/{id}",

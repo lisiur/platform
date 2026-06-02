@@ -30,40 +30,16 @@ export const userRoleRepository = {
   },
 
   async getMenusForUser(userId: string) {
-    // Get user's role for mapping
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-
-    if (!user) {
-      return [];
-    }
-
-    // Union of:
-    // 1. Explicit custom roles via UserRole
-    // 2. Mapped roles where Role.authRole === User.role (from any app)
     const menus = await prisma.menu.findMany({
       where: {
-        menuRoles: {
-          some: {
-            role: {
-              OR: [
-                // Explicit custom role assignments
-                {
-                  userRoles: {
-                    some: { userId },
-                  },
+        permission: {
+          rolePermissions: {
+            some: {
+              role: {
+                userRoles: {
+                  some: { userId },
                 },
-                // Mapped roles based on auth role
-                ...(user.role
-                  ? [
-                      {
-                        authRole: user.role,
-                      },
-                    ]
-                  : []),
-              ],
+              },
             },
           },
         },

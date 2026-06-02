@@ -11,7 +11,6 @@ CREATE TABLE "user" (
     "email" TEXT NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "image" TEXT,
-    "role" TEXT,
     "banned" BOOLEAN DEFAULT false,
     "banReason" TEXT,
     "banExpires" TIMESTAMP(3),
@@ -163,6 +162,7 @@ CREATE TABLE "menu" (
     "linkType" "LinkType" NOT NULL DEFAULT 'GROUP',
     "url" TEXT,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "permissionId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -170,27 +170,27 @@ CREATE TABLE "menu" (
 );
 
 -- CreateTable
-CREATE TABLE "menu_role" (
-    "id" TEXT NOT NULL,
-    "menuId" TEXT NOT NULL,
-    "roleId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "menu_role_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "role" (
+CREATE TABLE "permission" (
     "id" TEXT NOT NULL,
     "appId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
-    "authRole" TEXT,
-    "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "group" TEXT NOT NULL,
+    "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "role_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "permission_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "role_permission" (
+    "id" TEXT NOT NULL,
+    "roleId" TEXT NOT NULL,
+    "permissionId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "role_permission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -201,6 +201,19 @@ CREATE TABLE "user_role" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "user_role_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "role" (
+    "id" TEXT NOT NULL,
+    "appId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "role_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -296,28 +309,31 @@ CREATE INDEX "application_deletedAt_idx" ON "application"("deletedAt");
 CREATE UNIQUE INDEX "application_code_key" ON "application"("code");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "menu_permissionId_key" ON "menu"("permissionId");
+
+-- CreateIndex
 CREATE INDEX "menu_appId_idx" ON "menu"("appId");
 
 -- CreateIndex
 CREATE INDEX "menu_parentId_idx" ON "menu"("parentId");
 
 -- CreateIndex
-CREATE INDEX "menu_role_menuId_idx" ON "menu_role"("menuId");
+CREATE INDEX "permission_group_idx" ON "permission"("group");
 
 -- CreateIndex
-CREATE INDEX "menu_role_roleId_idx" ON "menu_role"("roleId");
+CREATE INDEX "permission_appId_idx" ON "permission"("appId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "menu_role_menuId_roleId_key" ON "menu_role"("menuId", "roleId");
+CREATE UNIQUE INDEX "permission_appId_code_key" ON "permission"("appId", "code");
 
 -- CreateIndex
-CREATE INDEX "role_appId_idx" ON "role"("appId");
+CREATE INDEX "role_permission_roleId_idx" ON "role_permission"("roleId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "role_appId_code_key" ON "role"("appId", "code");
+CREATE INDEX "role_permission_permissionId_idx" ON "role_permission"("permissionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "role_appId_authRole_key" ON "role"("appId", "authRole");
+CREATE UNIQUE INDEX "role_permission_roleId_permissionId_key" ON "role_permission"("roleId", "permissionId");
 
 -- CreateIndex
 CREATE INDEX "user_role_userId_idx" ON "user_role"("userId");
@@ -327,6 +343,12 @@ CREATE INDEX "user_role_roleId_idx" ON "user_role"("roleId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_role_userId_roleId_key" ON "user_role"("userId", "roleId");
+
+-- CreateIndex
+CREATE INDEX "role_appId_idx" ON "role"("appId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "role_appId_code_key" ON "role"("appId", "code");
 
 -- CreateIndex
 CREATE INDEX "operation_log_traceId_idx" ON "operation_log"("traceId");
@@ -401,17 +423,23 @@ ALTER TABLE "menu" ADD CONSTRAINT "menu_appId_fkey" FOREIGN KEY ("appId") REFERE
 ALTER TABLE "menu" ADD CONSTRAINT "menu_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "menu"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "menu_role" ADD CONSTRAINT "menu_role_menuId_fkey" FOREIGN KEY ("menuId") REFERENCES "menu"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "menu" ADD CONSTRAINT "menu_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "menu_role" ADD CONSTRAINT "menu_role_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "permission" ADD CONSTRAINT "permission_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "role" ADD CONSTRAINT "role_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "role_permission" ADD CONSTRAINT "role_permission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "role_permission" ADD CONSTRAINT "role_permission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_role" ADD CONSTRAINT "user_role_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user_role" ADD CONSTRAINT "user_role_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "role" ADD CONSTRAINT "role_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

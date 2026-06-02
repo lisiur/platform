@@ -1,9 +1,10 @@
 import { logAudit } from "#lib/logger";
 import { deleteLogs } from "#services/operation-log.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { deleteLogsBodySchema, deleteSuccessSchema } from "./schema";
 
-export const deleteLogsRoute = defineAdminRoute({
+export const deleteLogsRoute = definePermissionRoute({
+  permission: "operation-log::delete",
   route: {
     method: "delete",
     path: "/",

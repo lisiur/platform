@@ -1,13 +1,14 @@
 import { logAudit } from "#lib/logger";
 import { createApplication as createApplicationService } from "#services/application.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   applicationSchema,
   createApplicationBodySchema,
   errorSchema,
 } from "./schema";
 
-export const createApplication = defineAdminRoute({
+export const createApplication = definePermissionRoute({
+  permission: "application::create",
   route: {
     method: "post",
     path: "/",

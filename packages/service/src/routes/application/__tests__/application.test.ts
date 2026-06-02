@@ -19,8 +19,14 @@ vi.mock("../../../services/auth.service", () => ({
   getSession: vi.fn(),
 }));
 
+// Mock role-permission
+vi.mock("../../../services/role-permission.service", () => ({
+  getUserPermissions: vi.fn(),
+}));
+
 import { prisma } from "../../../lib/db";
 import { getSession } from "../../../services/auth.service";
+import { getUserPermissions } from "../../../services/role-permission.service";
 
 const mockPrisma = prisma as unknown as {
   application: {
@@ -32,6 +38,7 @@ const mockPrisma = prisma as unknown as {
   };
 };
 const mockGetSession = vi.mocked(getSession);
+const mockGetUserPermissions = vi.mocked(getUserPermissions);
 
 // Helper to create a mock Hono app for a route
 async function testRoute(
@@ -61,12 +68,19 @@ async function testRoute(
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });
 
-  // Admin middleware (same as application/index.ts)
+  // Permission middleware
   if (withAuth) {
     app.use("*", async (c, next) => {
       const session = await mockGetSession(c.req.raw.headers);
-      if (!session?.user || session.user.role !== "admin") {
-        throw new HTTPException(401, { message: "Admin access required" });
+      if (!session?.user) {
+        throw new HTTPException(401, { message: "Unauthorized" });
+      }
+      const permissions = await mockGetUserPermissions(session.user.id);
+      if (
+        !permissions.includes("*") &&
+        !permissions.includes("application::list")
+      ) {
+        throw new HTTPException(403, { message: "Permission denied" });
       }
       return next();
     });
@@ -97,9 +111,10 @@ describe("POST / - Create Application", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetSession.mockResolvedValue({
-      user: { id: "u1", role: "admin" },
+      user: { id: "u1" },
       session: { id: "s1" },
     } as any);
+    mockGetUserPermissions.mockResolvedValue(["*"]);
   });
 
   it("returns 201 with application object for valid body", async () => {
@@ -173,9 +188,10 @@ describe("GET / - List Applications", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetSession.mockResolvedValue({
-      user: { id: "u1", role: "admin" },
+      user: { id: "u1" },
       session: { id: "s1" },
     } as any);
+    mockGetUserPermissions.mockResolvedValue(["*"]);
   });
 
   it("returns applications with deletedAt: null filter", async () => {
@@ -245,9 +261,10 @@ describe("GET /{id} - Get Application", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetSession.mockResolvedValue({
-      user: { id: "u1", role: "admin" },
+      user: { id: "u1" },
       session: { id: "s1" },
     } as any);
+    mockGetUserPermissions.mockResolvedValue(["*"]);
   });
 
   it("returns application for existing non-deleted app", async () => {
@@ -309,9 +326,10 @@ describe("PUT /{id} - Update Application", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetSession.mockResolvedValue({
-      user: { id: "u1", role: "admin" },
+      user: { id: "u1" },
       session: { id: "s1" },
     } as any);
+    mockGetUserPermissions.mockResolvedValue(["*"]);
   });
 
   it("returns 200 with updated application", async () => {
@@ -407,9 +425,10 @@ describe("DELETE /{id} - Delete Application (soft delete)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockGetSession.mockResolvedValue({
-      user: { id: "u1", role: "admin" },
+      user: { id: "u1" },
       session: { id: "s1" },
     } as any);
+    mockGetUserPermissions.mockResolvedValue(["*"]);
   });
 
   it("returns {success: true} and sets deletedAt (soft delete)", async () => {

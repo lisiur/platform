@@ -64,7 +64,6 @@ export const signFile = defineOpenAPIRoute({
     const result = await generateSignedUrl({
       id,
       userId: session.user.id,
-      userRole: session.user.role,
     });
 
     return c.json(result, 200);

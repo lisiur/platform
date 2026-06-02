@@ -1,9 +1,10 @@
 import { logAudit } from "#lib/logger";
 import { deleteRole as deleteRoleService } from "#services/role.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { errorSchema, roleIdParamSchema, successSchema } from "./schema";
 
-export const deleteRole = defineAdminRoute({
+export const deleteRole = definePermissionRoute({
+  permission: "role::delete",
   route: {
     method: "delete",
     path: "/{id}",

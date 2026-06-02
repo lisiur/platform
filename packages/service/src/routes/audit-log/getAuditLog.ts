@@ -1,8 +1,9 @@
 import { getAuditLogById } from "#services/audit-log.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { auditLogIdParamSchema, auditLogSchema, errorSchema } from "./schema";
 
-export const getAuditLog = defineAdminRoute({
+export const getAuditLog = definePermissionRoute({
+  permission: "audit-log::view",
   route: {
     method: "get",
     path: "/{id}",

@@ -1,8 +1,9 @@
 import { getLogById } from "#services/operation-log.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import { errorSchema, logIdParamSchema, operationLogSchema } from "./schema";
 
-export const getLog = defineAdminRoute({
+export const getLog = definePermissionRoute({
+  permission: "operation-log::view",
   route: {
     method: "get",
     path: "/{id}",

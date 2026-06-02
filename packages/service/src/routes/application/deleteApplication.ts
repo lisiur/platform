@@ -1,13 +1,14 @@
 import { logAudit } from "#lib/logger";
 import { deleteApplication as deleteApplicationService } from "#services/application.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   applicationIdParamSchema,
   deleteSuccessSchema,
   errorSchema,
 } from "./schema";
 
-export const deleteApplication = defineAdminRoute({
+export const deleteApplication = definePermissionRoute({
+  permission: "application::delete",
   route: {
     method: "delete",
     path: "/{id}",

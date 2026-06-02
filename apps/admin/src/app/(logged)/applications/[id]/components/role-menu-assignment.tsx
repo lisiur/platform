@@ -83,7 +83,7 @@ export function RoleMenuAssignment({
         withApiFeedback(appClient.api.menu.$get)({
           query: { appId },
         }),
-        withApiFeedback(appClient.api["menu-role"][":roleId"].$get)({
+        withApiFeedback(appClient.api["role-menus"][":roleId"].$get)({
           param: { roleId: role.id },
         }),
       ]);
@@ -91,7 +91,7 @@ export function RoleMenuAssignment({
       const menusData = await menusRes.json();
       const roleMenusData = await roleMenusRes.json();
       const menuIds = new Set(menusData.menus.map((menu: Menu) => menu.id));
-      const persistedIds = new Set(
+      const persistedIds = new Set<string>(
         roleMenusData.menus
           .filter((menu: Menu) => menuIds.has(menu.id))
           .map((menu: Menu) => menu.id),
@@ -118,7 +118,7 @@ export function RoleMenuAssignment({
 
     setSaving(true);
     try {
-      await withApiFeedback(appClient.api["menu-role"].batch.$put)({
+      await withApiFeedback(appClient.api["role-menus"].batch.$put)({
         json: {
           roleId: role.id,
           menuIds: Array.from(selectedMenuIds),

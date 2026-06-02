@@ -1,11 +1,12 @@
 import { listOrganizations as listOrganizationsService } from "#services/organization.service";
-import { defineAdminRoute } from "../shared/admin-route";
+import { definePermissionRoute } from "../shared/admin-route";
 import {
   listOrganizationsQuerySchema,
   listOrganizationsResponseSchema,
 } from "./schema";
 
-export const listOrganizations = defineAdminRoute({
+export const listOrganizations = definePermissionRoute({
+  permission: "organization::list",
   route: {
     method: "get",
     path: "/",
