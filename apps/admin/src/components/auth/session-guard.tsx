@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSession } from "@/lib/api/use-session";
+import { useSession } from "@/lib/api";
 
 export function SessionGuard({ children }: { children: React.ReactNode }) {
   const { data, isPending, fetched } = useSession();
@@ -28,7 +28,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
 
   if (fetched && !data) {
     return (
-      <Dialog open>
+      <Dialog open dismissible={false}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{t("sessionExpired")}</DialogTitle>
@@ -37,7 +37,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => router.push("/sign-in")}>
+            <Button onClick={() => router.replace("/sign-in")}>
               {t("goToLogin")}
             </Button>
           </DialogFooter>

@@ -63,7 +63,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const data = await fetchSessionOnce();
       set({ data, fetched: true });
     } catch {
-      // Keep existing state on error
+      set({ fetched: true });
     } finally {
       set({ isPending: false });
     }
