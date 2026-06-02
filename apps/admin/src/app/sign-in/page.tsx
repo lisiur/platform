@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
-import { getFirstMenuUrl } from "@/lib/menu-utils";
+import { getFirstMenuUrl } from "@/stores/menu-store";
 
 export default function LoginPage() {
   const router = useRouter();

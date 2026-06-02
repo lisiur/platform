@@ -37,6 +37,30 @@ interface MenuState {
   refetchMenus: () => Promise<void>;
 }
 
+export function getFirstMenuUrl(menus: Menu[]): string | null {
+  const parentIds = new Set<string>();
+  for (const m of menus) {
+    if (m.parentId) parentIds.add(m.parentId);
+  }
+
+  const sorted = [...menus].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const roots = sorted.filter((m) => !m.parentId || !parentIds.has(m.id));
+  function findFirstLeaf(nodes: Menu[]): string | null {
+    for (const node of nodes) {
+      const children = sorted.filter((m) => m.parentId === node.id);
+      if (children.length === 0) {
+        return node.url ?? null;
+      }
+      const leafUrl = findFirstLeaf(children);
+      if (leafUrl) return leafUrl;
+    }
+    return null;
+  }
+
+  return findFirstLeaf(roots);
+}
+
 function buildTree(menus: Menu[]): TreeNode[] {
   const map = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];

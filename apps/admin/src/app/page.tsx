@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { appClient, useSession } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
-import { getFirstMenuUrl } from "@/lib/menu-utils";
+import { getFirstMenuUrl } from "@/stores/menu-store";
 
 export default function HomePage() {
   const router = useRouter();

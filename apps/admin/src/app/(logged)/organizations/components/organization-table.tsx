@@ -14,11 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useConfirm } from "@/hooks/use-confirm";
 import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
-import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { OrganizationDialog } from "./organization-dialog";
 
 interface Organization {
@@ -32,9 +32,9 @@ interface Organization {
 
 export function OrganizationTable() {
   const t = useTranslations("Organizations");
+  const confirm = useConfirm();
   const [showCreate, setShowCreate] = useState(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
-  const [deleteOrg, setDeleteOrg] = useState<Organization | null>(null);
 
   const fetchOrganizationsPage = useCallback(
     async ({ limit, offset }: { limit: number; offset: number }) => {
@@ -69,10 +69,28 @@ export function OrganizationTable() {
     toast.success(t("createSuccess"));
   }
 
-  function handleDeleteSuccess() {
-    setDeleteOrg(null);
-    fetchOrganizations();
-    toast.success(t("deleteSuccess"));
+  async function handleDelete(org: Organization) {
+    const confirmed = await confirm({
+      title: t("deleteOrg"),
+      description: (
+        <>
+          {t("confirmDelete")} <strong>{org.name}</strong>?
+        </>
+      ),
+      confirmLabel: t("delete"),
+      cancelLabel: t("cancel"),
+    });
+    if (!confirmed) return;
+
+    try {
+      await withApiFeedback(appClient.api.organizations[":id"].$delete)({
+        param: { id: org.id },
+      });
+      fetchOrganizations();
+      toast.success(t("deleteSuccess"));
+    } catch {
+      // Error handled by withApiFeedback
+    }
   }
 
   return (
@@ -135,7 +153,7 @@ export function OrganizationTable() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setDeleteOrg(org)}
+                  onClick={() => handleDelete(org)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -159,15 +177,6 @@ export function OrganizationTable() {
           open={!!editOrg}
           onOpenChange={(open) => !open && setEditOrg(null)}
           onSuccess={handleEditSuccess}
-        />
-      )}
-
-      {deleteOrg && (
-        <DeleteConfirmDialog
-          organization={deleteOrg}
-          open={!!deleteOrg}
-          onOpenChange={(open) => !open && setDeleteOrg(null)}
-          onSuccess={handleDeleteSuccess}
         />
       )}
     </>

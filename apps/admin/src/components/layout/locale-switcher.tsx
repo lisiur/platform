@@ -1,6 +1,6 @@
 "use client";
 
-import { GlobeIcon } from "lucide-react";
+import { LanguagesIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function LocaleSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" />}>
         <div className="flex gap-1 items-center">
-          <GlobeIcon className="size-4 text-muted-foreground" />
+          <LanguagesIcon className="size-4 text-muted-foreground" />
           <span>{currentLabel}</span>
         </div>
       </DropdownMenuTrigger>

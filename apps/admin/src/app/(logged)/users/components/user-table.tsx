@@ -15,11 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useConfirm } from "@/hooks/use-confirm";
 import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
-import { DeleteConfirmDialog } from "./delete-confirm-dialog";
 import { UserDialog } from "./user-dialog";
 
 interface Role {
@@ -49,9 +49,9 @@ interface UserRow {
 
 export function UserTable() {
   const t = useTranslations("Users");
+  const confirm = useConfirm();
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
-  const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
 
   const fetchUsersPage = useCallback(
     async ({ limit, offset }: { limit: number; offset: number }) => {
@@ -90,10 +90,28 @@ export function UserTable() {
     toast.success(t("createSuccess"));
   }
 
-  function handleDeleteSuccess() {
-    setDeleteUser(null);
-    fetchUsers();
-    toast.success(t("deleteSuccess"));
+  async function handleDelete(user: UserRow) {
+    const confirmed = await confirm({
+      title: t("deleteUser"),
+      description: (
+        <>
+          {t("confirmDelete")} <strong>{user.name}</strong>?
+        </>
+      ),
+      confirmLabel: t("delete"),
+      cancelLabel: t("cancel"),
+    });
+    if (!confirmed) return;
+
+    try {
+      await withApiFeedback(appClient.api.users[":id"].$delete)({
+        param: { id: user.id },
+      });
+      fetchUsers();
+      toast.success(t("deleteSuccess"));
+    } catch {
+      // Error handled by withApiFeedback
+    }
   }
 
   return (
@@ -186,7 +204,7 @@ export function UserTable() {
                       builtinUser ? t("protectedActionDisabled") : undefined
                     }
                     disabled={builtinUser}
-                    onClick={() => setDeleteUser(user)}
+                    onClick={() => handleDelete(user)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -211,15 +229,6 @@ export function UserTable() {
           open={!!editUser}
           onOpenChange={(open) => !open && setEditUser(null)}
           onSuccess={handleEditSuccess}
-        />
-      )}
-
-      {deleteUser && (
-        <DeleteConfirmDialog
-          user={deleteUser}
-          open={!!deleteUser}
-          onOpenChange={(open) => !open && setDeleteUser(null)}
-          onSuccess={handleDeleteSuccess}
         />
       )}
     </>
