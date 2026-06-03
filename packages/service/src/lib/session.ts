@@ -33,8 +33,8 @@ export type AuthSession = {
 };
 
 export type AuthType = {
-  user: AuthSessionUser | null;
-  session: AuthSession | null;
+  user: AuthSessionUser;
+  session: AuthSession;
 };
 
 export function createSessionToken() {
