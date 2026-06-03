@@ -4,7 +4,7 @@ import { Pencil, Search, Settings } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { PaginatedTableFrame } from "@/components/paginated-table-frame";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { usePaginatedApiQuery } from "@/hooks/use-paginated-api-query";
+import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
@@ -40,21 +40,6 @@ export function AppTable() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchApplicationsPage = useCallback(
-    async ({ limit, offset }: { limit: number; offset: number }) => {
-      const res = await withApiFeedback(appClient.api.applications.$get)({
-        query: {
-          limit,
-          offset,
-          search: debouncedSearch || undefined,
-        },
-      });
-      const data = await res.json();
-      return { items: data.applications, total: data.total };
-    },
-    [debouncedSearch],
-  );
-
   const {
     items: applications,
     total,
@@ -63,7 +48,16 @@ export function AppTable() {
     loading,
     setPage,
     refresh: fetchApplications,
-  } = usePaginatedApiQuery<Application>({ fetchPage: fetchApplicationsPage });
+  } = usePaginatedQuery<Application>({
+    queryKey: ["applications", { search: debouncedSearch || undefined }],
+    queryFn: async ({ limit, offset }) => {
+      const res = await withApiFeedback(appClient.api.applications.$get)({
+        query: { limit, offset, search: debouncedSearch || undefined },
+      });
+      const data = await res.json();
+      return { items: data.applications, total: data.total };
+    },
+  });
 
   function handleSearchChange(value: string) {
     setSearch(value);
