@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { Frame } from "@/components/layout/frame";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { Loader } from "@/lib/loading";
 import { cn } from "@/utils/cn";
 
@@ -43,7 +44,9 @@ export default async function RootLayout({
                 },
               }}
             />
-            <Frame>{children}</Frame>
+            <Frame>
+              <QueryProvider>{children}</QueryProvider>
+            </Frame>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
