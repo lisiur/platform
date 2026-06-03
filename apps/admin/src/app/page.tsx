@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { appClient, useSession } from "@/lib/api";
-import { withApiFeedback } from "@/lib/api/utils";
-import { getFirstMenuUrl } from "@/stores/menu-store";
+import { useSession } from "@/lib/api";
+import { getFirstMenuUrl, useMenuStore } from "@/stores/menu-store";
 
 export default function HomePage() {
   const router = useRouter();
   const session = useSession();
+  const { fetched, fetchMenus } = useMenuStore();
 
   useEffect(() => {
     if (session.isPending) return;
@@ -18,10 +18,21 @@ export default function HomePage() {
       return;
     }
 
-    withApiFeedback(appClient.api.menu.mine.$get)()
-      .then(async (res) => {
-        const data = await res.json();
-        const firstUrl = getFirstMenuUrl(data.menus);
+    if (fetched) {
+      const { menus } = useMenuStore.getState();
+      const firstUrl = getFirstMenuUrl(menus);
+      if (firstUrl) {
+        router.replace(firstUrl);
+        return;
+      }
+      router.replace("/profile");
+      return;
+    }
+
+    fetchMenus()
+      .then(() => {
+        const { menus } = useMenuStore.getState();
+        const firstUrl = getFirstMenuUrl(menus);
         if (firstUrl) {
           router.replace(firstUrl);
           return;
@@ -31,7 +42,7 @@ export default function HomePage() {
       .catch(() => {
         router.replace("/sign-in");
       });
-  }, [session.isPending, session.data, router]);
+  }, [session.isPending, session.data, router, fetched, fetchMenus]);
 
   return null;
 }

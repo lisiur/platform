@@ -10,19 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { appClient } from "@/lib/api";
-import { withApiFeedback } from "@/lib/api/utils";
-import { getFirstMenuUrl } from "@/stores/menu-store";
+import { getFirstMenuUrl, useMenuStore } from "@/stores/menu-store";
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
+  const refetchMenus = useMenuStore((s) => s.refetchMenus);
 
   const handleLoginSuccess = async () => {
     try {
-      const res = await withApiFeedback(appClient.api.menu.mine.$get)();
-      const data = await res.json();
-      const firstUrl = getFirstMenuUrl(data.menus);
+      await refetchMenus();
+      const { menus } = useMenuStore.getState();
+      const firstUrl = getFirstMenuUrl(menus);
       if (firstUrl) {
         router.push(firstUrl);
         return;
