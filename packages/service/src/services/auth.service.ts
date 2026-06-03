@@ -13,8 +13,9 @@ import { systemConfigRepository } from "#repositories/system-config.repository";
 
 export type { AuthSession, AuthSessionUser, AuthType };
 
-async function logAuthLogin(session: AuthSession) {
+async function logAuthLogin(session: AuthSession, traceId?: string) {
   await logAudit({
+    traceId,
     userId: session.userId,
     sessionId: session.id,
     event: "auth.login",
@@ -32,6 +33,7 @@ export async function signInWithEmail(params: {
   email: string;
   password: string;
   ipAddress?: string | null;
+  traceId?: string;
   userAgent?: string | null;
 }) {
   const user = await prisma.user.findUnique({
@@ -56,7 +58,7 @@ export async function signInWithEmail(params: {
     userAgent: params.userAgent,
   });
 
-  await logAuthLogin(session);
+  await logAuthLogin(session, params.traceId);
 
   return { user, session };
 }
@@ -66,6 +68,7 @@ export async function signUpWithEmail(params: {
   email: string;
   password: string;
   ipAddress?: string | null;
+  traceId?: string;
   userAgent?: string | null;
 }) {
   const email = params.email.toLowerCase();
@@ -89,15 +92,16 @@ export async function signUpWithEmail(params: {
     userAgent: params.userAgent,
   });
 
-  await logAuthLogin(session);
+  await logAuthLogin(session, params.traceId);
 
   return { user, session };
 }
 
-export async function signOut(token: string | null) {
+export async function signOut(token: string | null, traceId?: string) {
   const session = await deleteSessionByToken(token);
   if (session) {
     await logAudit({
+      traceId,
       userId: session.userId,
       sessionId: session.id,
       event: "auth.logout",
@@ -191,6 +195,7 @@ export async function updateUser(params: {
 export async function signInWithWechat(params: {
   code: string;
   ipAddress?: string | null;
+  traceId?: string;
   userAgent?: string | null;
 }) {
   const appidConfig = await systemConfigRepository.findByGroupAndKey(
@@ -234,7 +239,7 @@ export async function signInWithWechat(params: {
       userAgent: params.userAgent,
     });
 
-    await logAuthLogin(session);
+    await logAuthLogin(session, params.traceId);
 
     return { user: existingAccount.user, session };
   }
@@ -261,7 +266,7 @@ export async function signInWithWechat(params: {
     userAgent: params.userAgent,
   });
 
-  await logAuthLogin(session);
+  await logAuthLogin(session, params.traceId);
 
   return { user, session };
 }

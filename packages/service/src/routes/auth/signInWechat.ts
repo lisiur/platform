@@ -38,6 +38,7 @@ export const signInWechat = defineOpenAPIRoute({
         c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
         c.req.header("x-real-ip") ??
         null,
+      traceId: c.get("traceId"),
       userAgent: c.req.header("user-agent") ?? null,
     });
 

@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import { trySession } from "#extractors/session";
 import { prisma } from "#lib/db";
-import { getRequestTraceId } from "#lib/request-context";
 
 type OperationLogLevel = "debug" | "info" | "warn" | "error";
 type AuditSeverity = "info" | "warning" | "critical";
@@ -112,9 +111,7 @@ export async function logAudit(params: LogAuditParams) {
 }
 
 function resolveTraceId(c?: Context, traceId?: string): string {
-  return (
-    traceId ?? c?.get("traceId") ?? getRequestTraceId() ?? crypto.randomUUID()
-  );
+  return traceId ?? c?.get("traceId") ?? crypto.randomUUID();
 }
 
 async function resolveSessionId(c?: Context, sessionId?: string) {

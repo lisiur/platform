@@ -6,5 +6,6 @@ declare module "hono" {
     appId: string;
     currentApp: Application;
     session: AuthType | null;
+    traceId: string;
   }
 }

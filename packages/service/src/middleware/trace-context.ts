@@ -1,5 +1,4 @@
 import { createMiddleware } from "hono/factory";
-import { runWithRequestContext } from "#lib/request-context";
 
 export const traceContext = createMiddleware(async (c, next) => {
   const traceId =
@@ -8,6 +7,6 @@ export const traceContext = createMiddleware(async (c, next) => {
     crypto.randomUUID();
 
   c.set("traceId", traceId);
-  await runWithRequestContext({ traceId }, next);
+  await next();
   c.header("x-trace-id", traceId);
 });

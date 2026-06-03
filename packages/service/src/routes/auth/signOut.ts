@@ -17,7 +17,7 @@ export const signOut = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
-    await signOutService(getSessionTokenFromContext(c));
+    await signOutService(getSessionTokenFromContext(c), c.get("traceId"));
     deleteSessionCookie(c);
     return c.json({ data: { success: true }, error: null }, 200);
   },
