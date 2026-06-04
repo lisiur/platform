@@ -140,15 +140,12 @@ export async function createUser(body: {
 }
 
 export async function changePassword(params: {
-  headers: Headers;
+  userId: string;
   currentPassword: string;
   newPassword: string;
 }) {
-  const session = await getSession(params.headers);
-  if (!session?.user) throw new HTTPException(401, { message: "Unauthorized" });
-
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: params.userId },
     include: { accounts: true },
   });
   const credential = user?.accounts.find(
@@ -178,14 +175,11 @@ export async function changePassword(params: {
 }
 
 export async function updateUser(params: {
-  headers: Headers;
+  userId: string;
   data: { name?: string; image?: string | null };
 }) {
-  const session = await getSession(params.headers);
-  if (!session?.user) throw new HTTPException(401, { message: "Unauthorized" });
-
   const user = await prisma.user.update({
-    where: { id: session.user.id },
+    where: { id: params.userId },
     data: params.data,
   });
 

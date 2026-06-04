@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requireSession } from "#extractors/session";
 import { updateUser as updateUserService } from "#services/auth.service";
 import {
   authMutationResponseSchema,
@@ -30,9 +31,10 @@ export const updateUser = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
+    const session = await requireSession(c);
     const body = c.req.valid("json");
     const { user } = await updateUserService({
-      headers: c.req.raw.headers,
+      userId: session.user.id,
       data: body,
     });
 

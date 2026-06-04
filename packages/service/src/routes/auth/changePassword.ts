@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requireSession } from "#extractors/session";
 import { changePassword as changePasswordService } from "#services/auth.service";
 import {
   authMutationResponseSchema,
@@ -34,9 +35,10 @@ export const changePassword = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
+    const session = await requireSession(c);
     const body = c.req.valid("json");
     const { user } = await changePasswordService({
-      headers: c.req.raw.headers,
+      userId: session.user.id,
       currentPassword: body.currentPassword,
       newPassword: body.newPassword,
     });
