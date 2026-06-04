@@ -2,10 +2,7 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { setSessionCookie } from "#lib/session";
 import { signInWithEmail } from "#services/auth.service";
-import {
-  authMutationResponseSchema,
-  signInEmailBodySchema,
-} from "./schema";
+import { authMutationResponseSchema, signInEmailBodySchema } from "./schema";
 
 export const signInEmail = defineOpenAPIRoute({
   route: createRoute({

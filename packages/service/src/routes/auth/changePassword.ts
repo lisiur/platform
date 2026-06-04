@@ -1,11 +1,12 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
-import { badRequestResponse, okResponseFn, unauthorizedResponse } from "#lib/openapi";
-import { changePassword as changePasswordService } from "#services/auth.service";
 import {
-  authMutationResponseSchema,
-  changePasswordBodySchema,
-} from "./schema";
+  badRequestResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
+import { changePassword as changePasswordService } from "#services/auth.service";
+import { authMutationResponseSchema, changePasswordBodySchema } from "./schema";
 
 export const changePassword = defineOpenAPIRoute({
   route: createRoute({
