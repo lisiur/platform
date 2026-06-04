@@ -1,15 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { updateMenu as updateMenuService } from "#services/menu.service";
 import { prepend } from "#utils/list";
-import {
-  errorSchema,
-  menuIdParamSchema,
-  menuSchema,
-  updateMenuBodySchema,
-} from "./schema";
+import { menuIdParamSchema, menuSchema, updateMenuBodySchema } from "./schema";
 
 export const updateMenu = defineOpenAPIRoute({
   route: createRoute({
@@ -34,18 +34,8 @@ export const updateMenu = defineOpenAPIRoute({
       ...unauthorizedResponse,
 
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: menuSchema },
-        },
-        description: "The updated menu",
-      },
-      404: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Not found",
-      },
+      ...okResponseFn(menuSchema, "The updated menu"),
+      ...notFoundResponse,
     },
   }),
   handler: async (c) => {

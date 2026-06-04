@@ -8,6 +8,7 @@ import { logAudit } from "#lib/logger";
 import {
   errorSchema,
   forbiddenResponse,
+  okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
@@ -36,16 +37,10 @@ export const getRoleMenusRoute = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: z
-              .object({ menus: menuSchema.array() })
-              .openapi("RoleMenusResponse"),
-          },
-        },
-        description: "Menus assigned to the role",
-      },
+      ...okResponseFn(
+        z.object({ menus: menuSchema.array() }).openapi("RoleMenusResponse"),
+        "Menus assigned to the role",
+      ),
       404: {
         content: {
           "application/json": { schema: errorSchema },
@@ -88,16 +83,10 @@ export const batchAssignRoleMenus = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: z
-              .object({ menus: menuSchema.array() })
-              .openapi("RoleMenusResponse"),
-          },
-        },
-        description: "Updated menu assignments for the role",
-      },
+      ...okResponseFn(
+        z.object({ menus: menuSchema.array() }).openapi("RoleMenusResponse"),
+        "Updated menu assignments for the role",
+      ),
       404: {
         content: {
           "application/json": { schema: errorSchema },

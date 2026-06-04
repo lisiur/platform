@@ -1,11 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { upsertConfig } from "#services/system-config.service";
 import { prepend } from "#utils/list";
 import {
-  errorSchema,
   systemConfigItemSchema,
   upsertConfigBodySchema,
   upsertConfigParamSchema,
@@ -32,24 +36,9 @@ export const upsertConfigRoute = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: systemConfigItemSchema,
-          },
-        },
-        description: "The upserted configuration",
-      },
-      400: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Validation error",
-      },
+      ...badRequestResponse,
+      ...okResponseFn(systemConfigItemSchema, "The upserted configuration"),
     },
   }),
   handler: async (c) => {

@@ -2,8 +2,9 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { requireAppId } from "#extractors/app-id";
 import { requireSession } from "#extractors/session";
+import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { getMenusForUser } from "#services/role-permission.service";
-import { errorSchema, mineMenusResponseSchema } from "./schema";
+import { mineMenusResponseSchema } from "./schema";
 
 export const getMine = defineOpenAPIRoute({
   route: createRoute({
@@ -14,18 +15,11 @@ export const getMine = defineOpenAPIRoute({
     description:
       "Returns menus authorized for the current user across all their app-scoped roles.",
     responses: {
-      200: {
-        content: {
-          "application/json": { schema: mineMenusResponseSchema },
-        },
-        description: "Menus authorized for the current user",
-      },
-      401: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Unauthorized",
-      },
+      ...unauthorizedResponse,
+      ...okResponseFn(
+        mineMenusResponseSchema,
+        "Menus authorized for the current user",
+      ),
     },
   }),
   handler: async (c) => {

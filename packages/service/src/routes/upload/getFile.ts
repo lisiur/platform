@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { forbiddenResponse, notFoundResponse } from "#lib/openapi";
 import { getFileAccess } from "#services/upload.service";
-import { errorSchema, getFileParamSchema, getFileQuerySchema } from "./schema";
+import { getFileParamSchema, getFileQuerySchema } from "./schema";
 
 export const getFile = defineOpenAPIRoute({
   route: createRoute({
@@ -18,22 +19,8 @@ export const getFile = defineOpenAPIRoute({
       200: {
         description: "File content",
       },
-      403: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Forbidden (invalid or expired token)",
-      },
-      404: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "File not found",
-      },
+      ...forbiddenResponse,
+      ...notFoundResponse,
     },
   }),
   handler: async (c) => {

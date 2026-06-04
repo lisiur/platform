@@ -1,5 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { listAllConfigs } from "#services/system-config.service";
 import { prepend } from "#utils/list";
@@ -19,16 +23,11 @@ export const listAllConfigsRoute = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: systemConfigItemSchema.array(),
-          },
-        },
-        description: "List of system configurations",
-      },
+      ...okResponseFn(
+        systemConfigItemSchema.array(),
+        "List of system configurations",
+      ),
     },
   }),
   handler: async (c) => {

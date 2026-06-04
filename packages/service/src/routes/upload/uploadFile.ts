@@ -1,8 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { requireSession } from "#extractors/session";
+import { badRequestResponse, okResponseFn } from "#lib/openapi";
+import { unauthorizedResponse } from "#routes/shared/admin-route";
 import { uploadFile as uploadFileToStorage } from "#services/upload.service";
-import { errorSchema, uploadResponseSchema } from "./schema";
+import { uploadResponseSchema } from "./schema";
 
 export const uploadFile = defineOpenAPIRoute({
   route: createRoute({
@@ -13,30 +15,9 @@ export const uploadFile = defineOpenAPIRoute({
     description:
       "Upload a file with sharded storage and public/private visibility.",
     responses: {
-      200: {
-        content: {
-          "application/json": {
-            schema: uploadResponseSchema,
-          },
-        },
-        description: "File uploaded successfully",
-      },
-      400: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Invalid file type or size",
-      },
-      401: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Unauthorized",
-      },
+      ...badRequestResponse,
+      ...unauthorizedResponse,
+      ...okResponseFn(uploadResponseSchema, "File uploaded successfully"),
     },
   }),
   handler: async (c) => {

@@ -1,9 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { requireSession } from "#extractors/session";
+import { forbiddenResponse, notFoundResponse, okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { signFile as generateSignedUrl } from "#services/upload.service";
 import {
-  errorSchema,
   signedUrlResponseSchema,
   signFileParamSchema,
 } from "./schema";
@@ -19,38 +19,10 @@ export const signFile = defineOpenAPIRoute({
       params: signFileParamSchema,
     },
     responses: {
-      200: {
-        content: {
-          "application/json": {
-            schema: signedUrlResponseSchema,
-          },
-        },
-        description: "Signed URL generated",
-      },
-      401: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Unauthorized",
-      },
-      403: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "Forbidden (not file owner or admin)",
-      },
-      404: {
-        content: {
-          "application/json": {
-            schema: errorSchema,
-          },
-        },
-        description: "File not found",
-      },
+      ...unauthorizedResponse,
+      ...forbiddenResponse,
+      ...notFoundResponse,
+      ...okResponseFn(signedUrlResponseSchema, "Signed URL generated"),
     },
   }),
   handler: async (c) => {

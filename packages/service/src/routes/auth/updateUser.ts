@@ -1,9 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
+import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { updateUser as updateUserService } from "#services/auth.service";
 import {
   authMutationResponseSchema,
-  errorSchema,
   updateUserBodySchema,
 } from "./schema";
 
@@ -20,14 +20,8 @@ export const updateUser = defineOpenAPIRoute({
       },
     },
     responses: {
-      200: {
-        content: { "application/json": { schema: authMutationResponseSchema } },
-        description: "Updated user",
-      },
-      401: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Unauthorized",
-      },
+      ...unauthorizedResponse,
+      ...okResponseFn(authMutationResponseSchema, "Updated user"),
     },
   }),
   handler: async (c) => {

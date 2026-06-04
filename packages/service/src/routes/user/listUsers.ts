@@ -1,5 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { listUsers as listUsersSvc } from "#services/user.service";
 import { prepend } from "#utils/list";
@@ -17,12 +21,8 @@ export const listUsers = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: listUsersResponseSchema } },
-        description: "List of users",
-      },
+      ...okResponseFn(listUsersResponseSchema, "List of users"),
     },
   }),
   handler: async (c) => {

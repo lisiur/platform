@@ -1,6 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { deleteLogs } from "#services/operation-log.service";
 import { prepend } from "#utils/list";
@@ -26,14 +30,8 @@ export const deleteLogsRoute = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: deleteSuccessSchema },
-        },
-        description: "Successfully deleted",
-      },
+      ...okResponseFn(deleteSuccessSchema, "Successfully deleted"),
     },
   }),
   handler: async (c) => {

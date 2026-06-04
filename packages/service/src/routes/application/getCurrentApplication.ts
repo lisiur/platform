@@ -1,6 +1,11 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireCurrentApp } from "#extractors/current-app";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { prepend } from "#utils/list";
 import { applicationSchema, errorSchema } from "./schema";
@@ -17,18 +22,8 @@ export const getCurrentApplication = defineOpenAPIRoute({
       ...unauthorizedResponse,
 
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: applicationSchema },
-        },
-        description: "The current application",
-      },
-      400: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Missing X-App-Code header",
-      },
+      ...okResponseFn(applicationSchema, "The current application"),
+      ...badRequestResponse,
       404: {
         content: {
           "application/json": { schema: errorSchema },

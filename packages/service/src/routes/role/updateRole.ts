@@ -1,6 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { updateRole as updateRoleService } from "#services/role.service";
 import { prepend } from "#utils/list";
@@ -29,16 +33,12 @@ export const updateRole = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: roleSchema } },
-        description: "Updated role",
-      },
       404: {
         content: { "application/json": { schema: errorSchema } },
         description: "Not Found",
       },
+      ...okResponseFn(roleSchema, "Updated role"),
     },
   }),
   handler: async (c) => {

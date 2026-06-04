@@ -1,10 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  createdResponseFn,
+  forbiddenResponse,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { createMenu as createMenuService } from "#services/menu.service";
 import { prepend } from "#utils/list";
-import { createMenuBodySchema, errorSchema, menuSchema } from "./schema";
+import { createMenuBodySchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({
   route: createRoute({
@@ -27,20 +32,9 @@ export const createMenu = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      201: {
-        content: {
-          "application/json": { schema: menuSchema },
-        },
-        description: "The created menu",
-      },
-      400: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Invalid parentId or duplicate code",
-      },
+      ...badRequestResponse,
+      ...createdResponseFn(menuSchema, "The created menu"),
     },
   }),
   handler: async (c) => {

@@ -1,10 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
+import { badRequestResponse, okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { changePassword as changePasswordService } from "#services/auth.service";
 import {
   authMutationResponseSchema,
   changePasswordBodySchema,
-  errorSchema,
 } from "./schema";
 
 export const changePassword = defineOpenAPIRoute({
@@ -20,18 +20,9 @@ export const changePassword = defineOpenAPIRoute({
       },
     },
     responses: {
-      200: {
-        content: { "application/json": { schema: authMutationResponseSchema } },
-        description: "Password changed",
-      },
-      401: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Unauthorized",
-      },
-      400: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Invalid current password",
-      },
+      ...unauthorizedResponse,
+      ...badRequestResponse,
+      ...okResponseFn(authMutationResponseSchema, "Password changed"),
     },
   }),
   handler: async (c) => {

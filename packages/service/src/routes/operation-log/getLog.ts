@@ -1,9 +1,14 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { getLogById } from "#services/operation-log.service";
 import { prepend } from "#utils/list";
-import { errorSchema, logIdParamSchema, operationLogSchema } from "./schema";
+import { logIdParamSchema, operationLogSchema } from "./schema";
 
 export const getLog = defineOpenAPIRoute({
   route: createRoute({
@@ -18,20 +23,9 @@ export const getLog = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: operationLogSchema },
-        },
-        description: "The log entry",
-      },
-      404: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Not found",
-      },
+      ...okResponseFn(operationLogSchema, "The log entry"),
+      ...notFoundResponse,
     },
   }),
   handler: async (c) => {

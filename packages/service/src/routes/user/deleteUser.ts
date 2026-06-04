@@ -1,9 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { deleteUser as deleteUserSvc } from "#services/user.service";
 import { prepend } from "#utils/list";
-import { errorSchema, successSchema, userIdParamSchema } from "./schema";
+import { successSchema, userIdParamSchema } from "./schema";
 
 export const deleteUser = defineOpenAPIRoute({
   route: createRoute({
@@ -17,24 +23,10 @@ export const deleteUser = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: successSchema } },
-        description: "User deleted",
-      },
-      400: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Bad Request",
-      },
-      403: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Forbidden - cannot delete builtin users",
-      },
-      404: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "User not found",
-      },
+      ...notFoundResponse,
+      ...badRequestResponse,
+      ...okResponseFn(successSchema, "User deleted"),
     },
   }),
   handler: async (c) => {

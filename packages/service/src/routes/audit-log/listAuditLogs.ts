@@ -1,5 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { listAuditLogs } from "#services/audit-log.service";
 import { prepend } from "#utils/list";
@@ -24,14 +28,10 @@ export const listAuditLogsRoute = defineOpenAPIRoute({
       ...unauthorizedResponse,
 
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: listAuditLogsResponseSchema,
-          },
-        },
-        description: "Paginated list of audit logs",
-      },
+      ...okResponseFn(
+        listAuditLogsResponseSchema,
+        "Paginated list of audit logs",
+      ),
     },
   }),
   handler: async (c) => {

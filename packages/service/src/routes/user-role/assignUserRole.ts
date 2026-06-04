@@ -1,14 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { assignUserRole as assignUserRoleSvc } from "#services/user-role.service";
 import { prepend } from "#utils/list";
-import {
-  assignUserRoleBodySchema,
-  errorSchema,
-  userRoleSchema,
-} from "./schema";
+import { assignUserRoleBodySchema, userRoleSchema } from "./schema";
 
 export const assignUserRole = defineOpenAPIRoute({
   route: createRoute({
@@ -27,16 +28,9 @@ export const assignUserRole = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: userRoleSchema } },
-        description: "Assigned user role",
-      },
-      400: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Bad Request",
-      },
+      ...badRequestResponse,
+      ...okResponseFn(userRoleSchema, "Assigned user role"),
     },
   }),
   handler: async (c) => {

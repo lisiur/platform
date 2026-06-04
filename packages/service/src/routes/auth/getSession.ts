@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { okResponseFn } from "#lib/openapi";
 import { getSession as getSessionService } from "#services/auth.service";
 import { sessionResponseSchema } from "./schema";
 
@@ -9,10 +10,7 @@ export const getSession = defineOpenAPIRoute({
     tags: ["Auth"],
     summary: "Get current session",
     responses: {
-      200: {
-        content: { "application/json": { schema: sessionResponseSchema } },
-        description: "Current session or null",
-      },
+      ...okResponseFn(sessionResponseSchema, "Current session or null"),
     },
   }),
   handler: async (c) => {

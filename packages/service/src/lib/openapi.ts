@@ -30,6 +30,66 @@ export const forbiddenResponse = {
   },
 } as const;
 
+export const badRequestResponse = {
+  400: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Bad Request",
+  },
+} as const;
+
+export const notFoundResponse = {
+  404: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Not found",
+  },
+} as const;
+
+export function okResponseFn<Schema extends z.ZodType>(
+  schema: Schema,
+  description: string,
+): {
+  200: {
+    content: {
+      "application/json": { schema: Schema };
+    };
+    description: string;
+  };
+} {
+  return {
+    200: {
+      content: {
+        "application/json": { schema },
+      },
+      description,
+    },
+  };
+}
+
+export function createdResponseFn<Schema extends z.ZodType>(
+  schema: Schema,
+  description: string,
+): {
+  201: {
+    content: {
+      "application/json": { schema: Schema };
+    };
+    description: string;
+  };
+} {
+  return {
+    201: {
+      content: {
+        "application/json": { schema },
+      },
+      description,
+    },
+  };
+}
+
 export const deleteSuccessSchema = z
   .object({
     success: z.literal(true),

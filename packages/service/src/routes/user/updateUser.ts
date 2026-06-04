@@ -1,11 +1,16 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { updateUser as updateUserSvc } from "#services/user.service";
 import { prepend } from "#utils/list";
 import {
   adminUserSchema,
-  errorSchema,
   updateUserBodySchema,
   userIdParamSchema,
 } from "./schema";
@@ -28,28 +33,10 @@ export const updateUser = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: adminUserSchema } },
-        description: "Updated user",
-      },
-      400: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Bad Request",
-      },
-      404: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "User not found",
-      },
-      403: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Forbidden - cannot change roles of builtin users",
-      },
-      500: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Internal Server Error",
-      },
+      ...notFoundResponse,
+      ...badRequestResponse,
+      ...okResponseFn(adminUserSchema, "Updated user"),
     },
   }),
   handler: async (c) => {

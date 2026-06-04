@@ -1,6 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { deleteConfig } from "#services/system-config.service";
 import { prepend } from "#utils/list";
@@ -23,16 +27,7 @@ export const deleteConfigRoute = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": {
-            schema: deleteSuccessSchema,
-          },
-        },
-        description: "Successfully deleted",
-      },
       404: {
         content: {
           "application/json": {
@@ -41,6 +36,7 @@ export const deleteConfigRoute = defineOpenAPIRoute({
         },
         description: "Config not found",
       },
+      ...okResponseFn(deleteSuccessSchema, "Successfully deleted"),
     },
   }),
   handler: async (c) => {

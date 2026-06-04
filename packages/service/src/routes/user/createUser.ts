@@ -1,5 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { createUser as createUserSvc } from "#services/user.service";
 import { prepend } from "#utils/list";
@@ -22,20 +27,13 @@ export const createUser = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: adminUserSchema } },
-        description: "Created user",
-      },
-      400: {
-        content: { "application/json": { schema: errorSchema } },
-        description: "Bad Request",
-      },
+      ...badRequestResponse,
       500: {
         content: { "application/json": { schema: errorSchema } },
         description: "Internal Server Error",
       },
+      ...okResponseFn(adminUserSchema, "Created user"),
     },
   }),
   handler: async (c) => {

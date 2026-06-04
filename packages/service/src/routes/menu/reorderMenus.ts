@@ -1,13 +1,14 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  badRequestResponse,
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { reorderMenus as reorderMenusService } from "#services/menu.service";
 import { prepend } from "#utils/list";
-import {
-  errorSchema,
-  reorderMenusBodySchema,
-  reorderMenusResponseSchema,
-} from "./schema";
+import { reorderMenusBodySchema, reorderMenusResponseSchema } from "./schema";
 
 export const reorderMenus = defineOpenAPIRoute({
   route: createRoute({
@@ -30,20 +31,12 @@ export const reorderMenus = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: reorderMenusResponseSchema },
-        },
-        description: "Updated menus with recalculated sortOrder",
-      },
-      400: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Invalid items",
-      },
+      ...badRequestResponse,
+      ...okResponseFn(
+        reorderMenusResponseSchema,
+        "Updated menus with recalculated sortOrder",
+      ),
     },
   }),
   handler: async (c) => {

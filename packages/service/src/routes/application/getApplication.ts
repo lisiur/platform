@@ -1,13 +1,14 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { getApplicationById } from "#services/application.service";
 import { prepend } from "#utils/list";
-import {
-  applicationIdParamSchema,
-  applicationSchema,
-  errorSchema,
-} from "./schema";
+import { applicationIdParamSchema, applicationSchema } from "./schema";
 
 export const getApplication = defineOpenAPIRoute({
   route: createRoute({
@@ -24,18 +25,8 @@ export const getApplication = defineOpenAPIRoute({
       ...unauthorizedResponse,
 
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: applicationSchema },
-        },
-        description: "The application",
-      },
-      404: {
-        content: {
-          "application/json": { schema: errorSchema },
-        },
-        description: "Not found",
-      },
+      ...okResponseFn(applicationSchema, "The application"),
+      ...notFoundResponse,
     },
   }),
   handler: async (c) => {

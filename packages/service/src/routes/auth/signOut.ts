@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { okResponseFn } from "#lib/openapi";
 import { deleteSessionCookie, getSessionTokenFromContext } from "#lib/session";
 import { signOut as signOutService } from "#services/auth.service";
 import { authMutationResponseSchema } from "./schema";
@@ -10,10 +11,7 @@ export const signOut = defineOpenAPIRoute({
     tags: ["Auth"],
     summary: "Sign out current session",
     responses: {
-      200: {
-        content: { "application/json": { schema: authMutationResponseSchema } },
-        description: "Signed out",
-      },
+      ...okResponseFn(authMutationResponseSchema, "Signed out"),
     },
   }),
   handler: async (c) => {

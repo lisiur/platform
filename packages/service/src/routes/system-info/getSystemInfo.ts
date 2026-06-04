@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { prepend } from "#utils/list";
 import { systemInfoSchema } from "./schema";
@@ -168,12 +172,8 @@ export const getSystemInfo = defineOpenAPIRoute({
     description: "Returns current CPU, memory, and storage usage information.",
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: { "application/json": { schema: systemInfoSchema } },
-        description: "System resource information",
-      },
+      ...okResponseFn(systemInfoSchema, "System resource information"),
     },
   }),
   handler: async (c) => {

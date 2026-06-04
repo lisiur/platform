@@ -1,6 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { logAudit } from "#lib/logger";
-import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { removeUserRole as removeUserRoleSvc } from "#services/user-role.service";
 import { prepend } from "#utils/list";
@@ -23,14 +27,8 @@ export const removeUserRole = defineOpenAPIRoute({
     },
     responses: {
       ...unauthorizedResponse,
-
       ...forbiddenResponse,
-      200: {
-        content: {
-          "application/json": { schema: successResponseSchema },
-        },
-        description: "Removed",
-      },
+      ...okResponseFn(successResponseSchema, "Removed"),
     },
   }),
   handler: async (c) => {
