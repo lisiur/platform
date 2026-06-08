@@ -3,6 +3,8 @@ import { applicationRoutes } from "./application";
 import { auditLogRoutes } from "./audit-log";
 import { authRoutes } from "./auth";
 import { menuRoutes } from "./menu";
+import { notificationChannelRoutes } from "./notification-channel";
+import { notificationTemplateRoutes } from "./notification-template";
 import { operationLogRoutes } from "./operation-log";
 import { organizationRoutes } from "./organization";
 import { roleRoutes } from "./role";
@@ -19,6 +21,8 @@ const routes = new OpenAPIHono()
   .route("/organizations", organizationRoutes)
   .route("/applications", applicationRoutes)
   .route("/menus", menuRoutes)
+  .route("/notification-channels", notificationChannelRoutes)
+  .route("/notification-templates", notificationTemplateRoutes)
   .route("/roles", roleRoutes)
   .route("/role-menus", roleMenusRoutes)
   .route("/system-info", systemInfoRoutes)

@@ -113,6 +113,7 @@ CREATE TABLE "system_config" (
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'string',
+    "schema" JSONB,
     "label" TEXT NOT NULL,
     "description" TEXT,
     "isSecret" BOOLEAN NOT NULL DEFAULT false,
@@ -263,6 +264,70 @@ CREATE TABLE "audit_log" (
     CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "notification_channel" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "providerKey" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "config" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "notification_channel_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "notification_template" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "subjectTemplate" TEXT,
+    "titleTemplate" TEXT,
+    "bodyTemplate" TEXT NOT NULL,
+    "variablesSchema" JSONB,
+    "sampleVariables" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "notification_template_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "notification" (
+    "id" TEXT NOT NULL,
+    "correlationId" TEXT NOT NULL,
+    "templateId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "recipientUserId" TEXT NOT NULL,
+    "creatorId" TEXT,
+    "source" TEXT,
+    "variables" JSONB,
+    "renderedSubject" TEXT,
+    "renderedTitle" TEXT,
+    "renderedBody" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "nextAttemptAt" TIMESTAMP(3),
+    "sentAt" TIMESTAMP(3),
+    "failedAt" TIMESTAMP(3),
+    "readAt" TIMESTAMP(3),
+    "archivedAt" TIMESTAMP(3),
+    "providerMessageId" TEXT,
+    "errorMessage" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "notification_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -395,6 +460,48 @@ CREATE INDEX "audit_log_outcome_idx" ON "audit_log"("outcome");
 -- CreateIndex
 CREATE INDEX "audit_log_createdAt_idx" ON "audit_log"("createdAt");
 
+-- CreateIndex
+CREATE INDEX "notification_channel_providerKey_idx" ON "notification_channel"("providerKey");
+
+-- CreateIndex
+CREATE INDEX "notification_channel_enabled_idx" ON "notification_channel"("enabled");
+
+-- CreateIndex
+CREATE INDEX "notification_channel_deletedAt_idx" ON "notification_channel"("deletedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "notification_channel_key_key" ON "notification_channel"("key");
+
+-- CreateIndex
+CREATE INDEX "notification_template_channelId_idx" ON "notification_template"("channelId");
+
+-- CreateIndex
+CREATE INDEX "notification_template_enabled_idx" ON "notification_template"("enabled");
+
+-- CreateIndex
+CREATE INDEX "notification_template_deletedAt_idx" ON "notification_template"("deletedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "notification_template_key_key" ON "notification_template"("key");
+
+-- CreateIndex
+CREATE INDEX "notification_correlationId_idx" ON "notification"("correlationId");
+
+-- CreateIndex
+CREATE INDEX "notification_templateId_idx" ON "notification"("templateId");
+
+-- CreateIndex
+CREATE INDEX "notification_channelId_idx" ON "notification"("channelId");
+
+-- CreateIndex
+CREATE INDEX "notification_recipientUserId_idx" ON "notification"("recipientUserId");
+
+-- CreateIndex
+CREATE INDEX "notification_status_idx" ON "notification"("status");
+
+-- CreateIndex
+CREATE INDEX "notification_createdAt_idx" ON "notification"("createdAt");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -442,4 +549,16 @@ ALTER TABLE "user_role" ADD CONSTRAINT "user_role_userId_fkey" FOREIGN KEY ("use
 
 -- AddForeignKey
 ALTER TABLE "role" ADD CONSTRAINT "role_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification_template" ADD CONSTRAINT "notification_template_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "notification_channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification" ADD CONSTRAINT "notification_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "notification_template"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification" ADD CONSTRAINT "notification_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "notification_channel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification" ADD CONSTRAINT "notification_recipientUserId_fkey" FOREIGN KEY ("recipientUserId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

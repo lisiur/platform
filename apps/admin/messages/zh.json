@@ -166,6 +166,76 @@
     "addArrayItem": "添加",
     "arrayItemPlaceholder": "输入条目"
   },
+  "Notifications": {
+    "title": "通知管理",
+    "description": "管理通知发送渠道和绑定渠道的通知模板。",
+    "tabs": {
+      "channels": "渠道",
+      "templates": "模板"
+    },
+    "fields": {
+      "name": "名称",
+      "key": "标识",
+      "provider": "提供方",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作",
+      "enabled": "启用",
+      "channel": "渠道",
+      "subjectTemplate": "主题模板",
+      "titleTemplate": "标题模板",
+      "bodyTemplate": "正文模板",
+      "variables": "变量",
+      "variableName": "名称",
+      "variableDescription": "描述",
+      "variableRequired": "必填",
+      "addVariable": "添加变量"
+    },
+    "status": {
+      "enabled": "已启用",
+      "disabled": "已停用"
+    },
+    "actions": {
+      "save": "保存",
+      "saving": "保存中...",
+      "cancel": "取消",
+      "delete": "删除"
+    },
+    "channels": {
+      "create": "新增渠道",
+      "edit": "编辑渠道",
+      "delete": "删除渠道",
+      "createDescription": "配置一个由内置提供方支持的发送渠道。",
+      "editDescription": "更新渠道信息、提供方、启用状态和配置。",
+      "enabledDescription": "停用的渠道在创建通知时会被跳过。",
+      "config": "提供方配置",
+      "configDescription": "密钥字段在响应中会被脱敏，保持不变时会保留原值。",
+      "noConfig": "该提供方不需要配置。",
+      "selectProvider": "选择提供方",
+      "empty": "暂无通知渠道",
+      "confirmDelete": "确定要删除",
+      "createSuccess": "通知渠道已创建",
+      "updateSuccess": "通知渠道已更新",
+      "deleteSuccess": "通知渠道已删除"
+    },
+    "templates": {
+      "create": "新增模板",
+      "edit": "编辑模板",
+      "delete": "删除模板",
+      "createDescription": "为通知分组创建一个绑定渠道的模板。",
+      "editDescription": "更新模板内容、渠道绑定和变量元数据。",
+      "variableDescription": "定义模板变量，设置名称、描述和是否必填。",
+      "enabledDescription": "停用的模板在创建通知时会被跳过。",
+      "variableHint": "使用 '{{userName}}' 这样的变量，后端会校验并渲染运行时值。",
+      "selectChannel": "选择渠道",
+      "empty": "暂无通知模板",
+      "noChannels": "请先创建通知渠道，再添加模板",
+      "confirmDelete": "确定要删除",
+      "createSuccess": "通知模板已创建",
+      "updateSuccess": "通知模板已更新",
+      "deleteSuccess": "通知模板已删除"
+    }
+  },
   "Sidebar": {
     "monitor": "监控",
     "users": "用户",
@@ -174,6 +244,7 @@
     "applications": "应用",
     "profile": "个人资料",
     "settings": "设置",
+    "notifications": "通知",
     "loading": "加载菜单中...",
     "noMenus": "暂无可用菜单",
     "fetchError": "加载菜单失败",

@@ -28,6 +28,7 @@ export function Header({ className }: { className?: string }) {
             width={24}
             height={24}
             className="shrink-0 rounded"
+            priority
             unoptimized
           />
         ) : null}

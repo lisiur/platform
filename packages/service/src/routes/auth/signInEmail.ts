@@ -2,6 +2,7 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { setSessionCookie } from "#lib/session";
 import { signInWithEmail } from "#services/auth.service";
+import { createNotificationsFromTemplate } from "#services/notification/notification.service";
 import { authMutationResponseSchema, signInEmailBodySchema } from "./schema";
 
 export const signInEmail = defineOpenAPIRoute({
@@ -35,6 +36,14 @@ export const signInEmail = defineOpenAPIRoute({
     });
 
     setSessionCookie(c, session.token);
+
+    createNotificationsFromTemplate({
+      templateKey: "welcome",
+      recipientUserIds: [user.id],
+      variables: { userName: user.name },
+      source: "auth",
+    }).catch(() => null);
+
     return c.json({ data: { user, session }, error: null }, 200);
   },
 });

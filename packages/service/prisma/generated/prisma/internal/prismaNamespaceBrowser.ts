@@ -67,7 +67,10 @@ export const ModelName = {
   UserRole: 'UserRole',
   Role: 'Role',
   OperationLog: 'OperationLog',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  NotificationChannel: 'NotificationChannel',
+  NotificationTemplate: 'NotificationTemplate',
+  Notification: 'Notification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -344,6 +347,70 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const NotificationChannelScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  name: 'name',
+  providerKey: 'providerKey',
+  enabled: 'enabled',
+  config: 'config',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type NotificationChannelScalarFieldEnum = (typeof NotificationChannelScalarFieldEnum)[keyof typeof NotificationChannelScalarFieldEnum]
+
+
+export const NotificationTemplateScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  channelId: 'channelId',
+  name: 'name',
+  description: 'description',
+  enabled: 'enabled',
+  subjectTemplate: 'subjectTemplate',
+  titleTemplate: 'titleTemplate',
+  bodyTemplate: 'bodyTemplate',
+  variablesSchema: 'variablesSchema',
+  sampleVariables: 'sampleVariables',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type NotificationTemplateScalarFieldEnum = (typeof NotificationTemplateScalarFieldEnum)[keyof typeof NotificationTemplateScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  correlationId: 'correlationId',
+  templateId: 'templateId',
+  channelId: 'channelId',
+  recipientUserId: 'recipientUserId',
+  creatorId: 'creatorId',
+  source: 'source',
+  variables: 'variables',
+  renderedSubject: 'renderedSubject',
+  renderedTitle: 'renderedTitle',
+  renderedBody: 'renderedBody',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  sentAt: 'sentAt',
+  failedAt: 'failedAt',
+  readAt: 'readAt',
+  archivedAt: 'archivedAt',
+  providerMessageId: 'providerMessageId',
+  errorMessage: 'errorMessage',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
 export const SortOrder = {

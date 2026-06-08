@@ -166,6 +166,76 @@
     "addArrayItem": "Add",
     "arrayItemPlaceholder": "Enter item"
   },
+  "Notifications": {
+    "title": "Notification Management",
+    "description": "Manage delivery channels and channel-bound notification templates.",
+    "tabs": {
+      "channels": "Channels",
+      "templates": "Templates"
+    },
+    "fields": {
+      "name": "Name",
+      "key": "Key",
+      "provider": "Provider",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions",
+      "enabled": "Enabled",
+      "channel": "Channel",
+      "subjectTemplate": "Subject Template",
+      "titleTemplate": "Title Template",
+      "bodyTemplate": "Body Template",
+      "variables": "Variables",
+      "variableName": "Name",
+      "variableDescription": "Description",
+      "variableRequired": "Required",
+      "addVariable": "Add Variable"
+    },
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
+    "channels": {
+      "create": "Add Channel",
+      "edit": "Edit Channel",
+      "delete": "Delete Channel",
+      "createDescription": "Configure a delivery channel backed by a built-in provider.",
+      "editDescription": "Update channel metadata, provider, enabled state, and config.",
+      "enabledDescription": "Disabled channels are skipped when notifications are created.",
+      "config": "Provider Config",
+      "configDescription": "Secret values are redacted in responses and preserved if left unchanged.",
+      "noConfig": "This provider does not require configuration.",
+      "selectProvider": "Select provider",
+      "empty": "No notification channels found",
+      "confirmDelete": "Are you sure you want to delete",
+      "createSuccess": "Notification channel created",
+      "updateSuccess": "Notification channel updated",
+      "deleteSuccess": "Notification channel deleted"
+    },
+    "templates": {
+      "create": "Add Template",
+      "edit": "Edit Template",
+      "delete": "Delete Template",
+      "createDescription": "Create a channel-specific template for a notification group.",
+      "editDescription": "Update template content, channel binding, and variable metadata.",
+      "variableDescription": "Define template variables with name, description, and required flag.",
+      "enabledDescription": "Disabled templates are skipped when notifications are created.",
+      "variableHint": "Use variables like '{{userName}}'. Runtime values are validated and rendered by the backend.",
+      "selectChannel": "Select channel",
+      "empty": "No notification templates found",
+      "noChannels": "Create a notification channel before adding templates",
+      "confirmDelete": "Are you sure you want to delete",
+      "createSuccess": "Notification template created",
+      "updateSuccess": "Notification template updated",
+      "deleteSuccess": "Notification template deleted"
+    }
+  },
   "Sidebar": {
     "monitor": "Monitor",
     "users": "Users",
@@ -174,6 +244,7 @@
     "applications": "Applications",
     "profile": "Profile",
     "settings": "Settings",
+    "notifications": "Notifications",
     "loading": "Loading menus...",
     "noMenus": "No menus available",
     "fetchError": "Failed to load menus",

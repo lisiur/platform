@@ -158,7 +158,7 @@ export function JsonSchemaField({
                 {values.map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-2 rounded-md border px-3 py-2"
+                    className="flex items-center gap-2 rounded-md border px-3"
                   >
                     <span className="flex-1 text-sm">{item}</span>
                     <Button

@@ -101,6 +101,7 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
           alt={user.name ?? ""}
           fill
           className="object-cover"
+          priority
           unoptimized
         />
       ) : (

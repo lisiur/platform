@@ -132,6 +132,56 @@ const permissionDefinitions = [
     group: "operation-log",
     name: "Delete Operation Logs",
   },
+  {
+    code: "notification-channel::list",
+    group: "notification-channel",
+    name: "List Notification Channels",
+  },
+  {
+    code: "notification-channel::view",
+    group: "notification-channel",
+    name: "View Notification Channel",
+  },
+  {
+    code: "notification-channel::create",
+    group: "notification-channel",
+    name: "Create Notification Channel",
+  },
+  {
+    code: "notification-channel::update",
+    group: "notification-channel",
+    name: "Update Notification Channel",
+  },
+  {
+    code: "notification-channel::delete",
+    group: "notification-channel",
+    name: "Delete Notification Channel",
+  },
+  {
+    code: "notification-template::list",
+    group: "notification-template",
+    name: "List Notification Templates",
+  },
+  {
+    code: "notification-template::view",
+    group: "notification-template",
+    name: "View Notification Template",
+  },
+  {
+    code: "notification-template::create",
+    group: "notification-template",
+    name: "Create Notification Template",
+  },
+  {
+    code: "notification-template::update",
+    group: "notification-template",
+    name: "Update Notification Template",
+  },
+  {
+    code: "notification-template::delete",
+    group: "notification-template",
+    name: "Delete Notification Template",
+  },
   { code: "upload::sign", group: "upload", name: "Sign Upload URL" },
 ];
 
@@ -373,13 +423,22 @@ async function seedMenus(appId: string) {
       sortOrder: 2,
     },
     {
+      id: "notifications",
+      name: "Notifications",
+      code: "notifications",
+      icon: "Bell",
+      linkType: "INTERNAL" as const,
+      url: "/notifications",
+      sortOrder: 3,
+    },
+    {
       id: "logs",
       name: "Logs",
       code: "logs",
       icon: "FileText",
       linkType: "INTERNAL" as const,
       url: "/logs",
-      sortOrder: 3,
+      sortOrder: 4,
     },
     {
       id: "monitor",
@@ -388,7 +447,7 @@ async function seedMenus(appId: string) {
       icon: "LayoutDashboard",
       linkType: "INTERNAL" as const,
       url: "/monitor",
-      sortOrder: 4,
+      sortOrder: 5,
     },
     {
       id: "settings",
@@ -397,7 +456,7 @@ async function seedMenus(appId: string) {
       icon: "Settings",
       linkType: "INTERNAL" as const,
       url: "/settings",
-      sortOrder: 5,
+      sortOrder: 6,
     },
   ];
 
@@ -484,6 +543,74 @@ async function seedRoles(appId: string) {
 
   console.log(`Seeded ${Object.keys(roleIds).length} roles.`);
   return roleIds;
+}
+
+async function seedNotificationChannels() {
+  console.log("Seeding notification channels...");
+
+  await prisma.notificationChannel.upsert({
+    where: { key: "in-app" },
+    update: {
+      name: "In-App",
+      providerKey: "in-app",
+      enabled: true,
+      config: null,
+      deletedAt: null,
+    },
+    create: {
+      key: "in-app",
+      name: "In-App",
+      providerKey: "in-app",
+      enabled: true,
+    },
+  });
+
+  console.log("Notification channels ready.");
+}
+
+async function seedNotificationTemplates() {
+  console.log("Seeding notification templates...");
+
+  const inAppChannel = await prisma.notificationChannel.findUnique({
+    where: { key: "in-app" },
+  });
+
+  if (!inAppChannel) {
+    console.log("Skipping notification templates: in-app channel not found");
+    return;
+  }
+
+  await prisma.notificationTemplate.upsert({
+    where: { key: "welcome" },
+    update: {
+      name: "Welcome",
+      channelId: inAppChannel.id,
+      enabled: true,
+      bodyTemplate: "Welcome, {{userName}}!",
+      variablesSchema: {
+        properties: {
+          userName: { type: "string", description: "The user's name" },
+        },
+        required: ["userName"],
+      },
+      deletedAt: null,
+    },
+    create: {
+      key: "welcome",
+      channelId: inAppChannel.id,
+      name: "Welcome",
+      enabled: true,
+      bodyTemplate: "Welcome, {{userName}}!",
+      variablesSchema: {
+        properties: {
+          userName: { type: "string", description: "The user's name" },
+        },
+        required: ["userName"],
+      },
+    },
+  });
+
+  console.log("Notification templates ready.");
 }
 
 async function seedRolePermissions(
@@ -582,6 +709,8 @@ async function seed() {
   }
 
   console.log(`Seeded ${defaultConfigs.length} default configurations.`);
+  await seedNotificationChannels();
+  await seedNotificationTemplates();
 
   const adminApp = await seedAdminApplication();
   await seedPermissions(adminApp.id);
