@@ -29,6 +29,9 @@ node_modules
 
 # agent plans/specs
 /docs/superpowers/
+/.codegraph/
+/.opencode/
+/.understand-anything/
 
 # debug
 npm-debug.log*
