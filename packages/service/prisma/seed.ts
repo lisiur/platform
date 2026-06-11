@@ -411,7 +411,7 @@ async function seedMenus(appId: string) {
       code: "applications",
       icon: "Layers",
       linkType: "INTERNAL" as const,
-      url: "/applications",
+      url: "/admin/applications",
       sortOrder: 0,
     },
     {
@@ -420,7 +420,7 @@ async function seedMenus(appId: string) {
       code: "organizations",
       icon: "Building2",
       linkType: "INTERNAL" as const,
-      url: "/organizations",
+      url: "/admin/organizations",
       sortOrder: 1,
     },
     {
@@ -429,7 +429,7 @@ async function seedMenus(appId: string) {
       code: "users",
       icon: "Users",
       linkType: "INTERNAL" as const,
-      url: "/users",
+      url: "/admin/users",
       sortOrder: 2,
     },
     {
@@ -438,7 +438,7 @@ async function seedMenus(appId: string) {
       code: "notifications",
       icon: "Bell",
       linkType: "INTERNAL" as const,
-      url: "/notifications",
+      url: "/admin/notifications",
       sortOrder: 3,
     },
     {
@@ -447,7 +447,7 @@ async function seedMenus(appId: string) {
       code: "logs",
       icon: "FileText",
       linkType: "INTERNAL" as const,
-      url: "/logs",
+      url: "/admin/logs",
       sortOrder: 4,
     },
     {
@@ -456,7 +456,7 @@ async function seedMenus(appId: string) {
       code: "monitor",
       icon: "LayoutDashboard",
       linkType: "INTERNAL" as const,
-      url: "/monitor",
+      url: "/admin/monitor",
       sortOrder: 5,
     },
     {
@@ -465,7 +465,7 @@ async function seedMenus(appId: string) {
       code: "settings",
       icon: "Settings",
       linkType: "INTERNAL" as const,
-      url: "/settings",
+      url: "/admin/settings",
       sortOrder: 6,
     },
   ];

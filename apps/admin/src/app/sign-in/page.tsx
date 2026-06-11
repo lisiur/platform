@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/card";
 import { getFirstMenuUrl, useMenuStore } from "@/stores/menu-store";
 
+const ADMIN_BASE_PATH = "/admin";
+
+function toAppPath(url: string) {
+  if (!url.startsWith(ADMIN_BASE_PATH)) return url;
+  return url.slice(ADMIN_BASE_PATH.length) || "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
@@ -23,7 +30,7 @@ export default function LoginPage() {
       const { menus } = useMenuStore.getState();
       const firstUrl = getFirstMenuUrl(menus);
       if (firstUrl) {
-        router.push(firstUrl);
+        router.push(toAppPath(firstUrl));
         return;
       }
     } catch {

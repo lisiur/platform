@@ -1,15 +1,15 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
 import {
-  badRequestResponse,
   forbiddenResponse,
   okResponseFn,
+  successSchema,
   unauthorizedResponse,
 } from "#lib/openapi";
 import { requirePermission } from "#middleware/require-permission";
 import { markNotificationRead } from "#services/notification/notification-query.service";
 import { prepend } from "#utils/list";
-import { idParamSchema, notificationSchema } from "./schema";
+import { idParamSchema } from "./schema";
 
 export const markReadRoute = defineOpenAPIRoute({
   route: createRoute({
@@ -22,8 +22,7 @@ export const markReadRoute = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      ...badRequestResponse,
-      ...okResponseFn(notificationSchema, "Updated notification"),
+      ...okResponseFn(successSchema, "Marked as read"),
     },
   }),
   handler: async (c) => {

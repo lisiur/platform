@@ -25,6 +25,12 @@ import { cn } from "@/utils/cn";
 import { UserMenu } from "./user-menu";
 
 const iconsRecord = icons as Record<string, LucideIcon>;
+const ADMIN_BASE_PATH = "/admin";
+
+function toAppHref(url: string | null): string | null {
+  if (!url?.startsWith(ADMIN_BASE_PATH)) return url;
+  return url.slice(ADMIN_BASE_PATH.length) || "/";
+}
 
 function getIcon(icon: string | null): React.ReactNode | undefined {
   if (!icon) return undefined;
@@ -59,8 +65,11 @@ function SidebarMenuNode({
   const t = useTranslations("Sidebar");
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
-  const href = node.linkType === "GROUP" ? undefined : node.url;
-  const isActive = href ? pathname === href : false;
+  const href = node.linkType === "GROUP" ? undefined : toAppHref(node.url);
+  const isActive =
+    href && node.linkType === "INTERNAL"
+      ? pathname === href || pathname === ADMIN_BASE_PATH + href
+      : false;
 
   const label = t.has(node.code) ? t(node.code) : node.name;
 

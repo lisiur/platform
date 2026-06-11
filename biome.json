@@ -39,7 +39,10 @@
   },
   "overrides": [
     {
-      "includes": ["apps/admin/src/components/ui/**"],
+      "includes": [
+        "apps/gateway/src/components/ui/**",
+        "apps/admin/src/components/ui/**"
+      ],
       "linter": {
         "rules": {
           "a11y": {
