@@ -235,7 +235,7 @@ export function NotificationRecordTable() {
         open={!!detailRecord}
         onOpenChange={(open) => !open && setDetailRecord(null)}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{t("records.detailTitle")}</SheetTitle>
             <SheetDescription>{detailRecord?.id}</SheetDescription>
