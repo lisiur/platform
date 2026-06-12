@@ -1,15 +1,22 @@
 "use client";
 
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 import { ConfigGroup } from "./components/config-group";
 
 const tabKeys = ["general", "auth", "smtp", "upload"] as const;
 
 export default function SettingsPage() {
   const t = useTranslations("Settings");
-  const [activeTab, setActiveTab] = useState("general");
 
   const tabs = tabKeys.map((key) => ({ key, label: t(`tabs.${key}`) }));
 
@@ -20,28 +27,28 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">{t("description")}</p>
       </div>
 
-      <div className="mb-6 flex space-x-2">
-        {tabs.map((tab) => (
-          <Button
-            key={tab.key}
-            variant={activeTab === tab.key ? "default" : "outline"}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </div>
+      <Tabs defaultValue="general">
+        <TabsList className="mb-6 w-fit">
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {tabs.find((tab) => tab.key === activeTab)?.label}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ConfigGroup group={activeTab} />
-        </CardContent>
-      </Card>
+        {tabs.map((tab) => (
+          <TabsContent key={tab.key} value={tab.key}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{tab.label}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ConfigGroup group={tab.key} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }
