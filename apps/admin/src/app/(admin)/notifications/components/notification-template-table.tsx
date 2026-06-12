@@ -110,7 +110,7 @@ export function NotificationTemplateTable() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="mb-4 flex shrink-0 justify-end">
         <Button
           onClick={() => setShowCreate(true)}
@@ -127,7 +127,7 @@ export function NotificationTemplateTable() {
             : t("templates.empty")}
         </div>
       ) : (
-        <Table containerClassName="min-h-0 overflow-auto rounded-md border">
+        <Table containerClassName="min-h-0 min-w-0 overflow-auto rounded-md border">
           <TableHeader sticky>
             <TableRow>
               <TableHead>{t("fields.name")}</TableHead>

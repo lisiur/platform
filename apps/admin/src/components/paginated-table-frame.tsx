@@ -38,7 +38,7 @@ export function PaginatedTableFrame({
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
       {toolbar && (
         <div className="mb-4 flex shrink-0 items-center">{toolbar}</div>
       )}
@@ -48,8 +48,8 @@ export function PaginatedTableFrame({
           {emptyMessage}
         </div>
       ) : (
-        <div className="flex min-h-0 flex-col">
-          <Table containerClassName="min-h-0 flex-1 overflow-auto rounded-md border">
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <Table containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border">
             {children}
           </Table>
 

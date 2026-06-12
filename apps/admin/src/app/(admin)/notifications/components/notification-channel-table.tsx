@@ -117,7 +117,7 @@ export function NotificationChannelTable() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="mb-4 flex shrink-0 justify-end">
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -129,7 +129,7 @@ export function NotificationChannelTable() {
           {t("channels.empty")}
         </div>
       ) : (
-        <Table containerClassName="min-h-0 overflow-auto rounded-md border">
+        <Table containerClassName="min-h-0 min-w-0 overflow-auto rounded-md border">
           <TableHeader sticky>
             <TableRow>
               <TableHead>{t("fields.name")}</TableHead>
