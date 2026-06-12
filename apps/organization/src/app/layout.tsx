@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { cn } from "@repo/ui";
+import { Frame } from "@/components/layout/frame";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 export const metadata: Metadata = {
@@ -33,7 +34,9 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors position="top-center" />
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <Frame>{children}</Frame>
+            </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

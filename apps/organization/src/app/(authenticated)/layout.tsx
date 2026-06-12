@@ -1,4 +1,8 @@
+import { SidebarInset, SidebarProvider, TooltipProvider } from "@repo/ui";
 import { SessionGuard } from "@/components/auth/session-guard";
+import { AppSidebar } from "@/components/layout/sidebar";
+import { SidebarBorderTrigger } from "@/components/layout/sidebar-border-trigger";
+import { SidebarToggleListener } from "@/components/layout/sidebar-toggle-listener";
 
 export default function Layout({
   children,
@@ -7,11 +11,14 @@ export default function Layout({
 }>) {
   return (
     <SessionGuard>
-      <main className="min-h-screen bg-muted/30">
-        <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 md:px-8">
-          {children}
-        </div>
-      </main>
+      <TooltipProvider>
+        <SidebarProvider>
+          <SidebarToggleListener />
+          <AppSidebar />
+          <SidebarBorderTrigger />
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
+      </TooltipProvider>
     </SessionGuard>
   );
 }

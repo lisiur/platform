@@ -22,5 +22,12 @@
     "status": "Scaffold ready",
     "nextStepLabel": "Next step",
     "nextStep": "Add organization-specific workflows when their scope is defined."
+  },
+  "Profile": {
+    "title": "Profile"
+  },
+  "Sidebar": {
+    "noMenus": "No menus available",
+    "signOut": "Sign Out"
   }
 }

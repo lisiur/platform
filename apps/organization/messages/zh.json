@@ -22,5 +22,12 @@
     "status": "脚手架已就绪",
     "nextStepLabel": "下一步",
     "nextStep": "在范围明确后添加组织相关工作流。"
+  },
+  "Profile": {
+    "title": "个人资料"
+  },
+  "Sidebar": {
+    "noMenus": "暂无菜单",
+    "signOut": "退出登录"
   }
 }

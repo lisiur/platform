@@ -9,21 +9,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { useSession } from "@/lib/api";
+import { useMenuStore } from "@/stores/menu-store";
+import { useSessionStore } from "@/stores/session-store";
 
 export function SessionGuard({ children }: { children: React.ReactNode }) {
   const { data, isPending, fetched, refetch } = useSession();
+  const router = useRouter();
   const t = useTranslations("Auth");
   const retriedRef = useRef(false);
 
   useEffect(() => {
-    if (fetched && !data && !retriedRef.current) {
+    if (fetched && !data) {
+      useMenuStore.getState().resetMenus();
+
+      if (retriedRef.current) return;
       retriedRef.current = true;
       void refetch();
     }
   }, [fetched, data, refetch]);
+
+  useEffect(() => {
+    const unregister = useSessionStore.getState().registerBeforeSignOut(() => {
+      useMenuStore.getState().resetMenus();
+    });
+    return unregister;
+  }, []);
 
   if (isPending) {
     return (
@@ -44,9 +58,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              onClick={() => window.location.assign("/organization/sign-in")}
-            >
+            <Button onClick={() => router.replace("/sign-in")}>
               {t("goToLogin")}
             </Button>
           </DialogFooter>
