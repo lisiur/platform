@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -194,80 +195,90 @@ export function OrganizationDialog({
             {isEdit ? t("editOrgDescription") : t("addOrgDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
-              <Input id="name" {...register("name")} />
-              <FieldError errors={errors.name ? [errors.name] : undefined} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="slug">{t("slug")}</FieldLabel>
-              <Input id="slug" {...register("slug")} />
-              <FieldError errors={errors.slug ? [errors.slug] : undefined} />
-            </Field>
-            <Field>
-              <FieldLabel>{t("logo")}</FieldLabel>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              {logoPreview ? (
-                <div className="relative inline-block">
-                  <Image
-                    src={logoPreview}
-                    alt="Logo preview"
-                    width={80}
-                    height={80}
-                    className="rounded-lg border object-cover"
-                    unoptimized
-                  />
+        <DialogBody>
+          <form
+            id="organization-dialog-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+                <Input id="name" {...register("name")} />
+                <FieldError errors={errors.name ? [errors.name] : undefined} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="slug">{t("slug")}</FieldLabel>
+                <Input id="slug" {...register("slug")} />
+                <FieldError errors={errors.slug ? [errors.slug] : undefined} />
+              </Field>
+              <Field>
+                <FieldLabel>{t("logo")}</FieldLabel>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {logoPreview ? (
+                  <div className="relative inline-block">
+                    <Image
+                      src={logoPreview}
+                      alt="Logo preview"
+                      width={80}
+                      height={80}
+                      className="rounded-lg border object-cover"
+                      unoptimized
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6"
-                    onClick={handleRemoveLogo}
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <X className="h-3 w-3" />
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    {t("uploadLogo")}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                  {t("uploadLogo")}
-                </Button>
-              )}
-              <FieldError errors={errors.logo ? [errors.logo] : undefined} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="metadata">{t("metadata")}</FieldLabel>
-              <Textarea id="metadata" {...register("metadata")} rows={3} />
-              <FieldError
-                errors={errors.metadata ? [errors.metadata] : undefined}
-              />
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t("saving") : t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
+                )}
+                <FieldError errors={errors.logo ? [errors.logo] : undefined} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="metadata">{t("metadata")}</FieldLabel>
+                <Textarea id="metadata" {...register("metadata")} rows={3} />
+                <FieldError
+                  errors={errors.metadata ? [errors.metadata] : undefined}
+                />
+              </Field>
+            </FieldGroup>
+          </form>
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="organization-dialog-form"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? t("saving") : t("save")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

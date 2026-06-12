@@ -6,6 +6,7 @@ import {
   Button,
   cn,
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -160,11 +161,13 @@ export function ApplicationRoleManagement({
             </SheetTitle>
             <SheetDescription>{roleMenusT("description")}</SheetDescription>
           </SheetHeader>
-          <RoleMenuAssignment
-            appId={appId}
-            role={selectedRole}
-            onSaved={() => setMenuDrawerOpen(false)}
-          />
+          <SheetBody>
+            <RoleMenuAssignment
+              appId={appId}
+              role={selectedRole}
+              onSaved={() => setMenuDrawerOpen(false)}
+            />
+          </SheetBody>
         </SheetContent>
       </Sheet>
     </>

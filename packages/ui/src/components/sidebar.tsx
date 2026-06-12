@@ -11,6 +11,7 @@ import { Input } from "./input";
 import { Separator } from "./separator";
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -213,7 +214,9 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <SheetBody className="gap-0 p-0">
+            <div className="flex h-full w-full flex-col">{children}</div>
+          </SheetBody>
         </SheetContent>
       </Sheet>
     );

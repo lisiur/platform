@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -235,131 +236,133 @@ export function NotificationRecordTable() {
         open={!!detailRecord}
         onOpenChange={(open) => !open && setDetailRecord(null)}
       >
-        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{t("records.detailTitle")}</SheetTitle>
             <SheetDescription>{detailRecord?.id}</SheetDescription>
           </SheetHeader>
-          {detailRecord && (
-            <div className="space-y-6 px-4 pb-4">
-              <section>
-                <h3 className="mb-2 font-medium text-sm">
-                  {t("records.sections.content")}
-                </h3>
-                <dl className="rounded-md border px-3">
-                  <DetailRow
-                    label={t("records.detail.subject")}
-                    value={detailRecord.renderedSubject}
-                  />
-                  <DetailRow
-                    label={t("records.detail.title")}
-                    value={detailRecord.renderedTitle}
-                  />
-                  <DetailRow
-                    label={t("records.detail.body")}
-                    value={detailRecord.renderedBody}
-                  />
-                </dl>
-              </section>
-              <section>
-                <h3 className="mb-2 font-medium text-sm">
-                  {t("records.sections.routing")}
-                </h3>
-                <dl className="rounded-md border px-3">
-                  <DetailRow
-                    label={t("records.columns.recipient")}
-                    value={`${detailRecord.recipient.name} <${detailRecord.recipient.email}>`}
-                  />
-                  <DetailRow
-                    label={t("records.detail.template")}
-                    value={`${detailRecord.template.name} (${detailRecord.template.key})`}
-                  />
-                  <DetailRow
-                    label={t("fields.channel")}
-                    value={`${detailRecord.channel.name} (${detailRecord.channel.key})`}
-                  />
-                  <DetailRow
-                    label={t("fields.provider")}
-                    value={detailRecord.channel.providerKey}
-                  />
-                  <DetailRow
-                    label={t("records.detail.source")}
-                    value={detailRecord.source}
-                  />
-                  <DetailRow
-                    label={t("records.detail.correlationId")}
-                    value={detailRecord.correlationId}
-                  />
-                </dl>
-              </section>
-              <section>
-                <h3 className="mb-2 font-medium text-sm">
-                  {t("records.sections.delivery")}
-                </h3>
-                <dl className="rounded-md border px-3">
-                  <DetailRow
-                    label={t("fields.status")}
-                    value={detailRecord.status}
-                  />
-                  <DetailRow
-                    label={t("records.detail.attempts")}
-                    value={detailRecord.attempts}
-                  />
-                  <DetailRow
-                    label={t("records.detail.providerMessageId")}
-                    value={detailRecord.providerMessageId}
-                  />
-                  <DetailRow
-                    label={t("records.detail.errorMessage")}
-                    value={detailRecord.errorMessage}
-                  />
-                  <DetailRow
-                    label={t("records.detail.nextAttemptAt")}
-                    value={formatOptionalDate(detailRecord.nextAttemptAt)}
-                  />
-                  <DetailRow
-                    label={t("records.detail.sentAt")}
-                    value={formatOptionalDate(detailRecord.sentAt)}
-                  />
-                  <DetailRow
-                    label={t("records.detail.failedAt")}
-                    value={formatOptionalDate(detailRecord.failedAt)}
-                  />
-                  <DetailRow
-                    label={t("records.detail.readAt")}
-                    value={formatOptionalDate(detailRecord.readAt)}
-                  />
-                  <DetailRow
-                    label={t("records.detail.archivedAt")}
-                    value={formatOptionalDate(detailRecord.archivedAt)}
-                  />
-                  <DetailRow
-                    label={t("fields.createdAt")}
-                    value={formatDateTime(detailRecord.createdAt)}
-                  />
-                </dl>
-              </section>
-              <section>
-                <h3 className="mb-2 font-medium text-sm">
-                  {t("records.sections.data")}
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="mb-1 text-muted-foreground text-sm">
-                      {t("records.detail.variables")}
+          <SheetBody>
+            {detailRecord && (
+              <div className="space-y-6">
+                <section>
+                  <h3 className="mb-2 font-medium text-sm">
+                    {t("records.sections.content")}
+                  </h3>
+                  <dl className="rounded-md border px-3">
+                    <DetailRow
+                      label={t("records.detail.subject")}
+                      value={detailRecord.renderedSubject}
+                    />
+                    <DetailRow
+                      label={t("records.detail.title")}
+                      value={detailRecord.renderedTitle}
+                    />
+                    <DetailRow
+                      label={t("records.detail.body")}
+                      value={detailRecord.renderedBody}
+                    />
+                  </dl>
+                </section>
+                <section>
+                  <h3 className="mb-2 font-medium text-sm">
+                    {t("records.sections.routing")}
+                  </h3>
+                  <dl className="rounded-md border px-3">
+                    <DetailRow
+                      label={t("records.columns.recipient")}
+                      value={`${detailRecord.recipient.name} <${detailRecord.recipient.email}>`}
+                    />
+                    <DetailRow
+                      label={t("records.detail.template")}
+                      value={`${detailRecord.template.name} (${detailRecord.template.key})`}
+                    />
+                    <DetailRow
+                      label={t("fields.channel")}
+                      value={`${detailRecord.channel.name} (${detailRecord.channel.key})`}
+                    />
+                    <DetailRow
+                      label={t("fields.provider")}
+                      value={detailRecord.channel.providerKey}
+                    />
+                    <DetailRow
+                      label={t("records.detail.source")}
+                      value={detailRecord.source}
+                    />
+                    <DetailRow
+                      label={t("records.detail.correlationId")}
+                      value={detailRecord.correlationId}
+                    />
+                  </dl>
+                </section>
+                <section>
+                  <h3 className="mb-2 font-medium text-sm">
+                    {t("records.sections.delivery")}
+                  </h3>
+                  <dl className="rounded-md border px-3">
+                    <DetailRow
+                      label={t("fields.status")}
+                      value={detailRecord.status}
+                    />
+                    <DetailRow
+                      label={t("records.detail.attempts")}
+                      value={detailRecord.attempts}
+                    />
+                    <DetailRow
+                      label={t("records.detail.providerMessageId")}
+                      value={detailRecord.providerMessageId}
+                    />
+                    <DetailRow
+                      label={t("records.detail.errorMessage")}
+                      value={detailRecord.errorMessage}
+                    />
+                    <DetailRow
+                      label={t("records.detail.nextAttemptAt")}
+                      value={formatOptionalDate(detailRecord.nextAttemptAt)}
+                    />
+                    <DetailRow
+                      label={t("records.detail.sentAt")}
+                      value={formatOptionalDate(detailRecord.sentAt)}
+                    />
+                    <DetailRow
+                      label={t("records.detail.failedAt")}
+                      value={formatOptionalDate(detailRecord.failedAt)}
+                    />
+                    <DetailRow
+                      label={t("records.detail.readAt")}
+                      value={formatOptionalDate(detailRecord.readAt)}
+                    />
+                    <DetailRow
+                      label={t("records.detail.archivedAt")}
+                      value={formatOptionalDate(detailRecord.archivedAt)}
+                    />
+                    <DetailRow
+                      label={t("fields.createdAt")}
+                      value={formatDateTime(detailRecord.createdAt)}
+                    />
+                  </dl>
+                </section>
+                <section>
+                  <h3 className="mb-2 font-medium text-sm">
+                    {t("records.sections.data")}
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="mb-1 text-muted-foreground text-sm">
+                        {t("records.detail.variables")}
+                      </div>
+                      <JsonBlock value={detailRecord.variables} />
                     </div>
-                    <JsonBlock value={detailRecord.variables} />
-                  </div>
-                  <div>
-                    <div className="mb-1 text-muted-foreground text-sm">
-                      {t("records.detail.metadata")}
+                    <div>
+                      <div className="mb-1 text-muted-foreground text-sm">
+                        {t("records.detail.metadata")}
+                      </div>
+                      <JsonBlock value={detailRecord.metadata} />
                     </div>
-                    <JsonBlock value={detailRecord.metadata} />
                   </div>
-                </div>
-              </section>
-            </div>
-          )}
+                </section>
+              </div>
+            )}
+          </SheetBody>
         </SheetContent>
       </Sheet>
     </>

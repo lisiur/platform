@@ -2,6 +2,7 @@
 
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -102,7 +103,7 @@ function showDialog<R>(
                 )}
               </DialogHeader>
             )}
-            {options.content}
+            {options.content && <DialogBody>{options.content}</DialogBody>}
             {options.footer && (
               <DialogFooter>{options.footer(handleClose)}</DialogFooter>
             )}

@@ -3,6 +3,7 @@
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -117,80 +118,90 @@ export function NotificationChannelDialog({
               : t("channels.createDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field>
-            <FieldLabel htmlFor="channel-name">{t("fields.name")}</FieldLabel>
-            <Input
-              id="channel-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
+        <DialogBody>
+          <form
+            id="notification-channel-dialog-form"
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+            <Field>
+              <FieldLabel htmlFor="channel-name">{t("fields.name")}</FieldLabel>
+              <Input
+                id="channel-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="channel-key">{t("fields.key")}</FieldLabel>
+              <Input
+                id="channel-key"
+                value={key}
+                onChange={(event) => setKey(event.target.value)}
+                required
+              />
+            </Field>
+            <Field>
+              <FieldLabel>{t("fields.provider")}</FieldLabel>
+              <Select value={providerKey} onValueChange={handleProviderChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {selectedProvider?.name ?? t("channels.selectProvider")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((provider) => (
+                    <SelectItem key={provider.key} value={provider.key}>
+                      {provider.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProvider?.description && (
+                <FieldDescription>
+                  {selectedProvider.description}
+                </FieldDescription>
+              )}
+            </Field>
+            <Field orientation="horizontal" className="justify-between">
+              <div className="space-y-1">
+                <FieldLabel htmlFor="channel-enabled">
+                  {t("fields.enabled")}
+                </FieldLabel>
+                <FieldDescription>
+                  {t("channels.enabledDescription")}
+                </FieldDescription>
+              </div>
+              <Switch
+                id="channel-enabled"
+                checked={enabled}
+                onCheckedChange={setEnabled}
+              />
+            </Field>
+            <ChannelConfigFields
+              schema={selectedProvider?.configSchema}
+              value={config}
+              onChange={setConfig}
             />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="channel-key">{t("fields.key")}</FieldLabel>
-            <Input
-              id="channel-key"
-              value={key}
-              onChange={(event) => setKey(event.target.value)}
-              required
-            />
-          </Field>
-          <Field>
-            <FieldLabel>{t("fields.provider")}</FieldLabel>
-            <Select value={providerKey} onValueChange={handleProviderChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {selectedProvider?.name ?? t("channels.selectProvider")}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {providers.map((provider) => (
-                  <SelectItem key={provider.key} value={provider.key}>
-                    {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedProvider?.description && (
-              <FieldDescription>
-                {selectedProvider.description}
-              </FieldDescription>
-            )}
-          </Field>
-          <Field orientation="horizontal" className="justify-between">
-            <div className="space-y-1">
-              <FieldLabel htmlFor="channel-enabled">
-                {t("fields.enabled")}
-              </FieldLabel>
-              <FieldDescription>
-                {t("channels.enabledDescription")}
-              </FieldDescription>
-            </div>
-            <Switch
-              id="channel-enabled"
-              checked={enabled}
-              onCheckedChange={setEnabled}
-            />
-          </Field>
-          <ChannelConfigFields
-            schema={selectedProvider?.configSchema}
-            value={config}
-            onChange={setConfig}
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("actions.cancel")}
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? t("actions.saving") : t("actions.save")}
-            </Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("actions.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="notification-channel-dialog-form"
+            disabled={saving}
+          >
+            {saving ? t("actions.saving") : t("actions.save")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

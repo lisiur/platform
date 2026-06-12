@@ -1,6 +1,7 @@
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -42,23 +43,25 @@ export function LogDetailDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        {traceId && (
-          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
-            <span className="text-muted-foreground text-sm">
-              {t("columns.traceId")}
-            </span>
-            <code className="rounded bg-background px-2 py-1 font-mono text-xs">
-              {traceId}
-            </code>
-            <Button variant="ghost" size="sm" onClick={copyTraceId}>
-              <Copy className="mr-1 h-3 w-3" />
-              {t("copy")}
-            </Button>
-          </div>
-        )}
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 text-sm">
-          {JSON.stringify(data, null, 2)}
-        </pre>
+        <DialogBody>
+          {traceId && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2">
+              <span className="text-muted-foreground text-sm">
+                {t("columns.traceId")}
+              </span>
+              <code className="rounded bg-background px-2 py-1 font-mono text-xs">
+                {traceId}
+              </code>
+              <Button variant="ghost" size="sm" onClick={copyTraceId}>
+                <Copy className="mr-1 h-3 w-3" />
+                {t("copy")}
+              </Button>
+            </div>
+          )}
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-4 text-sm">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

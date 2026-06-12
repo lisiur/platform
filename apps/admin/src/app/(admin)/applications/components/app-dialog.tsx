@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -173,86 +174,96 @@ export function AppDialog({
             {isEdit ? t("editAppDescription") : t("addAppDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
-              <Input id="name" {...register("name")} />
-              <FieldError errors={errors.name ? [errors.name] : undefined} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="code">{t("code")}</FieldLabel>
-              <Input id="code" {...register("code")} />
-              <FieldError errors={errors.code ? [errors.code] : undefined} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="description">
-                {t("description_label")}
-              </FieldLabel>
-              <Textarea
-                id="description"
-                {...register("description")}
-                rows={3}
-              />
-              <FieldError
-                errors={errors.description ? [errors.description] : undefined}
-              />
-            </Field>
-            <Field>
-              <FieldLabel>{t("logo")}</FieldLabel>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              {logoPreview ? (
-                <div className="relative inline-block">
-                  <Image
-                    src={logoPreview}
-                    alt="Logo preview"
-                    width={80}
-                    height={80}
-                    className="rounded-lg border object-cover"
-                    unoptimized
-                  />
+        <DialogBody>
+          <form
+            id="application-dialog-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+                <Input id="name" {...register("name")} />
+                <FieldError errors={errors.name ? [errors.name] : undefined} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="code">{t("code")}</FieldLabel>
+                <Input id="code" {...register("code")} />
+                <FieldError errors={errors.code ? [errors.code] : undefined} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="description">
+                  {t("description_label")}
+                </FieldLabel>
+                <Textarea
+                  id="description"
+                  {...register("description")}
+                  rows={3}
+                />
+                <FieldError
+                  errors={errors.description ? [errors.description] : undefined}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>{t("logo")}</FieldLabel>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {logoPreview ? (
+                  <div className="relative inline-block">
+                    <Image
+                      src={logoPreview}
+                      alt="Logo preview"
+                      width={80}
+                      height={80}
+                      className="rounded-lg border object-cover"
+                      unoptimized
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6"
-                    onClick={handleRemoveLogo}
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <X className="h-3 w-3" />
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    {t("uploadLogo")}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                  {t("uploadLogo")}
-                </Button>
-              )}
-              <FieldError errors={errors.logo ? [errors.logo] : undefined} />
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t("saving") : t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
+                )}
+                <FieldError errors={errors.logo ? [errors.logo] : undefined} />
+              </Field>
+            </FieldGroup>
+          </form>
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="application-dialog-form"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? t("saving") : t("save")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

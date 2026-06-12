@@ -7,6 +7,7 @@ import type {
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -430,17 +431,19 @@ export function MenuTree({
                 : t("createMenuDescription")}
             </DialogDescription>
           </DialogHeader>
-          <MenuForm
-            key={dialogKey}
-            ref={createFormRef}
-            defaultValues={{
-              name: "",
-              code: "",
-              icon: "",
-              linkType: defaultLinkType,
-              url: "",
-            }}
-          />
+          <DialogBody>
+            <MenuForm
+              key={dialogKey}
+              ref={createFormRef}
+              defaultValues={{
+                name: "",
+                code: "",
+                icon: "",
+                linkType: defaultLinkType,
+                url: "",
+              }}
+            />
+          </DialogBody>
           <DialogFooter>
             <Button
               variant="outline"

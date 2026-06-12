@@ -3,6 +3,7 @@
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -182,7 +183,7 @@ export function NotificationTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>
             {isEdit ? t("templates.edit") : t("templates.create")}
@@ -193,13 +194,9 @@ export function NotificationTemplateDialog({
               : t("templates.createDescription")}
           </DialogDescription>
         </DialogHeader>
-        <form
-          ref={formRef}
-          onSubmit={handleSubmit}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          <div className="overflow-y-auto min-h-0 flex-1 -mx-[3px] -my-[3px]">
-            <div className="space-y-4 px-[3px] py-[3px]">
+        <DialogBody>
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="template-name">
@@ -374,8 +371,8 @@ export function NotificationTemplateDialog({
                 </div>
               </Field>
             </div>
-          </div>
-        </form>
+          </form>
+        </DialogBody>
         <DialogFooter className="shrink-0">
           <Button
             type="button"
