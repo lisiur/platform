@@ -389,6 +389,43 @@ async function seedAdminApplication() {
   return app;
 }
 
+async function seedOrganizationApplication() {
+  console.log("Seeding organization application...");
+  const app = await prisma.application.upsert({
+    where: { code: "organization" },
+    update: {
+      name: "Organization",
+      description: "Organization workspace application",
+    },
+    create: {
+      id: "organization",
+      name: "Organization",
+      code: "organization",
+      description: "Organization workspace application",
+    },
+  });
+  console.log(`Organization application ready: ${app.id}`);
+  return app;
+}
+
+async function seedDefaultOrganization() {
+  console.log("Seeding default organization...");
+  const organization = await prisma.organization.upsert({
+    where: { slug: "demo" },
+    update: {
+      name: "Demo",
+    },
+    create: {
+      id: "demo",
+      name: "Demo",
+      slug: "demo",
+      createdAt: new Date(),
+    },
+  });
+  console.log(`Default organization ready: ${organization.id}`);
+  return organization;
+}
+
 async function seedPermissions(appId: string) {
   console.log("Seeding permissions...");
   const permissionIds: Record<string, string> = {};
@@ -523,6 +560,76 @@ async function seedMenus(appId: string) {
   }
 
   console.log(`Seeded ${menuIds.length} menus.`);
+  return menuIds;
+}
+
+async function seedOrganizationMenus(appId: string) {
+  console.log("Seeding organization menus...");
+
+  const menuDefinitions = [
+    {
+      id: "organization-members",
+      name: "Members",
+      code: "members",
+      icon: "Users",
+      linkType: "INTERNAL" as const,
+      url: "/organization/members",
+      sortOrder: 0,
+    },
+    {
+      id: "organization-settings",
+      name: "Settings",
+      code: "settings",
+      icon: "Settings",
+      linkType: "INTERNAL" as const,
+      url: "/organization/settings",
+      sortOrder: 1,
+    },
+  ];
+
+  const menuIds: string[] = [];
+
+  for (const menu of menuDefinitions) {
+    const permCode = menuPermissionCode(menu.code);
+
+    const permission = await prisma.permission.upsert({
+      where: { appId_code: { appId, code: permCode } },
+      update: { name: `Menu: ${menu.name}` },
+      create: {
+        appId,
+        name: `Menu: ${menu.name}`,
+        code: permCode,
+        group: "menu-item",
+        description: `View access for menu "${menu.name}"`,
+      },
+    });
+
+    await prisma.menu.upsert({
+      where: { id: menu.id },
+      update: {
+        name: menu.name,
+        icon: menu.icon,
+        linkType: menu.linkType,
+        url: menu.url,
+        sortOrder: menu.sortOrder,
+        permissionId: permission.id,
+      },
+      create: {
+        id: menu.id,
+        appId,
+        name: menu.name,
+        code: menu.code,
+        icon: menu.icon,
+        linkType: menu.linkType,
+        url: menu.url,
+        sortOrder: menu.sortOrder,
+        permissionId: permission.id,
+      },
+    });
+    menuIds.push(menu.id);
+  }
+
+  console.log(`Seeded ${menuIds.length} organization menus.`);
   return menuIds;
 }
 
@@ -736,6 +843,10 @@ async function seed() {
   await seedPermissions(adminApp.id);
   const _menuIds = await seedMenus(adminApp.id);
   const roleIds = await seedRoles(adminApp.id);
+
+  const organizationApp = await seedOrganizationApplication();
+  const _organizationMenuIds = await seedOrganizationMenus(organizationApp.id);
+  await seedDefaultOrganization();
 
   const allPermissions = await prisma.permission.findMany({
     where: { appId: adminApp.id },
