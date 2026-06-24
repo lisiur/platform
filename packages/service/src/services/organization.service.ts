@@ -1,3 +1,4 @@
+import { ORG_OWNER_ROLE_CODE, ORGANIZATION_APP_CODE } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 
@@ -46,7 +47,7 @@ export async function registerOrganizationForUser(
       throw new HTTPException(409, { message: "Slug already taken" });
     }
 
-    return tx.organization.create({
+    const organization = await tx.organization.create({
       data: {
         ...data,
         createdAt: new Date(),
@@ -59,6 +60,40 @@ export async function registerOrganizationForUser(
         },
       },
     });
+
+    const ownerRole = await tx.role.findUnique({
+      where: {
+        appId_scopeType_scopeId_code: {
+          appId: ORGANIZATION_APP_CODE,
+          scopeType: "PLATFORM",
+          scopeId: "",
+          code: ORG_OWNER_ROLE_CODE,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (ownerRole) {
+      await tx.roleAssignment.upsert({
+        where: {
+          userId_roleId_scopeType_scopeId: {
+            userId,
+            roleId: ownerRole.id,
+            scopeType: "ORGANIZATION",
+            scopeId: organization.id,
+          },
+        },
+        update: {},
+        create: {
+          userId,
+          roleId: ownerRole.id,
+          scopeType: "ORGANIZATION",
+          scopeId: organization.id,
+        },
+      });
+    }
+
+    return organization;
   });
 }
 
@@ -113,4 +148,33 @@ export async function listOrganizations(params: {
   ]);
 
   return { organizations, total };
+}
+
+export async function listOrganizationsForUser(userId: string) {
+  const organizations = await prisma.organization.findMany({
+    where: { members: { some: { userId } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return { organizations };
+}
+
+export async function activateOrganizationForUser(params: {
+  sessionId: string;
+  userId: string;
+  organizationId: string;
+}) {
+  const membership = await prisma.member.findFirst({
+    where: { userId: params.userId, organizationId: params.organizationId },
+  });
+  if (!membership) {
+    throw new HTTPException(403, {
+      message: "You are not a member of this organization",
+    });
+  }
+
+  return prisma.session.update({
+    where: { id: params.sessionId },
+    data: { activeOrganizationId: params.organizationId },
+  });
 }

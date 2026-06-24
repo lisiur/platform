@@ -1,4 +1,5 @@
 import { SidebarInset, SidebarProvider, TooltipProvider } from "@repo/ui";
+import { OrganizationGuard } from "@/components/auth/organization-guard";
 import { SessionGuard } from "@/components/auth/session-guard";
 import { AppSidebar } from "@/components/layout/sidebar";
 import { SidebarBorderTrigger } from "@/components/layout/sidebar-border-trigger";
@@ -11,14 +12,16 @@ export default function Layout({
 }>) {
   return (
     <SessionGuard>
-      <TooltipProvider>
-        <SidebarProvider>
-          <SidebarToggleListener />
-          <AppSidebar />
-          <SidebarBorderTrigger />
-          <SidebarInset>{children}</SidebarInset>
-        </SidebarProvider>
-      </TooltipProvider>
+      <OrganizationGuard>
+        <TooltipProvider>
+          <SidebarProvider>
+            <SidebarToggleListener />
+            <AppSidebar />
+            <SidebarBorderTrigger />
+            <SidebarInset>{children}</SidebarInset>
+          </SidebarProvider>
+        </TooltipProvider>
+      </OrganizationGuard>
     </SessionGuard>
   );
 }

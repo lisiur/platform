@@ -1,6 +1,15 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { BUILTIN_ROLE_FLAG, BUILTIN_USER_FLAG } from "@repo/shared";
+import {
+  ADMIN_APP_CODE,
+  ADMIN_ROLE_CODE,
+  BUILTIN_ROLE_FLAG,
+  BUILTIN_USER_FLAG,
+  ORG_MEMBER_ROLE_CODE,
+  ORG_OWNER_ROLE_CODE,
+  ORGANIZATION_APP_CODE,
+  USER_ROLE_CODE,
+} from "@repo/shared";
 import { hashPassword } from "../src/lib/password";
 import { PrismaClient } from "./generated/prisma/client";
 
@@ -373,15 +382,15 @@ const defaultConfigs = [
 async function seedAdminApplication() {
   console.log("Seeding admin application...");
   const app = await prisma.application.upsert({
-    where: { code: "admin" },
+    where: { code: ADMIN_APP_CODE },
     update: {
       name: "Admin Panel",
       description: "Administrative dashboard application",
     },
     create: {
-      id: "admin",
+      id: ADMIN_APP_CODE,
       name: "Admin Panel",
-      code: "admin",
+      code: ADMIN_APP_CODE,
       description: "Administrative dashboard application",
     },
   });
@@ -392,15 +401,15 @@ async function seedAdminApplication() {
 async function seedOrganizationApplication() {
   console.log("Seeding organization application...");
   const app = await prisma.application.upsert({
-    where: { code: "organization" },
+    where: { code: ORGANIZATION_APP_CODE },
     update: {
       name: "Organization",
       description: "Organization workspace application",
     },
     create: {
-      id: "organization",
+      id: ORGANIZATION_APP_CODE,
       name: "Organization",
-      code: "organization",
+      code: ORGANIZATION_APP_CODE,
       description: "Organization workspace application",
     },
   });
@@ -486,6 +495,66 @@ async function upsertMenuPermission(
       description: params.description,
     },
   });
+}
+
+async function upsertFeaturePermission(
+  appId: string,
+  params: {
+    name: string;
+    code: string;
+    group: string;
+    description: string;
+  },
+) {
+  const existing = await prisma.permission.findFirst({
+    where: { appId, code: params.code },
+  });
+
+  if (existing) {
+    return prisma.permission.update({
+      where: { id: existing.id },
+      data: {
+        name: params.name,
+        group: params.group,
+        description: params.description,
+      },
+    });
+  }
+
+  return prisma.permission.create({
+    data: {
+      appId,
+      name: params.name,
+      code: params.code,
+      group: params.group,
+      description: params.description,
+    },
+  });
+}
+
+const organizationFeaturePermissionDefinitions = [
+  {
+    code: "organization-member::list",
+    group: "organization-member",
+    name: "List Organization Members",
+    description: "List members of an organization",
+  },
+  {
+    code: "organization-member::remove",
+    group: "organization-member",
+    name: "Remove Organization Member",
+    description: "Remove a member from an organization",
+  },
+];
+
+async function seedOrganizationFeaturePermissions(appId: string) {
+  console.log("Seeding organization feature permissions...");
+  for (const def of organizationFeaturePermissionDefinitions) {
+    await upsertFeaturePermission(appId, def);
+  }
+  console.log(
+    `Seeded ${organizationFeaturePermissionDefinitions.length} organization feature permissions.`,
+  );
 }
 
 async function seedMenus(appId: string) {
@@ -661,22 +730,10 @@ async function seedOrganizationMenus(appId: string) {
   return menuIds;
 }
 
-async function seedRoles(appId: string) {
-  console.log("Seeding roles...");
-
-  const roleDefinitions = [
-    {
-      name: "Administrator",
-      code: "admin",
-      flags: [BUILTIN_ROLE_FLAG],
-    },
-    {
-      name: "User",
-      code: "user",
-      flags: [BUILTIN_ROLE_FLAG],
-    },
-  ];
-
+async function seedRolesForApp(
+  appId: string,
+  roleDefinitions: { name: string; code: string; flags: string[] }[],
+) {
   const roleIds: Record<string, string> = {};
 
   for (const def of roleDefinitions) {
@@ -707,7 +764,46 @@ async function seedRoles(appId: string) {
     roleIds[def.code] = role.id;
   }
 
+  return roleIds;
+}
+
+async function seedRoles(appId: string) {
+  console.log("Seeding roles...");
+
+  const roleIds = await seedRolesForApp(appId, [
+    {
+      name: "Administrator",
+      code: ADMIN_ROLE_CODE,
+      flags: [BUILTIN_ROLE_FLAG],
+    },
+    {
+      name: "User",
+      code: USER_ROLE_CODE,
+      flags: [BUILTIN_ROLE_FLAG],
+    },
+  ]);
+
   console.log(`Seeded ${Object.keys(roleIds).length} roles.`);
+  return roleIds;
+}
+
+async function seedOrganizationRoles(appId: string) {
+  console.log("Seeding organization roles...");
+
+  const roleIds = await seedRolesForApp(appId, [
+    {
+      name: "Owner",
+      code: ORG_OWNER_ROLE_CODE,
+      flags: [BUILTIN_ROLE_FLAG],
+    },
+    {
+      name: "Member",
+      code: ORG_MEMBER_ROLE_CODE,
+      flags: [BUILTIN_ROLE_FLAG],
+    },
+  ]);
+
+  console.log(`Seeded ${Object.keys(roleIds).length} organization roles.`);
   return roleIds;
 }
 
@@ -892,6 +988,8 @@ async function seed() {
 
   const organizationApp = await seedOrganizationApplication();
   const _organizationMenuIds = await seedOrganizationMenus(organizationApp.id);
+  await seedOrganizationFeaturePermissions(organizationApp.id);
+  const orgRoleIds = await seedOrganizationRoles(organizationApp.id);
   await seedDefaultOrganization();
 
   const allPermissions = await prisma.permission.findMany({
@@ -919,6 +1017,30 @@ async function seed() {
     }
   }
   await seedRolePermissions(roleIds.user, userPermIds);
+
+  // Organization app: owner gets all app permissions, member gets view-only menus
+  const orgPermissions = await prisma.permission.findMany({
+    where: { appId: organizationApp.id },
+    select: { id: true, code: true },
+  });
+  const orgPermIds: Record<string, string> = {};
+  for (const p of orgPermissions) {
+    orgPermIds[p.code] = p.id;
+  }
+  await seedRolePermissions(orgRoleIds[ORG_OWNER_ROLE_CODE], orgPermIds);
+
+  const orgMemberPermCodes = [
+    "menu-item:members::view",
+    "menu-item:settings::view",
+    "organization-member::list",
+  ];
+  const orgMemberPermIds: Record<string, string> = {};
+  for (const code of orgMemberPermCodes) {
+    if (orgPermIds[code]) {
+      orgMemberPermIds[code] = orgPermIds[code];
+    }
+  }
+  await seedRolePermissions(orgRoleIds[ORG_MEMBER_ROLE_CODE], orgMemberPermIds);
 
   const adminUser = await seedUser({
     id: "admin",

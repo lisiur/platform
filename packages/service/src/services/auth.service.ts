@@ -30,13 +30,19 @@ async function logAuthLogin(session: AuthSession, traceId?: string) {
 }
 
 async function getDefaultActiveOrganizationId(userId: string) {
-  const membership = await prisma.member.findFirst({
+  const memberships = await prisma.member.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
     select: { organizationId: true },
   });
 
-  return membership?.organizationId ?? null;
+  // Only auto-select when the user belongs to a single organization.
+  // Users with multiple organizations must choose one themselves.
+  if (memberships.length === 1) {
+    return memberships[0].organizationId;
+  }
+
+  return null;
 }
 
 export async function signInWithEmail(params: {

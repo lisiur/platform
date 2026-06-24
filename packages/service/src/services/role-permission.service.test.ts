@@ -5,14 +5,20 @@ vi.mock("#lib/db", () => ({
     permission: {
       findMany: vi.fn(),
     },
+    menu: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
 import { prisma } from "#lib/db";
-import { getUserPermissions } from "./role-permission.service";
+import { getMenusForUser, getUserPermissions } from "./role-permission.service";
 
 const mockPrisma = prisma as unknown as {
   permission: {
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  menu: {
     findMany: ReturnType<typeof vi.fn>;
   };
 };
@@ -49,6 +55,62 @@ describe("getUserPermissions", () => {
         },
       },
       select: { code: true },
+    });
+  });
+});
+
+describe("getMenusForUser", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns org-app menus for an organization owner across all scopes", async () => {
+    const menus = [
+      {
+        id: "organization-members",
+        appId: "organization",
+        code: "members",
+        sortOrder: 0,
+      },
+      {
+        id: "organization-settings",
+        appId: "organization",
+        code: "settings",
+        sortOrder: 1,
+      },
+    ];
+    mockPrisma.menu.findMany.mockResolvedValue(menus);
+
+    await expect(
+      getMenusForUser("user1", "organization", {
+        appId: "organization",
+        organizationId: "org1",
+      }),
+    ).resolves.toEqual(menus);
+
+    expect(mockPrisma.menu.findMany).toHaveBeenCalledWith({
+      where: {
+        appId: "organization",
+        permission: {
+          rolePermissions: {
+            some: {
+              role: {
+                roleAssignments: {
+                  some: {
+                    userId: "user1",
+                    OR: [
+                      { scopeType: "PLATFORM", scopeId: "" },
+                      { scopeType: "ORGANIZATION", scopeId: "org1" },
+                      { scopeType: "APPLICATION", scopeId: "organization" },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { sortOrder: "asc" },
     });
   });
 });

@@ -12,26 +12,23 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { useSession } from "@/lib/api";
-import { redirectToFirstMenuOrProfile } from "@/lib/navigation/menu-redirect";
-import { useMenuStore } from "@/stores/menu-store";
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
   const { data: session, isPending, refetch } = useSession();
-  const refetchMenus = useMenuStore((state) => state.refetchMenus);
   const handledValidSessionRef = useRef(false);
 
   async function handleLoginSuccess() {
     await refetch();
-    await redirectToFirstMenuOrProfile(router, refetchMenus);
+    router.push("/");
   }
 
   useEffect(() => {
     if (!session || handledValidSessionRef.current) return;
     handledValidSessionRef.current = true;
-    void redirectToFirstMenuOrProfile(router, refetchMenus);
-  }, [session, router, refetchMenus]);
+    router.push("/");
+  }, [session, router]);
 
   if (isPending || session) {
     return (

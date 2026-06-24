@@ -38,6 +38,12 @@ const tx = {
     findUnique: vi.fn(),
     create: vi.fn(),
   },
+  role: {
+    findUnique: vi.fn(),
+  },
+  roleAssignment: {
+    upsert: vi.fn(),
+  },
 };
 
 async function testRoute(options: { body?: unknown; headers?: HeadersInit }) {
@@ -91,6 +97,8 @@ describe("POST /register - Register Organization", () => {
       metadata: null,
       createdAt: now,
     });
+    tx.role.findUnique.mockResolvedValue({ id: "owner-role-id" });
+    tx.roleAssignment.upsert.mockResolvedValue({});
 
     const res = await testRoute({
       body: { name: "Acme Corp", slug: "acme-corp" },
@@ -112,6 +120,34 @@ describe("POST /register - Register Organization", () => {
             createdAt: expect.any(Date),
           },
         },
+      },
+    });
+    expect(tx.role.findUnique).toHaveBeenCalledWith({
+      where: {
+        appId_scopeType_scopeId_code: {
+          appId: "organization",
+          scopeType: "PLATFORM",
+          scopeId: "",
+          code: "owner",
+        },
+      },
+      select: { id: true },
+    });
+    expect(tx.roleAssignment.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_roleId_scopeType_scopeId: {
+          userId: "user1",
+          roleId: "owner-role-id",
+          scopeType: "ORGANIZATION",
+          scopeId: "org1",
+        },
+      },
+      update: {},
+      create: {
+        userId: "user1",
+        roleId: "owner-role-id",
+        scopeType: "ORGANIZATION",
+        scopeId: "org1",
       },
     });
     expect(mockPrisma.session.update).toHaveBeenCalledWith({

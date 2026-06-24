@@ -24,7 +24,11 @@
     "name": "Name",
     "email": "Email",
     "password": "Password",
-    "required": "{field} is required"
+    "required": "{field} is required",
+    "showing": "Showing",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next"
   },
   "RegisterOrganization": {
     "title": "Register your organization",
@@ -43,6 +47,16 @@
     "registering": "Registering...",
     "registrationFailed": "Failed to register organization",
     "registrationSuccess": "Organization registered"
+  },
+  "ChooseOrganization": {
+    "title": "Choose an organization",
+    "description": "Select an organization to continue, or create a new one.",
+    "empty": "You don't belong to any organization yet.",
+    "createButton": "Create organization",
+    "select": "Select",
+    "activating": "Selecting...",
+    "activateSuccess": "Organization selected",
+    "loadFailed": "Failed to load organizations"
   },
   "Home": {
     "title": "Organization Portal",
@@ -91,6 +105,26 @@
   "Header": {
     "appearance": "Appearance",
     "language": "Language"
+  },
+  "Members": {
+    "title": "Members",
+    "description": "Manage the members of this organization",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "roleOwner": "Owner",
+    "roleMember": "Member",
+    "joinedAt": "Joined",
+    "actions": "Actions",
+    "you": "You",
+    "noMembers": "No members found",
+    "removeMember": "Remove member",
+    "confirmRemove": "Remove member",
+    "confirmRemoveDescription": "Are you sure you want to remove {name} from this organization?",
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "removeSuccess": "Member removed",
+    "lastOwnerError": "An organization must have at least one owner"
   },
   "Sidebar": {
     "noMenus": "No menus available",

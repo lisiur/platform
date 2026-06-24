@@ -24,7 +24,11 @@
     "name": "姓名",
     "email": "邮箱",
     "password": "密码",
-    "required": "请输入{field}"
+    "required": "请输入{field}",
+    "showing": "显示",
+    "of": "/ 共",
+    "previous": "上一页",
+    "next": "下一页"
   },
   "RegisterOrganization": {
     "title": "注册组织",
@@ -43,6 +47,16 @@
     "registering": "注册中...",
     "registrationFailed": "组织注册失败",
     "registrationSuccess": "组织已注册"
+  },
+  "ChooseOrganization": {
+    "title": "选择组织",
+    "description": "选择一个组织以继续，或创建一个新组织。",
+    "empty": "你还没有加入任何组织。",
+    "createButton": "创建组织",
+    "select": "选择",
+    "activating": "选择中...",
+    "activateSuccess": "组织已选择",
+    "loadFailed": "加载组织失败"
   },
   "Home": {
     "title": "组织门户",
@@ -91,6 +105,26 @@
   "Header": {
     "appearance": "外观",
     "language": "语言"
+  },
+  "Members": {
+    "title": "成员",
+    "description": "管理本组织的成员",
+    "name": "姓名",
+    "email": "邮箱",
+    "role": "角色",
+    "roleOwner": "所有者",
+    "roleMember": "成员",
+    "joinedAt": "加入时间",
+    "actions": "操作",
+    "you": "你",
+    "noMembers": "暂无成员",
+    "removeMember": "移除成员",
+    "confirmRemove": "移除成员",
+    "confirmRemoveDescription": "确定要将 {name} 从本组织中移除吗？",
+    "remove": "移除",
+    "cancel": "取消",
+    "removeSuccess": "成员已移除",
+    "lastOwnerError": "组织必须至少有一个所有者"
   },
   "Sidebar": {
     "noMenus": "暂无菜单",

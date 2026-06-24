@@ -53,12 +53,24 @@ export const listOrganizationsResponseSchema = z
   })
   .openapi("ListOrganizationsResponse");
 
+export const mineOrganizationsResponseSchema = z
+  .object({
+    organizations: organizationSchema.array(),
+  })
+  .openapi("MineOrganizationsResponse");
+
 export type Organization = z.infer<typeof organizationSchema>;
 export type CreateOrganizationBody = z.infer<
   typeof createOrganizationBodySchema
 >;
 export type RegisterOrganizationBody = z.infer<
   typeof registerOrganizationBodySchema
+>;
+export type ListOrganizationsResponse = z.infer<
+  typeof listOrganizationsResponseSchema
+>;
+export type MineOrganizationsResponse = z.infer<
+  typeof mineOrganizationsResponseSchema
 >;
 export type UpdateOrganizationBody = z.infer<
   typeof updateOrganizationBodySchema
