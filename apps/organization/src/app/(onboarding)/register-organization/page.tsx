@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useSession } from "@/lib/api";
 import { redirectToFirstMenuOrProfile } from "@/lib/navigation/menu-redirect";
 import { useMenuStore } from "@/stores/menu-store";
 import { OrganizationRegistrationForm } from "./components/organization-registration-form";
@@ -9,9 +10,11 @@ import { OrganizationRegistrationForm } from "./components/organization-registra
 export default function RegisterOrganizationPage() {
   const router = useRouter();
   const t = useTranslations("RegisterOrganization");
+  const { refetch: refetchSession } = useSession();
   const refetchMenus = useMenuStore((state) => state.refetchMenus);
 
   async function handleSuccess() {
+    await refetchSession();
     await redirectToFirstMenuOrProfile(router, refetchMenus);
   }
 
