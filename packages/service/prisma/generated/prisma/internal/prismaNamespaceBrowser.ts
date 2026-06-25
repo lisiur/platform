@@ -62,6 +62,7 @@ export const ModelName = {
   Upload: 'Upload',
   Application: 'Application',
   Menu: 'Menu',
+  MenuPermission: 'MenuPermission',
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   RoleAssignment: 'RoleAssignment',
@@ -247,12 +248,21 @@ export const MenuScalarFieldEnum = {
   linkType: 'linkType',
   url: 'url',
   sortOrder: 'sortOrder',
-  permissionId: 'permissionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type MenuScalarFieldEnum = (typeof MenuScalarFieldEnum)[keyof typeof MenuScalarFieldEnum]
+
+
+export const MenuPermissionScalarFieldEnum = {
+  id: 'id',
+  menuId: 'menuId',
+  permissionId: 'permissionId',
+  createdAt: 'createdAt'
+} as const
+
+export type MenuPermissionScalarFieldEnum = (typeof MenuPermissionScalarFieldEnum)[keyof typeof MenuPermissionScalarFieldEnum]
 
 
 export const PermissionScalarFieldEnum = {

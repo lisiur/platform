@@ -24,7 +24,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
-import { RoleMenuAssignment } from "./role-menu-assignment";
+import { RolePermissionAssignment } from "./role-permission-assignment";
 
 interface Role {
   id: string;
@@ -46,10 +46,10 @@ export function ApplicationRoleManagement({
   className,
 }: ApplicationRoleManagementProps) {
   const t = useTranslations("Roles");
-  const roleMenusT = useTranslations("RoleMenus");
+  const rolePermissionsT = useTranslations("RolePermissions");
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [permissionDrawerOpen, setPermissionDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchRoles = useCallback(async () => {
@@ -130,7 +130,7 @@ export function ApplicationRoleManagement({
                   size="icon"
                   onClick={() => {
                     setSelectedRole(role);
-                    setMenuDrawerOpen(true);
+                    setPermissionDrawerOpen(true);
                   }}
                 >
                   <ListChecks className="h-4 w-4" />
@@ -151,22 +151,29 @@ export function ApplicationRoleManagement({
         </TableBody>
       </Table>
 
-      <Sheet open={menuDrawerOpen} onOpenChange={setMenuDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl">
+      <Sheet open={permissionDrawerOpen} onOpenChange={setPermissionDrawerOpen}>
+        <SheetContent
+          side="right"
+          className="w-full data-[side=right]:sm:max-w-2xl data-[side=right]:md:max-w-3xl"
+        >
           <SheetHeader>
             <SheetTitle>
               {selectedRole
-                ? roleMenusT("assignForRole", { name: selectedRole.name })
-                : roleMenusT("title")}
+                ? rolePermissionsT("assignForRole", { name: selectedRole.name })
+                : rolePermissionsT("title")}
             </SheetTitle>
-            <SheetDescription>{roleMenusT("description")}</SheetDescription>
+            <SheetDescription>
+              {rolePermissionsT("description")}
+            </SheetDescription>
           </SheetHeader>
           <SheetBody>
-            <RoleMenuAssignment
-              appId={appId}
-              role={selectedRole}
-              onSaved={() => setMenuDrawerOpen(false)}
-            />
+            {selectedRole && (
+              <RolePermissionAssignment
+                appId={appId}
+                roleId={selectedRole.id}
+                onSaved={() => setPermissionDrawerOpen(false)}
+              />
+            )}
           </SheetBody>
         </SheetContent>
       </Sheet>

@@ -28,6 +28,14 @@ export function findPermissionsByApp(appId: string) {
   });
 }
 
+export async function listPermissionsForApp(appId: string) {
+  const permissions = await prisma.permission.findMany({
+    where: { OR: [{ appId }, { appId: null }] },
+    orderBy: [{ group: "asc" }, { code: "asc" }],
+  });
+  return { permissions };
+}
+
 export async function deletePermissionByCode(
   code: string,
   appId?: string | null,

@@ -20,8 +20,6 @@ if (!connectionString) {
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
-const menuPermissionCode = (code: string) => `menu-item:${code}::view`;
-
 const permissionDefinitions = [
   {
     code: "system-config::list",
@@ -57,6 +55,16 @@ const permissionDefinitions = [
   { code: "role::create", group: "role", name: "Create Role" },
   { code: "role::update", group: "role", name: "Update Role" },
   { code: "role::delete", group: "role", name: "Delete Role" },
+  {
+    code: "permission::list",
+    group: "permission",
+    name: "List Permissions",
+  },
+  {
+    code: "permission::view",
+    group: "permission",
+    name: "View Permission",
+  },
   {
     code: "user-role::list",
     group: "user-role",
@@ -463,38 +471,27 @@ async function seedPermissions() {
   return permissionIds;
 }
 
-async function upsertMenuPermission(
+async function linkMenuPermissions(
   appId: string,
-  params: {
-    name: string;
-    code: string;
-    description: string;
-  },
+  menuId: string,
+  codes: string[],
 ) {
-  const existing = await prisma.permission.findFirst({
-    where: { appId, code: params.code },
-  });
-
-  if (existing) {
-    return prisma.permission.update({
-      where: { id: existing.id },
-      data: {
-        name: params.name,
-        group: "menu-item",
-        description: params.description,
+  for (const code of codes) {
+    const permission = await prisma.permission.findFirst({
+      where: { code, OR: [{ appId }, { appId: null }] },
+    });
+    if (!permission) {
+      console.warn(`[seed] Permission not found for menu link: ${code}`);
+      continue;
+    }
+    await prisma.menuPermission.upsert({
+      where: {
+        menuId_permissionId: { menuId, permissionId: permission.id },
       },
+      update: {},
+      create: { menuId, permissionId: permission.id },
     });
   }
-
-  return prisma.permission.create({
-    data: {
-      appId,
-      name: params.name,
-      code: params.code,
-      group: "menu-item",
-      description: params.description,
-    },
-  });
 }
 
 async function upsertFeaturePermission(
@@ -581,6 +578,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/applications",
       sortOrder: 0,
+      permissions: ["application::list"],
     },
     {
       id: "organizations",
@@ -590,6 +588,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/organizations",
       sortOrder: 1,
+      permissions: ["organization::list"],
     },
     {
       id: "users",
@@ -599,6 +598,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/users",
       sortOrder: 2,
+      permissions: ["user::list"],
     },
     {
       id: "notifications",
@@ -608,6 +608,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/notifications",
       sortOrder: 3,
+      permissions: ["notification::list"],
     },
     {
       id: "logs",
@@ -617,6 +618,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/logs",
       sortOrder: 4,
+      permissions: ["audit-log::list", "operation-log::list"],
     },
     {
       id: "monitor",
@@ -626,6 +628,7 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/monitor",
       sortOrder: 5,
+      permissions: ["system-info::view"],
     },
     {
       id: "settings",
@@ -635,20 +638,13 @@ async function seedMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/admin/settings",
       sortOrder: 6,
+      permissions: ["system-config::list"],
     },
   ];
 
   const menuIds: string[] = [];
 
   for (const menu of menuDefinitions) {
-    const permCode = menuPermissionCode(menu.code);
-
-    const permission = await upsertMenuPermission(appId, {
-      name: `Menu: ${menu.name}`,
-      code: permCode,
-      description: `View access for menu "${menu.name}"`,
-    });
-
     await prisma.menu.upsert({
       where: { id: menu.id },
       update: {
@@ -657,7 +653,6 @@ async function seedMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
-        permissionId: permission.id,
       },
       create: {
         id: menu.id,
@@ -668,9 +663,9 @@ async function seedMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
-        permissionId: permission.id,
       },
     });
+    await linkMenuPermissions(appId, menu.id, menu.permissions);
     menuIds.push(menu.id);
   }
 
@@ -690,6 +685,7 @@ async function seedOrganizationMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/organization/members",
       sortOrder: 0,
+      permissions: ["organization-member::list"],
     },
     {
       id: "organization-settings",
@@ -699,20 +695,13 @@ async function seedOrganizationMenus(appId: string) {
       linkType: "INTERNAL" as const,
       url: "/organization/settings",
       sortOrder: 1,
+      permissions: ["organization-settings::view"],
     },
   ];
 
   const menuIds: string[] = [];
 
   for (const menu of menuDefinitions) {
-    const permCode = menuPermissionCode(menu.code);
-
-    const permission = await upsertMenuPermission(appId, {
-      name: `Menu: ${menu.name}`,
-      code: permCode,
-      description: `View access for menu "${menu.name}"`,
-    });
-
     await prisma.menu.upsert({
       where: { id: menu.id },
       update: {
@@ -721,7 +710,6 @@ async function seedOrganizationMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
-        permissionId: permission.id,
       },
       create: {
         id: menu.id,
@@ -732,9 +720,9 @@ async function seedOrganizationMenus(appId: string) {
         linkType: menu.linkType,
         url: menu.url,
         sortOrder: menu.sortOrder,
-        permissionId: permission.id,
       },
     });
+    await linkMenuPermissions(appId, menu.id, menu.permissions);
     menuIds.push(menu.id);
   }
 
@@ -999,8 +987,8 @@ async function seed() {
   const roleIds = await seedRoles(adminApp.id);
 
   const organizationApp = await seedOrganizationApplication();
-  const _organizationMenuIds = await seedOrganizationMenus(organizationApp.id);
   await seedOrganizationFeaturePermissions(organizationApp.id);
+  const _organizationMenuIds = await seedOrganizationMenus(organizationApp.id);
   const orgRoleIds = await seedOrganizationRoles(organizationApp.id);
   await seedDefaultOrganization();
 
@@ -1041,10 +1029,7 @@ async function seed() {
   }
   await seedRolePermissions(orgRoleIds[ORG_OWNER_ROLE_CODE], orgPermIds);
 
-  const orgMemberPermCodes = [
-    "menu-item:members::view",
-    "organization-member::list",
-  ];
+  const orgMemberPermCodes = ["organization-member::list"];
   const orgMemberPermIds: Record<string, string> = {};
   for (const code of orgMemberPermCodes) {
     if (orgPermIds[code]) {

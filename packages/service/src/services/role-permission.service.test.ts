@@ -64,19 +64,39 @@ describe("getMenusForUser", () => {
     vi.resetAllMocks();
   });
 
-  it("returns org-app menus for an organization owner across all scopes", async () => {
+  it("returns org-app menus whose required permissions the user holds", async () => {
     const menus = [
       {
         id: "organization-members",
         appId: "organization",
         code: "members",
         sortOrder: 0,
+        menuPermissions: [
+          {
+            permission: {
+              id: "p1",
+              code: "organization-member::list",
+              name: "List Members",
+              group: "organization-member",
+            },
+          },
+        ],
       },
       {
         id: "organization-settings",
         appId: "organization",
         code: "settings",
         sortOrder: 1,
+        menuPermissions: [
+          {
+            permission: {
+              id: "p2",
+              code: "organization-settings::view",
+              name: "View Settings",
+              group: "organization-settings",
+            },
+          },
+        ],
       },
     ];
     mockPrisma.menu.findMany.mockResolvedValue(menus);
@@ -86,23 +106,56 @@ describe("getMenusForUser", () => {
         appId: "organization",
         organizationId: "org1",
       }),
-    ).resolves.toEqual(menus);
+    ).resolves.toEqual([
+      {
+        id: "organization-members",
+        appId: "organization",
+        code: "members",
+        sortOrder: 0,
+        permissions: [
+          {
+            id: "p1",
+            code: "organization-member::list",
+            name: "List Members",
+            group: "organization-member",
+          },
+        ],
+      },
+      {
+        id: "organization-settings",
+        appId: "organization",
+        code: "settings",
+        sortOrder: 1,
+        permissions: [
+          {
+            id: "p2",
+            code: "organization-settings::view",
+            name: "View Settings",
+            group: "organization-settings",
+          },
+        ],
+      },
+    ]);
 
     expect(mockPrisma.menu.findMany).toHaveBeenCalledWith({
       where: {
         appId: "organization",
-        permission: {
-          rolePermissions: {
-            some: {
-              role: {
-                roleAssignments: {
-                  some: {
-                    userId: "user1",
-                    OR: [
-                      { scopeType: "PLATFORM", scopeId: "" },
-                      { scopeType: "ORGANIZATION", scopeId: "org1" },
-                      { scopeType: "APPLICATION", scopeId: "organization" },
-                    ],
+        menuPermissions: {
+          some: {
+            permission: {
+              rolePermissions: {
+                some: {
+                  role: {
+                    roleAssignments: {
+                      some: {
+                        userId: "user1",
+                        OR: [
+                          { scopeType: "PLATFORM", scopeId: "" },
+                          { scopeType: "ORGANIZATION", scopeId: "org1" },
+                          { scopeType: "APPLICATION", scopeId: "organization" },
+                        ],
+                      },
+                    },
                   },
                 },
               },
@@ -111,6 +164,15 @@ describe("getMenusForUser", () => {
         },
       },
       orderBy: { sortOrder: "asc" },
+      include: {
+        menuPermissions: {
+          include: {
+            permission: {
+              select: { id: true, code: true, name: true, group: true },
+            },
+          },
+        },
+      },
     });
   });
 });

@@ -25,6 +25,7 @@ interface Menu {
   linkType: LinkType;
   url: string | null;
   sortOrder: number;
+  permissions: { id: string; code: string; name: string; group: string }[];
 }
 
 interface ApplicationMenuManagementProps {
@@ -73,6 +74,7 @@ export function ApplicationMenuManagement({
           icon: data.icon || null,
           linkType: data.linkType,
           url: data.url || null,
+          permissionIds: data.permissionIds,
         },
       });
       handleMenuSaved();
@@ -103,12 +105,14 @@ export function ApplicationMenuManagement({
             <MenuForm
               key={selectedMenu.id}
               ref={formRef}
+              appId={appId}
               defaultValues={{
                 name: selectedMenu.name,
                 code: selectedMenu.code,
                 icon: selectedMenu.icon ?? "",
                 linkType: selectedMenu.linkType,
                 url: selectedMenu.url ?? "",
+                permissionIds: selectedMenu.permissions.map((p) => p.id),
               }}
             />
             <Separator />

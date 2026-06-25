@@ -9,8 +9,9 @@ import { notificationRecordRoutes } from "./notification-record";
 import { notificationTemplateRoutes } from "./notification-template";
 import { operationLogRoutes } from "./operation-log";
 import { organizationRoutes } from "./organization";
+import { permissionRoutes } from "./permission";
 import { roleRoutes } from "./role";
-import { roleMenusRoutes } from "./role-menu";
+import { rolePermissionRoutes } from "./role-permission";
 import { systemConfigRoutes } from "./system-config";
 import { systemInfoRoutes } from "./system-info";
 import { uploadRoutes } from "./upload";
@@ -23,12 +24,13 @@ const routes = new OpenAPIHono()
   .route("/organizations", organizationRoutes)
   .route("/applications", applicationRoutes)
   .route("/menus", menuRoutes)
+  .route("/permissions", permissionRoutes)
   .route("/notification-channels", notificationChannelRoutes)
   .route("/notification-templates", notificationTemplateRoutes)
   .route("/notifications", notificationRoutes)
   .route("/notification-records", notificationRecordRoutes)
   .route("/roles", roleRoutes)
-  .route("/role-menus", roleMenusRoutes)
+  .route("/role-permissions", rolePermissionRoutes)
   .route("/system-info", systemInfoRoutes)
   .route("/upload", uploadRoutes)
   .route("/user-roles", userRoleRoutes)

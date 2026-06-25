@@ -73,6 +73,11 @@ export type Application = Prisma.ApplicationModel
  */
 export type Menu = Prisma.MenuModel
 /**
+ * Model MenuPermission
+ * 
+ */
+export type MenuPermission = Prisma.MenuPermissionModel
+/**
  * Model Permission
  * 
  */

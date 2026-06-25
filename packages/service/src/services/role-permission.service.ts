@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import { menuPermissionsInclude, serializeMenu } from "./menu.service";
 
 const PLATFORM_SCOPE_ID = "";
 
@@ -70,61 +71,6 @@ export function getPermissionCodesForRole(roleId: string) {
   });
 }
 
-export async function getMenusForRole(roleId: string) {
-  return prisma.menu.findMany({
-    where: {
-      permission: {
-        rolePermissions: { some: { roleId } },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-}
-
-export { getMenusForRole as getRoleMenus };
-
-export async function assignPermissionByMenuIds(
-  roleId: string,
-  menuIds: string[],
-) {
-  const role = await prisma.role.findUnique({ where: { id: roleId } });
-  if (!role) {
-    throw new HTTPException(404, { message: "Role not found" });
-  }
-
-  const menus = await prisma.menu.findMany({
-    where: { id: { in: menuIds }, appId: role.appId },
-    select: { id: true, permissionId: true },
-  });
-
-  const validMenuIds = new Set(menus.map((m) => m.id));
-  for (const menuId of menuIds) {
-    if (!validMenuIds.has(menuId)) {
-      throw new HTTPException(400, {
-        message: "One or more menus do not belong to the role's application",
-      });
-    }
-  }
-
-  const permissionIds = menus.map((m) => m.permissionId);
-
-  await prisma.$transaction([
-    prisma.rolePermission.deleteMany({ where: { roleId } }),
-    prisma.rolePermission.createMany({
-      data: permissionIds.map((permissionId) => ({ permissionId, roleId })),
-    }),
-  ]);
-
-  return prisma.menu.findMany({
-    where: {
-      permission: {
-        rolePermissions: { some: { roleId } },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
-}
-
 export async function assignRole(params: {
   userId: string;
   roleId: string;
@@ -174,14 +120,18 @@ export async function getMenusForUser(
   const menus = await prisma.menu.findMany({
     where: {
       appId,
-      permission: {
-        rolePermissions: {
-          some: {
-            role: {
-              roleAssignments: {
-                some: {
-                  userId,
-                  OR: getRoleAssignmentScopeConditions(scope),
+      menuPermissions: {
+        some: {
+          permission: {
+            rolePermissions: {
+              some: {
+                role: {
+                  roleAssignments: {
+                    some: {
+                      userId,
+                      OR: getRoleAssignmentScopeConditions(scope),
+                    },
+                  },
                 },
               },
             },
@@ -190,9 +140,9 @@ export async function getMenusForUser(
       },
     },
     orderBy: { sortOrder: "asc" },
+    include: menuPermissionsInclude,
   });
-
-  return menus;
+  return menus.map(serializeMenu);
 }
 
 export async function getUserPermissions(

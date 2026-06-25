@@ -520,24 +520,22 @@
     "updateSuccess": "Menu updated successfully",
     "deleteSuccess": "Menu deleted successfully",
     "backToApps": "Back to Applications",
-    "backToSettings": "Back to Application Settings"
+    "backToSettings": "Back to Application Settings",
+    "requiredPermissions": "Required Permissions",
+    "requiredPermissionsDescription": "Select the permissions needed to view this menu"
   },
-  "RoleMenus": {
-    "title": "Role Menu Assignment",
-    "description": "Manage which menus this role can see",
-    "assignForRole": "Assign menus for \"{name}\"",
-    "selectRole": "Select a role to assign menus",
-    "selectApp": "Applications",
-    "noAppSelected": "Select an application to manage its menu visibility for this role",
+  "RolePermissions": {
+    "title": "Role Permission Assignment",
+    "description": "Manage which permissions this role has",
+    "assignForRole": "Assign permissions for \"{name}\"",
+    "selectRole": "Select a role to assign permissions",
     "save": "Save Assignment",
     "saving": "Saving...",
-    "saved": "Menu assignments saved successfully",
-    "loadError": "Failed to load menus. Please retry.",
-    "saveError": "Failed to save assignment. Please retry.",
-    "noMenus": "No menus available. Create menus in the menu management page first",
+    "saved": "Permission assignments saved successfully",
+    "loadError": "Failed to load permissions. Please retry.",
+    "noPermissions": "No permissions available",
     "expandAll": "Expand All",
-    "collapseAll": "Collapse All",
-    "backToRoles": "Back to Roles"
+    "collapseAll": "Collapse All"
   },
   "Logs": {
     "title": "Log Management",

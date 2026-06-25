@@ -52,6 +52,7 @@ interface Menu {
   linkType: LinkType;
   url: string | null;
   sortOrder: number;
+  permissions: { id: string; code: string; name: string; group: string }[];
 }
 
 interface MenuTreeNode extends DraggableTreeNode {
@@ -201,6 +202,7 @@ export function MenuTree({
           icon: data.icon,
           linkType: data.linkType,
           url: data.url,
+          permissionIds: data.permissionIds,
         },
       });
       toast.success(addChildTarget ? t("addChildSuccess") : t("createSuccess"));
@@ -435,12 +437,14 @@ export function MenuTree({
             <MenuForm
               key={dialogKey}
               ref={createFormRef}
+              appId={appId}
               defaultValues={{
                 name: "",
                 code: "",
                 icon: "",
                 linkType: defaultLinkType,
                 url: "",
+                permissionIds: [],
               }}
             />
           </DialogBody>

@@ -520,24 +520,22 @@
     "updateSuccess": "菜单更新成功",
     "deleteSuccess": "菜单删除成功",
     "backToApps": "返回应用列表",
-    "backToSettings": "返回应用设置"
+    "backToSettings": "返回应用设置",
+    "requiredPermissions": "所需权限",
+    "requiredPermissionsDescription": "选择查看此菜单所需的权限"
   },
-  "RoleMenus": {
-    "title": "角色菜单分配",
-    "description": "管理此角色可见的菜单",
-    "assignForRole": "为「{name}」分配菜单",
-    "selectRole": "选择一个角色来分配菜单",
-    "selectApp": "应用",
-    "noAppSelected": "选择一个应用来管理此角色的菜单可见性",
+  "RolePermissions": {
+    "title": "角色权限分配",
+    "description": "管理此角色拥有的权限",
+    "assignForRole": "为「{name}」分配权限",
+    "selectRole": "选择一个角色来分配权限",
     "save": "保存分配",
     "saving": "保存中...",
-    "saved": "菜单分配已保存",
-    "loadError": "加载菜单失败，请重试",
-    "saveError": "保存失败，请重试",
-    "noMenus": "暂无菜单，请先在菜单管理页面创建菜单",
+    "saved": "权限分配已保存",
+    "loadError": "加载权限失败，请重试",
+    "noPermissions": "暂无权限",
     "expandAll": "展开全部",
-    "collapseAll": "收起全部",
-    "backToRoles": "返回角色列表"
+    "collapseAll": "收起全部"
   },
   "Logs": {
     "title": "日志管理",

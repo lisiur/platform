@@ -2,6 +2,15 @@ import { z } from "@hono/zod-openapi";
 
 export const linkTypeSchema = z.enum(["GROUP", "INTERNAL", "EXTERNAL"]);
 
+const permissionRefSchema = z
+  .object({
+    id: z.string().openapi({ example: "clx1234567890" }),
+    code: z.string().openapi({ example: "user::list" }),
+    name: z.string().openapi({ example: "List Users" }),
+    group: z.string().openapi({ example: "user" }),
+  })
+  .openapi("PermissionRef");
+
 export const menuSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -13,6 +22,9 @@ export const menuSchema = z
     linkType: linkTypeSchema.openapi({ example: "INTERNAL" }),
     url: z.string().nullable(),
     sortOrder: z.number().openapi({ example: 0 }),
+    permissions: permissionRefSchema
+      .array()
+      .openapi({ description: "Permissions required to view this menu" }),
     createdAt: z.date(),
     updatedAt: z.date(),
   })
@@ -35,6 +47,9 @@ export const createMenuBodySchema = z
     icon: z.string().optional(),
     linkType: linkTypeSchema.default("GROUP"),
     url: z.string().optional(),
+    permissionIds: z
+      .array(z.string())
+      .openapi({ description: "Permissions required to view this menu" }),
   })
   .refine(
     (data) => data.linkType === "GROUP" || (!!data.url && data.url.length > 0),
@@ -49,6 +64,10 @@ export const updateMenuBodySchema = z
     linkType: linkTypeSchema.optional(),
     url: z.string().nullable().optional(),
     sortOrder: z.number().int().optional(),
+    permissionIds: z
+      .array(z.string())
+      .optional()
+      .openapi({ description: "Replaces required permissions for this menu" }),
   })
   .refine(
     (data) =>

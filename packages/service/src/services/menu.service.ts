@@ -1,7 +1,7 @@
 import { HTTPException } from "hono/http-exception";
+import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import type { LinkType } from "../../prisma/generated/prisma/enums";
-import { createPermission } from "./permission.service";
 
 type ReorderItem = {
   id: string;
@@ -19,8 +19,34 @@ type MenuReorderTx = {
   menu: Pick<typeof prisma.menu, "findMany" | "update">;
 };
 
-function menuPermissionCode(menuCode: string) {
-  return `menu-item:${menuCode}::view`;
+export const menuPermissionsInclude = {
+  menuPermissions: {
+    include: {
+      permission: { select: { id: true, code: true, name: true, group: true } },
+    },
+  },
+} satisfies Prisma.MenuInclude;
+
+type MenuWithPermissions = Prisma.MenuGetPayload<{
+  include: typeof menuPermissionsInclude;
+}>;
+
+export function serializeMenu(menu: MenuWithPermissions) {
+  const { menuPermissions, ...rest } = menu;
+  return { ...rest, permissions: menuPermissions.map((mp) => mp.permission) };
+}
+
+async function assertPermissionsInApp(appId: string, permissionIds: string[]) {
+  if (permissionIds.length === 0) return;
+  const valid = await prisma.permission.findMany({
+    where: { id: { in: permissionIds }, OR: [{ appId }, { appId: null }] },
+    select: { id: true },
+  });
+  if (valid.length !== new Set(permissionIds).size) {
+    throw new HTTPException(400, {
+      message: "One or more permissions do not belong to the application",
+    });
+  }
 }
 
 export function getAffectedParentIds(
@@ -70,11 +96,14 @@ export function getNormalizedSortOrderUpdates<T extends SortableMenu>(
 }
 
 export async function getMenuById(id: string) {
-  const menu = await prisma.menu.findUnique({ where: { id } });
+  const menu = await prisma.menu.findUnique({
+    where: { id },
+    include: menuPermissionsInclude,
+  });
   if (!menu) {
     throw new HTTPException(404, { message: "Menu not found" });
   }
-  return menu;
+  return serializeMenu(menu);
 }
 
 export async function createMenu(data: {
@@ -85,6 +114,7 @@ export async function createMenu(data: {
   icon?: string | null;
   linkType: LinkType;
   url?: string | null;
+  permissionIds: string[];
 }) {
   const app = await prisma.application.findFirst({
     where: { id: data.appId, deletedAt: null },
@@ -116,28 +146,27 @@ export async function createMenu(data: {
   });
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
 
-  const permCode = menuPermissionCode(data.code);
-  const permission = await createPermission({
-    appId: data.appId,
-    name: `Menu: ${data.name}`,
-    code: permCode,
-    group: "menu-item",
-    description: `View access for menu "${data.name}"`,
-  });
+  const permissionIds = [...new Set(data.permissionIds)];
+  await assertPermissionsInApp(data.appId, permissionIds);
 
-  return prisma.menu.create({
-    data: {
-      name: data.name,
-      code: data.code,
-      appId: data.appId,
-      parentId: data.parentId,
-      icon: data.icon,
-      linkType: data.linkType,
-      url: data.url,
-      sortOrder,
-      permissionId: permission.id,
-    },
-  });
+  return serializeMenu(
+    await prisma.menu.create({
+      data: {
+        name: data.name,
+        code: data.code,
+        appId: data.appId,
+        parentId: data.parentId,
+        icon: data.icon,
+        linkType: data.linkType,
+        url: data.url,
+        sortOrder,
+        menuPermissions: {
+          create: permissionIds.map((permissionId) => ({ permissionId })),
+        },
+      },
+      include: menuPermissionsInclude,
+    }),
+  );
 }
 
 export async function updateMenu(
@@ -149,11 +178,12 @@ export async function updateMenu(
     linkType?: LinkType;
     url?: string | null;
     sortOrder?: number;
+    permissionIds?: string[];
   },
 ) {
   const existing = await prisma.menu.findUnique({
     where: { id },
-    include: { children: true, permission: true },
+    include: { children: true },
   });
   if (!existing) {
     throw new HTTPException(404, { message: "Menu not found" });
@@ -178,42 +208,36 @@ export async function updateMenu(
     });
   }
 
-  let permissionId = existing.permissionId;
-
-  if (data.code && data.code !== existing.code) {
-    const newPermCode = menuPermissionCode(data.code);
-    await prisma.permission.delete({
-      where: { id: existing.permissionId },
-    });
-    const newPermission = await createPermission({
-      appId: existing.appId,
-      name: `Menu: ${data.name ?? existing.name}`,
-      code: newPermCode,
-      group: "menu-item",
-      description: `View access for menu "${data.name ?? existing.name}"`,
-    });
-    permissionId = newPermission.id;
+  let permissionIds: string[] | undefined;
+  if (data.permissionIds !== undefined) {
+    permissionIds = [...new Set(data.permissionIds)];
+    await assertPermissionsInApp(existing.appId, permissionIds);
   }
 
-  return prisma.menu.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.code !== undefined && { code: data.code }),
-      ...(data.icon !== undefined && { icon: data.icon }),
-      ...(data.linkType !== undefined && { linkType: data.linkType }),
-      ...(data.url !== undefined && { url: data.url }),
-      ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
-      permissionId,
-    },
-  });
+  return serializeMenu(
+    await prisma.menu.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.icon !== undefined && { icon: data.icon }),
+        ...(data.linkType !== undefined && { linkType: data.linkType }),
+        ...(data.url !== undefined && { url: data.url }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+        ...(permissionIds !== undefined && {
+          menuPermissions: {
+            deleteMany: {},
+            create: permissionIds.map((permissionId) => ({ permissionId })),
+          },
+        }),
+      },
+      include: menuPermissionsInclude,
+    }),
+  );
 }
 
 export async function deleteMenu(id: string) {
-  const existing = await prisma.menu.findUnique({
-    where: { id },
-    include: { permission: true },
-  });
+  const existing = await prisma.menu.findUnique({ where: { id } });
   if (!existing) {
     throw new HTTPException(404, { message: "Menu not found" });
   }
@@ -225,8 +249,9 @@ export async function listMenus(appId: string) {
   const menus = await prisma.menu.findMany({
     where: { appId },
     orderBy: { sortOrder: "asc" },
+    include: menuPermissionsInclude,
   });
-  return { menus };
+  return { menus: menus.map(serializeMenu) };
 }
 
 export async function reorderMenus(items: ReorderItem[]) {
@@ -275,8 +300,9 @@ export async function reorderMenus(items: ReorderItem[]) {
     return tx.menu.findMany({
       where: { appId },
       orderBy: { sortOrder: "asc" },
+      include: menuPermissionsInclude,
     });
   });
 
-  return { menus: updatedMenus };
+  return { menus: updatedMenus.map(serializeMenu) };
 }

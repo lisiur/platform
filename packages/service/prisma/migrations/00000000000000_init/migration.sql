@@ -166,11 +166,20 @@ CREATE TABLE "menu" (
     "linkType" "LinkType" NOT NULL DEFAULT 'GROUP',
     "url" TEXT,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "permissionId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "menu_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "menu_permission" (
+    "id" TEXT NOT NULL,
+    "menuId" TEXT NOT NULL,
+    "permissionId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "menu_permission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -381,13 +390,19 @@ CREATE INDEX "application_deletedAt_idx" ON "application"("deletedAt");
 CREATE UNIQUE INDEX "application_code_key" ON "application"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "menu_permissionId_key" ON "menu"("permissionId");
-
--- CreateIndex
 CREATE INDEX "menu_appId_idx" ON "menu"("appId");
 
 -- CreateIndex
 CREATE INDEX "menu_parentId_idx" ON "menu"("parentId");
+
+-- CreateIndex
+CREATE INDEX "menu_permission_menuId_idx" ON "menu_permission"("menuId");
+
+-- CreateIndex
+CREATE INDEX "menu_permission_permissionId_idx" ON "menu_permission"("permissionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "menu_permission_menuId_permissionId_key" ON "menu_permission"("menuId", "permissionId");
 
 -- CreateIndex
 CREATE INDEX "permission_group_idx" ON "permission"("group");
@@ -543,7 +558,10 @@ ALTER TABLE "menu" ADD CONSTRAINT "menu_appId_fkey" FOREIGN KEY ("appId") REFERE
 ALTER TABLE "menu" ADD CONSTRAINT "menu_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "menu"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "menu" ADD CONSTRAINT "menu_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "menu_permission" ADD CONSTRAINT "menu_permission_menuId_fkey" FOREIGN KEY ("menuId") REFERENCES "menu"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "menu_permission" ADD CONSTRAINT "menu_permission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "permission" ADD CONSTRAINT "permission_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;

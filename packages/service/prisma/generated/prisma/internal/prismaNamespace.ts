@@ -395,6 +395,7 @@ export const ModelName = {
   Upload: 'Upload',
   Application: 'Application',
   Menu: 'Menu',
+  MenuPermission: 'MenuPermission',
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   RoleAssignment: 'RoleAssignment',
@@ -419,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "systemConfig" | "upload" | "application" | "menu" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "systemConfig" | "upload" | "application" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1234,6 +1235,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.MenuCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.MenuCountAggregateOutputType> | number
+        }
+      }
+    }
+    MenuPermission: {
+      payload: Prisma.$MenuPermissionPayload<ExtArgs>
+      fields: Prisma.MenuPermissionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MenuPermissionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MenuPermissionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        findFirst: {
+          args: Prisma.MenuPermissionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MenuPermissionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        findMany: {
+          args: Prisma.MenuPermissionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>[]
+        }
+        create: {
+          args: Prisma.MenuPermissionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        createMany: {
+          args: Prisma.MenuPermissionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MenuPermissionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>[]
+        }
+        delete: {
+          args: Prisma.MenuPermissionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        update: {
+          args: Prisma.MenuPermissionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        deleteMany: {
+          args: Prisma.MenuPermissionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MenuPermissionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MenuPermissionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>[]
+        }
+        upsert: {
+          args: Prisma.MenuPermissionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MenuPermissionPayload>
+        }
+        aggregate: {
+          args: Prisma.MenuPermissionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMenuPermission>
+        }
+        groupBy: {
+          args: Prisma.MenuPermissionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MenuPermissionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MenuPermissionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MenuPermissionCountAggregateOutputType> | number
         }
       }
     }
@@ -2100,12 +2175,21 @@ export const MenuScalarFieldEnum = {
   linkType: 'linkType',
   url: 'url',
   sortOrder: 'sortOrder',
-  permissionId: 'permissionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type MenuScalarFieldEnum = (typeof MenuScalarFieldEnum)[keyof typeof MenuScalarFieldEnum]
+
+
+export const MenuPermissionScalarFieldEnum = {
+  id: 'id',
+  menuId: 'menuId',
+  permissionId: 'permissionId',
+  createdAt: 'createdAt'
+} as const
+
+export type MenuPermissionScalarFieldEnum = (typeof MenuPermissionScalarFieldEnum)[keyof typeof MenuPermissionScalarFieldEnum]
 
 
 export const PermissionScalarFieldEnum = {
@@ -2542,6 +2626,7 @@ export type GlobalOmitConfig = {
   upload?: Prisma.UploadOmit
   application?: Prisma.ApplicationOmit
   menu?: Prisma.MenuOmit
+  menuPermission?: Prisma.MenuPermissionOmit
   permission?: Prisma.PermissionOmit
   rolePermission?: Prisma.RolePermissionOmit
   roleAssignment?: Prisma.RoleAssignmentOmit
