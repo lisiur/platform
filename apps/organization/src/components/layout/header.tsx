@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeftIcon } from "lucide-react";
+import { Building2, PanelLeftIcon } from "lucide-react";
 import Image from "next/image";
 import { useCurrentApp } from "@/hooks/use-current-app";
 import { useCurrentOrganization } from "@/hooks/use-current-organization";
@@ -38,7 +38,11 @@ export function Header({ className }: { className?: string }) {
             priority
             unoptimized
           />
-        ) : null}
+        ) : (
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-muted">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
         <span className="font-semibold text-lg">{label}</span>
       </div>
       <div className="ml-auto flex items-center gap-1">

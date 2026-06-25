@@ -233,6 +233,18 @@ export function UserMenu({ full, items }: UserMenuProps) {
                     }
                   }}
                 >
+                  {org.logo ? (
+                    <Image
+                      src={org.logo}
+                      alt={org.name}
+                      width={16}
+                      height={16}
+                      className="shrink-0 rounded object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
                   {org.name}
                 </DropdownMenuCheckboxItem>
               ))}

@@ -77,15 +77,6 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
     );
   }
 
-  function initials(name: string) {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }
-
   async function handleRemove(member: MemberRow) {
     const confirmed = await confirm({
       title: t("confirmRemove"),
@@ -136,9 +127,6 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
             <TableRow key={member.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                    {initials(member.user.name)}
-                  </span>
                   <span>{member.user.name}</span>
                   {isSelf && (
                     <Badge variant="outline" className="px-1.5">
