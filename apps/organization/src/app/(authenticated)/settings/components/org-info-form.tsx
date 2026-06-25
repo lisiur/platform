@@ -64,8 +64,8 @@ export function OrgInfoForm({
       const org = await res.json();
       onUpdated({ name: org.name, slug: org.slug });
       toast.success(t("updateSuccess"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("updateFailed"));
+    } catch {
+      // Error handled by withApiFeedback
     } finally {
       setSaving(false);
     }

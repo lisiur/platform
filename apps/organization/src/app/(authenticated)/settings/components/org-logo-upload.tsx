@@ -61,8 +61,8 @@ export function OrgLogoUpload({
       onLogoUpdate(logoUrl);
       setPreview(null);
       toast.success(t("logoUpdated"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("uploadFailed"));
+    } catch {
+      // Error handled by withApiFeedback
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
