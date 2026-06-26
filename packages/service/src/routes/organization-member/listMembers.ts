@@ -10,38 +10,40 @@ import { assertPermission } from "#services/role-permission.service";
 import {
   listMembersQuerySchema,
   listMembersResponseSchema,
-  organizationIdParamSchema,
+  orgIdParamSchema,
 } from "./schema";
 
 export const listOrganizationMembers = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
     path: "/{id}/members",
-    tags: ["Organization"],
-    summary: "List members of an organization",
-    description:
-      "Returns a paginated list of members for the given organization.",
+    tags: ["Organization Member"],
+    summary: "List organization members",
     request: {
-      params: organizationIdParamSchema,
+      params: orgIdParamSchema,
       query: listMembersQuerySchema,
     },
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      ...okResponseFn(listMembersResponseSchema, "Paginated list of members"),
+      ...okResponseFn(listMembersResponseSchema, "List of members"),
     },
   }),
   handler: async (c) => {
     const session = await requireSession(c);
     const { id } = c.req.valid("param");
-    const { limit, offset } = c.req.valid("query");
+    const query = c.req.valid("query");
 
     await assertPermission(session.user.id, "organization-member::list", {
       appId: "organization",
       organizationId: id,
     });
 
-    const result = await listMembers(id, { limit, offset });
+    const result = await listMembers(id, {
+      limit: query.limit,
+      offset: query.offset,
+      departmentId: query.departmentId ?? undefined,
+    });
     return c.json(result, 200);
   },
 });

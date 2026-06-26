@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
 import { logAudit } from "#lib/logger";
+import { z } from "@hono/zod-openapi";
 import {
   badRequestResponse,
   deleteSuccessSchema,
@@ -10,7 +11,11 @@ import {
 } from "#lib/openapi";
 import { removeMember } from "#services/member.service";
 import { assertPermission } from "#services/role-permission.service";
-import { memberParamsSchema } from "./schema";
+
+const memberParamsSchema = z.object({
+  id: z.string(),
+  memberId: z.string(),
+});
 
 export const removeOrganizationMember = defineOpenAPIRoute({
   route: createRoute({
