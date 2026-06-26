@@ -44,6 +44,7 @@ export const deleteDepartmentRoute = defineOpenAPIRoute({
     logAudit({
       event: "department.deleted",
       category: "department",
+      targetType: "department",
       targetId: department.id,
       targetName: department.name,
       c,

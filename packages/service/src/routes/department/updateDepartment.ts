@@ -2,6 +2,7 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { requireSession } from "#extractors/session";
 import { logAudit } from "#lib/logger";
 import {
+  badRequestResponse,
   forbiddenResponse,
   notFoundResponse,
   okResponseFn,
@@ -35,6 +36,7 @@ export const updateDepartmentRoute = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
+      ...badRequestResponse,
       ...notFoundResponse,
       409: {
         content: { "application/json": { schema: errorSchema } },
@@ -58,6 +60,7 @@ export const updateDepartmentRoute = defineOpenAPIRoute({
     logAudit({
       event: "department.updated",
       category: "department",
+      targetType: "department",
       targetId: department.id,
       targetName: department.name,
       c,
