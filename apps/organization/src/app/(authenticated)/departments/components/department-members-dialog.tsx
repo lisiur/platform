@@ -8,6 +8,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   Spinner,
 } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -100,18 +106,16 @@ export function DepartmentMembersDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               {t("manageMembers")} — {departmentName}
-            </DialogTitle>
-            <DialogDescription>
-              {t("manageMembersDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
+            </SheetTitle>
+            <SheetDescription>{t("manageMembersDescription")}</SheetDescription>
+          </SheetHeader>
+          <SheetBody>
             {isLoading ? (
               <div className="flex min-h-[100px] items-center justify-center">
                 <Spinner />
@@ -156,9 +160,9 @@ export function DepartmentMembersDialog({
                 )}
               </>
             )}
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
       <AddMemberDialog
         open={addOpen}
         onOpenChange={setAddOpen}
