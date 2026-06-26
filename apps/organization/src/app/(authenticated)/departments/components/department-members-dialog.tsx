@@ -2,12 +2,6 @@
 
 import {
   Button,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   Sheet,
   SheetBody,
   SheetContent,
@@ -232,13 +226,13 @@ function AddMemberDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("addMember")}</DialogTitle>
-          <DialogDescription>{t("addMemberDescription")}</DialogDescription>
-        </DialogHeader>
-        <DialogBody>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>{t("addMember")}</SheetTitle>
+          <SheetDescription>{t("addMemberDescription")}</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
           {isLoading ? (
             <div className="flex min-h-[100px] items-center justify-center">
               <Spinner />
@@ -272,8 +266,8 @@ function AddMemberDialog({
               ))}
             </div>
           )}
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }
