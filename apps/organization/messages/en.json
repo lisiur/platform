@@ -130,7 +130,20 @@
   "Departments": {
     "title": "Departments",
     "description": "Manage the organizational structure",
-    "createDepartment": "Create Department"
+    "createDepartment": "Create Department",
+    "createDescription": "Add a new department to your organization",
+    "editDepartment": "Edit Department",
+    "editDescription": "Update department details",
+    "name": "Name",
+    "code": "Code",
+    "description_label": "Description",
+    "descriptionPlaceholder": "Optional description",
+    "save": "Save",
+    "saving": "Saving...",
+    "create": "Create",
+    "cancel": "Cancel",
+    "createSuccess": "Department created",
+    "updateSuccess": "Department updated"
   },
   "Settings": {
     "title": "Settings",

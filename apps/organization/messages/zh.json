@@ -130,7 +130,20 @@
   "Departments": {
     "title": "部门",
     "description": "管理部门组织结构",
-    "createDepartment": "创建部门"
+    "createDepartment": "创建部门",
+    "createDescription": "向组织添加新部门",
+    "editDepartment": "编辑部门",
+    "editDescription": "更新部门信息",
+    "name": "名称",
+    "code": "编码",
+    "description_label": "描述",
+    "descriptionPlaceholder": "可选描述",
+    "save": "保存",
+    "saving": "保存中...",
+    "create": "创建",
+    "cancel": "取消",
+    "createSuccess": "部门已创建",
+    "updateSuccess": "部门已更新"
   },
   "Settings": {
     "title": "设置",
