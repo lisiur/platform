@@ -9,6 +9,7 @@ import {
 import {
   listOrganizationMembers,
   removeOrganizationMember,
+  updateOrganizationMember,
 } from "../organization-member";
 import { activateOrganization } from "./activateOrganization";
 import { createOrganization } from "./createOrganization";
@@ -34,6 +35,7 @@ const routes = organizationRoutes.openapiRoutes([
   deleteOrganization,
   listOrganizationMembers,
   removeOrganizationMember,
+  updateOrganizationMember,
   getOrganizationSettings,
   updateOrganizationSettings,
   listDepartments,
