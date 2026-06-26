@@ -29,6 +29,7 @@ export type MemberMinAggregateOutputType = {
   organizationId: string | null
   userId: string | null
   role: string | null
+  departmentId: string | null
   createdAt: Date | null
 }
 
@@ -37,6 +38,7 @@ export type MemberMaxAggregateOutputType = {
   organizationId: string | null
   userId: string | null
   role: string | null
+  departmentId: string | null
   createdAt: Date | null
 }
 
@@ -45,6 +47,7 @@ export type MemberCountAggregateOutputType = {
   organizationId: number
   userId: number
   role: number
+  departmentId: number
   createdAt: number
   _all: number
 }
@@ -55,6 +58,7 @@ export type MemberMinAggregateInputType = {
   organizationId?: true
   userId?: true
   role?: true
+  departmentId?: true
   createdAt?: true
 }
 
@@ -63,6 +67,7 @@ export type MemberMaxAggregateInputType = {
   organizationId?: true
   userId?: true
   role?: true
+  departmentId?: true
   createdAt?: true
 }
 
@@ -71,6 +76,7 @@ export type MemberCountAggregateInputType = {
   organizationId?: true
   userId?: true
   role?: true
+  departmentId?: true
   createdAt?: true
   _all?: true
 }
@@ -152,6 +158,7 @@ export type MemberGroupByOutputType = {
   organizationId: string
   userId: string
   role: string
+  departmentId: string | null
   createdAt: Date
   _count: MemberCountAggregateOutputType | null
   _min: MemberMinAggregateOutputType | null
@@ -181,9 +188,11 @@ export type MemberWhereInput = {
   organizationId?: Prisma.StringFilter<"Member"> | string
   userId?: Prisma.StringFilter<"Member"> | string
   role?: Prisma.StringFilter<"Member"> | string
+  departmentId?: Prisma.StringNullableFilter<"Member"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Member"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  department?: Prisma.XOR<Prisma.DepartmentNullableScalarRelationFilter, Prisma.DepartmentWhereInput> | null
 }
 
 export type MemberOrderByWithRelationInput = {
@@ -191,9 +200,11 @@ export type MemberOrderByWithRelationInput = {
   organizationId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   role?: Prisma.SortOrder
+  departmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
+  department?: Prisma.DepartmentOrderByWithRelationInput
 }
 
 export type MemberWhereUniqueInput = Prisma.AtLeast<{
@@ -204,9 +215,11 @@ export type MemberWhereUniqueInput = Prisma.AtLeast<{
   organizationId?: Prisma.StringFilter<"Member"> | string
   userId?: Prisma.StringFilter<"Member"> | string
   role?: Prisma.StringFilter<"Member"> | string
+  departmentId?: Prisma.StringNullableFilter<"Member"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Member"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  department?: Prisma.XOR<Prisma.DepartmentNullableScalarRelationFilter, Prisma.DepartmentWhereInput> | null
 }, "id">
 
 export type MemberOrderByWithAggregationInput = {
@@ -214,6 +227,7 @@ export type MemberOrderByWithAggregationInput = {
   organizationId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   role?: Prisma.SortOrder
+  departmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.MemberCountOrderByAggregateInput
   _max?: Prisma.MemberMaxOrderByAggregateInput
@@ -228,6 +242,7 @@ export type MemberScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"Member"> | string
   userId?: Prisma.StringWithAggregatesFilter<"Member"> | string
   role?: Prisma.StringWithAggregatesFilter<"Member"> | string
+  departmentId?: Prisma.StringNullableWithAggregatesFilter<"Member"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Member"> | Date | string
 }
 
@@ -237,6 +252,7 @@ export type MemberCreateInput = {
   createdAt: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutMembersInput
   user: Prisma.UserCreateNestedOneWithoutMembersInput
+  department?: Prisma.DepartmentCreateNestedOneWithoutMembersInput
 }
 
 export type MemberUncheckedCreateInput = {
@@ -244,6 +260,7 @@ export type MemberUncheckedCreateInput = {
   organizationId: string
   userId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -253,6 +270,7 @@ export type MemberUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutMembersNestedInput
+  department?: Prisma.DepartmentUpdateOneWithoutMembersNestedInput
 }
 
 export type MemberUncheckedUpdateInput = {
@@ -260,6 +278,7 @@ export type MemberUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -268,6 +287,7 @@ export type MemberCreateManyInput = {
   organizationId: string
   userId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -282,6 +302,7 @@ export type MemberUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -300,6 +321,7 @@ export type MemberCountOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   role?: Prisma.SortOrder
+  departmentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -308,6 +330,7 @@ export type MemberMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   role?: Prisma.SortOrder
+  departmentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -316,6 +339,7 @@ export type MemberMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   role?: Prisma.SortOrder
+  departmentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -403,17 +427,61 @@ export type MemberUncheckedUpdateManyWithoutOrganizationNestedInput = {
   deleteMany?: Prisma.MemberScalarWhereInput | Prisma.MemberScalarWhereInput[]
 }
 
+export type MemberCreateNestedManyWithoutDepartmentInput = {
+  create?: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput> | Prisma.MemberCreateWithoutDepartmentInput[] | Prisma.MemberUncheckedCreateWithoutDepartmentInput[]
+  connectOrCreate?: Prisma.MemberCreateOrConnectWithoutDepartmentInput | Prisma.MemberCreateOrConnectWithoutDepartmentInput[]
+  createMany?: Prisma.MemberCreateManyDepartmentInputEnvelope
+  connect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+}
+
+export type MemberUncheckedCreateNestedManyWithoutDepartmentInput = {
+  create?: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput> | Prisma.MemberCreateWithoutDepartmentInput[] | Prisma.MemberUncheckedCreateWithoutDepartmentInput[]
+  connectOrCreate?: Prisma.MemberCreateOrConnectWithoutDepartmentInput | Prisma.MemberCreateOrConnectWithoutDepartmentInput[]
+  createMany?: Prisma.MemberCreateManyDepartmentInputEnvelope
+  connect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+}
+
+export type MemberUpdateManyWithoutDepartmentNestedInput = {
+  create?: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput> | Prisma.MemberCreateWithoutDepartmentInput[] | Prisma.MemberUncheckedCreateWithoutDepartmentInput[]
+  connectOrCreate?: Prisma.MemberCreateOrConnectWithoutDepartmentInput | Prisma.MemberCreateOrConnectWithoutDepartmentInput[]
+  upsert?: Prisma.MemberUpsertWithWhereUniqueWithoutDepartmentInput | Prisma.MemberUpsertWithWhereUniqueWithoutDepartmentInput[]
+  createMany?: Prisma.MemberCreateManyDepartmentInputEnvelope
+  set?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  disconnect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  delete?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  connect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  update?: Prisma.MemberUpdateWithWhereUniqueWithoutDepartmentInput | Prisma.MemberUpdateWithWhereUniqueWithoutDepartmentInput[]
+  updateMany?: Prisma.MemberUpdateManyWithWhereWithoutDepartmentInput | Prisma.MemberUpdateManyWithWhereWithoutDepartmentInput[]
+  deleteMany?: Prisma.MemberScalarWhereInput | Prisma.MemberScalarWhereInput[]
+}
+
+export type MemberUncheckedUpdateManyWithoutDepartmentNestedInput = {
+  create?: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput> | Prisma.MemberCreateWithoutDepartmentInput[] | Prisma.MemberUncheckedCreateWithoutDepartmentInput[]
+  connectOrCreate?: Prisma.MemberCreateOrConnectWithoutDepartmentInput | Prisma.MemberCreateOrConnectWithoutDepartmentInput[]
+  upsert?: Prisma.MemberUpsertWithWhereUniqueWithoutDepartmentInput | Prisma.MemberUpsertWithWhereUniqueWithoutDepartmentInput[]
+  createMany?: Prisma.MemberCreateManyDepartmentInputEnvelope
+  set?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  disconnect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  delete?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  connect?: Prisma.MemberWhereUniqueInput | Prisma.MemberWhereUniqueInput[]
+  update?: Prisma.MemberUpdateWithWhereUniqueWithoutDepartmentInput | Prisma.MemberUpdateWithWhereUniqueWithoutDepartmentInput[]
+  updateMany?: Prisma.MemberUpdateManyWithWhereWithoutDepartmentInput | Prisma.MemberUpdateManyWithWhereWithoutDepartmentInput[]
+  deleteMany?: Prisma.MemberScalarWhereInput | Prisma.MemberScalarWhereInput[]
+}
+
 export type MemberCreateWithoutUserInput = {
   id?: string
   role?: string
   createdAt: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutMembersInput
+  department?: Prisma.DepartmentCreateNestedOneWithoutMembersInput
 }
 
 export type MemberUncheckedCreateWithoutUserInput = {
   id?: string
   organizationId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -451,6 +519,7 @@ export type MemberScalarWhereInput = {
   organizationId?: Prisma.StringFilter<"Member"> | string
   userId?: Prisma.StringFilter<"Member"> | string
   role?: Prisma.StringFilter<"Member"> | string
+  departmentId?: Prisma.StringNullableFilter<"Member"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Member"> | Date | string
 }
 
@@ -459,12 +528,14 @@ export type MemberCreateWithoutOrganizationInput = {
   role?: string
   createdAt: Date | string
   user: Prisma.UserCreateNestedOneWithoutMembersInput
+  department?: Prisma.DepartmentCreateNestedOneWithoutMembersInput
 }
 
 export type MemberUncheckedCreateWithoutOrganizationInput = {
   id?: string
   userId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -494,10 +565,53 @@ export type MemberUpdateManyWithWhereWithoutOrganizationInput = {
   data: Prisma.XOR<Prisma.MemberUpdateManyMutationInput, Prisma.MemberUncheckedUpdateManyWithoutOrganizationInput>
 }
 
+export type MemberCreateWithoutDepartmentInput = {
+  id?: string
+  role?: string
+  createdAt: Date | string
+  organization: Prisma.OrganizationCreateNestedOneWithoutMembersInput
+  user: Prisma.UserCreateNestedOneWithoutMembersInput
+}
+
+export type MemberUncheckedCreateWithoutDepartmentInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  role?: string
+  createdAt: Date | string
+}
+
+export type MemberCreateOrConnectWithoutDepartmentInput = {
+  where: Prisma.MemberWhereUniqueInput
+  create: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput>
+}
+
+export type MemberCreateManyDepartmentInputEnvelope = {
+  data: Prisma.MemberCreateManyDepartmentInput | Prisma.MemberCreateManyDepartmentInput[]
+  skipDuplicates?: boolean
+}
+
+export type MemberUpsertWithWhereUniqueWithoutDepartmentInput = {
+  where: Prisma.MemberWhereUniqueInput
+  update: Prisma.XOR<Prisma.MemberUpdateWithoutDepartmentInput, Prisma.MemberUncheckedUpdateWithoutDepartmentInput>
+  create: Prisma.XOR<Prisma.MemberCreateWithoutDepartmentInput, Prisma.MemberUncheckedCreateWithoutDepartmentInput>
+}
+
+export type MemberUpdateWithWhereUniqueWithoutDepartmentInput = {
+  where: Prisma.MemberWhereUniqueInput
+  data: Prisma.XOR<Prisma.MemberUpdateWithoutDepartmentInput, Prisma.MemberUncheckedUpdateWithoutDepartmentInput>
+}
+
+export type MemberUpdateManyWithWhereWithoutDepartmentInput = {
+  where: Prisma.MemberScalarWhereInput
+  data: Prisma.XOR<Prisma.MemberUpdateManyMutationInput, Prisma.MemberUncheckedUpdateManyWithoutDepartmentInput>
+}
+
 export type MemberCreateManyUserInput = {
   id?: string
   organizationId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -506,12 +620,14 @@ export type MemberUpdateWithoutUserInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutMembersNestedInput
+  department?: Prisma.DepartmentUpdateOneWithoutMembersNestedInput
 }
 
 export type MemberUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -519,6 +635,7 @@ export type MemberUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -526,6 +643,7 @@ export type MemberCreateManyOrganizationInput = {
   id?: string
   userId: string
   role?: string
+  departmentId?: string | null
   createdAt: Date | string
 }
 
@@ -534,17 +652,52 @@ export type MemberUpdateWithoutOrganizationInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutMembersNestedInput
+  department?: Prisma.DepartmentUpdateOneWithoutMembersNestedInput
 }
 
 export type MemberUncheckedUpdateWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type MemberUncheckedUpdateManyWithoutOrganizationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  departmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type MemberCreateManyDepartmentInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  role?: string
+  createdAt: Date | string
+}
+
+export type MemberUpdateWithoutDepartmentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  organization?: Prisma.OrganizationUpdateOneRequiredWithoutMembersNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutMembersNestedInput
+}
+
+export type MemberUncheckedUpdateWithoutDepartmentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type MemberUncheckedUpdateManyWithoutDepartmentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -557,9 +710,11 @@ export type MemberSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   organizationId?: boolean
   userId?: boolean
   role?: boolean
+  departmentId?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }, ExtArgs["result"]["member"]>
 
 export type MemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -567,9 +722,11 @@ export type MemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   organizationId?: boolean
   userId?: boolean
   role?: boolean
+  departmentId?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }, ExtArgs["result"]["member"]>
 
 export type MemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -577,9 +734,11 @@ export type MemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   organizationId?: boolean
   userId?: boolean
   role?: boolean
+  departmentId?: boolean
   createdAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }, ExtArgs["result"]["member"]>
 
 export type MemberSelectScalar = {
@@ -587,21 +746,25 @@ export type MemberSelectScalar = {
   organizationId?: boolean
   userId?: boolean
   role?: boolean
+  departmentId?: boolean
   createdAt?: boolean
 }
 
-export type MemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "role" | "createdAt", ExtArgs["result"]["member"]>
+export type MemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "role" | "departmentId" | "createdAt", ExtArgs["result"]["member"]>
 export type MemberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }
 export type MemberIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }
 export type MemberIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  department?: boolean | Prisma.Member$departmentArgs<ExtArgs>
 }
 
 export type $MemberPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -609,12 +772,14 @@ export type $MemberPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     organization: Prisma.$OrganizationPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs>
+    department: Prisma.$DepartmentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     organizationId: string
     userId: string
     role: string
+    departmentId: string | null
     createdAt: Date
   }, ExtArgs["result"]["member"]>
   composites: {}
@@ -1012,6 +1177,7 @@ export interface Prisma__MemberClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   organization<T extends Prisma.OrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationClient<runtime.Types.Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  department<T extends Prisma.Member$departmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Member$departmentArgs<ExtArgs>>): Prisma.Prisma__DepartmentClient<runtime.Types.Result.GetResult<Prisma.$DepartmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1045,6 +1211,7 @@ export interface MemberFieldRefs {
   readonly organizationId: Prisma.FieldRef<"Member", 'String'>
   readonly userId: Prisma.FieldRef<"Member", 'String'>
   readonly role: Prisma.FieldRef<"Member", 'String'>
+  readonly departmentId: Prisma.FieldRef<"Member", 'String'>
   readonly createdAt: Prisma.FieldRef<"Member", 'DateTime'>
 }
     
@@ -1444,6 +1611,25 @@ export type MemberDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Limit how many Members to delete.
    */
   limit?: number
+}
+
+/**
+ * Member.department
+ */
+export type Member$departmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Department
+   */
+  select?: Prisma.DepartmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Department
+   */
+  omit?: Prisma.DepartmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DepartmentInclude<ExtArgs> | null
+  where?: Prisma.DepartmentWhereInput
 }
 
 /**

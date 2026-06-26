@@ -91,9 +91,31 @@ model Organization {
   createdAt   DateTime
   members     Member[]
   invitations Invitation[]
+  departments Department[]
 
   @@unique([slug])
   @@map("organization")
+}
+
+model Department {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parentId       String?
+  parent         Department?  @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children       Department[] @relation("DepartmentTree")
+  name           String
+  code           String
+  description    String?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  members        Member[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("department")
 }
 
 model Member {
@@ -103,6 +125,8 @@ model Member {
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   role           String       @default("member")
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   createdAt      DateTime
 
   @@index([organizationId])
