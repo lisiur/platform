@@ -450,12 +450,6 @@ const organizationPermissions = [
     name: "Delete Department",
     description: "Delete a department from an organization",
   },
-  {
-    code: "department::reorder",
-    group: "department",
-    name: "Reorder Departments",
-    description: "Reorder departments in an organization",
-  },
 ];
 
 // --- Applications ---

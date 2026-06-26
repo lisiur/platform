@@ -4,7 +4,6 @@ import {
   deleteDepartment,
   getDepartment,
   listDepartments,
-  reorderDepartments,
   updateDepartment,
 } from "../department";
 import {
@@ -42,7 +41,6 @@ const routes = organizationRoutes.openapiRoutes([
   getDepartment,
   updateDepartment,
   deleteDepartment,
-  reorderDepartments,
 ] as const);
 
 export { routes as organizationRoutes };

@@ -44,16 +44,6 @@ export const updateDepartmentBodySchema = z.object({
   description: z.string().nullable().optional(),
 });
 
-export const reorderDepartmentsBodySchema = z.object({
-  items: z.array(
-    z.object({
-      id: z.string(),
-      parentId: z.string().nullable(),
-      sortOrder: z.number(),
-    }),
-  ),
-});
-
 export const listDepartmentsResponseSchema = z
   .object({
     departments: departmentSchema.array(),
