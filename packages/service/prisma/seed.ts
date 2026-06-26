@@ -456,6 +456,30 @@ const organizationPermissions = [
     name: "Delete Department",
     description: "Delete a department from an organization",
   },
+  {
+    code: "position::list",
+    group: "position",
+    name: "List Positions",
+    description: "List positions in an organization",
+  },
+  {
+    code: "position::create",
+    group: "position",
+    name: "Create Position",
+    description: "Create a position in an organization",
+  },
+  {
+    code: "position::update",
+    group: "position",
+    name: "Update Position",
+    description: "Update a position in an organization",
+  },
+  {
+    code: "position::delete",
+    group: "position",
+    name: "Delete Position",
+    description: "Delete a position from an organization",
+  },
 ];
 
 // --- Applications ---
@@ -559,13 +583,23 @@ const organizationMenus = [
     permissions: ["organization-member::list"],
   },
   {
+    id: "organization-positions",
+    code: "positions",
+    name: "Positions",
+    icon: "Briefcase",
+    linkType: "INTERNAL" as const,
+    url: "/organization/positions",
+    sortOrder: 1,
+    permissions: ["position::list"],
+  },
+  {
     id: "organization-departments",
     code: "departments",
     name: "Departments",
     icon: "FolderTree",
     linkType: "INTERNAL" as const,
     url: "/organization/departments",
-    sortOrder: 1,
+    sortOrder: 2,
     permissions: ["department::list"],
   },
   {
@@ -575,7 +609,7 @@ const organizationMenus = [
     icon: "Settings",
     linkType: "INTERNAL" as const,
     url: "/organization/settings",
-    sortOrder: 2,
+    sortOrder: 3,
     permissions: ["organization-settings::view"],
   },
 ];

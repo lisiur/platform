@@ -29,6 +29,15 @@ export const memberIdParamSchema = z.object({
   memberId: z.string(),
 });
 
+export const setMemberPositionsBodySchema = z.object({
+  positionIds: z.array(z.string()),
+});
+
+export const batchSetMemberPositionsBodySchema = z.object({
+  memberIds: z.array(z.string()),
+  positionIds: z.array(z.string()),
+});
+
 export const orgIdParamSchema = z.object({
   id: z.string(),
 });

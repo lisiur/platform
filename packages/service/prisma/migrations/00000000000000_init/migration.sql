@@ -85,11 +85,49 @@ CREATE TABLE "organization" (
 );
 
 -- CreateTable
+CREATE TABLE "department" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "parentId" TEXT,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "department_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "position" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "position_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "member_position" (
+    "id" TEXT NOT NULL,
+    "memberId" TEXT NOT NULL,
+    "positionId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "member_position_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "member" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'member',
+    "departmentId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "member_pkey" PRIMARY KEY ("id")
@@ -363,6 +401,30 @@ CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
 
 -- CreateIndex
+CREATE INDEX "department_organizationId_idx" ON "department"("organizationId");
+
+-- CreateIndex
+CREATE INDEX "department_parentId_idx" ON "department"("parentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "department_organizationId_code_key" ON "department"("organizationId", "code");
+
+-- CreateIndex
+CREATE INDEX "position_organizationId_idx" ON "position"("organizationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "position_organizationId_code_key" ON "position"("organizationId", "code");
+
+-- CreateIndex
+CREATE INDEX "member_position_memberId_idx" ON "member_position"("memberId");
+
+-- CreateIndex
+CREATE INDEX "member_position_positionId_idx" ON "member_position"("positionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "member_position_memberId_positionId_key" ON "member_position"("memberId", "positionId");
+
+-- CreateIndex
 CREATE INDEX "member_organizationId_idx" ON "member"("organizationId");
 
 -- CreateIndex
@@ -537,10 +599,28 @@ ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "department" ADD CONSTRAINT "department_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "department" ADD CONSTRAINT "department_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "department"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "position" ADD CONSTRAINT "position_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "member_position" ADD CONSTRAINT "member_position_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "member_position" ADD CONSTRAINT "member_position_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "position"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "member" ADD CONSTRAINT "member_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "member" ADD CONSTRAINT "member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "member" ADD CONSTRAINT "member_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

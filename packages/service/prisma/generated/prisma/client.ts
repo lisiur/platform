@@ -72,6 +72,16 @@ export type Organization = Prisma.OrganizationModel
  */
 export type Department = Prisma.DepartmentModel
 /**
+ * Model Position
+ * 
+ */
+export type Position = Prisma.PositionModel
+/**
+ * Model MemberPosition
+ * 
+ */
+export type MemberPosition = Prisma.MemberPositionModel
+/**
  * Model Member
  * 
  */

@@ -10,8 +10,16 @@ import {
   batchUpdateOrganizationMembers,
   listOrganizationMembers,
   removeOrganizationMember,
+  setMemberPositions,
   updateOrganizationMember,
 } from "../organization-member";
+import {
+  createPosition,
+  deletePosition,
+  listPositionMembers,
+  listPositions,
+  updatePosition,
+} from "../position";
 import { activateOrganization } from "./activateOrganization";
 import { createOrganization } from "./createOrganization";
 import { deleteOrganization } from "./deleteOrganization";
@@ -38,6 +46,7 @@ const routes = organizationRoutes.openapiRoutes([
   batchUpdateOrganizationMembers,
   removeOrganizationMember,
   updateOrganizationMember,
+  setMemberPositions,
   getOrganizationSettings,
   updateOrganizationSettings,
   listDepartments,
@@ -45,6 +54,11 @@ const routes = organizationRoutes.openapiRoutes([
   getDepartment,
   updateDepartment,
   deleteDepartment,
+  listPositions,
+  createPosition,
+  updatePosition,
+  deletePosition,
+  listPositionMembers,
 ] as const);
 
 export { routes as organizationRoutes };

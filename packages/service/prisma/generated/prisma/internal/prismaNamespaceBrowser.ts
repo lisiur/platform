@@ -57,6 +57,8 @@ export const ModelName = {
   Verification: 'Verification',
   Organization: 'Organization',
   Department: 'Department',
+  Position: 'Position',
+  MemberPosition: 'MemberPosition',
   Member: 'Member',
   Invitation: 'Invitation',
   SystemConfig: 'SystemConfig',
@@ -180,6 +182,29 @@ export const DepartmentScalarFieldEnum = {
 } as const
 
 export type DepartmentScalarFieldEnum = (typeof DepartmentScalarFieldEnum)[keyof typeof DepartmentScalarFieldEnum]
+
+
+export const PositionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt'
+} as const
+
+export type PositionScalarFieldEnum = (typeof PositionScalarFieldEnum)[keyof typeof PositionScalarFieldEnum]
+
+
+export const MemberPositionScalarFieldEnum = {
+  id: 'id',
+  memberId: 'memberId',
+  positionId: 'positionId',
+  createdAt: 'createdAt'
+} as const
+
+export type MemberPositionScalarFieldEnum = (typeof MemberPositionScalarFieldEnum)[keyof typeof MemberPositionScalarFieldEnum]
 
 
 export const MemberScalarFieldEnum = {

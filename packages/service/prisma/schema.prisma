@@ -92,6 +92,7 @@ model Organization {
   members     Member[]
   invitations Invitation[]
   departments Department[]
+  positions   Position[]
 
   @@unique([slug])
   @@map("organization")
@@ -117,6 +118,36 @@ model Department {
   @@map("department")
 }
 
+model Position {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  code           String
+  description    String?
+  sortOrder      Int              @default(0)
+  memberPositions MemberPosition[]
+  createdAt      DateTime         @default(now())
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("position")
+}
+
+model MemberPosition {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([memberId, positionId])
+  @@index([memberId])
+  @@index([positionId])
+  @@map("member_position")
+}
+
 model Member {
   id             String       @id @default(cuid())
   organizationId String
@@ -126,6 +157,7 @@ model Member {
   role           String       @default("member")
   departmentId   String?
   department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  memberPositions MemberPosition[]
   createdAt      DateTime
 
   @@index([organizationId])
