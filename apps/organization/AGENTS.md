@@ -22,3 +22,33 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - For any table with an operation/action column, fix that column to the right side of the horizontally scrollable table.
 - Apply the fixed-right behavior to both the header and body cells, for example: `className="sticky right-0 bg-background text-right shadow-[-1px_0_0_0_var(--border)]"`.
 - Do not treat data fields named `action` as operation columns unless they contain row-level action controls such as edit, delete, view, configure, or permission buttons.
+
+# Page Layout
+
+- Use `ManagementPageShell` for all management pages. It provides consistent layout with `container mx-auto py-8`, title, description, and proper flex container structure.
+- Pattern: `<ManagementPageShell title={t("title")} description={t("description")}>{children}</ManagementPageShell>`
+
+# Dialog Pattern
+
+- Use `DialogBody` to wrap form content in dialogs — it provides the correct padding.
+- Structure: `DialogHeader` (title + description) → `DialogBody` (form) → `DialogFooter` (buttons).
+- Place the submit button in `DialogFooter` with `form="form-id"` attribute, not inside the `<form>`.
+- Reset form state in `handleOpenChange` when closing.
+
+# Service Layer
+
+- Routes should only handle: session extraction, permission checks, input validation, service calls, audit logging, and response formatting.
+- Business logic, database operations, and validation rules belong in service files under `packages/service/src/services/`.
+- Services throw `HTTPException` for errors (404, 409, 400, etc.).
+
+# Seed & Menus
+
+- When adding a new page, add a corresponding menu entry in `packages/service/prisma/seed.ts` under `organizationMenus`.
+- Menu entries require: `id`, `code`, `name`, `icon`, `linkType: "INTERNAL"`, `url`, `sortOrder`, and `permissions`.
+- Run `pnpm db:seed` after menu changes.
+
+# Translations
+
+- All user-facing strings must use `useTranslations("Namespace")` hook.
+- Add translation keys to both `apps/organization/messages/en.json` and `zh.json`.
+- Use descriptive key names like `createDescription`, `editDepartment`, `updateSuccess`.

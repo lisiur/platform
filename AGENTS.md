@@ -27,6 +27,7 @@
 - In handlers, read validated inputs with `c.req.valid('param')`, `c.req.valid('query')`, or `c.req.valid('json')`; avoid `c.req.param()` / raw `c.req.json()`.
 - Always pass an explicit status to `c.json(data, 200)` and define error responses with the shared `errorSchema` pattern.
 - OpenAPI paths use `{id}` syntax, while Hono RPC client calls use bracket notation for dynamic parameters.
+- **Service Layer**: Routes should only handle session extraction, permission checks, input validation, service calls, audit logging, and response formatting. Business logic, database operations, and validation rules belong in service files under `packages/service/src/services/`. Services throw `HTTPException` for errors.
 
 ## Frontend API Use
 - Use `appClient` from `@/lib/api`; never raw `fetch` for app API calls.
