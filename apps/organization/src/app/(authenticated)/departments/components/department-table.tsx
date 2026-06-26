@@ -52,9 +52,6 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
   const [editDepartment, setEditDepartment] = useState<DepartmentRow | null>(
     null,
   );
-  const [createChildDept, setCreateChildDept] = useState<DepartmentRow | null>(
-    null,
-  );
   const [manageMembersDept, setManageMembersDept] =
     useState<DepartmentRow | null>(null);
 
@@ -88,12 +85,6 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
       setPath([...path, { id: dept.id, name: dept.name }]);
     }
     setCurrentParentId(departmentId);
-  }
-
-  function handleRowClick(department: DepartmentRow) {
-    if (department.childrenCount > 0) {
-      handleNavigate(department.id);
-    }
   }
 
   async function handleDelete(department: DepartmentRow) {
@@ -156,15 +147,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
             </TableHeader>
             <TableBody>
               {filteredDepartments.map((dept) => (
-                <TableRow
-                  key={dept.id}
-                  className={
-                    dept.childrenCount > 0
-                      ? "cursor-pointer hover:bg-muted/50"
-                      : ""
-                  }
-                  onClick={() => handleRowClick(dept)}
-                >
+                <TableRow key={dept.id}>
                   <TableCell className="font-medium">{dept.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{dept.code}</Badge>
@@ -180,10 +163,10 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        title={t("addChild")}
+                        title={t("manage")}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setCreateChildDept(dept);
+                          handleNavigate(dept.id);
                         }}
                       >
                         <FolderTree className="h-4 w-4" />
@@ -244,14 +227,6 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
           onOpenChange={(open) => !open && setEditDepartment(null)}
           orgId={orgId}
           department={editDepartment}
-        />
-      )}
-      {createChildDept && (
-        <DepartmentDialog
-          open={!!createChildDept}
-          onOpenChange={(open) => !open && setCreateChildDept(null)}
-          orgId={orgId}
-          parentId={createChildDept.id}
         />
       )}
       {manageMembersDept && (
