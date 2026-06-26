@@ -1,5 +1,13 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import {
+  createDepartment,
+  deleteDepartment,
+  getDepartment,
+  listDepartments,
+  reorderDepartments,
+  updateDepartment,
+} from "../department";
+import {
   listOrganizationMembers,
   removeOrganizationMember,
 } from "../organization-member";
@@ -29,6 +37,12 @@ const routes = organizationRoutes.openapiRoutes([
   removeOrganizationMember,
   getOrganizationSettings,
   updateOrganizationSettings,
+  listDepartments,
+  createDepartment,
+  getDepartment,
+  updateDepartment,
+  deleteDepartment,
+  reorderDepartments,
 ] as const);
 
 export { routes as organizationRoutes };
