@@ -83,6 +83,9 @@ export function DepartmentMembersDialog({
         queryKey: ["department-members", orgId, departmentId],
       });
       queryClient.invalidateQueries({ queryKey: ["departments", orgId] });
+      queryClient.invalidateQueries({
+        queryKey: ["organization-members", orgId],
+      });
       toast.success(t("memberUnassigned"));
     },
   });
