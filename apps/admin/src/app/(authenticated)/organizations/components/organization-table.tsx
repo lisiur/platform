@@ -2,6 +2,7 @@
 
 import {
   Button,
+  ButtonGroup,
   TableBody,
   TableCell,
   TableHead,
@@ -142,20 +143,24 @@ export function OrganizationTable() {
               </TableCell>
               <TableCell>{formatDate(org.createdAt)}</TableCell>
               <TableCell sticky="right" align="right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setEditOrg(org)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(org)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <ButtonGroup className="ml-auto">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditOrg(org)}
+                  >
+                    <Pencil />
+                    {t("edit")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(org)}
+                  >
+                    <Trash2 />
+                    {t("delete")}
+                  </Button>
+                </ButtonGroup>
               </TableCell>
             </TableRow>
           ))}

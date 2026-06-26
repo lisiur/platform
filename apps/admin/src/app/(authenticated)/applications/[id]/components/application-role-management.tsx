@@ -127,13 +127,14 @@ export function ApplicationRoleManagement({
               <TableCell sticky="right" align="right">
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   onClick={() => {
                     setSelectedRole(role);
                     setPermissionDrawerOpen(true);
                   }}
                 >
-                  <ListChecks className="h-4 w-4" />
+                  <ListChecks />
+                  {t("managePermissions")}
                 </Button>
               </TableCell>
             </TableRow>

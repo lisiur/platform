@@ -2,6 +2,7 @@
 
 import {
   Button,
+  ButtonGroup,
   Input,
   TableBody,
   TableCell,
@@ -138,20 +139,24 @@ export function AppTable() {
               </TableCell>
               <TableCell>{formatDate(app.createdAt)}</TableCell>
               <TableCell sticky="right" align="right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push(`/applications/${app.id}`)}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setEditApp(app)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                <ButtonGroup className="ml-auto">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/applications/${app.id}`)}
+                  >
+                    <Settings />
+                    {t("settings")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditApp(app)}
+                  >
+                    <Pencil />
+                    {t("edit")}
+                  </Button>
+                </ButtonGroup>
               </TableCell>
             </TableRow>
           ))}

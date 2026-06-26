@@ -12,86 +12,55 @@ import {
   TableRow,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderTree, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatDate } from "@/utils/date";
-import { DepartmentBreadcrumb } from "./department-breadcrumb";
-import { DepartmentDialog } from "./department-dialog";
-import { DepartmentMembersDialog } from "./department-members-dialog";
+import { PositionDialog } from "./position-dialog";
+import { PositionMembersDialog } from "./position-members-dialog";
 
-interface DepartmentRow {
+interface PositionRow {
   id: string;
   organizationId: string;
-  parentId: string | null;
   name: string;
   code: string;
   description?: string | null;
-  childrenCount: number;
+  sortOrder: number;
+  membersCount: number;
   createdAt: string;
 }
 
-interface DepartmentBreadcrumbItem {
-  id: string;
-  name: string;
-}
-
-interface DepartmentTableProps {
+interface PositionTableProps {
   orgId: string;
 }
 
-export function DepartmentTable({ orgId }: DepartmentTableProps) {
-  const t = useTranslations("Departments");
+export function PositionTable({ orgId }: PositionTableProps) {
+  const t = useTranslations("Positions");
   const queryClient = useQueryClient();
   const confirm = useConfirm();
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
-  const [path, setPath] = useState<DepartmentBreadcrumbItem[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editDepartment, setEditDepartment] = useState<DepartmentRow | null>(
-    null,
-  );
-  const [manageMembersDept, setManageMembersDept] =
-    useState<DepartmentRow | null>(null);
+  const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
+  const [manageMembersPosition, setManageMembersPosition] =
+    useState<PositionRow | null>(null);
 
-  const { data: departments, isLoading } = useQuery({
-    queryKey: ["departments", orgId],
+  const { data: positions, isLoading } = useQuery({
+    queryKey: ["positions", orgId],
     queryFn: async () => {
       const res = await withApiFeedback(
-        appClient.api.organizations[":orgId"].departments.$get,
+        appClient.api.organizations[":orgId"].positions.$get,
       )({ param: { orgId } });
       const data = await res.json();
-      return data.departments as DepartmentRow[];
+      return data.positions as PositionRow[];
     },
   });
 
-  const filteredDepartments =
-    departments?.filter((d) => d.parentId === currentParentId) ?? [];
-
-  function handleNavigate(departmentId: string | null) {
-    if (departmentId === null) {
-      setCurrentParentId(null);
-      setPath([]);
-      return;
-    }
-    const dept = departments?.find((d) => d.id === departmentId);
-    if (!dept) return;
-
-    const existingIndex = path.findIndex((p) => p.id === departmentId);
-    if (existingIndex >= 0) {
-      setPath(path.slice(0, existingIndex + 1));
-    } else {
-      setPath([...path, { id: dept.id, name: dept.name }]);
-    }
-    setCurrentParentId(departmentId);
-  }
-
-  async function handleDelete(department: DepartmentRow) {
+  async function handleDelete(position: PositionRow) {
     const confirmed = await confirm({
       title: t("confirmDeleteTitle"),
-      description: t("confirmDeleteDescription", { name: department.name }),
+      description: t("confirmDeleteDescription", { name: position.name }),
       confirmLabel: t("delete"),
       cancelLabel: t("cancel"),
     });
@@ -99,11 +68,11 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
 
     try {
       await withApiFeedback(
-        appClient.api.organizations[":orgId"].departments[":id"].$delete,
+        appClient.api.organizations[":orgId"].positions[":id"].$delete,
       )({
-        param: { orgId, id: department.id },
+        param: { orgId, id: position.id },
       });
-      queryClient.invalidateQueries({ queryKey: ["departments", orgId] });
+      queryClient.invalidateQueries({ queryKey: ["positions", orgId] });
       toast.success(t("deleteSuccess"));
     } catch {
       // Error handled by withApiFeedback
@@ -120,14 +89,13 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
 
   return (
     <>
-      <DepartmentBreadcrumb path={path} onNavigate={handleNavigate} />
       <div className="mb-4 shrink-0">
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />
-          {t("createDepartment")}
+          {t("createPosition")}
         </Button>
       </div>
-      {filteredDepartments.length === 0 ? (
+      {positions?.length === 0 ? (
         <div className="flex min-h-[200px] items-center justify-center text-muted-foreground">
           {t("empty")}
         </div>
@@ -139,6 +107,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                 <TableHead>{t("name")}</TableHead>
                 <TableHead>{t("code")}</TableHead>
                 <TableHead>{t("description_label")}</TableHead>
+                <TableHead>{t("membersCount")}</TableHead>
                 <TableHead>{t("createdAt")}</TableHead>
                 <TableHead sticky="right" align="right">
                   {t("actions")}
@@ -146,16 +115,22 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDepartments.map((dept) => (
-                <TableRow key={dept.id}>
-                  <TableCell className="font-medium">{dept.name}</TableCell>
+              {positions?.map((position) => (
+                <TableRow key={position.id}>
+                  <TableCell className="font-medium">{position.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{dept.code}</Badge>
+                    <Badge variant="outline">{position.code}</Badge>
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                    {dept.description ?? "—"}
+                    {position.description ?? "—"}
                   </TableCell>
-                  <TableCell>{formatDate(dept.createdAt)}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      <Users className="mr-1 h-3 w-3" />
+                      {position.membersCount}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(position.createdAt)}</TableCell>
                   <TableCell sticky="right" align="right">
                     <ButtonGroup className="ml-auto">
                       <Button
@@ -163,18 +138,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleNavigate(dept.id);
-                        }}
-                      >
-                        <FolderTree />
-                        {t("manage")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setManageMembersDept(dept);
+                          setManageMembersPosition(position);
                         }}
                       >
                         <Users />
@@ -185,7 +149,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditDepartment(dept);
+                          setEditPosition(position);
                         }}
                       >
                         <Pencil />
@@ -196,7 +160,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(dept);
+                          handleDelete(position);
                         }}
                       >
                         <Trash2 />
@@ -210,27 +174,26 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
           </table>
         </div>
       )}
-      <DepartmentDialog
+      <PositionDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         orgId={orgId}
-        parentId={currentParentId}
       />
-      {editDepartment && (
-        <DepartmentDialog
-          open={!!editDepartment}
-          onOpenChange={(open) => !open && setEditDepartment(null)}
+      {editPosition && (
+        <PositionDialog
+          open={!!editPosition}
+          onOpenChange={(open) => !open && setEditPosition(null)}
           orgId={orgId}
-          department={editDepartment}
+          position={editPosition}
         />
       )}
-      {manageMembersDept && (
-        <DepartmentMembersDialog
-          open={!!manageMembersDept}
-          onOpenChange={(open) => !open && setManageMembersDept(null)}
+      {manageMembersPosition && (
+        <PositionMembersDialog
+          open={!!manageMembersPosition}
+          onOpenChange={(open) => !open && setManageMembersPosition(null)}
           orgId={orgId}
-          departmentId={manageMembersDept.id}
-          departmentName={manageMembersDept.name}
+          positionId={manageMembersPosition.id}
+          positionName={manageMembersPosition.name}
         />
       )}
     </>

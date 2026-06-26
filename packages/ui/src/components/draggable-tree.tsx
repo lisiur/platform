@@ -28,7 +28,7 @@ import {
   ListChevronsUpDown,
 } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { cn } from "../utils/cn";
+import { cn } from "#lib/utils";
 
 export type {
   DraggableAttributes,

@@ -4,6 +4,7 @@ import { isBuiltinUser } from "@repo/shared";
 import {
   Badge,
   Button,
+  ButtonGroup,
   TableBody,
   TableCell,
   TableHead,
@@ -181,27 +182,31 @@ export function UserTable() {
                 </TableCell>
                 <TableCell>{formatDate(user.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title={
-                      builtinUser ? t("protectedActionDisabled") : undefined
-                    }
-                    onClick={() => setEditUser(user)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title={
-                      builtinUser ? t("protectedActionDisabled") : undefined
-                    }
-                    disabled={builtinUser}
-                    onClick={() => handleDelete(user)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <ButtonGroup className="ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title={
+                        builtinUser ? t("protectedActionDisabled") : undefined
+                      }
+                      onClick={() => setEditUser(user)}
+                    >
+                      <Pencil />
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title={
+                        builtinUser ? t("protectedActionDisabled") : undefined
+                      }
+                      disabled={builtinUser}
+                      onClick={() => handleDelete(user)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </Button>
+                  </ButtonGroup>
                 </TableCell>
               </TableRow>
             );

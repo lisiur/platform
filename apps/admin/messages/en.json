@@ -133,6 +133,7 @@
     "save": "Save",
     "saving": "Saving...",
     "delete": "Delete",
+    "edit": "Edit",
     "deleting": "Deleting...",
     "updateSuccess": "User updated successfully",
     "createSuccess": "User created successfully",
@@ -207,7 +208,8 @@
       "save": "Save",
       "saving": "Saving...",
       "cancel": "Cancel",
-      "delete": "Delete"
+      "delete": "Delete",
+      "edit": "Edit"
     },
     "channels": {
       "create": "Add Channel",
@@ -333,6 +335,7 @@
     "save": "Save",
     "saving": "Saving...",
     "delete": "Delete",
+    "edit": "Edit",
     "deleting": "Deleting...",
     "updateSuccess": "Organization updated successfully",
     "createSuccess": "Organization created successfully",
@@ -362,6 +365,8 @@
     "save": "Save",
     "saving": "Saving...",
     "delete": "Delete",
+    "edit": "Edit",
+    "settings": "Settings",
     "deleting": "Deleting...",
     "updateSuccess": "Application updated successfully",
     "createSuccess": "Application created successfully",
@@ -436,7 +441,8 @@
     "action": "Action",
     "granted": "Granted",
     "denied": "Denied",
-    "protected": "Protected"
+    "protected": "Protected",
+    "managePermissions": "Permissions"
   },
   "Remote": {
     "settings": {

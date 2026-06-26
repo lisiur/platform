@@ -3,6 +3,7 @@
 import {
   Badge,
   Button,
+  ButtonGroup,
   Spinner,
   Table,
   TableBody,
@@ -159,20 +160,24 @@ export function NotificationChannelTable() {
                 </TableCell>
                 <TableCell>{formatDate(channel.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setEditChannel(channel)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(channel)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <ButtonGroup className="ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditChannel(channel)}
+                    >
+                      <Pencil />
+                      {t("actions.edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(channel)}
+                    >
+                      <Trash2 />
+                      {t("actions.delete")}
+                    </Button>
+                  </ButtonGroup>
                 </TableCell>
               </TableRow>
             ))}

@@ -133,6 +133,7 @@
     "save": "保存",
     "saving": "保存中...",
     "delete": "删除",
+    "edit": "编辑",
     "deleting": "删除中...",
     "updateSuccess": "用户更新成功",
     "createSuccess": "用户创建成功",
@@ -207,7 +208,8 @@
       "save": "保存",
       "saving": "保存中...",
       "cancel": "取消",
-      "delete": "删除"
+      "delete": "删除",
+      "edit": "编辑"
     },
     "channels": {
       "create": "新增渠道",
@@ -333,6 +335,7 @@
     "save": "保存",
     "saving": "保存中...",
     "delete": "删除",
+    "edit": "编辑",
     "deleting": "删除中...",
     "updateSuccess": "组织更新成功",
     "createSuccess": "组织创建成功",
@@ -362,6 +365,8 @@
     "save": "保存",
     "saving": "保存中...",
     "delete": "删除",
+    "edit": "编辑",
+    "settings": "设置",
     "deleting": "删除中...",
     "updateSuccess": "应用更新成功",
     "createSuccess": "应用创建成功",
@@ -436,7 +441,8 @@
     "action": "操作",
     "granted": "已授权",
     "denied": "未授权",
-    "protected": "受保护"
+    "protected": "受保护",
+    "managePermissions": "权限"
   },
   "Remote": {
     "settings": {

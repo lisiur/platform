@@ -3,6 +3,7 @@
 import {
   Badge,
   Button,
+  ButtonGroup,
   Spinner,
   Table,
   TableBody,
@@ -162,20 +163,24 @@ export function NotificationTemplateTable() {
                 </TableCell>
                 <TableCell>{formatDate(template.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setEditTemplate(template)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(template)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <ButtonGroup className="ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditTemplate(template)}
+                    >
+                      <Pencil />
+                      {t("actions.edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(template)}
+                    >
+                      <Trash2 />
+                      {t("actions.delete")}
+                    </Button>
+                  </ButtonGroup>
                 </TableCell>
               </TableRow>
             ))}

@@ -3,7 +3,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { icons, type LucideIcon, Search } from "lucide-react";
 import { type MouseEvent, useMemo, useState } from "react";
-import { cn } from "../utils/cn";
+import { cn } from "#lib/utils";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 

@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { useCallback, useState } from "react";
-import { cn } from "../utils/cn";
+import { cn } from "#lib/utils";
 
 export interface TreeNode {
   id: string;
