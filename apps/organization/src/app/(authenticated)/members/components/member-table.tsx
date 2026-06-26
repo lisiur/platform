@@ -31,8 +31,10 @@ interface MemberRow {
   id: string;
   userId: string;
   role: string;
+  departmentId: string | null;
   createdAt: string;
   user: MemberUser;
+  department: { id: string; name: string } | null;
 }
 
 export function MemberTable({ organizationId }: { organizationId: string }) {
@@ -114,6 +116,7 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
           <TableHead>{t("name")}</TableHead>
           <TableHead>{t("email")}</TableHead>
           <TableHead>{t("role")}</TableHead>
+          <TableHead>{t("department")}</TableHead>
           <TableHead>{t("joinedAt")}</TableHead>
           <TableHead sticky="right" align="right">
             {t("actions")}
@@ -137,6 +140,7 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
               </TableCell>
               <TableCell>{member.user.email}</TableCell>
               <TableCell>{roleBadge(member.role)}</TableCell>
+              <TableCell>{member.department?.name ?? "—"}</TableCell>
               <TableCell>{formatDate(member.createdAt)}</TableCell>
               <TableCell sticky="right" align="right">
                 {canManage && (

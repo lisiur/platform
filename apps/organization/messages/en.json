@@ -112,6 +112,7 @@
     "name": "Name",
     "email": "Email",
     "role": "Role",
+    "department": "Department",
     "roleOwner": "Owner",
     "roleMember": "Member",
     "joinedAt": "Joined",
