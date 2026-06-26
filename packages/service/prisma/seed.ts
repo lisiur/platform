@@ -426,6 +426,36 @@ const organizationPermissions = [
     name: "Update Organization Settings",
     description: "Update an organization's settings",
   },
+  {
+    code: "department::list",
+    group: "department",
+    name: "List Departments",
+    description: "List departments in an organization",
+  },
+  {
+    code: "department::create",
+    group: "department",
+    name: "Create Department",
+    description: "Create a department in an organization",
+  },
+  {
+    code: "department::update",
+    group: "department",
+    name: "Update Department",
+    description: "Update a department in an organization",
+  },
+  {
+    code: "department::delete",
+    group: "department",
+    name: "Delete Department",
+    description: "Delete a department from an organization",
+  },
+  {
+    code: "department::reorder",
+    group: "department",
+    name: "Reorder Departments",
+    description: "Reorder departments in an organization",
+  },
 ];
 
 // --- Applications ---
@@ -559,7 +589,7 @@ const adminRolePermissions: Record<string, string[]> = {
 
 const organizationRolePermissions: Record<string, string[]> = {
   [ORG_OWNER_ROLE_CODE]: organizationPermissions.map((p) => p.code),
-  [ORG_MEMBER_ROLE_CODE]: ["organization-member::list"],
+  [ORG_MEMBER_ROLE_CODE]: ["organization-member::list", "department::list"],
 };
 
 // --- Notification Channels ---
