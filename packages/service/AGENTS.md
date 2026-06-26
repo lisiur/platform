@@ -32,11 +32,6 @@
 - `ORG_OWNER_ROLE_CODE` gets ALL `organizationPermissions` automatically via `.map()`.
 - `ORG_MEMBER_ROLE_CODE` must be explicitly granted permissions (e.g. `["organization-member::list", "department::list"]`).
 
-## Seed & Menus
-- Menu entries are defined in `prisma/seed.ts` under `adminMenus` and `organizationMenus`.
-- Menu entries require: `id`, `code`, `name`, `icon`, `linkType: "INTERNAL"`, `url`, `sortOrder`, and `permissions`.
-- Run `pnpm db:seed` after menu changes.
-
 ## Commands
 - Standalone dev server: `pnpm dev` on `PORT` or `3001`.
 - Tests: `pnpm exec vitest --run`; focus one file with `pnpm exec vitest --run src/routes/application/__tests__/application.test.ts`.

@@ -31,7 +31,9 @@ export async function createDepartment(
     where: { organizationId_code: { organizationId, code: data.code } },
   });
   if (existing) {
-    throw new HTTPException(409, { message: "Code already taken in this organization" });
+    throw new HTTPException(409, {
+      message: "Code already taken in this organization",
+    });
   }
 
   if (data.parentId) {
@@ -76,20 +78,26 @@ export async function updateDepartment(
       where: { organizationId_code: { organizationId, code: data.code } },
     });
     if (existing) {
-      throw new HTTPException(409, { message: "Code already taken in this organization" });
+      throw new HTTPException(409, {
+        message: "Code already taken in this organization",
+      });
     }
   }
 
   if (data.parentId !== undefined) {
     if (data.parentId === id) {
-      throw new HTTPException(400, { message: "Department cannot be its own parent" });
+      throw new HTTPException(400, {
+        message: "Department cannot be its own parent",
+      });
     }
     if (data.parentId) {
       const parent = await prisma.department.findFirst({
         where: { id: data.parentId, organizationId },
       });
       if (!parent) {
-        throw new HTTPException(400, { message: "Parent department not found" });
+        throw new HTTPException(400, {
+          message: "Parent department not found",
+        });
       }
     }
   }
