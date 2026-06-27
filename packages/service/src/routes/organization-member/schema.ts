@@ -16,6 +16,15 @@ export const memberSchema = z
       })
       .nullable(),
     createdAt: z.date(),
+    positions: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          code: z.string(),
+        }),
+      )
+      .optional(),
     user: z.object({
       id: z.string(),
       name: z.string(),

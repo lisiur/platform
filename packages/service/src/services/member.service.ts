@@ -16,12 +16,17 @@ export async function listMembers(
     ...(departmentId !== undefined && { departmentId }),
   };
 
-  const [members, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.member.findMany({
       where,
       include: {
         user: { select: { id: true, name: true, email: true, image: true } },
         department: { select: { id: true, name: true } },
+        memberPositions: {
+          include: {
+            position: { select: { id: true, name: true, code: true } },
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
       take: limit,
@@ -29,6 +34,10 @@ export async function listMembers(
     }),
     prisma.member.count({ where }),
   ]);
+  const members = rows.map(({ memberPositions, ...member }) => ({
+    ...member,
+    positions: memberPositions.map((mp) => mp.position),
+  }));
   return { members, total };
 }
 
