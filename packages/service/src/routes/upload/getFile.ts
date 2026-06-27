@@ -34,14 +34,25 @@ export const getFile = defineOpenAPIRoute({
       headers: c.req.raw.headers,
     });
 
+    const inlineImageTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+    const isInlineImage = inlineImageTypes.includes(mimeType);
+
     return new Response(stream, {
       headers: {
         "Content-Type": mimeType,
         "Content-Length": String(size),
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": isInlineImage ? "inline" : "attachment",
         "Cache-Control":
           visibility === "public"
             ? "public, max-age=31536000"
             : "private, no-store",
+        "Referrer-Policy": "no-referrer",
       },
     });
   },
