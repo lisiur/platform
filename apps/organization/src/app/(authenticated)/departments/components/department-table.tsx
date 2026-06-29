@@ -5,6 +5,7 @@ import {
   Button,
   ButtonGroup,
   Spinner,
+  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -132,83 +133,81 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
           {t("empty")}
         </div>
       ) : (
-        <div className="rounded-md border">
-          <table className="w-full caption-bottom text-sm">
-            <TableHeader sticky>
-              <TableRow>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("code")}</TableHead>
-                <TableHead>{t("description_label")}</TableHead>
-                <TableHead>{t("createdAt")}</TableHead>
-                <TableHead sticky="right" align="right">
-                  {t("actions")}
-                </TableHead>
+        <Table containerClassName="overflow-auto rounded-md border">
+          <TableHeader sticky>
+            <TableRow>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("code")}</TableHead>
+              <TableHead>{t("description_label")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
+              <TableHead sticky="right" align="right">
+                {t("actions")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDepartments.map((dept) => (
+              <TableRow key={dept.id}>
+                <TableCell className="font-medium">{dept.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{dept.code}</Badge>
+                </TableCell>
+                <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                  {dept.description ?? "—"}
+                </TableCell>
+                <TableCell>{formatDate(dept.createdAt)}</TableCell>
+                <TableCell sticky="right" align="right">
+                  <ButtonGroup className="ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate(dept.id);
+                      }}
+                    >
+                      <FolderTree />
+                      {t("manage")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setManageMembersDept(dept);
+                      }}
+                    >
+                      <Users />
+                      {t("manageMembers")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditDepartment(dept);
+                      }}
+                    >
+                      <Pencil />
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(dept);
+                      }}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </Button>
+                  </ButtonGroup>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDepartments.map((dept) => (
-                <TableRow key={dept.id}>
-                  <TableCell className="font-medium">{dept.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{dept.code}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                    {dept.description ?? "—"}
-                  </TableCell>
-                  <TableCell>{formatDate(dept.createdAt)}</TableCell>
-                  <TableCell sticky="right" align="right">
-                    <ButtonGroup className="ml-auto">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNavigate(dept.id);
-                        }}
-                      >
-                        <FolderTree />
-                        {t("manage")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setManageMembersDept(dept);
-                        }}
-                      >
-                        <Users />
-                        {t("manageMembers")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditDepartment(dept);
-                        }}
-                      >
-                        <Pencil />
-                        {t("edit")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(dept);
-                        }}
-                      >
-                        <Trash2 />
-                        {t("delete")}
-                      </Button>
-                    </ButtonGroup>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       )}
       <DepartmentDialog
         open={createOpen}

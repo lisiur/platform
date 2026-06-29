@@ -5,6 +5,7 @@ import {
   Button,
   ButtonGroup,
   Spinner,
+  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -104,97 +105,95 @@ export function PositionTable({ orgId }: PositionTableProps) {
           {t("empty")}
         </div>
       ) : (
-        <div className="rounded-md border">
-          <table className="w-full caption-bottom text-sm">
-            <TableHeader sticky>
-              <TableRow>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("code")}</TableHead>
-                <TableHead>{t("description_label")}</TableHead>
-                <TableHead>{t("membersCount")}</TableHead>
-                <TableHead>{t("permissions")}</TableHead>
-                <TableHead>{t("createdAt")}</TableHead>
-                <TableHead sticky="right" align="right">
-                  {t("actions")}
-                </TableHead>
+        <Table containerClassName="overflow-auto rounded-md border">
+          <TableHeader sticky>
+            <TableRow>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("code")}</TableHead>
+              <TableHead>{t("description_label")}</TableHead>
+              <TableHead>{t("membersCount")}</TableHead>
+              <TableHead>{t("permissions")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
+              <TableHead sticky="right" align="right">
+                {t("actions")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {positions?.map((position) => (
+              <TableRow key={position.id}>
+                <TableCell className="font-medium">{position.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{position.code}</Badge>
+                </TableCell>
+                <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                  {position.description ?? "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">
+                    <Users className="mr-1 h-3 w-3" />
+                    {position.membersCount}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    <Shield className="mr-1 h-3 w-3" />
+                    {position.permissionsCount}
+                  </Badge>
+                </TableCell>
+                <TableCell>{formatDate(position.createdAt)}</TableCell>
+                <TableCell sticky="right" align="right">
+                  <ButtonGroup className="ml-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setManageMembersPosition(position);
+                      }}
+                    >
+                      <Users />
+                      {t("manageMembers")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setManagePermissionsPosition(position);
+                      }}
+                    >
+                      <Shield />
+                      {t("managePermissions")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditPosition(position);
+                      }}
+                    >
+                      <Pencil />
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(position);
+                      }}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </Button>
+                  </ButtonGroup>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {positions?.map((position) => (
-                <TableRow key={position.id}>
-                  <TableCell className="font-medium">{position.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{position.code}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                    {position.description ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      <Users className="mr-1 h-3 w-3" />
-                      {position.membersCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      <Shield className="mr-1 h-3 w-3" />
-                      {position.permissionsCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(position.createdAt)}</TableCell>
-                  <TableCell sticky="right" align="right">
-                    <ButtonGroup className="ml-auto">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setManageMembersPosition(position);
-                        }}
-                      >
-                        <Users />
-                        {t("manageMembers")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setManagePermissionsPosition(position);
-                        }}
-                      >
-                        <Shield />
-                        {t("managePermissions")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditPosition(position);
-                        }}
-                      >
-                        <Pencil />
-                        {t("edit")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(position);
-                        }}
-                      >
-                        <Trash2 />
-                        {t("delete")}
-                      </Button>
-                    </ButtonGroup>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       )}
       <PositionDialog
         open={createOpen}
