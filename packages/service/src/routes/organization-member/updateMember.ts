@@ -24,7 +24,7 @@ export const updateOrganizationMember = defineOpenAPIRoute({
     tags: ["Organization Member"],
     summary: "Update a member",
     request: {
-      params: orgIdParamSchema.merge(memberIdParamSchema),
+      params: orgIdParamSchema.extend(memberIdParamSchema.shape),
       body: {
         content: {
           "application/json": { schema: updateMemberBodySchema },

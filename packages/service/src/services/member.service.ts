@@ -1,5 +1,11 @@
 import { HTTPException } from "hono/http-exception";
+import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+
+const memberInclude = {
+  user: { select: { id: true, name: true, email: true, image: true } },
+  department: { select: { id: true, name: true } },
+} satisfies Prisma.MemberInclude;
 
 export async function listMembers(
   organizationId: string,
@@ -66,7 +72,7 @@ export async function updateMember(
   organizationId: string,
   memberId: string,
   data: { departmentId: string | null },
-) {
+): Promise<Prisma.MemberGetPayload<{ include: typeof memberInclude }>> {
   const member = await prisma.member.findFirst({
     where: { id: memberId, organizationId },
   });
@@ -86,10 +92,7 @@ export async function updateMember(
   return prisma.member.update({
     where: { id: memberId },
     data: { departmentId: data.departmentId },
-    include: {
-      user: { select: { id: true, name: true, email: true, image: true } },
-      department: { select: { id: true, name: true } },
-    },
+    include: memberInclude,
   });
 }
 
