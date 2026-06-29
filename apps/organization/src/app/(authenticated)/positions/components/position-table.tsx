@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Pencil, Plus, Shield, Trash2, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { appClient, withApiFeedback } from "@/lib/api";
 import { formatDate } from "@/utils/date";
 import { PositionDialog } from "./position-dialog";
 import { PositionMembersDialog } from "./position-members-dialog";
+import { PositionPermissionsDialog } from "./position-permissions-dialog";
 
 interface PositionRow {
   id: string;
@@ -30,6 +31,7 @@ interface PositionRow {
   description?: string | null;
   sortOrder: number;
   membersCount: number;
+  permissionsCount: number;
   createdAt: string;
 }
 
@@ -44,6 +46,8 @@ export function PositionTable({ orgId }: PositionTableProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
   const [manageMembersPosition, setManageMembersPosition] =
+    useState<PositionRow | null>(null);
+  const [managePermissionsPosition, setManagePermissionsPosition] =
     useState<PositionRow | null>(null);
 
   const { data: positions, isLoading } = useQuery({
@@ -108,6 +112,7 @@ export function PositionTable({ orgId }: PositionTableProps) {
                 <TableHead>{t("code")}</TableHead>
                 <TableHead>{t("description_label")}</TableHead>
                 <TableHead>{t("membersCount")}</TableHead>
+                <TableHead>{t("permissions")}</TableHead>
                 <TableHead>{t("createdAt")}</TableHead>
                 <TableHead sticky="right" align="right">
                   {t("actions")}
@@ -130,6 +135,12 @@ export function PositionTable({ orgId }: PositionTableProps) {
                       {position.membersCount}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      <Shield className="mr-1 h-3 w-3" />
+                      {position.permissionsCount}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{formatDate(position.createdAt)}</TableCell>
                   <TableCell sticky="right" align="right">
                     <ButtonGroup className="ml-auto">
@@ -143,6 +154,17 @@ export function PositionTable({ orgId }: PositionTableProps) {
                       >
                         <Users />
                         {t("manageMembers")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setManagePermissionsPosition(position);
+                        }}
+                      >
+                        <Shield />
+                        {t("managePermissions")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -194,6 +216,15 @@ export function PositionTable({ orgId }: PositionTableProps) {
           orgId={orgId}
           positionId={manageMembersPosition.id}
           positionName={manageMembersPosition.name}
+        />
+      )}
+      {managePermissionsPosition && (
+        <PositionPermissionsDialog
+          open={!!managePermissionsPosition}
+          onOpenChange={(open) => !open && setManagePermissionsPosition(null)}
+          orgId={orgId}
+          positionId={managePermissionsPosition.id}
+          positionName={managePermissionsPosition.name}
         />
       )}
     </>
