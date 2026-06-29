@@ -1,11 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
-import { roleRepository } from "#repositories/role.repository";
 import { listPermissionsForApp } from "#services/permission.service";
-import {
-  assignPermissions,
-  getPermissionsForRole,
-} from "#services/role-permission.service";
+import { getPermissionsForRole } from "#services/role-permission.service";
 
 const ORGANIZATION_APP_ID = "organization";
 
@@ -134,32 +130,56 @@ export async function updatePosition(
     }
   }
 
-  const updated = await prisma.position.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.code !== undefined && { code: data.code }),
-      ...(data.description !== undefined && { description: data.description }),
-      ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
-    },
-    include: {
-      _count: { select: { memberPositions: true } },
-      role: { select: { _count: { select: { rolePermissions: true } } } },
-    },
-  });
-
-  if (position.roleId && (data.name || data.code)) {
-    await roleRepository.update(position.roleId, {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.code !== undefined && { code: `position-${data.code}` }),
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.position.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      },
+      include: {
+        _count: { select: { memberPositions: true } },
+        role: { select: { _count: { select: { rolePermissions: true } } } },
+      },
     });
-  }
 
-  return {
-    ...updated,
-    membersCount: updated._count.memberPositions,
-    permissionsCount: updated.role?._count.rolePermissions ?? 0,
-  };
+    if (
+      position.roleId &&
+      (data.name !== undefined || data.code !== undefined)
+    ) {
+      try {
+        await tx.role.update({
+          where: { id: position.roleId },
+          data: {
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.code !== undefined && { code: `position-${data.code}` }),
+          },
+        });
+      } catch (err) {
+        if (
+          err &&
+          typeof err === "object" &&
+          "code" in err &&
+          err.code === "P2002"
+        ) {
+          throw new HTTPException(409, {
+            message: "A role with this code already exists in this scope",
+          });
+        }
+        throw err;
+      }
+    }
+
+    return {
+      ...updated,
+      membersCount: updated._count.memberPositions,
+      permissionsCount: updated.role?._count.rolePermissions ?? 0,
+    };
+  });
 }
 
 export async function deletePosition(organizationId: string, id: string) {
@@ -305,27 +325,78 @@ export async function setPositionPermissions(
     throw new HTTPException(404, { message: "Position not found" });
   }
 
-  let roleId = position.roleId;
-
-  if (!roleId) {
-    const role = await roleRepository.create({
-      appId: ORGANIZATION_APP_ID,
-      scopeType: "ORGANIZATION",
-      scopeId: organizationId,
-      name: position.name,
-      code: `position-${position.code}`,
+  if (permissionIds.length > 0) {
+    const validPerms = await prisma.permission.findMany({
+      where: {
+        id: { in: permissionIds },
+        OR: [{ appId: ORGANIZATION_APP_ID }, { appId: null }],
+      },
+      select: { id: true },
     });
-    await prisma.position.update({
-      where: { id: positionId },
-      data: { roleId: role.id },
-    });
-    roleId = role.id;
+    if (validPerms.length !== permissionIds.length) {
+      throw new HTTPException(400, {
+        message: "One or more permissions not found",
+      });
+    }
   }
 
-  await assignPermissions(roleId, permissionIds);
+  let roleId = position.roleId;
 
-  const assigned = await getPermissionsForRole(roleId);
-  const { permissions: available } =
-    await listPermissionsForApp(ORGANIZATION_APP_ID);
-  return { assigned, available };
+  return prisma.$transaction(async (tx) => {
+    if (!roleId) {
+      const roleCode = `position-${position.code}`;
+      const existing = await tx.role.findUnique({
+        where: {
+          appId_scopeType_scopeId_code: {
+            appId: ORGANIZATION_APP_ID,
+            scopeType: "ORGANIZATION",
+            scopeId: organizationId,
+            code: roleCode,
+          },
+        },
+      });
+      if (existing) {
+        throw new HTTPException(409, {
+          message: "A role with this code already exists in this scope",
+        });
+      }
+
+      const role = await tx.role.create({
+        data: {
+          appId: ORGANIZATION_APP_ID,
+          scopeType: "ORGANIZATION",
+          scopeId: organizationId,
+          name: position.name,
+          code: roleCode,
+        },
+      });
+      await tx.position.update({
+        where: { id: positionId },
+        data: { roleId: role.id },
+      });
+      roleId = role.id;
+    }
+
+    const finalRoleId: string = roleId;
+
+    await tx.rolePermission.deleteMany({ where: { roleId: finalRoleId } });
+    if (permissionIds.length > 0) {
+      await tx.rolePermission.createMany({
+        data: permissionIds.map((permissionId) => ({
+          permissionId,
+          roleId: finalRoleId,
+        })),
+      });
+    }
+
+    const assigned = await tx.permission.findMany({
+      where: { rolePermissions: { some: { roleId: finalRoleId } } },
+    });
+    const available = await tx.permission.findMany({
+      where: { OR: [{ appId: ORGANIZATION_APP_ID }, { appId: null }] },
+      orderBy: [{ group: "asc" }, { code: "asc" }],
+    });
+
+    return { assigned, available };
+  });
 }
