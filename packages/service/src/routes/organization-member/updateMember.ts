@@ -20,7 +20,7 @@ import {
 export const updateOrganizationMember = defineOpenAPIRoute({
   route: createRoute({
     method: "patch",
-    path: "/{id}/members/{memberId}",
+    path: "/{orgId}/members/{memberId}",
     tags: ["Organization Member"],
     summary: "Update a member",
     request: {
@@ -42,15 +42,15 @@ export const updateOrganizationMember = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const { id, memberId } = c.req.valid("param");
+    const { orgId, memberId } = c.req.valid("param");
     const body = c.req.valid("json");
 
     await assertPermission(session.user.id, "organization-member::update", {
       appId: "organization",
-      organizationId: id,
+      organizationId: orgId,
     });
 
-    const member = await updateMember(id, memberId, body);
+    const member = await updateMember(orgId, memberId, body);
 
     logAudit({
       event: "member.updated",

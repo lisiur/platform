@@ -16,7 +16,7 @@ import {
 export const listOrganizationMembers = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
-    path: "/{id}/members",
+    path: "/{orgId}/members",
     tags: ["Organization Member"],
     summary: "List organization members",
     request: {
@@ -31,15 +31,15 @@ export const listOrganizationMembers = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const { id } = c.req.valid("param");
+    const { orgId } = c.req.valid("param");
     const query = c.req.valid("query");
 
     await assertPermission(session.user.id, "organization-member::list", {
       appId: "organization",
-      organizationId: id,
+      organizationId: orgId,
     });
 
-    const result = await listMembers(id, {
+    const result = await listMembers(orgId, {
       limit: query.limit,
       offset: query.offset,
       departmentId: query.departmentId ?? undefined,

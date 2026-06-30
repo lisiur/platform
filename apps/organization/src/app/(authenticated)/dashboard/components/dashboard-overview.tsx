@@ -24,8 +24,8 @@ export function DashboardOverview() {
     enabled,
     queryFn: async () => {
       if (!orgId) return 0;
-      const res = await appClient.api.organizations[":id"].members.$get({
-        param: { id: orgId },
+      const res = await appClient.api.organizations[":orgId"].members.$get({
+        param: { orgId },
         query: { limit: 1, offset: 0 },
       });
       if (!res.ok) throw new Error("Failed to load members");

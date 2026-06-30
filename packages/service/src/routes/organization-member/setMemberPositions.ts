@@ -19,7 +19,7 @@ import {
 export const setMemberPositionsRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "put",
-    path: "/{id}/members/{memberId}/positions",
+    path: "/{orgId}/members/{memberId}/positions",
     tags: ["Organization Member"],
     summary: "Set member positions",
     description: "Replace all positions for a member in an organization.",
@@ -62,7 +62,7 @@ export const setMemberPositionsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const { id: orgId, memberId } = c.req.valid("param");
+    const { orgId, memberId } = c.req.valid("param");
     const body = c.req.valid("json");
 
     await assertPermission(session.user.id, "organization-member::update", {

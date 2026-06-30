@@ -61,9 +61,9 @@ export function DepartmentMembersDialog({
     enabled: open,
     queryFn: async () => {
       const res = await withApiFeedback(
-        appClient.api.organizations[":id"].members.$get,
+        appClient.api.organizations[":orgId"].members.$get,
       )({
-        param: { id: orgId },
+        param: { orgId },
         query: { limit: 100, offset: 0, departmentId },
       });
       const data = await res.json();
@@ -74,9 +74,9 @@ export function DepartmentMembersDialog({
   const unassignMutation = useMutation({
     mutationFn: async (memberId: string) => {
       await withApiFeedback(
-        appClient.api.organizations[":id"].members[":memberId"].$patch,
+        appClient.api.organizations[":orgId"].members[":memberId"].$patch,
       )({
-        param: { id: orgId, memberId },
+        param: { orgId, memberId },
         json: { departmentId: null },
       });
     },
@@ -197,9 +197,9 @@ function AddMemberDialog({
     enabled: open,
     queryFn: async () => {
       const res = await withApiFeedback(
-        appClient.api.organizations[":id"].members.$get,
+        appClient.api.organizations[":orgId"].members.$get,
       )({
-        param: { id: orgId },
+        param: { orgId },
         query: { limit: 100, offset: 0 },
       });
       const data = await res.json();
@@ -239,9 +239,9 @@ function AddMemberDialog({
   const batchAssignMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       await withApiFeedback(
-        appClient.api.organizations[":id"].members.batch.$patch,
+        appClient.api.organizations[":orgId"].members.batch.$patch,
       )({
-        param: { id: orgId },
+        param: { orgId },
         json: { memberIds: ids, departmentId },
       });
     },

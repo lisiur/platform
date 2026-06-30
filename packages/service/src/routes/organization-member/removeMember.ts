@@ -12,14 +12,14 @@ import { removeMember } from "#services/member.service";
 import { assertPermission } from "#services/role-permission.service";
 
 const memberParamsSchema = z.object({
-  id: z.string(),
+  orgId: z.string(),
   memberId: z.string(),
 });
 
 export const removeOrganizationMember = defineOpenAPIRoute({
   route: createRoute({
     method: "delete",
-    path: "/{id}/members/{memberId}",
+    path: "/{orgId}/members/{memberId}",
     tags: ["Organization"],
     summary: "Remove a member from an organization",
     description: "Removes a member from the given organization.",
@@ -39,21 +39,21 @@ export const removeOrganizationMember = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const { id, memberId } = c.req.valid("param");
+    const { orgId, memberId } = c.req.valid("param");
 
     await assertPermission(session.user.id, "organization-member::remove", {
       appId: "organization",
-      organizationId: id,
+      organizationId: orgId,
     });
 
-    await removeMember(id, memberId);
+    await removeMember(orgId, memberId);
 
     await logAudit({
       c,
       event: "organization.member.removed",
       category: "organization",
       targetType: "organization",
-      targetId: id,
+      targetId: orgId,
     });
 
     return c.json({ success: true as const }, 200);

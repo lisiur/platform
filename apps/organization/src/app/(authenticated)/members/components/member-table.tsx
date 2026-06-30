@@ -70,9 +70,9 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
     enabled: !!organizationId,
     queryFn: async ({ limit, offset }) => {
       const res = await withApiFeedback(
-        appClient.api.organizations[":id"].members.$get,
+        appClient.api.organizations[":orgId"].members.$get,
       )({
-        param: { id: organizationId },
+        param: { orgId: organizationId },
         query: { limit, offset },
       });
       const data = await res.json();
@@ -104,9 +104,9 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
 
     try {
       await withApiFeedback(
-        appClient.api.organizations[":id"].members[":memberId"].$delete,
+        appClient.api.organizations[":orgId"].members[":memberId"].$delete,
       )({
-        param: { id: organizationId, memberId: member.id },
+        param: { orgId: organizationId, memberId: member.id },
       });
       refresh();
       toast.success(t("removeSuccess"));

@@ -207,9 +207,9 @@ function AddMemberToPositionDialog({
     enabled: open,
     queryFn: async () => {
       const res = await withApiFeedback(
-        appClient.api.organizations[":id"].members.$get,
+        appClient.api.organizations[":orgId"].members.$get,
       )({
-        param: { id: orgId },
+        param: { orgId },
         query: { limit: 100, offset: 0 },
       });
       const data = await res.json();

@@ -23,7 +23,7 @@ const batchUpdateMembersResponseSchema = memberSchema
 export const batchUpdateOrganizationMembers = defineOpenAPIRoute({
   route: createRoute({
     method: "patch",
-    path: "/{id}/members/batch",
+    path: "/{orgId}/members/batch",
     tags: ["Organization Member"],
     summary: "Batch update members",
     description: "Update department assignment for multiple members at once.",
@@ -45,15 +45,15 @@ export const batchUpdateOrganizationMembers = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const { id } = c.req.valid("param");
+    const { orgId } = c.req.valid("param");
     const { memberIds, departmentId } = c.req.valid("json");
 
     await assertPermission(session.user.id, "organization-member::update", {
       appId: "organization",
-      organizationId: id,
+      organizationId: orgId,
     });
 
-    await batchUpdateMembers(id, memberIds, { departmentId });
+    await batchUpdateMembers(orgId, memberIds, { departmentId });
 
     const members = await prisma.member.findMany({
       where: { id: { in: memberIds } },

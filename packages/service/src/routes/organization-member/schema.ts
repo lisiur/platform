@@ -43,7 +43,7 @@ export const setMemberPositionsBodySchema = z.object({
 });
 
 export const orgIdParamSchema = z.object({
-  id: z.string(),
+  orgId: z.string(),
 });
 
 export const listMembersQuerySchema = paginationQuerySchema.extend({

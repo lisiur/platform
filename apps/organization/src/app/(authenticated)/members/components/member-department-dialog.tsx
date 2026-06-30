@@ -66,9 +66,9 @@ export function MemberDepartmentDialog({
     mutationFn: async () => {
       const departmentId = selectedId === NO_DEPARTMENT ? null : selectedId;
       await withApiFeedback(
-        appClient.api.organizations[":id"].members[":memberId"].$patch,
+        appClient.api.organizations[":orgId"].members[":memberId"].$patch,
       )({
-        param: { id: orgId, memberId },
+        param: { orgId, memberId },
         json: { departmentId },
       });
     },
