@@ -442,7 +442,21 @@
     "granted": "Granted",
     "denied": "Denied",
     "protected": "Protected",
-    "managePermissions": "Permissions"
+    "managePermissions": "Permissions",
+    "addRole": "Add Role",
+    "addRoleDescription": "Create a new role",
+    "editRole": "Edit Role",
+    "editRoleDescription": "Update role information",
+    "deleteRole": "Delete Role",
+    "confirmDelete": "Are you sure you want to delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "delete": "Delete",
+    "edit": "Edit",
+    "createSuccess": "Role created successfully",
+    "updateSuccess": "Role updated successfully",
+    "protectedActionDisabled": "Built-in roles cannot be modified"
   },
   "Remote": {
     "settings": {
@@ -482,6 +496,7 @@
   "Menus": {
     "title": "Menu Management",
     "description": "Manage the menu structure of an application",
+    "selectApp": "Select an application to manage menus",
     "fetchFailed": "Failed to fetch menus",
     "reorderFailed": "Failed to reorder menus",
     "selectMenuToEdit": "Select a menu to edit",
