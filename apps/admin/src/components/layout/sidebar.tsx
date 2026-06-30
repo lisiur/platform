@@ -117,7 +117,6 @@ function SidebarMenuNode({
         <SidebarMenuButton
           isActive={isActive}
           render={
-            // biome-ignore lint/a11y/useAnchorContent: SidebarMenuButton renders children inside the anchor
             <a
               href={href ?? "#"}
               target="_blank"

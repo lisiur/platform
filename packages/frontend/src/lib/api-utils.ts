@@ -2,15 +2,12 @@ import type { ClientResponse } from "hono/client";
 import type { SuccessStatusCode } from "hono/utils/http-status";
 import { type WithFeedbackConfig, withFeedback } from "./with-feedback";
 
-type ExtractSuccessResponse<T> = T extends ClientResponse<
-  infer R,
-  infer S,
-  infer F
->
-  ? S extends SuccessStatusCode
-    ? ClientResponse<R, S, F>
-    : never
-  : never;
+type ExtractSuccessResponse<T> =
+  T extends ClientResponse<infer R, infer S, infer F>
+    ? S extends SuccessStatusCode
+      ? ClientResponse<R, S, F>
+      : never
+    : never;
 
 function getContentType(res: Response) {
   return res.headers.get("Content-Type")?.split(";")[0];
