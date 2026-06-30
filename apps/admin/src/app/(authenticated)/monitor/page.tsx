@@ -13,7 +13,9 @@ import {
   ProgressValue,
 } from "@repo/ui";
 import { Cpu, HardDrive, MemoryStick, Server } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { ManagementPageShell } from "@/components/management-page-shell";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 
@@ -93,6 +95,7 @@ function ResourceCard({
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("Monitor");
   const [info, setInfo] = useState<SystemInfo | null>(null);
 
   const fetchInfo = useCallback(async () => {
@@ -113,98 +116,101 @@ export default function DashboardPage() {
 
   if (!info) {
     return (
-      <div className="py-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="size-5 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-24 animate-pulse rounded bg-muted" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-2 animate-pulse rounded bg-muted" />
-              </CardContent>
-            </Card>
-          ))}
+      <ManagementPageShell title={t("title")} description={t("description")}>
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid gap-4 py-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="size-5 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-2 animate-pulse rounded bg-muted" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      </ManagementPageShell>
     );
   }
 
   return (
-    <div className="py-6">
-      <h1 className="mb-6 text-2xl font-semibold">System Resources</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <ResourceCard
-          icon={Cpu}
-          title="CPU"
-          description={info.cpu.model}
-          percent={info.cpu.usage}
-          detail={`${info.cpu.usage.toFixed(1)}% · ${info.cpu.cores} cores`}
-        />
-        <ResourceCard
-          icon={MemoryStick}
-          title="Memory"
-          description={`Total ${formatBytes(info.memory.total)}`}
-          percent={info.memory.usedPercent}
-          detail={`${formatBytes(info.memory.used)} / ${formatBytes(info.memory.total)}`}
-        />
-        <ResourceCard
-          icon={HardDrive}
-          title="Storage"
-          description={`Total ${formatBytes(info.storage.total)}`}
-          percent={info.storage.usedPercent}
-          detail={`${formatBytes(info.storage.used)} / ${formatBytes(info.storage.total)}`}
-        />
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Server className="size-5 text-muted-foreground" />
-              <CardTitle>Node Process</CardTitle>
-            </div>
-            <CardDescription>
-              Uptime {formatUptime(info.process.uptime)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <ProgressPrimitive.Root
-              value={info.process.cpu}
-              className="flex flex-col gap-1"
-            >
-              <div className="flex items-center justify-between text-sm">
-                <ProgressLabel>CPU</ProgressLabel>
-                <ProgressValue>
-                  {() => `${info.process.cpu.toFixed(1)}%`}
-                </ProgressValue>
+    <ManagementPageShell title={t("title")} description={t("description")}>
+      <div className="flex-1 overflow-y-auto">
+        <div className="grid gap-4 py-6 md:grid-cols-2 lg:grid-cols-3">
+          <ResourceCard
+            icon={Cpu}
+            title="CPU"
+            description={info.cpu.model}
+            percent={info.cpu.usage}
+            detail={`${info.cpu.usage.toFixed(1)}% · ${info.cpu.cores} cores`}
+          />
+          <ResourceCard
+            icon={MemoryStick}
+            title="Memory"
+            description={`Total ${formatBytes(info.memory.total)}`}
+            percent={info.memory.usedPercent}
+            detail={`${formatBytes(info.memory.used)} / ${formatBytes(info.memory.total)}`}
+          />
+          <ResourceCard
+            icon={HardDrive}
+            title="Storage"
+            description={`Total ${formatBytes(info.storage.total)}`}
+            percent={info.storage.usedPercent}
+            detail={`${formatBytes(info.storage.used)} / ${formatBytes(info.storage.total)}`}
+          />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Server className="size-5 text-muted-foreground" />
+                <CardTitle>Node Process</CardTitle>
               </div>
-              <ProgressTrack>
-                <ProgressIndicator
-                  className={getUsageColor(info.process.cpu)}
-                  style={{ width: `${Math.min(info.process.cpu, 100)}%` }}
-                />
-              </ProgressTrack>
-            </ProgressPrimitive.Root>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Memory</span>
-                <span className="text-muted-foreground">
-                  {formatBytes(info.process.memory)}
-                </span>
+              <CardDescription>
+                Uptime {formatUptime(info.process.uptime)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <ProgressPrimitive.Root
+                value={info.process.cpu}
+                className="flex flex-col gap-1"
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <ProgressLabel>CPU</ProgressLabel>
+                  <ProgressValue>
+                    {() => `${info.process.cpu.toFixed(1)}%`}
+                  </ProgressValue>
+                </div>
+                <ProgressTrack>
+                  <ProgressIndicator
+                    className={getUsageColor(info.process.cpu)}
+                    style={{ width: `${Math.min(info.process.cpu, 100)}%` }}
+                  />
+                </ProgressTrack>
+              </ProgressPrimitive.Root>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Memory</span>
+                  <span className="text-muted-foreground">
+                    {formatBytes(info.process.memory)}
+                  </span>
+                </div>
+                <div className="relative flex h-1 w-full items-center overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{
+                      width: `${Math.min((info.process.memory / info.memory.total) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div className="relative flex h-1 w-full items-center overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{
-                    width: `${Math.min((info.process.memory / info.memory.total) * 100, 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </ManagementPageShell>
   );
 }

@@ -623,5 +623,9 @@
       "allSeverities": "全部严重性",
       "allOutcomes": "全部结果"
     }
+  },
+  "Monitor": {
+    "title": "系统监控",
+    "description": "实时服务器资源与进程指标"
   }
 }

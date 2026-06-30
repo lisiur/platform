@@ -11,6 +11,7 @@ import {
   TabsTrigger,
 } from "@repo/ui";
 import { useTranslations } from "next-intl";
+import { ManagementPageShell } from "@/components/management-page-shell";
 import { ConfigGroup } from "./components/config-group";
 
 const tabKeys = ["general", "auth", "smtp", "upload"] as const;
@@ -21,34 +22,31 @@ export default function SettingsPage() {
   const tabs = tabKeys.map((key) => ({ key, label: t(`tabs.${key}`) }));
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("description")}</p>
-      </div>
+    <ManagementPageShell title={t("title")} description={t("description")}>
+      <div className="flex-1 overflow-y-auto">
+        <Tabs defaultValue="general">
+          <TabsList className="mb-6 w-fit">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      <Tabs defaultValue="general">
-        <TabsList className="mb-6 w-fit">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.key} value={tab.key}>
-              {tab.label}
-            </TabsTrigger>
+            <TabsContent key={tab.key} value={tab.key}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{tab.label}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ConfigGroup group={tab.key} />
+                </CardContent>
+              </Card>
+            </TabsContent>
           ))}
-        </TabsList>
-
-        {tabs.map((tab) => (
-          <TabsContent key={tab.key} value={tab.key}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{tab.label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ConfigGroup group={tab.key} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+        </Tabs>
+      </div>
+    </ManagementPageShell>
   );
 }

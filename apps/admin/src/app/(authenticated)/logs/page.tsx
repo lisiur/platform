@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ManagementPageShell } from "@/components/management-page-shell";
 import {
   type AuditLogFilters,
   AuditLogTable,
@@ -26,11 +27,7 @@ export default function LogsPage() {
   }
 
   return (
-    <div className="container mx-auto flex h-full flex-col overflow-hidden py-8">
-      <div className="mb-6 shrink-0">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("description")}</p>
-      </div>
+    <ManagementPageShell title={t("title")} description={t("description")}>
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -54,6 +51,6 @@ export default function LogsPage() {
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </ManagementPageShell>
   );
 }

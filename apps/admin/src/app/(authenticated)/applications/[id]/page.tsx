@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { use, useCallback, useEffect, useState } from "react";
+import { ManagementPageShell } from "@/components/management-page-shell";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { ApplicationMenuManagement } from "./components/application-menu-management";
@@ -54,36 +55,48 @@ export default function ApplicationDetailPage({
 
   if (loading) {
     return (
-      <div className="container mx-auto flex items-center justify-center py-8">
-        <Spinner />
-      </div>
+      <ManagementPageShell
+        title={t("settingsTitle")}
+        description={t("settingsDescription")}
+      >
+        <div className="flex items-center justify-center py-16">
+          <Spinner />
+        </div>
+      </ManagementPageShell>
     );
   }
 
   if (!app) {
     return (
-      <div className="container mx-auto py-8">
+      <ManagementPageShell
+        title={t("settingsTitle")}
+        description={t("settingsDescription")}
+      >
         <p className="text-muted-foreground">{t("notFound")}</p>
-      </div>
+      </ManagementPageShell>
     );
   }
 
-  return (
-    <div className="container mx-auto flex h-full min-h-0 flex-col overflow-hidden py-8">
-      <div className="mb-6 shrink-0">
-        <Link
-          href="/applications"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("backToApps")}
-        </Link>
-        <h1 className="text-2xl font-bold">
-          {t("settingsTitle")} — {app.name}
-        </h1>
-        <p className="text-muted-foreground">{t("settingsDescription")}</p>
-      </div>
+  const backLink = (
+    <Link
+      href="/applications"
+      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      {t("backToApps")}
+    </Link>
+  );
 
+  return (
+    <ManagementPageShell
+      title={
+        <>
+          {t("settingsTitle")} — {app.name}
+        </>
+      }
+      description={t("settingsDescription")}
+      header={backLink}
+    >
       <Tabs
         defaultValue="roles"
         className="flex min-h-0 flex-col overflow-hidden"
@@ -107,6 +120,6 @@ export default function ApplicationDetailPage({
           <ApplicationMenuManagement appId={id} />
         </TabsContent>
       </Tabs>
-    </div>
+    </ManagementPageShell>
   );
 }

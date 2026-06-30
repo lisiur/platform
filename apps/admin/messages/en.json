@@ -623,5 +623,9 @@
       "allSeverities": "All Severities",
       "allOutcomes": "All Outcomes"
     }
+  },
+  "Monitor": {
+    "title": "System Monitor",
+    "description": "Real-time server resource and process metrics"
   }
 }
