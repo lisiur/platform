@@ -2,12 +2,14 @@ import { prisma } from "#lib/db";
 
 export async function listUserNotifications(params: {
   userId: string;
+  appId: string;
   limit: number;
   offset: number;
   unreadOnly?: boolean;
 }) {
   const where = {
     recipientUserId: params.userId,
+    appId: params.appId,
     channel: { providerKey: "in-app" },
     archivedAt: null,
     ...(params.unreadOnly ? { readAt: null } : {}),
@@ -33,10 +35,11 @@ export async function listUserNotifications(params: {
   return { notifications, total };
 }
 
-export async function getUserUnreadCount(userId: string) {
+export async function getUserUnreadCount(userId: string, appId: string) {
   return prisma.notification.count({
     where: {
       recipientUserId: userId,
+      appId,
       channel: { providerKey: "in-app" },
       archivedAt: null,
       readAt: null,
@@ -51,10 +54,11 @@ export async function markNotificationRead(id: string, userId: string) {
   });
 }
 
-export async function markAllNotificationsRead(userId: string) {
+export async function markAllNotificationsRead(userId: string, appId: string) {
   return prisma.notification.updateMany({
     where: {
       recipientUserId: userId,
+      appId,
       channel: { providerKey: "in-app" },
       archivedAt: null,
       readAt: null,

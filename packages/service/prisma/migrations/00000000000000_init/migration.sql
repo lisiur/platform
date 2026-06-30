@@ -106,6 +106,7 @@ CREATE TABLE "position" (
     "code" TEXT NOT NULL,
     "description" TEXT,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "roleId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "position_pkey" PRIMARY KEY ("id")
@@ -360,6 +361,7 @@ CREATE TABLE "notification" (
     "templateId" TEXT NOT NULL,
     "channelId" TEXT NOT NULL,
     "recipientUserId" TEXT NOT NULL,
+    "appId" TEXT,
     "creatorId" TEXT,
     "source" TEXT,
     "variables" JSONB,
@@ -408,6 +410,9 @@ CREATE INDEX "department_parentId_idx" ON "department"("parentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "department_organizationId_code_key" ON "department"("organizationId", "code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "position_roleId_key" ON "position"("roleId");
 
 -- CreateIndex
 CREATE INDEX "position_organizationId_idx" ON "position"("organizationId");
@@ -587,6 +592,9 @@ CREATE INDEX "notification_channelId_idx" ON "notification"("channelId");
 CREATE INDEX "notification_recipientUserId_idx" ON "notification"("recipientUserId");
 
 -- CreateIndex
+CREATE INDEX "notification_appId_idx" ON "notification"("appId");
+
+-- CreateIndex
 CREATE INDEX "notification_status_idx" ON "notification"("status");
 
 -- CreateIndex
@@ -606,6 +614,9 @@ ALTER TABLE "department" ADD CONSTRAINT "department_parentId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "position" ADD CONSTRAINT "position_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "position" ADD CONSTRAINT "position_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "member_position" ADD CONSTRAINT "member_position_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -672,4 +683,7 @@ ALTER TABLE "notification" ADD CONSTRAINT "notification_channelId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "notification" ADD CONSTRAINT "notification_recipientUserId_fkey" FOREIGN KEY ("recipientUserId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification" ADD CONSTRAINT "notification_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

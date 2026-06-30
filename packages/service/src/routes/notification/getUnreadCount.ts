@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requireAppId } from "#extractors/app-id";
 import { requireSession } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { getUserUnreadCount } from "#services/notification/notification-query.service";
@@ -17,7 +18,8 @@ export const getUnreadCountRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const session = await requireSession(c);
-    const count = await getUserUnreadCount(session.user.id);
+    const appId = await requireAppId(c);
+    const count = await getUserUnreadCount(session.user.id, appId);
     return c.json({ count }, 200);
   },
 });

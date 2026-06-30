@@ -19,6 +19,7 @@ function uniqueStrings(values: string[]) {
 export async function createNotificationsFromTemplate(params: {
   templateKey: string;
   recipientUserIds: string[];
+  appId?: string | null;
   variables?: NotificationVariables;
   creatorId?: string | null;
   source?: string | null;
@@ -63,6 +64,7 @@ export async function createNotificationsFromTemplate(params: {
     templateId: template.id,
     channelId: template.channelId,
     recipientUserId,
+    appId: params.appId,
     creatorId: params.creatorId,
     source: params.source,
     variables: asInputJson(variables),

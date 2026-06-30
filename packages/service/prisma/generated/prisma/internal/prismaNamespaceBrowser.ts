@@ -446,6 +446,7 @@ export const NotificationScalarFieldEnum = {
   templateId: 'templateId',
   channelId: 'channelId',
   recipientUserId: 'recipientUserId',
+  appId: 'appId',
   creatorId: 'creatorId',
   source: 'source',
   variables: 'variables',

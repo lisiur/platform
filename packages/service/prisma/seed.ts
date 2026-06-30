@@ -659,8 +659,6 @@ const organizationRolePermissions: Record<string, string[]> = {
     "dashboard::view",
     "organization-member::list",
     "department::list",
-    "notification::list",
-    "notification::view",
   ],
 };
 

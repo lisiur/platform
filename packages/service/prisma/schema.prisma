@@ -239,9 +239,10 @@ model Application {
   deletedAt   DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  menus       Menu[]
-  roles       Role[]
-  permissions Permission[]
+  menus        Menu[]
+  roles        Role[]
+  permissions  Permission[]
+  notifications Notification[]
 
   @@unique([code])
   @@index([deletedAt])
@@ -471,6 +472,8 @@ model Notification {
   channel           NotificationChannel  @relation(fields: [channelId], references: [id], onDelete: Restrict)
   recipientUserId   String
   recipient         User                 @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  appId             String?
+  app               Application?         @relation(fields: [appId], references: [id], onDelete: Cascade)
   creatorId         String?
   source            String?
   variables         Json?
@@ -494,6 +497,7 @@ model Notification {
   @@index([templateId])
   @@index([channelId])
   @@index([recipientUserId])
+  @@index([appId])
   @@index([status])
   @@index([createdAt])
   @@map("notification")
