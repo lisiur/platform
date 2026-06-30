@@ -50,15 +50,12 @@ function getMemoryInfo(): {
       const pageSize = psMatch ? Number.parseInt(psMatch[1], 10) : 4096;
       const vals: Record<string, number> = {};
       for (const line of vmStat.split("\n")) {
-        const m = line.match(/Pages\s+(.+?):\s+(\d+)/);
-        if (m) vals[m[1].trim()] = Number.parseInt(m[2], 10);
+        const m = line.match(/^(.+?):\s+(\d+)/);
+        if (m) vals[m[1].trim().toLowerCase()] = Number.parseInt(m[2], 10);
       }
-      const used =
-        (vals["wired down"] +
-          vals.active +
-          vals.speculative +
-          vals["stored in compressor"]) *
-        pageSize;
+      const freePages = vals["pages free"] ?? 0;
+      const fileBackedPages = vals["file-backed pages"] ?? 0;
+      const used = total - (freePages + fileBackedPages) * pageSize;
       const usedPercent = Math.round((used / total) * 1000) / 10;
       return { total, used, usedPercent };
     } catch {
