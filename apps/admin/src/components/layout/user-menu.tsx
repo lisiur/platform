@@ -20,6 +20,7 @@ import {
   LanguagesIcon,
   LogOut,
   Moon,
+  Settings,
   Sun,
   UserIcon,
 } from "lucide-react";
@@ -129,7 +130,7 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
             : "inline-flex items-center gap-1.5 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring px-1 py-1"
         }
       >
-        <span className="sr-only">User menu</span>
+        <span className="sr-only">{user ? "User menu" : "Settings"}</span>
         {full ? (
           <>
             <div className="aspect-square h-8 w-8">{avatar}</div>
@@ -141,8 +142,10 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
             </div>
             <ChevronsUpDown className="ml-auto h-4 w-4" />
           </>
-        ) : (
+        ) : user ? (
           <div className="h-6 w-6">{avatar}</div>
+        ) : (
+          <Settings className="h-5 w-5" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent

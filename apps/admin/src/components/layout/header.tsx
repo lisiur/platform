@@ -38,15 +38,15 @@ export function Header({ className }: { className?: string }) {
         <span className="text-lg font-semibold">{app?.name ?? ""}</span>
       </div>
       <div className="ml-auto flex items-center gap-1">
-        {session ? (
-          <>
-            <NotificationBell />
-            <UserMenu
-              full={false}
-              items={["userInfo", "profile", "theme", "locale", "signOut"]}
-            />
-          </>
-        ) : null}
+        {session ? <NotificationBell /> : null}
+        <UserMenu
+          full={false}
+          items={
+            session
+              ? ["userInfo", "profile", "theme", "locale", "signOut"]
+              : ["theme", "locale"]
+          }
+        />
       </div>
     </header>
   );

@@ -48,12 +48,14 @@ export function Header({ className }: { className?: string }) {
       </div>
       <div className="ml-auto flex items-center gap-1">
         {session ? <NotificationBell /> : null}
-        {session ? (
-          <UserMenu
-            full={false}
-            items={["userInfo", "profile", "theme", "locale", "signOut"]}
-          />
-        ) : null}
+        <UserMenu
+          full={false}
+          items={
+            session
+              ? ["userInfo", "profile", "theme", "locale", "signOut"]
+              : ["theme", "locale"]
+          }
+        />
       </div>
     </header>
   );

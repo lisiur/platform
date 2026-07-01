@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { appClient, useSession } from "@/lib/api";
+import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 
 interface Application {
@@ -12,8 +12,6 @@ interface Application {
 }
 
 export function useCurrentApp() {
-  const session = useSession();
-
   const query = useQuery({
     queryKey: ["applications", "current"],
     queryFn: async () => {
@@ -22,7 +20,6 @@ export function useCurrentApp() {
       )();
       return (await res.json()) as Application;
     },
-    enabled: !session.isPending && !!session.data,
   });
 
   return {
