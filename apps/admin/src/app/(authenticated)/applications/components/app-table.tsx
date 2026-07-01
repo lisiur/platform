@@ -27,6 +27,7 @@ interface Application {
   code: string;
   description?: string | null;
   logo?: string | null;
+  favicon?: string | null;
   sortOrder: number;
   createdAt: string;
 }
@@ -97,7 +98,8 @@ export function AppTable() {
           <TableHead>{t("name")}</TableHead>
           <TableHead>{t("code")}</TableHead>
           <TableHead>{t("description_label")}</TableHead>
-          <TableHead>{t("logo")}</TableHead>
+          <TableHead align="center">{t("logo")}</TableHead>
+          <TableHead align="center">{t("favicon")}</TableHead>
           <TableHead>{t("createdAt")}</TableHead>
           <TableHead sticky="right" align="right">
             {t("actions")}
@@ -112,14 +114,28 @@ export function AppTable() {
             <TableCell className="max-w-[200px] truncate">
               {app.description || "-"}
             </TableCell>
-            <TableCell>
+            <TableCell align="center">
               {app.logo ? (
                 <Image
                   src={app.logo}
                   alt={app.name}
                   width={24}
                   height={24}
-                  className="rounded"
+                  className="mx-auto rounded"
+                  unoptimized
+                />
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+            <TableCell align="center">
+              {app.favicon ? (
+                <Image
+                  src={app.favicon}
+                  alt={app.name}
+                  width={16}
+                  height={16}
+                  className="mx-auto object-contain"
                   unoptimized
                 />
               ) : (

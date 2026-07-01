@@ -384,6 +384,14 @@
       "roles": "角色管理",
       "menus": "菜单管理"
     },
+    "logoTitle": "Logo",
+    "logoHint": "支持 PNG、JPG、GIF、WebP 或 SVG，最大 2MB。",
+    "faviconTitle": "网站图标",
+    "faviconHint": "支持 ICO、PNG、SVG、GIF 或 WebP，最大 2MB。",
+    "basicInfoTitle": "基本信息",
+    "chooseFile": "选择文件",
+    "uploading": "上传中...",
+    "updateFailed": "更新失败",
     "logoTooLarge": "Logo 文件大小不能超过 2MB",
     "faviconTooLarge": "网站图标文件大小不能超过 2MB"
   },

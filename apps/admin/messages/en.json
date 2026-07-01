@@ -384,6 +384,14 @@
       "roles": "Role Management",
       "menus": "Menus Management"
     },
+    "logoTitle": "Logo",
+    "logoHint": "PNG, JPG, GIF, WebP or SVG. Max 2MB.",
+    "faviconTitle": "Favicon",
+    "faviconHint": "ICO, PNG, SVG, GIF or WebP. Max 2MB.",
+    "basicInfoTitle": "Basic Information",
+    "chooseFile": "Choose File",
+    "uploading": "Uploading...",
+    "updateFailed": "Update failed",
     "logoTooLarge": "Logo file size must be less than 2MB",
     "faviconTooLarge": "Favicon file size must be less than 2MB"
   },
