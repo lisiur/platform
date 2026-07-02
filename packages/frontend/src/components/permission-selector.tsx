@@ -5,14 +5,6 @@ import {
   Checkbox,
   cn,
   Input,
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -22,6 +14,7 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PaginatedTableFrame } from "./paginated-table-frame";
 
 export interface PermissionItem {
   id: string;
@@ -63,29 +56,6 @@ function compare(a: PermissionItem, b: PermissionItem, key: SortKey): number {
   const av = (a[key] ?? "").toString();
   const bv = (b[key] ?? "").toString();
   return av.localeCompare(bv);
-}
-
-function getPageNumbers(
-  current: number,
-  totalPages: number,
-): (number | "ellipsis-start" | "ellipsis-end")[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const pages: (number | "ellipsis-start" | "ellipsis-end")[] = [1];
-  if (current <= 4) {
-    for (let i = 2; i <= 5; i++) pages.push(i);
-    pages.push("ellipsis-end");
-  } else if (current >= totalPages - 3) {
-    pages.push("ellipsis-start");
-    for (let i = totalPages - 4; i < totalPages; i++) pages.push(i);
-  } else {
-    pages.push("ellipsis-start");
-    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
-    pages.push("ellipsis-end");
-  }
-  pages.push(totalPages);
-  return pages;
 }
 
 export function PermissionSelector({
@@ -146,8 +116,6 @@ export function PermissionSelector({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const startIdx = (currentPage - 1) * pageSize;
-  const endIdx = Math.min(startIdx + pageSize, total);
-  const start = total === 0 ? 0 : startIdx + 1;
   const paged = useMemo(
     () => sorted.slice(startIdx, startIdx + pageSize),
     [sorted, startIdx, pageSize],
@@ -237,7 +205,29 @@ export function PermissionSelector({
     );
   }
 
-  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const toolbar = (
+    <>
+      <Checkbox
+        checked={headerChecked}
+        indeterminate={headerIndeterminate}
+        onCheckedChange={(checked) => toggleFiltered(!!checked)}
+        disabled={permissions.length === 0}
+      />
+      <span className="text-xs text-muted-foreground">
+        {t("selectAll")}
+        {filteredSelectedCount > 0 && ` (${filteredSelectedCount})`}
+      </span>
+      <div className="relative ml-auto w-40">
+        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("searchPlaceholder")}
+          className="h-7 pl-7 text-xs"
+        />
+      </div>
+    </>
+  );
 
   return (
     <div
@@ -248,145 +238,67 @@ export function PermissionSelector({
         className="flex min-h-0 flex-col overflow-hidden rounded-md border"
         style={height ? { height } : undefined}
       >
-        <div className="flex shrink-0 items-center gap-2 border-b p-2">
-          <Checkbox
-            checked={headerChecked}
-            indeterminate={headerIndeterminate}
-            onCheckedChange={(checked) => toggleFiltered(!!checked)}
-            disabled={permissions.length === 0}
-          />
-          <span className="text-xs text-muted-foreground">
-            {t("selectAll")}
-            {filteredSelectedCount > 0 && ` (${filteredSelectedCount})`}
-          </span>
-          <div className="relative ml-auto w-40">
-            <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("searchPlaceholder")}
-              className="h-7 pl-7 text-xs"
-            />
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
-          {permissions.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              {t("empty")}
-            </div>
-          ) : sorted.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              {t("noResults")}
-            </div>
-          ) : (
-            <Table containerClassName="overflow-visible">
-              <TableHeader sticky>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-8 [&:has([role=checkbox])]:pr-0">
-                    <span className="sr-only">{t("selectAll")}</span>
-                  </TableHead>
-                  <SortableHead keyName="name" label="name" />
-                  {showDescription && (
-                    <SortableHead
-                      keyName="description"
-                      label="description"
-                      className="hidden lg:table-cell"
+        <PaginatedTableFrame
+          loading={false}
+          empty={sorted.length === 0}
+          emptyMessage={permissions.length === 0 ? t("empty") : t("noResults")}
+          page={currentPage}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          toolbar={toolbar}
+          tableContainerClassName="min-h-0 min-w-0 flex-1 overflow-auto"
+        >
+          <TableHeader sticky>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-8 [&:has([role=checkbox])]:pr-0">
+                <span className="sr-only">{t("selectAll")}</span>
+              </TableHead>
+              <SortableHead keyName="name" label="name" />
+              {showDescription && (
+                <SortableHead
+                  keyName="description"
+                  label="description"
+                  className="hidden lg:table-cell"
+                />
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paged.map((item) => {
+              const checked = selectedSet.has(item.id);
+              return (
+                <TableRow
+                  key={item.id}
+                  data-state={checked ? "selected" : undefined}
+                  className="cursor-pointer"
+                  onClick={() => toggle(item.id, !checked)}
+                >
+                  <TableCell
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-8 align-top [&:has([role=checkbox])]:pr-0"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(c) => toggle(item.id, !!c)}
                     />
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{item.name}</div>
+                    <code className="text-xs text-muted-foreground">
+                      {item.code}
+                    </code>
+                  </TableCell>
+                  {showDescription && (
+                    <TableCell className="hidden max-w-[200px] truncate text-muted-foreground lg:table-cell">
+                      {item.description || "—"}
+                    </TableCell>
                   )}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paged.map((item) => {
-                  const checked = selectedSet.has(item.id);
-                  return (
-                    <TableRow
-                      key={item.id}
-                      data-state={checked ? "selected" : undefined}
-                      className="cursor-pointer"
-                      onClick={() => toggle(item.id, !checked)}
-                    >
-                      <TableCell
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-8 align-top [&:has([role=checkbox])]:pr-0"
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(c) => toggle(item.id, !!c)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{item.name}</div>
-                        <code className="text-xs text-muted-foreground">
-                          {item.code}
-                        </code>
-                      </TableCell>
-                      {showDescription && (
-                        <TableCell className="hidden max-w-[200px] truncate text-muted-foreground lg:table-cell">
-                          {item.description || "—"}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-        {total > 0 && (
-          <div className="flex shrink-0 items-center justify-between gap-2 border-t px-2 py-1.5">
-            <span className="whitespace-nowrap text-xs text-muted-foreground">
-              {start}–{endIdx} / {total}
-            </span>
-            {totalPages > 1 && (
-              <Pagination className="mx-0 justify-end">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      text={t("previous")}
-                      onClick={() => setPage(currentPage - 1)}
-                      className={
-                        currentPage === 1
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                  {pageNumbers.map((p) => {
-                    if (p === "ellipsis-start" || p === "ellipsis-end") {
-                      return (
-                        <PaginationItem key={p}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-                    return (
-                      <PaginationItem key={p}>
-                        <PaginationLink
-                          isActive={p === currentPage}
-                          onClick={() => setPage(p)}
-                          className="cursor-pointer"
-                        >
-                          {p}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                  <PaginationItem>
-                    <PaginationNext
-                      text={t("next")}
-                      onClick={() => setPage(currentPage + 1)}
-                      className={
-                        currentPage === totalPages
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
-          </div>
-        )}
+              );
+            })}
+          </TableBody>
+        </PaginatedTableFrame>
       </div>
 
       {/* Right: selected list */}

@@ -656,8 +656,6 @@
       "selected": "Selected",
       "noSelected": "No permissions selected",
       "clearAll": "Clear all",
-      "previous": "Previous",
-      "next": "Next",
       "remove": "Remove {name}"
     },
     "dataTablePagination": {

@@ -15,6 +15,7 @@ interface PaginatedTableFrameProps {
   toolbar?: ReactNode;
   children: ReactNode;
   className?: string;
+  tableContainerClassName?: string;
 }
 
 export function PaginatedTableFrame({
@@ -28,6 +29,7 @@ export function PaginatedTableFrame({
   toolbar,
   children,
   className,
+  tableContainerClassName = "min-h-0 min-w-0 flex-1 overflow-auto rounded-md border",
 }: PaginatedTableFrameProps) {
   if (loading) {
     return (
@@ -49,9 +51,7 @@ export function PaginatedTableFrame({
         </div>
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col">
-          <Table containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border">
-            {children}
-          </Table>
+          <Table containerClassName={tableContainerClassName}>{children}</Table>
 
           {total > pageSize && (
             <DataTablePagination
