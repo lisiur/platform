@@ -51,7 +51,6 @@ interface PermissionSelectorProps {
   onChange: (ids: string[]) => void;
   selectedItems: PermissionItem[];
   pageSize?: number;
-  height?: number;
   i18nNamespace?: string;
   emptyText?: string;
   noResultsText?: string;
@@ -71,7 +70,6 @@ export function PermissionSelector({
   onChange,
   selectedItems,
   pageSize = 10,
-  height,
   i18nNamespace = "Frontend.permissionSelector",
   className,
 }: PermissionSelectorProps) {
@@ -258,7 +256,6 @@ export function PermissionSelector({
       {/* Left: available table */}
       <div
         className="flex min-h-0 flex-col overflow-hidden rounded-md border"
-        style={height ? { height } : undefined}
       >
         <PaginatedTableFrame
           loading={loading}
@@ -330,7 +327,6 @@ export function PermissionSelector({
       {/* Right: selected list */}
       <div
         className="flex min-h-0 flex-col overflow-hidden rounded-md border"
-        style={height ? { height } : undefined}
       >
         <div className="flex shrink-0 items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">
