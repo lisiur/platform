@@ -254,9 +254,7 @@ export function PermissionSelector({
       className={cn("grid h-full grid-cols-1 gap-4 md:grid-cols-2", className)}
     >
       {/* Left: available table */}
-      <div
-        className="flex min-h-0 flex-col overflow-hidden rounded-md border"
-      >
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-md border">
         <PaginatedTableFrame
           loading={loading}
           empty={isEmpty}
@@ -325,9 +323,7 @@ export function PermissionSelector({
       </div>
 
       {/* Right: selected list */}
-      <div
-        className="flex min-h-0 flex-col overflow-hidden rounded-md border"
-      >
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-md border">
         <div className="flex shrink-0 items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">
             {t("selected")} ({selectedList.length})

@@ -22,7 +22,7 @@ import { appClient, withApiFeedback } from "@/lib/api";
 import { formatDate } from "@/utils/date";
 import { PositionDialog } from "./position-dialog";
 import { PositionMembersDialog } from "./position-members-dialog";
-import { PositionPermissionsDialog } from "./position-permissions-dialog";
+import { PositionPermissionsSheet } from "./position-permissions-sheet";
 
 interface PositionRow {
   id: string;
@@ -218,7 +218,7 @@ export function PositionTable({ orgId }: PositionTableProps) {
         />
       )}
       {managePermissionsPosition && (
-        <PositionPermissionsDialog
+        <PositionPermissionsSheet
           open={!!managePermissionsPosition}
           onOpenChange={(open) => !open && setManagePermissionsPosition(null)}
           orgId={orgId}

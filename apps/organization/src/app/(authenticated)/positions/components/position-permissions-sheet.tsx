@@ -4,22 +4,21 @@ import type { FetchPageParams } from "@repo/frontend";
 import { PermissionSelector } from "@repo/frontend";
 import {
   Button,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Spinner,
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Skeleton,
 } from "@repo/ui";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { appClient, withApiFeedback } from "@/lib/api";
 
-interface PositionPermissionsDialogProps {
+interface PositionPermissionsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orgId: string;
@@ -27,13 +26,13 @@ interface PositionPermissionsDialogProps {
   positionName: string;
 }
 
-export function PositionPermissionsDialog({
+export function PositionPermissionsSheet({
   open,
   onOpenChange,
   orgId,
   positionId,
   positionName,
-}: PositionPermissionsDialogProps) {
+}: PositionPermissionsSheetProps) {
   const t = useTranslations("Positions");
   const queryClient = useQueryClient();
 
@@ -52,6 +51,10 @@ export function PositionPermissionsDialog({
   });
 
   const [selectedIds, setSelectedIds] = useState<string[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const skeletonIds = useRef(
+    Array.from({ length: 5 }, () => crypto.randomUUID()),
+  );
 
   const currentIds = selectedIds ?? data?.map((p) => p.id) ?? [];
 
@@ -75,16 +78,15 @@ export function PositionPermissionsDialog({
     [orgId, positionId],
   );
 
-  const mutation = useMutation({
-    mutationFn: async (permissionIds: string[]) => {
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
       await withApiFeedback(
         appClient.api.organizations[":orgId"].positions[":id"].permissions.$put,
       )({
         param: { orgId, id: positionId },
-        json: { permissionIds },
+        json: { permissionIds: currentIds },
       });
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["positions", orgId] });
       queryClient.invalidateQueries({
         queryKey: ["position-permissions", orgId, positionId],
@@ -92,52 +94,64 @@ export function PositionPermissionsDialog({
       toast.success(t("permissionsUpdated"));
       onOpenChange(false);
       setSelectedIds(null);
-    },
-  });
+    } catch {
+      // Error handled by withApiFeedback.
+    } finally {
+      setSaving(false);
+    }
+  }, [currentIds, onOpenChange, orgId, positionId, queryClient, t]);
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
+  useEffect(() => {
+    if (!open) {
       setSelectedIds(null);
     }
-    onOpenChange(nextOpen);
-  }
+  }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{t("managePermissions")}</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-full data-[side=right]:sm:max-w-5xl"
+      >
+        <SheetHeader>
+          <SheetTitle>{t("managePermissions")}</SheetTitle>
+          <SheetDescription>
             {t("managePermissionsDescription", { name: positionName })}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogBody>
-          {isLoading ? (
-            <div className="flex min-h-[200px] items-center justify-center">
-              <Spinner />
+          </SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <div className="flex min-h-0 flex-1 flex-col">
+            {isLoading ? (
+              <div className="space-y-2">
+                {skeletonIds.current.map((id) => (
+                  <Skeleton key={id} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1">
+                <PermissionSelector
+                  fetchPage={fetchPage}
+                  value={currentIds}
+                  onChange={setSelectedIds}
+                  selectedItems={data ?? []}
+                />
+              </div>
+            )}
+            <div className="mt-4 flex shrink-0 justify-end border-t pt-4">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="mr-2"
+              >
+                {t("cancel")}
+              </Button>
+              <Button onClick={handleSave} disabled={saving || isLoading}>
+                {saving ? t("saving") : t("save")}
+              </Button>
             </div>
-          ) : (
-            <PermissionSelector
-              fetchPage={fetchPage}
-              value={currentIds}
-              onChange={setSelectedIds}
-              selectedItems={data ?? []}
-              height={400}
-            />
-          )}
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            {t("cancel")}
-          </Button>
-          <Button
-            onClick={() => mutation.mutate(currentIds)}
-            disabled={mutation.isPending || isLoading}
-          >
-            {mutation.isPending ? t("saving") : t("save")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }
