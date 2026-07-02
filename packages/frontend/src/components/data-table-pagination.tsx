@@ -53,7 +53,7 @@ export function DataTablePagination({
   className,
   onPageChange,
 }: DataTablePaginationProps) {
-  const t = useTranslations("Common");
+  const t = useTranslations("Frontend.dataTablePagination");
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);

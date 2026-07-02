@@ -659,6 +659,12 @@
       "previous": "上一页",
       "next": "下一页",
       "remove": "移除 {name}"
+    },
+    "dataTablePagination": {
+      "showing": "显示",
+      "of": "/",
+      "previous": "上一页",
+      "next": "下一页"
     }
   }
 }

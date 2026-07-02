@@ -1,5 +1,6 @@
 "use client";
 
+import { PaginatedTableFrame } from "@repo/frontend";
 import {
   Badge,
   Button,
@@ -14,7 +15,6 @@ import { Briefcase, Building2, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { PaginatedTableFrame } from "@/components/paginated-table-frame";
 import { useConfirm } from "@/hooks/use-confirm";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient, useSession } from "@/lib/api";

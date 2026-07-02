@@ -1,5 +1,6 @@
 "use client";
 
+import { PaginatedTableFrame } from "@repo/frontend";
 import {
   Button,
   ButtonGroup,
@@ -17,7 +18,6 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PaginatedTableFrame } from "@/components/paginated-table-frame";
 import { useConfirm } from "@/hooks/use-confirm";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";

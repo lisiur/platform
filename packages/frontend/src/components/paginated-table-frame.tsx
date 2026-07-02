@@ -2,7 +2,7 @@
 
 import { cn, Spinner, Table } from "@repo/ui";
 import type { ReactNode } from "react";
-import { DataTablePagination } from "@/components/data-table-pagination";
+import { DataTablePagination } from "./data-table-pagination";
 
 interface PaginatedTableFrameProps {
   loading: boolean;

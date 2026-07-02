@@ -1,5 +1,6 @@
 "use client";
 
+import { PaginatedTableFrame } from "@repo/frontend";
 import {
   Badge,
   Button,
@@ -23,7 +24,6 @@ import { Eye } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { PaginatedTableFrame } from "@/components/paginated-table-frame";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";

@@ -1,5 +1,6 @@
 "use client";
 
+import { DataTablePagination } from "@repo/frontend";
 import {
   Badge,
   Button,
@@ -20,7 +21,6 @@ import { Eye, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTablePagination } from "@/components/data-table-pagination";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";

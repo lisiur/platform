@@ -1,11 +1,11 @@
 "use client";
 
+import { DataTablePagination } from "@repo/frontend";
 import { Button, ButtonGroup, Spinner } from "@repo/ui";
 import { Check, CheckCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DataTablePagination } from "@/components/data-table-pagination";
 import { NotificationItem } from "@/components/notification-item";
 import {
   type UserNotification,

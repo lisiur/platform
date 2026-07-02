@@ -659,6 +659,12 @@
       "previous": "Previous",
       "next": "Next",
       "remove": "Remove {name}"
+    },
+    "dataTablePagination": {
+      "showing": "Showing",
+      "of": "of",
+      "previous": "Previous",
+      "next": "Next"
     }
   }
 }
