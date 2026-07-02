@@ -106,6 +106,7 @@ export function ApplicationMenuManagement({
               key={selectedMenu.id}
               ref={formRef}
               appId={appId}
+              selectedItems={selectedMenu.permissions}
               defaultValues={{
                 name: selectedMenu.name,
                 code: selectedMenu.code,

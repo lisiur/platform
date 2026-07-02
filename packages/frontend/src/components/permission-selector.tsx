@@ -13,7 +13,7 @@ import {
 } from "@repo/ui";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PaginatedTableFrame } from "./paginated-table-frame";
 
 export interface PermissionItem {
@@ -24,21 +24,34 @@ export interface PermissionItem {
   description?: string | null;
 }
 
-type SortKey = "name" | "description";
-type SortDir = "asc" | "desc";
+export type PermissionSortKey = "name" | "description";
+export type PermissionSortDir = "asc" | "desc";
 
 interface SortState {
-  key: SortKey | null;
-  dir: SortDir;
+  key: PermissionSortKey | null;
+  dir: PermissionSortDir;
+}
+
+export interface FetchPageParams {
+  search: string;
+  sort: PermissionSortKey | null;
+  sortDir: PermissionSortDir;
+  limit: number;
+  offset: number;
+}
+
+export interface FetchPageResult {
+  permissions: PermissionItem[];
+  total: number;
 }
 
 interface PermissionSelectorProps {
-  permissions: PermissionItem[];
+  fetchPage: (params: FetchPageParams) => Promise<FetchPageResult>;
   value: string[];
   onChange: (ids: string[]) => void;
+  selectedItems: PermissionItem[];
   pageSize?: number;
   height?: number;
-  showDescription?: boolean;
   i18nNamespace?: string;
   emptyText?: string;
   noResultsText?: string;
@@ -52,94 +65,104 @@ interface PermissionSelectorProps {
   className?: string;
 }
 
-function compare(a: PermissionItem, b: PermissionItem, key: SortKey): number {
-  const av = (a[key] ?? "").toString();
-  const bv = (b[key] ?? "").toString();
-  return av.localeCompare(bv);
-}
-
 export function PermissionSelector({
-  permissions,
+  fetchPage,
   value,
   onChange,
+  selectedItems,
   pageSize = 10,
   height,
-  showDescription = true,
   i18nNamespace = "Frontend.permissionSelector",
   className,
 }: PermissionSelectorProps) {
   const t = useTranslations(i18nNamespace);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sort, setSort] = useState<SortState>({ key: null, dir: "asc" });
   const [page, setPage] = useState(1);
+  const [pageData, setPageData] = useState<PermissionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [seenItems, setSeenItems] = useState<PermissionItem[]>(selectedItems);
+
+  const fetchPageRef = useRef(fetchPage);
+  fetchPageRef.current = fetchPage;
+  const reqIdRef = useRef(0);
 
   const selectedSet = useMemo(() => new Set(value), [value]);
-  const permMap = useMemo(
-    () => new Map(permissions.map((p) => [p.id, p])),
-    [permissions],
+  const detailsMap = useMemo(
+    () => new Map(seenItems.map((p) => [p.id, p])),
+    [seenItems],
   );
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    if (!normalizedQuery) return permissions;
-    return permissions.filter((p) => {
-      return (
-        p.name.toLowerCase().includes(normalizedQuery) ||
-        p.code.toLowerCase().includes(normalizedQuery) ||
-        p.group.toLowerCase().includes(normalizedQuery)
-      );
+  useEffect(() => {
+    setSeenItems((prev) => {
+      const m = new Map(prev.map((p) => [p.id, p]));
+      for (const p of selectedItems) m.set(p.id, p);
+      return [...m.values()];
     });
-  }, [permissions, normalizedQuery]);
+  }, [selectedItems]);
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    if (sort.key) {
-      const key = sort.key;
-      arr.sort((a, b) => {
-        const cmp = compare(a, b, key);
-        return sort.dir === "desc" ? -cmp : cmp;
-      });
-    } else {
-      arr.sort((a, b) => {
-        const g = a.group.localeCompare(b.group);
-        return g !== 0 ? g : a.code.localeCompare(b.code);
-      });
-    }
-    return arr;
-  }, [filtered, sort]);
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(id);
+  }, [query]);
 
   useEffect(() => {
     setPage(1);
   }, []);
 
-  const total = sorted.length;
+  useEffect(() => {
+    let active = true;
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    fetchPageRef
+      .current({
+        search: debouncedQuery.trim(),
+        sort: sort.key,
+        sortDir: sort.dir,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      })
+      .then((res) => {
+        if (!active || reqId !== reqIdRef.current) return;
+        setPageData(res.permissions);
+        setTotal(res.total);
+        setSeenItems((prev) => {
+          const m = new Map(prev.map((p) => [p.id, p]));
+          for (const p of res.permissions) m.set(p.id, p);
+          return [...m.values()];
+        });
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [debouncedQuery, sort, page, pageSize]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const startIdx = (currentPage - 1) * pageSize;
-  const paged = useMemo(
-    () => sorted.slice(startIdx, startIdx + pageSize),
-    [sorted, startIdx, pageSize],
+
+  const selectedList = useMemo(
+    () =>
+      value
+        .map((id) => detailsMap.get(id))
+        .filter((p): p is PermissionItem => Boolean(p))
+        .sort((a, b) => {
+          const g = a.group.localeCompare(b.group);
+          return g !== 0 ? g : a.name.localeCompare(b.name);
+        }),
+    [value, detailsMap],
   );
 
-  const selectedItems = useMemo(() => {
-    return value
-      .map((id) => permMap.get(id))
-      .filter((p): p is PermissionItem => Boolean(p))
-      .sort((a, b) => {
-        const g = a.group.localeCompare(b.group);
-        return g !== 0 ? g : a.name.localeCompare(b.name);
-      });
-  }, [value, permMap]);
-
-  const filteredIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
-  const filteredSelectedCount = useMemo(
-    () => filteredIds.filter((id) => selectedSet.has(id)).length,
-    [filteredIds, selectedSet],
-  );
+  const pageIds = useMemo(() => pageData.map((p) => p.id), [pageData]);
+  const pageSelectedCount = pageIds.filter((id) => selectedSet.has(id)).length;
   const headerChecked =
-    filteredIds.length > 0 && filteredSelectedCount === filteredIds.length;
+    pageIds.length > 0 && pageSelectedCount === pageIds.length;
   const headerIndeterminate =
-    filteredSelectedCount > 0 && filteredSelectedCount < filteredIds.length;
+    pageSelectedCount > 0 && pageSelectedCount < pageIds.length;
 
   const toggle = useCallback(
     (id: string, checked: boolean) => {
@@ -152,27 +175,28 @@ export function PermissionSelector({
     [value, selectedSet, onChange],
   );
 
-  const toggleFiltered = useCallback(
+  const togglePageAll = useCallback(
     (checked: boolean) => {
       const next = new Set(value);
-      for (const id of filteredIds) {
+      for (const id of pageIds) {
         if (checked) next.add(id);
         else next.delete(id);
       }
       onChange([...next]);
     },
-    [value, filteredIds, onChange],
+    [value, pageIds, onChange],
   );
 
-  const cycleSort = useCallback((key: SortKey) => {
+  const cycleSort = useCallback((key: PermissionSortKey) => {
     setSort((prev) => {
       if (prev.key !== key) return { key, dir: "asc" };
       if (prev.dir === "asc") return { key, dir: "desc" };
       return { key: null, dir: "asc" };
     });
+    setPage(1);
   }, []);
 
-  function renderSortIcon(key: SortKey) {
+  function renderSortIcon(key: PermissionSortKey) {
     if (sort.key !== key)
       return <ArrowUpDown className="size-3 text-muted-foreground/50" />;
     return sort.dir === "asc" ? (
@@ -187,7 +211,7 @@ export function PermissionSelector({
     label,
     className: headClassName,
   }: {
-    keyName: SortKey;
+    keyName: PermissionSortKey;
     label: string;
     className?: string;
   }) {
@@ -206,28 +230,18 @@ export function PermissionSelector({
   }
 
   const toolbar = (
-    <>
-      <Checkbox
-        checked={headerChecked}
-        indeterminate={headerIndeterminate}
-        onCheckedChange={(checked) => toggleFiltered(!!checked)}
-        disabled={permissions.length === 0}
+    <div className="relative ml-auto w-40">
+      <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t("searchPlaceholder")}
+        className="h-7 pl-7 text-xs"
       />
-      <span className="text-xs text-muted-foreground">
-        {t("selectAll")}
-        {filteredSelectedCount > 0 && ` (${filteredSelectedCount})`}
-      </span>
-      <div className="relative ml-auto w-40">
-        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("searchPlaceholder")}
-          className="h-7 pl-7 text-xs"
-        />
-      </div>
-    </>
+    </div>
   );
+
+  const isEmpty = !loading && pageData.length === 0;
 
   return (
     <div
@@ -239,9 +253,11 @@ export function PermissionSelector({
         style={height ? { height } : undefined}
       >
         <PaginatedTableFrame
-          loading={false}
-          empty={sorted.length === 0}
-          emptyMessage={permissions.length === 0 ? t("empty") : t("noResults")}
+          loading={loading}
+          empty={isEmpty}
+          emptyMessage={
+            total === 0 && !debouncedQuery ? t("empty") : t("noResults")
+          }
           page={currentPage}
           total={total}
           pageSize={pageSize}
@@ -252,20 +268,24 @@ export function PermissionSelector({
           <TableHeader sticky>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-8 [&:has([role=checkbox])]:pr-0">
-                <span className="sr-only">{t("selectAll")}</span>
+                <Checkbox
+                  checked={headerChecked}
+                  indeterminate={headerIndeterminate}
+                  onCheckedChange={(checked) => togglePageAll(!!checked)}
+                  disabled={total === 0}
+                  aria-label={t("selectAll")}
+                />
               </TableHead>
               <SortableHead keyName="name" label="name" />
-              {showDescription && (
-                <SortableHead
-                  keyName="description"
-                  label="description"
-                  className="hidden lg:table-cell"
-                />
-              )}
+              <SortableHead
+                keyName="description"
+                label="description"
+                className="hidden lg:table-cell"
+              />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paged.map((item) => {
+            {pageData.map((item) => {
               const checked = selectedSet.has(item.id);
               return (
                 <TableRow
@@ -289,11 +309,9 @@ export function PermissionSelector({
                       {item.code}
                     </code>
                   </TableCell>
-                  {showDescription && (
-                    <TableCell className="hidden max-w-[200px] truncate text-muted-foreground lg:table-cell">
-                      {item.description || "—"}
-                    </TableCell>
-                  )}
+                  <TableCell className="hidden max-w-[200px] truncate text-muted-foreground lg:table-cell">
+                    {item.description || "—"}
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -308,25 +326,25 @@ export function PermissionSelector({
       >
         <div className="flex shrink-0 items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">
-            {t("selected")} ({selectedItems.length})
+            {t("selected")} ({selectedList.length})
           </span>
           <Button
             variant="ghost"
             size="xs"
             onClick={() => onChange([])}
-            disabled={selectedItems.length === 0}
+            disabled={selectedList.length === 0}
           >
             {t("clearAll")}
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
-          {selectedItems.length === 0 ? (
+          {selectedList.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               {t("noSelected")}
             </div>
           ) : (
             <ul className="divide-y">
-              {selectedItems.map((item) => (
+              {selectedList.map((item) => (
                 <li
                   key={item.id}
                   className="flex items-center gap-2 px-3 py-1.5"

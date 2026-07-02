@@ -35,8 +35,15 @@ export const listPermissions = defineOpenAPIRoute({
   handler: async (c) => {
     const session = await requireSession(c);
     await assertPermission(session.user.id, "permission::list");
-    const { appId } = c.req.valid("query");
-    const result = await listPermissionsForApp(appId);
+    const { appId, search, sort, sortDir, limit, offset } =
+      c.req.valid("query");
+    const result = await listPermissionsForApp(appId, {
+      search,
+      sort,
+      sortDir,
+      limit,
+      offset,
+    });
     return c.json(result, 200);
   },
 });

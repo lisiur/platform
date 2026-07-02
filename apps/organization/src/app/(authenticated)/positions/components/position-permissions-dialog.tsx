@@ -1,6 +1,6 @@
 "use client";
 
-import type { PermissionItem } from "@repo/frontend";
+import type { FetchPageParams } from "@repo/frontend";
 import { PermissionSelector } from "@repo/frontend";
 import {
   Button,
@@ -15,7 +15,7 @@ import {
 } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { appClient, withApiFeedback } from "@/lib/api";
 
@@ -46,17 +46,34 @@ export function PositionPermissionsDialog({
         param: { orgId, id: positionId },
       });
       const json = await res.json();
-      return json as {
-        assigned: PermissionItem[];
-        available: PermissionItem[];
-      };
+      return json.assigned;
     },
     enabled: open,
   });
 
   const [selectedIds, setSelectedIds] = useState<string[] | null>(null);
 
-  const currentIds = selectedIds ?? data?.assigned.map((p) => p.id) ?? [];
+  const currentIds = selectedIds ?? data?.map((p) => p.id) ?? [];
+
+  const fetchPage = useCallback(
+    async (params: FetchPageParams) => {
+      const res = await appClient.api.organizations[":orgId"].positions[":id"][
+        "available-permissions"
+      ].$get({
+        param: { orgId, id: positionId },
+        query: {
+          search: params.search || undefined,
+          sort: params.sort ?? undefined,
+          sortDir: params.sortDir,
+          limit: params.limit,
+          offset: params.offset,
+        },
+      });
+      const json = await res.json();
+      return { permissions: json.permissions, total: json.total };
+    },
+    [orgId, positionId],
+  );
 
   const mutation = useMutation({
     mutationFn: async (permissionIds: string[]) => {
@@ -101,9 +118,10 @@ export function PositionPermissionsDialog({
             </div>
           ) : (
             <PermissionSelector
-              permissions={data?.available ?? []}
+              fetchPage={fetchPage}
               value={currentIds}
               onChange={setSelectedIds}
+              selectedItems={data ?? []}
               height={400}
             />
           )}

@@ -1,6 +1,12 @@
 export { DataTablePagination } from "./components/data-table-pagination";
 export { PaginatedTableFrame } from "./components/paginated-table-frame";
-export type { PermissionItem } from "./components/permission-selector";
+export type {
+  FetchPageParams,
+  FetchPageResult,
+  PermissionItem,
+  PermissionSortDir,
+  PermissionSortKey,
+} from "./components/permission-selector";
 export { PermissionSelector } from "./components/permission-selector";
 export { usePaginatedQuery } from "./hooks/use-paginated-query";
 export { withApiFeedback } from "./lib/api-utils";

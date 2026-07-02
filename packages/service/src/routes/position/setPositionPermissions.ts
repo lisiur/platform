@@ -11,8 +11,8 @@ import { setPositionPermissions } from "#services/position.service";
 import { assertPermission } from "#services/role-permission.service";
 import {
   orgIdParamSchema,
+  positionAssignedPermissionsResponseSchema,
   positionIdParamSchema,
-  positionPermissionsResponseSchema,
   setPositionPermissionsBodySchema,
 } from "./schema";
 
@@ -39,7 +39,7 @@ export const setPositionPermissionsRoute = defineOpenAPIRoute({
       ...forbiddenResponse,
       ...notFoundResponse,
       ...okResponseFn(
-        positionPermissionsResponseSchema,
+        positionAssignedPermissionsResponseSchema,
         "Updated position permissions",
       ),
     },

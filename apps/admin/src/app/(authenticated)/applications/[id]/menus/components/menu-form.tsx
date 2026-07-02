@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { PermissionItem } from "@repo/frontend";
+import type { FetchPageParams, PermissionItem } from "@repo/frontend";
 import { PermissionSelector } from "@repo/frontend";
 import {
   Field,
@@ -18,13 +18,7 @@ import {
   SelectValue,
 } from "@repo/ui";
 import { useTranslations } from "next-intl";
-import {
-  forwardRef,
-  type Ref,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { forwardRef, type Ref, useCallback, useImperativeHandle } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { appClient } from "@/lib/api";
@@ -60,12 +54,12 @@ interface MenuFormProps {
   ref: Ref<MenuFormRef>;
   defaultValues: MenuInput;
   appId?: string;
+  selectedItems?: PermissionItem[];
 }
 
 export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
-  function MenuForm({ defaultValues, appId }, ref) {
+  function MenuForm({ defaultValues, appId, selectedItems = [] }, ref) {
     const t = useTranslations("Menus");
-    const [permissions, setPermissions] = useState<PermissionItem[]>([]);
 
     const form = useForm<MenuInput>({
       resolver: zodResolver(menuSchema),
@@ -84,25 +78,23 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
       setValue,
     } = form;
 
-    useEffect(() => {
-      if (!appId) return;
-      let cancelled = false;
-      (async () => {
-        try {
-          const res = await appClient.api.permissions.$get({
-            query: { appId },
-          });
-          if (!cancelled) {
-            setPermissions((await res.json()).permissions);
-          }
-        } catch {
-          // silently ignore
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, [appId]);
+    const fetchPage = useCallback(
+      async (params: FetchPageParams) => {
+        const res = await appClient.api.permissions.$get({
+          query: {
+            appId: appId ?? "",
+            search: params.search || undefined,
+            sort: params.sort ?? undefined,
+            sortDir: params.sortDir,
+            limit: params.limit,
+            offset: params.offset,
+          },
+        });
+        const data = await res.json();
+        return { permissions: data.permissions, total: data.total };
+      },
+      [appId],
+    );
 
     const currentPermissionIds = watch("permissionIds");
 
@@ -193,15 +185,16 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
           </Field>
         )}
 
-        {appId && permissions.length > 0 && (
+        {appId && (
           <Field orientation="vertical">
             <FieldLabel>{t("requiredPermissions")}</FieldLabel>
             <FieldDescription>
               {t("requiredPermissionsDescription")}
             </FieldDescription>
             <PermissionSelector
-              permissions={permissions}
+              fetchPage={fetchPage}
               value={currentPermissionIds}
+              selectedItems={selectedItems}
               onChange={(ids) =>
                 setValue("permissionIds", ids, { shouldDirty: true })
               }

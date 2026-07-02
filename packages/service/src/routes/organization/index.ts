@@ -17,6 +17,7 @@ import {
   createPosition,
   deletePosition,
   getPositionPermissions,
+  listAvailablePositionPermissions,
   listPositionMembers,
   listPositions,
   setPositionPermissions,
@@ -62,6 +63,7 @@ const routes = organizationRoutes.openapiRoutes([
   deletePosition,
   listPositionMembers,
   getPositionPermissions,
+  listAvailablePositionPermissions,
   setPositionPermissions,
 ] as const);
 

@@ -63,12 +63,24 @@ export const permissionItemSchema = z.object({
   description: z.string().nullable(),
 });
 
-export const positionPermissionsResponseSchema = z
+export const positionAssignedPermissionsResponseSchema = z
+  .object({ assigned: permissionItemSchema.array() })
+  .openapi("PositionAssignedPermissionsResponse");
+
+export const positionAvailablePermissionsQuerySchema = z.object({
+  search: z.string().optional().openapi({ example: "member" }),
+  sort: z.enum(["name", "description"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+  limit: z.coerce.number().min(1).max(100).default(10),
+  offset: z.coerce.number().min(0).default(0),
+});
+
+export const positionAvailablePermissionsResponseSchema = z
   .object({
-    assigned: permissionItemSchema.array(),
-    available: permissionItemSchema.array(),
+    permissions: permissionItemSchema.array(),
+    total: z.number(),
   })
-  .openapi("PositionPermissionsResponse");
+  .openapi("PositionAvailablePermissionsResponse");
 
 export const setPositionPermissionsBodySchema = z.object({
   permissionIds: z.array(z.string()),

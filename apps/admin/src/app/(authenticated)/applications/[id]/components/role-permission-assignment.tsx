@@ -1,6 +1,6 @@
 "use client";
 
-import type { PermissionItem } from "@repo/frontend";
+import type { FetchPageParams, PermissionItem } from "@repo/frontend";
 import { PermissionSelector } from "@repo/frontend";
 import { Button, Skeleton } from "@repo/ui";
 import { useTranslations } from "next-intl";
@@ -21,7 +21,7 @@ export function RolePermissionAssignment({
   onSaved,
 }: RolePermissionAssignmentProps) {
   const t = useTranslations("RolePermissions");
-  const [permissions, setPermissions] = useState<PermissionItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<PermissionItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,28 +32,44 @@ export function RolePermissionAssignment({
   const fetchAssignment = useCallback(async () => {
     setLoading(true);
     try {
-      const [allRes, roleRes] = await Promise.all([
-        withApiFeedback(appClient.api.permissions.$get)({ query: { appId } }),
-        withApiFeedback(appClient.api["role-permissions"][":roleId"].$get)({
-          param: { roleId },
-        }),
-      ]);
+      const roleRes = await withApiFeedback(
+        appClient.api["role-permissions"][":roleId"].$get,
+      )({
+        param: { roleId },
+      });
 
-      const allData = await allRes.json();
       const roleData = await roleRes.json();
-      setPermissions(allData.permissions);
+      setSelectedItems(roleData.permissions);
       setSelectedIds(roleData.permissions.map((p: { id: string }) => p.id));
     } catch {
-      setPermissions([]);
+      setSelectedItems([]);
       setSelectedIds([]);
     } finally {
       setLoading(false);
     }
-  }, [appId, roleId]);
+  }, [roleId]);
 
   useEffect(() => {
     fetchAssignment();
   }, [fetchAssignment]);
+
+  const fetchPage = useCallback(
+    async (params: FetchPageParams) => {
+      const res = await appClient.api.permissions.$get({
+        query: {
+          appId,
+          search: params.search || undefined,
+          sort: params.sort ?? undefined,
+          sortDir: params.sortDir,
+          limit: params.limit,
+          offset: params.offset,
+        },
+      });
+      const data = await res.json();
+      return { permissions: data.permissions, total: data.total };
+    },
+    [appId],
+  );
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -81,9 +97,10 @@ export function RolePermissionAssignment({
           </div>
         ) : (
           <PermissionSelector
-            permissions={permissions}
+            fetchPage={fetchPage}
             value={selectedIds}
             onChange={setSelectedIds}
+            selectedItems={selectedItems}
           />
         )}
       </div>

@@ -1,4 +1,5 @@
 import { HTTPException } from "hono/http-exception";
+import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { getPermissionsForRole } from "#services/role-permission.service";
 
@@ -291,7 +292,7 @@ export async function setMemberPositions(
   });
 }
 
-export async function getPositionPermissions(
+export async function getAssignedPositionPermissions(
   organizationId: string,
   positionId: string,
 ) {
@@ -302,16 +303,54 @@ export async function getPositionPermissions(
     throw new HTTPException(404, { message: "Position not found" });
   }
 
-  const assigned = position.roleId
-    ? await getPermissionsForRole(position.roleId)
-    : [];
+  return position.roleId ? await getPermissionsForRole(position.roleId) : [];
+}
 
-  const available = await prisma.permission.findMany({
-    where: { appId: ORGANIZATION_APP_ID },
-    orderBy: [{ group: "asc" }, { code: "asc" }],
+export interface ListAvailablePositionPermissionsParams {
+  search?: string;
+  sort?: "name" | "description";
+  sortDir?: "asc" | "desc";
+  limit: number;
+  offset: number;
+}
+
+export async function listAvailablePositionPermissions(
+  organizationId: string,
+  positionId: string,
+  params: ListAvailablePositionPermissionsParams,
+) {
+  const position = await prisma.position.findFirst({
+    where: { id: positionId, organizationId },
   });
+  if (!position) {
+    throw new HTTPException(404, { message: "Position not found" });
+  }
 
-  return { assigned, available };
+  const { search, sort, sortDir, limit, offset } = params;
+
+  const where: Prisma.PermissionWhereInput = { appId: ORGANIZATION_APP_ID };
+  if (search) {
+    where.AND = [
+      {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { code: { contains: search, mode: "insensitive" } },
+          { group: { contains: search, mode: "insensitive" } },
+        ],
+      },
+    ];
+  }
+
+  const orderBy: Prisma.PermissionOrderByWithRelationInput[] = sort
+    ? [{ [sort]: sortDir === "desc" ? "desc" : "asc" }]
+    : [{ group: "asc" }, { code: "asc" }];
+
+  const [permissions, total] = await Promise.all([
+    prisma.permission.findMany({ where, orderBy, take: limit, skip: offset }),
+    prisma.permission.count({ where }),
+  ]);
+
+  return { permissions, total };
 }
 
 export async function setPositionPermissions(
@@ -393,11 +432,7 @@ export async function setPositionPermissions(
     const assigned = await tx.permission.findMany({
       where: { rolePermissions: { some: { roleId: finalRoleId } } },
     });
-    const available = await tx.permission.findMany({
-      where: { appId: ORGANIZATION_APP_ID },
-      orderBy: [{ group: "asc" }, { code: "asc" }],
-    });
 
-    return { assigned, available };
+    return { assigned };
   });
 }
