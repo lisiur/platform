@@ -214,6 +214,7 @@ model Upload {
   createdAt  DateTime @default(now())
 
   @@index([uploaderId])
+  @@index([path])
   @@map("upload")
 }
 

@@ -322,19 +322,24 @@ export async function deleteUploads(ids: string[]) {
     where: { id: { in: ids } },
   });
 
-  await Promise.all(
-    uploads.map(async (upload) => {
-      try {
-        await unlink(join(UPLOADS_ROOT, upload.path));
-      } catch {
-        // File already absent — ignore.
-      }
-    }),
-  );
-
   await prisma.upload.deleteMany({
     where: { id: { in: ids } },
   });
+
+  await Promise.all(
+    uploads.map(async (upload) => {
+      const refCount = await prisma.upload.count({
+        where: { path: upload.path },
+      });
+      if (refCount === 0) {
+        try {
+          await unlink(join(UPLOADS_ROOT, upload.path));
+        } catch {
+          // File already absent — ignore.
+        }
+      }
+    }),
+  );
 }
 
 export async function replaceUpload(params: { id: string; file: File }) {
@@ -383,10 +388,15 @@ export async function replaceUpload(params: { id: string; file: File }) {
     });
     await writeFile(fullPath, buffer);
 
-    try {
-      await unlink(join(UPLOADS_ROOT, upload.path));
-    } catch {
-      // Old file already absent — ignore.
+    const refCount = await prisma.upload.count({
+      where: { path: upload.path },
+    });
+    if (refCount <= 1) {
+      try {
+        await unlink(join(UPLOADS_ROOT, upload.path));
+      } catch {
+        // Old file already absent — ignore.
+      }
     }
   }
 

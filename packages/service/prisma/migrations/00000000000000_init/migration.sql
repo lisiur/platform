@@ -457,6 +457,9 @@ CREATE UNIQUE INDEX "system_config_group_key_key" ON "system_config"("group", "k
 CREATE INDEX "upload_uploaderId_idx" ON "upload"("uploaderId");
 
 -- CreateIndex
+CREATE INDEX "upload_path_idx" ON "upload"("path");
+
+-- CreateIndex
 CREATE INDEX "application_deletedAt_idx" ON "application"("deletedAt");
 
 -- CreateIndex
