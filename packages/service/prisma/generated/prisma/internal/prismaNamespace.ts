@@ -2424,6 +2424,8 @@ export const ApplicationScalarFieldEnum = {
   copyright: 'copyright',
   icp: 'icp',
   psif: 'psif',
+  watermarkEnabled: 'watermarkEnabled',
+  watermarkConfig: 'watermarkConfig',
   sortOrder: 'sortOrder',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',

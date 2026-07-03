@@ -18,6 +18,8 @@ export const applicationSchema = z
     copyright: z.string().nullable().optional(),
     icp: z.string().nullable().optional(),
     psif: z.string().nullable().optional(),
+    watermarkEnabled: z.boolean().openapi({ example: false }),
+    watermarkConfig: z.string().nullable().optional(),
     sortOrder: z.number().openapi({ example: 0 }),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -34,6 +36,8 @@ export const currentApplicationSchema = applicationSchema
     copyright: true,
     icp: true,
     psif: true,
+    watermarkEnabled: true,
+    watermarkConfig: true,
   })
   .openapi("CurrentApplication");
 
@@ -52,6 +56,8 @@ export const createApplicationBodySchema = z.object({
   copyright: z.string().optional(),
   icp: z.string().optional(),
   psif: z.string().optional(),
+  watermarkEnabled: z.boolean().optional(),
+  watermarkConfig: z.string().optional(),
   sortOrder: z.number().int().default(0),
 });
 
@@ -64,6 +70,8 @@ export const updateApplicationBodySchema = z.object({
   copyright: z.string().nullable().optional(),
   icp: z.string().nullable().optional(),
   psif: z.string().nullable().optional(),
+  watermarkEnabled: z.boolean().optional(),
+  watermarkConfig: z.string().nullable().optional(),
   sortOrder: z.number().int().optional(),
 });
 

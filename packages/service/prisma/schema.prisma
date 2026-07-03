@@ -239,6 +239,8 @@ model Application {
   copyright   String?
   icp         String?
   psif        String?
+  watermarkEnabled Boolean @default(false)
+  watermarkConfig  String?
   sortOrder   Int          @default(0)
   deletedAt   DateTime?
   createdAt   DateTime     @default(now())

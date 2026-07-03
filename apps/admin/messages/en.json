@@ -400,7 +400,12 @@
     "uploading": "Uploading...",
     "updateFailed": "Update failed",
     "logoTooLarge": "Logo file size must be less than 2MB",
-    "faviconTooLarge": "Favicon file size must be less than 2MB"
+    "faviconTooLarge": "Favicon file size must be less than 2MB",
+    "watermarkTitle": "Watermark",
+    "watermarkEnabled": "Enable Watermark",
+    "watermarkHint": "Display a tiled text watermark across the application pages.",
+    "watermarkContent": "Content",
+    "watermarkContentPlaceholder": "Confidential · '{'name'}' · '{'email'}'"
   },
   "Profile": {
     "title": "Profile",

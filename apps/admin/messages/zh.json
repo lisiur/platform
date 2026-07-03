@@ -400,7 +400,12 @@
     "uploading": "上传中...",
     "updateFailed": "更新失败",
     "logoTooLarge": "Logo 文件大小不能超过 2MB",
-    "faviconTooLarge": "网站图标文件大小不能超过 2MB"
+    "faviconTooLarge": "网站图标文件大小不能超过 2MB",
+    "watermarkTitle": "水印",
+    "watermarkEnabled": "启用水印",
+    "watermarkHint": "在应用页面显示平铺的文字水印。",
+    "watermarkContent": "内容",
+    "watermarkContentPlaceholder": "机密 · '{'name'}' · '{'email'}'"
   },
   "Profile": {
     "title": "个人资料",

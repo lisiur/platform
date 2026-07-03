@@ -12,6 +12,8 @@ interface Application {
   copyright?: string | null;
   icp?: string | null;
   psif?: string | null;
+  watermarkEnabled: boolean;
+  watermarkConfig?: string | null;
 }
 
 export function useCurrentApp() {

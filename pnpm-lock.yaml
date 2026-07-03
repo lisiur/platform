@@ -230,6 +230,9 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      watermark-js-plus:
+        specifier: ^1.6.4
+        version: 1.6.4
       zustand:
         specifier: ^5.0.13
         version: 5.0.13(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
@@ -3610,6 +3613,9 @@ packages:
       jsdom:
         optional: true
 
+  watermark-js-plus@1.6.4:
+    resolution: {integrity: sha512-G3nRVYsnAFFN882JqlagcCQwc2YsJwMTRteA289NnQMA5XhkvFOjLq6hxaEs9ZHhWzIG6Kc57tK2dKsOU7BqaA==}
+
   web-streams-polyfill@3.3.3:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
@@ -6649,6 +6655,8 @@ snapshots:
       '@types/node': 20.19.40
     transitivePeerDependencies:
       - msw
+
+  watermark-js-plus@1.6.4: {}
 
   web-streams-polyfill@3.3.3: {}
 

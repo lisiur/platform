@@ -33,6 +33,8 @@ export const getCurrentApplication = defineOpenAPIRoute({
         copyright: app.copyright,
         icp: app.icp,
         psif: app.psif,
+        watermarkEnabled: app.watermarkEnabled,
+        watermarkConfig: app.watermarkConfig,
       },
       200,
     );

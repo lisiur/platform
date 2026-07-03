@@ -8,6 +8,8 @@ export type {
   PermissionSortKey,
 } from "./components/permission-selector";
 export { PermissionSelector } from "./components/permission-selector";
+export type { WatermarkConfig, WatermarkProps } from "./components/watermark";
+export { Watermark } from "./components/watermark";
 export { usePaginatedQuery } from "./hooks/use-paginated-query";
 export { withApiFeedback } from "./lib/api-utils";
 export { formatDate, formatDateTime } from "./lib/date";

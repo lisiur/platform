@@ -1,4 +1,5 @@
 import { SidebarInset, SidebarProvider, TooltipProvider } from "@repo/ui";
+import { AppWatermark } from "@/components/app-watermark";
 import { SessionGuard } from "@/components/auth/session-guard";
 import { AppSidebar } from "@/components/layout/sidebar";
 import { SidebarBorderTrigger } from "@/components/layout/sidebar-border-trigger";
@@ -11,6 +12,7 @@ export default function Layout({
 }>) {
   return (
     <SessionGuard>
+      <AppWatermark />
       <TooltipProvider>
         <SidebarProvider>
           <SidebarToggleListener />

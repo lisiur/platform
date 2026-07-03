@@ -21,6 +21,8 @@ export async function createApplication(data: {
   copyright?: string;
   icp?: string;
   psif?: string;
+  watermarkEnabled?: boolean;
+  watermarkConfig?: string;
   sortOrder?: number;
 }) {
   const existing = await prisma.application.findFirst({
@@ -45,6 +47,8 @@ export async function updateApplication(
     copyright?: string | null;
     icp?: string | null;
     psif?: string | null;
+    watermarkEnabled?: boolean;
+    watermarkConfig?: string | null;
     sortOrder?: number;
   },
 ) {

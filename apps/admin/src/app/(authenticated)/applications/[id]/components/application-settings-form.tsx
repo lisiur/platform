@@ -6,6 +6,7 @@ import { ApplicationBasicInfoForm } from "./application-basic-info-form";
 import { ApplicationFaviconForm } from "./application-favicon-form";
 import { ApplicationFooterForm } from "./application-footer-form";
 import { ApplicationLogoForm } from "./application-logo-form";
+import { ApplicationWatermarkForm } from "./application-watermark-form";
 
 interface ApplicationSettingsFormProps {
   app: {
@@ -18,6 +19,8 @@ interface ApplicationSettingsFormProps {
     copyright?: string | null;
     icp?: string | null;
     psif?: string | null;
+    watermarkEnabled: boolean;
+    watermarkConfig?: string | null;
   };
   onSuccess: () => void;
 }
@@ -76,6 +79,19 @@ export function ApplicationSettingsForm({
           </CardHeader>
           <CardContent>
             <ApplicationFooterForm
+              appId={app.id}
+              app={app}
+              onSuccess={onSuccess}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>{t("watermarkTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ApplicationWatermarkForm
               appId={app.id}
               app={app}
               onSuccess={onSuccess}
