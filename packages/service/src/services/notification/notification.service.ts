@@ -58,29 +58,78 @@ export async function createNotificationsFromTemplate(params: {
   const correlationId = randomUUID();
   const now = new Date();
   const inApp = template.channel.providerKey === "in-app";
+  const isSmtp = template.channel.providerKey === "smtp-email";
 
-  const notifications = recipientUserIds.map((recipientUserId) => ({
-    correlationId,
-    templateId: template.id,
-    channelId: template.channelId,
-    recipientUserId,
-    appId: params.appId,
-    creatorId: params.creatorId,
-    source: params.source,
-    variables: asInputJson(variables),
-    renderedSubject,
-    renderedTitle,
-    renderedBody,
-    status: inApp ? "sent" : "pending",
-    sentAt: inApp ? now : undefined,
-    metadata: asInputJson(params.metadata),
-  }));
+  const mailer = isSmtp ? await import("./mailer") : null;
 
-  await prisma.notification.createMany({ data: notifications });
+  const results = await Promise.all(
+    recipientUserIds.map(async (recipientUserId) => {
+      const notification = await prisma.notification.create({
+        data: {
+          correlationId,
+          templateId: template.id,
+          channelId: template.channelId,
+          recipientUserId,
+          appId: params.appId,
+          creatorId: params.creatorId,
+          source: params.source,
+          variables: asInputJson(variables),
+          renderedSubject,
+          renderedTitle,
+          renderedBody,
+          status: inApp ? "sent" : "pending",
+          sentAt: inApp ? now : undefined,
+          metadata: asInputJson(params.metadata),
+        },
+      });
+
+      if (isSmtp) {
+        const user = await prisma.user.findUnique({
+          where: { id: recipientUserId },
+          select: { email: true },
+        });
+        if (user?.email) {
+          try {
+            const result = await mailer!.sendSmtpEmail({
+              channelId: template.channelId,
+              to: user.email,
+              subject: renderedSubject ?? "",
+              body: renderedBody,
+            });
+            await prisma.notification.update({
+              where: { id: notification.id },
+              data: {
+                status: "sent",
+                sentAt: result.sentAt,
+                providerMessageId: result.messageId,
+              },
+            });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            await prisma.notification.update({
+              where: { id: notification.id },
+              data: { status: "failed", failedAt: now, errorMessage: msg },
+            });
+          }
+        } else {
+          await prisma.notification.update({
+            where: { id: notification.id },
+            data: {
+              status: "failed",
+              failedAt: now,
+              errorMessage: "Recipient has no email address",
+            },
+          });
+        }
+      }
+
+      return notification;
+    }),
+  );
 
   return {
     correlationId,
-    total: notifications.length,
+    total: results.length,
     recipients: recipientUserIds.length,
     provider: template.channel.providerKey,
   };
