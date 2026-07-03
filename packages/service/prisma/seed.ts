@@ -35,7 +35,7 @@ import {
   USER_ROLE_CODE,
 } from "@repo/shared";
 import { hashPassword } from "../src/lib/password";
-import { PrismaClient } from "./generated/prisma/client";
+import { Prisma, PrismaClient } from "./generated/prisma/client";
 
 // ============================================================
 // 1. REFERENCE DATA DEFINITIONS
@@ -398,6 +398,9 @@ const systemPermissions = [
     name: "View Notification Record",
   },
   { code: "upload::sign", group: "upload", name: "Sign Upload URL" },
+  { code: "upload::list", group: "upload", name: "List Uploads" },
+  { code: "upload::delete", group: "upload", name: "Delete Uploads" },
+  { code: "upload::replace", group: "upload", name: "Replace Upload" },
 ];
 
 // --- Organization App Permissions ---
@@ -591,13 +594,23 @@ const adminMenus = [
     permissions: ["system-info::view"],
   },
   {
+    id: "uploads",
+    code: "uploads",
+    name: "Uploads",
+    icon: "Upload",
+    linkType: "INTERNAL" as const,
+    url: "/admin/uploads",
+    sortOrder: 8,
+    permissions: ["upload::list"],
+  },
+  {
     id: "settings",
     code: "settings",
     name: "Settings",
     icon: "Settings",
     linkType: "INTERNAL" as const,
     url: "/admin/settings",
-    sortOrder: 8,
+    sortOrder: 9,
     permissions: ["system-config::list"],
   },
 ];
@@ -932,7 +945,7 @@ async function upsertNotificationChannel(data: {
       name: data.name,
       providerKey: data.providerKey,
       enabled: data.enabled,
-      config: null,
+      config: Prisma.JsonNull,
       deletedAt: null,
     },
     create: data,

@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -170,10 +170,14 @@ export async function getFileAccess(params: {
       stream.on("end", () => controller.close());
       stream.on("error", (err) => controller.error(err));
     },
+    cancel() {
+      stream.destroy();
+    },
   });
 
   return {
     stream: webStream,
+    path: upload.path,
     mimeType: upload.mimeType,
     size: upload.size,
     visibility: upload.visibility,
@@ -254,4 +258,145 @@ export async function signFile(params: { id: string; userId: string }) {
   const url = `/api/upload/${id}?token=${token}&expires=${expiresAt}`;
 
   return { url, expiresAt: new Date(expiresAt) };
+}
+
+export async function listUploads(params: {
+  limit?: number;
+  offset?: number;
+  visibility?: string;
+  mimeType?: string;
+  uploader?: string;
+  startDate?: Date;
+  endDate?: Date;
+}) {
+  const {
+    limit = 10,
+    offset = 0,
+    visibility,
+    mimeType,
+    uploader,
+    startDate,
+    endDate,
+  } = params;
+
+  const where: {
+    visibility?: string;
+    mimeType?: { contains: string; mode: "insensitive" };
+    uploader?: { OR: Array<Record<string, unknown>> };
+    createdAt?: { gte?: Date; lte?: Date };
+  } = {};
+  if (visibility) where.visibility = visibility;
+  if (mimeType) where.mimeType = { contains: mimeType, mode: "insensitive" };
+  if (uploader) {
+    where.uploader = {
+      OR: [
+        { name: { contains: uploader, mode: "insensitive" } },
+        { email: { contains: uploader, mode: "insensitive" } },
+      ],
+    };
+  }
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) where.createdAt.gte = startDate;
+    if (endDate) where.createdAt.lte = endDate;
+  }
+
+  const [uploads, total] = await Promise.all([
+    prisma.upload.findMany({
+      where,
+      include: {
+        uploader: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.upload.count({ where }),
+  ]);
+
+  return { uploads, total };
+}
+
+export async function deleteUploads(ids: string[]) {
+  const uploads = await prisma.upload.findMany({
+    where: { id: { in: ids } },
+  });
+
+  await Promise.all(
+    uploads.map(async (upload) => {
+      try {
+        await unlink(join(UPLOADS_ROOT, upload.path));
+      } catch {
+        // File already absent — ignore.
+      }
+    }),
+  );
+
+  await prisma.upload.deleteMany({
+    where: { id: { in: ids } },
+  });
+}
+
+export async function replaceUpload(params: { id: string; file: File }) {
+  const { id, file } = params;
+  const allowedTypes = allowedMimeTypes();
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new HTTPException(400, {
+      message: `Invalid file type. Allowed: ${allowedTypes.join(", ")}`,
+    });
+  }
+
+  if (file.size > MAX_SIZE) {
+    throw new HTTPException(400, {
+      message: `File too large. Maximum size: ${MAX_SIZE / 1024 / 1024}MB`,
+    });
+  }
+
+  const upload = await prisma.upload.findUnique({ where: { id } });
+  if (!upload) {
+    throw new HTTPException(404, { message: "File not found" });
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (!verifyMagicBytes(buffer, file.type)) {
+    throw new HTTPException(400, {
+      message: "File content does not match its declared type",
+    });
+  }
+
+  const ext = extensionForMime(file.type);
+  if (!ext) {
+    throw new HTTPException(400, { message: "Unsupported file type" });
+  }
+
+  const hash = computeHash(buffer);
+  const relPath = shardPath(hash, ext);
+  const dir = upload.visibility === "public" ? "public" : "private";
+  const fullPath = join(UPLOADS_ROOT, dir, relPath);
+  const dbPath = `${dir}/${relPath}`;
+
+  if (dbPath !== upload.path) {
+    await mkdir(join(UPLOADS_ROOT, dir, dirname(relPath)), {
+      recursive: true,
+    });
+    await writeFile(fullPath, buffer);
+
+    try {
+      await unlink(join(UPLOADS_ROOT, upload.path));
+    } catch {
+      // Old file already absent — ignore.
+    }
+  }
+
+  const updated = await prisma.upload.update({
+    where: { id },
+    data: { path: dbPath, mimeType: file.type, size: file.size },
+    include: {
+      uploader: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  return updated;
 }

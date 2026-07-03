@@ -10,25 +10,46 @@ vi.mock("node:fs/promises", () => ({
   mkdir: vi.fn(),
   stat: vi.fn(),
   writeFile: vi.fn(),
+  unlink: vi.fn(),
 }));
 
 vi.mock("#lib/db", () => ({
   prisma: {
-    upload: { create: vi.fn(), findUnique: vi.fn() },
+    upload: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      deleteMany: vi.fn(),
+      update: vi.fn(),
+    },
     systemConfig: { findUnique: vi.fn() },
   },
 }));
 
+import { unlink } from "node:fs/promises";
 import { prisma } from "#lib/db";
-import { getFileAccess, uploadFile } from "./upload.service";
+import {
+  deleteUploads,
+  getFileAccess,
+  listUploads,
+  replaceUpload,
+  uploadFile,
+} from "./upload.service";
 
 const mockPrisma = prisma as unknown as {
   upload: {
     create: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
   systemConfig: { findUnique: ReturnType<typeof vi.fn> };
 };
+
+const mockUnlink = unlink as unknown as ReturnType<typeof vi.fn>;
 
 const publicUpload = {
   id: "upload1",
@@ -342,5 +363,139 @@ describe("uploadFile validation", () => {
         uploaderId: "user1",
       }),
     ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("listUploads", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns paginated uploads with total", async () => {
+    const rows = [publicUpload];
+    (mockPrisma.upload.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      rows,
+    );
+    (mockPrisma.upload.count as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+
+    const result = await listUploads({ limit: 10, offset: 0 });
+
+    expect(result.uploads).toEqual(rows);
+    expect(result.total).toBe(1);
+    expect(
+      (mockPrisma.upload.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0],
+    ).toMatchObject({ take: 10, skip: 0 });
+  });
+
+  it("applies visibility filter", async () => {
+    (mockPrisma.upload.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
+    );
+    (mockPrisma.upload.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+    await listUploads({ visibility: "public" });
+
+    const where = (mockPrisma.upload.count as ReturnType<typeof vi.fn>).mock
+      .calls[0][0].where;
+    expect(where.visibility).toBe("public");
+  });
+});
+
+describe("deleteUploads", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("unlinks files on disk and deletes records", async () => {
+    (mockPrisma.upload.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: "a", path: "public/a/b/a.png" },
+      { id: "b", path: "private/c/d/b.png" },
+    ]);
+    (
+      mockPrisma.upload.deleteMany as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ count: 2 });
+
+    await deleteUploads(["a", "b"]);
+
+    expect(mockUnlink).toHaveBeenCalledTimes(2);
+    expect(
+      (mockPrisma.upload.deleteMany as ReturnType<typeof vi.fn>).mock
+        .calls[0][0].where.id.in,
+    ).toEqual(["a", "b"]);
+  });
+
+  it("ignores missing files and still deletes records", async () => {
+    (mockPrisma.upload.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: "a", path: "public/a/b/a.png" },
+    ]);
+    mockUnlink.mockRejectedValue(
+      Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+    );
+    (
+      mockPrisma.upload.deleteMany as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ count: 1 });
+
+    await expect(deleteUploads(["a"])).resolves.toBeUndefined();
+    expect(
+      mockPrisma.upload.deleteMany as ReturnType<typeof vi.fn>,
+    ).toHaveBeenCalled();
+  });
+});
+
+describe("replaceUpload", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.UPLOAD_SIGN_SECRET = "test-secret";
+  });
+
+  const png = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
+  ]);
+
+  it("updates path, mimeType and size and removes the old file", async () => {
+    const existing = {
+      id: "up1",
+      path: "public/aa/bb/old.jpg",
+      mimeType: "image/jpeg",
+      size: 999,
+      visibility: "public",
+      uploaderId: "user1",
+    };
+    (
+      mockPrisma.upload.findUnique as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(existing);
+    const updated = {
+      ...existing,
+      mimeType: "image/png",
+      path: "public/x.png",
+    };
+    (mockPrisma.upload.update as ReturnType<typeof vi.fn>).mockResolvedValue(
+      updated,
+    );
+
+    const result = await replaceUpload({
+      id: "up1",
+      file: mkFile("new.png", "image/png", png),
+    });
+
+    expect(result.mimeType).toBe("image/png");
+    const updateArgs = (mockPrisma.upload.update as ReturnType<typeof vi.fn>)
+      .mock.calls[0][0];
+    expect(updateArgs.where.id).toBe("up1");
+    expect(updateArgs.data.mimeType).toBe("image/png");
+    expect(mockUnlink).toHaveBeenCalled();
+  });
+
+  it("throws 404 when the upload does not exist", async () => {
+    (
+      mockPrisma.upload.findUnique as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(null);
+
+    await expect(
+      replaceUpload({
+        id: "missing",
+        file: mkFile("new.png", "image/png", png),
+      }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

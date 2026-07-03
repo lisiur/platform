@@ -27,12 +27,25 @@ export const getFile = defineOpenAPIRoute({
     const { id } = c.req.valid("param");
     const { token, expires } = c.req.valid("query");
 
-    const { stream, mimeType, size, visibility } = await getFileAccess({
+    const { stream, path, mimeType, size, visibility } = await getFileAccess({
       id,
       token,
       expires,
       headers: c.req.raw.headers,
     });
+
+    const etag = `"${path}"`;
+
+    if (c.req.header("if-none-match") === etag) {
+      await stream.cancel();
+      return new Response(null, {
+        status: 304,
+        headers: {
+          ETag: etag,
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
 
     const inlineImageTypes = [
       "image/jpeg",
@@ -52,9 +65,8 @@ export const getFile = defineOpenAPIRoute({
         "X-Content-Type-Options": "nosniff",
         "Content-Disposition": isInlineImage ? "inline" : "attachment",
         "Cache-Control":
-          visibility === "public"
-            ? "public, max-age=31536000"
-            : "private, no-store",
+          visibility === "public" ? "no-cache" : "private, no-store",
+        ETag: etag,
         "Referrer-Policy": "no-referrer",
       },
     });

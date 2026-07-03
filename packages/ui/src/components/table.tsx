@@ -5,7 +5,7 @@ import type * as React from "react";
 import { cn } from "#lib/utils";
 
 type CellAlign = "left" | "center" | "right";
-type StickySide = "right";
+type StickySide = "left" | "right";
 
 type TableCellOptions = {
   align?: CellAlign;
@@ -107,7 +107,9 @@ function TableHead({
         "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         align && cellAlignClassName[align],
         sticky === "right" &&
-          "sticky right-0 z-30 bg-background shadow-[-1px_0_0_0_var(--border)]",
+          "sticky right-0 z-30! bg-background shadow-[-1px_0_0_0_var(--border)]",
+        sticky === "left" &&
+          "sticky left-0 z-30! bg-background shadow-[1px_0_0_0_var(--border)]",
         className,
       )}
       {...props}
@@ -129,6 +131,8 @@ function TableCell({
         align && cellAlignClassName[align],
         sticky === "right" &&
           "sticky right-0 z-10 shadow-[-1px_0_0_0_var(--border)]",
+        sticky === "left" &&
+          "sticky left-0 z-10 shadow-[1px_0_0_0_var(--border)]",
         className,
       )}
       {...props}

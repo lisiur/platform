@@ -313,7 +313,8 @@
     "fetchError": "Failed to load menus",
     "signOut": "Sign Out",
     "logs": "Logs",
-    "menus": "Menus"
+    "menus": "Menus",
+    "uploads": "Uploads"
   },
   "Organizations": {
     "title": "Organization Management",
@@ -651,6 +652,48 @@
   "Monitor": {
     "title": "System Monitor",
     "description": "Real-time server resource and process metrics"
+  },
+  "Uploads": {
+    "title": "Upload Management",
+    "description": "Browse, replace, and remove uploaded files",
+    "noUploads": "No uploads found",
+    "viewDetail": "View",
+    "detail": "Detail",
+    "viewFile": "View File",
+    "copyUrl": "Copy URL",
+    "copyUrlSuccess": "URL copied to clipboard",
+    "detailTitle": "Upload Detail",
+    "downloadTitle": "Download File",
+    "downloadHint": "Do you want to download this file?",
+    "download": "Download",
+    "replaceTitle": "Replace File",
+    "replace": "Replace",
+    "replacing": "Replacing...",
+    "replaceSuccess": "File replaced successfully",
+    "replaceHint": "Select a new file to overwrite this upload. The id and access URL stay the same.",
+    "chooseFile": "Choose File",
+    "delete": "Delete",
+    "deleteSuccess": "Uploads deleted successfully",
+    "batchDelete": "Batch Delete",
+    "cancel": "Cancel",
+    "close": "Close",
+    "clearFilters": "Clear Filters",
+    "columns": {
+      "preview": "Preview",
+      "createdAt": "Uploaded At",
+      "path": "Path",
+      "mimeType": "Type",
+      "size": "Size",
+      "visibility": "Visibility",
+      "uploader": "Uploader",
+      "id": "ID",
+      "actions": "Actions"
+    },
+    "filters": {
+      "mimeType": "MIME type",
+      "uploader": "Uploader name or email",
+      "allVisibility": "All Visibility"
+    }
   },
   "Frontend": {
     "permissionSelector": {

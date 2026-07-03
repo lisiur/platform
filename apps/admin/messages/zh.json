@@ -313,7 +313,8 @@
     "fetchError": "加载菜单失败",
     "signOut": "退出登录",
     "logs": "日志",
-    "menus": "菜单"
+    "menus": "菜单",
+    "uploads": "文件上传"
   },
   "Organizations": {
     "title": "组织管理",
@@ -651,6 +652,48 @@
   "Monitor": {
     "title": "系统监控",
     "description": "实时服务器资源与进程指标"
+  },
+  "Uploads": {
+    "title": "上传管理",
+    "description": "浏览、替换和删除已上传的文件",
+    "noUploads": "暂无上传文件",
+    "viewDetail": "查看",
+    "detail": "详情",
+    "viewFile": "查看文件",
+    "copyUrl": "复制链接",
+    "copyUrlSuccess": "链接已复制到剪贴板",
+    "detailTitle": "上传详情",
+    "downloadTitle": "下载文件",
+    "downloadHint": "是否下载此文件？",
+    "download": "下载",
+    "replaceTitle": "替换文件",
+    "replace": "替换",
+    "replacing": "替换中...",
+    "replaceSuccess": "文件替换成功",
+    "replaceHint": "选择新文件以覆盖此上传,文件 ID 和访问链接保持不变。",
+    "chooseFile": "选择文件",
+    "delete": "删除",
+    "deleteSuccess": "文件删除成功",
+    "batchDelete": "批量删除",
+    "cancel": "取消",
+    "close": "关闭",
+    "clearFilters": "清除筛选",
+    "columns": {
+      "preview": "预览",
+      "createdAt": "上传时间",
+      "path": "路径",
+      "mimeType": "类型",
+      "size": "大小",
+      "visibility": "可见性",
+      "uploader": "上传者",
+      "id": "ID",
+      "actions": "操作"
+    },
+    "filters": {
+      "mimeType": "MIME 类型",
+      "uploader": "上传者名称或邮箱",
+      "allVisibility": "全部可见性"
+    }
   },
   "Frontend": {
     "permissionSelector": {
