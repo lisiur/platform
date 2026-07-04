@@ -6,6 +6,8 @@ import { logger } from "hono/logger";
 import { operationLogger } from "#middleware/operation-logger";
 import { traceContext } from "#middleware/trace-context";
 import { routes } from "./routes";
+import { jobScheduler } from "./queues/job-scheduler";
+import { jobWorker } from "./queues/job-worker";
 
 const openAPIApp = new OpenAPIHono().basePath("/api");
 
@@ -59,5 +61,8 @@ openAPIApp.doc("/openapi.json", {
   },
   servers: [{ url: "/api" }],
 });
+
+jobScheduler.start().catch(console.error);
+jobWorker.start().catch(console.error);
 
 export { app };
