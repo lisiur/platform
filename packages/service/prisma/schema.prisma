@@ -82,6 +82,66 @@ model Verification {
   @@map("verification")
 }
 
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum JobPriority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+  IDLE
+}
+
+model Job {
+  id          String      @id @default(cuid())
+  type        String
+  payload     Json
+  status      JobStatus   @default(PENDING)
+  priority    JobPriority @default(NORMAL)
+  result      Json?
+  error       String?
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3)
+  timeoutMs   Int         @default(60000)
+  scheduledAt DateTime    @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([status, priority])
+  @@map("job")
+}
+
+model JobArchive {
+  id            String      @id @default(cuid())
+  type          String
+  payload       Json
+  status        JobStatus
+  priority      JobPriority
+  result        Json?
+  error         String?
+  attempts      Int
+  maxAttempts   Int
+  timeoutMs     Int
+  scheduledAt   DateTime
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime
+  originalJobId String      @unique
+
+  @@index([status])
+  @@index([type])
+  @@index([completedAt])
+  @@map("job_archive")
+}
+
 model Organization {
   id          String       @id @default(cuid())
   name        String
