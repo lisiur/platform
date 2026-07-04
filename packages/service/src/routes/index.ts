@@ -17,6 +17,7 @@ import { systemInfoRoutes } from "./system-info";
 import { uploadRoutes } from "./upload";
 import { userRoutes } from "./user";
 import { userRoleRoutes } from "./user-role";
+import { jobRoutes } from "../queues/routes";
 
 const routes = new OpenAPIHono()
   .route("/auth", authRoutes)
@@ -36,6 +37,7 @@ const routes = new OpenAPIHono()
   .route("/user-roles", userRoleRoutes)
   .route("/operation-logs", operationLogRoutes)
   .route("/audit-logs", auditLogRoutes)
-  .route("/users", userRoutes);
+  .route("/users", userRoutes)
+  .route("/jobs", jobRoutes);
 
 export { routes };
