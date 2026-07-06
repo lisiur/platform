@@ -1,4 +1,4 @@
-import { jobHandlerRegistry } from "../job-handler-registry";
+import { jobHandlerRegistry } from "#lib/queues/job-handler-registry";
 import { sendEmailHandler } from "./send-email.handler";
 import { sendNotificationHandler } from "./send-notification.handler";
 

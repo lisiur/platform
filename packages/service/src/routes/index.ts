@@ -1,8 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { jobRoutes } from "../queues/routes";
 import { applicationRoutes } from "./application";
 import { auditLogRoutes } from "./audit-log";
 import { authRoutes } from "./auth";
+import { jobRoutes } from "./job";
 import { menuRoutes } from "./menu";
 import { notificationRoutes } from "./notification";
 import { notificationChannelRoutes } from "./notification-channel";

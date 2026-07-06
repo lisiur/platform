@@ -4,16 +4,16 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobService } from "../job.service";
+import { jobService } from "#services/job.service";
 import { jobIdParamSchema, jobSchema } from "./schema";
 
-export const getJob = defineOpenAPIRoute({
+export const retryJob = defineOpenAPIRoute({
   route: createRoute({
-    method: "get",
-    path: "/{id}",
+    method: "post",
+    path: "/{id}/retry",
     tags: ["Job"],
-    summary: "Get a job",
-    description: "Get job details by ID.",
+    summary: "Retry a failed job",
+    description: "Retry a failed job by resetting its status to pending.",
     request: {
       params: jobIdParamSchema,
     },
@@ -27,13 +27,13 @@ export const getJob = defineOpenAPIRoute({
             schema: jobSchema,
           },
         },
-        description: "Job details",
+        description: "Retried job",
       },
     },
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-    const job = await jobService.getJob(id);
+    const job = await jobService.retryJob(id);
 
     return c.json(job, 200);
   },

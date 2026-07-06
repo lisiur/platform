@@ -1,5 +1,5 @@
+import { jobRepository } from "#repositories/job.repository";
 import { jobEvents } from "./job.events";
-import { jobRepository } from "./job.repository";
 import type { Job } from "./job.types";
 import { jobQueue } from "./job-queue";
 

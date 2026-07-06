@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
-import { jobService } from "../job.service";
+import { jobService } from "#services/job.service";
 import { listJobsQuerySchema, listJobsResponseSchema } from "./schema";
 
 export const listJobs = defineOpenAPIRoute({

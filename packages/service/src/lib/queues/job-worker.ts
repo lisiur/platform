@@ -1,7 +1,7 @@
+import type { Job } from "#generated/prisma/client";
+import { JobStatus } from "#generated/prisma/client";
+import { jobRepository } from "#repositories/job.repository";
 import { jobEvents } from "./job.events";
-import { jobRepository } from "./job.repository";
-import type { Job } from "./job.types";
-import { JobStatus } from "./job.types";
 import { jobArchiver } from "./job-archive";
 import { jobHandlerRegistry } from "./job-handler-registry";
 import { jobQueue } from "./job-queue";

@@ -9,7 +9,6 @@
     "#generated/*": "./prisma/generated/*.ts",
     "#lib/*": "./src/lib/*.ts",
     "#middleware/*": "./src/middleware/*.ts",
-    "#queues/*": "./src/queues/*.ts",
     "#repositories/*": "./src/repositories/*.ts",
     "#routes/*": "./src/routes/*.ts",
     "#services/*": "./src/services/*.ts",

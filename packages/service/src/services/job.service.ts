@@ -1,7 +1,24 @@
 import { HTTPException } from "hono/http-exception";
-import { jobEvents } from "./job.events";
-import { jobRepository } from "./job.repository";
-import { type CreateJobInput, type Job, JobStatus } from "./job.types";
+import type { Job, JobPriority } from "#generated/prisma/client";
+import { JobStatus } from "#generated/prisma/client";
+import { jobEvents } from "#lib/queues/job.events";
+import { jobRepository } from "#repositories/job.repository";
+
+export interface CreateJobInput {
+  type: string;
+  payload: unknown;
+  priority?: JobPriority;
+  scheduledAt?: Date;
+  maxAttempts?: number;
+  timeoutMs?: number;
+}
+
+export interface JobFilter {
+  status?: JobStatus;
+  type?: string;
+  limit?: number;
+  offset?: number;
+}
 
 export class JobService {
   async createJob(input: CreateJobInput): Promise<Job> {

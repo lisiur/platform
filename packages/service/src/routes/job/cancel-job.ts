@@ -5,7 +5,7 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobService } from "../job.service";
+import { jobService } from "#services/job.service";
 import { jobIdParamSchema } from "./schema";
 
 export const cancelJob = defineOpenAPIRoute({

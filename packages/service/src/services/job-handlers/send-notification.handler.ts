@@ -1,5 +1,5 @@
+import type { JobHandler } from "#lib/queues/job.types";
 import { createNotificationsFromTemplate } from "#services/notification/notification.service";
-import type { JobHandler } from "../job.types";
 
 export interface SendNotificationPayload {
   templateKey: string;

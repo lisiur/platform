@@ -1,4 +1,4 @@
-import { jobRepository } from "./job.repository";
+import { jobRepository } from "#repositories/job.repository";
 import type { Job } from "./job.types";
 
 export class JobArchiver {

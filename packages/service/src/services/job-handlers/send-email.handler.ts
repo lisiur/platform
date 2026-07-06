@@ -1,6 +1,6 @@
 import { prisma } from "#lib/db";
+import type { JobHandler } from "#lib/queues/job.types";
 import { sendSmtpEmail } from "#services/notification/mailer";
-import type { JobHandler } from "../job.types";
 
 export interface SendEmailPayload {
   to: string;

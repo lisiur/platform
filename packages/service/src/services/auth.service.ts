@@ -9,8 +9,8 @@ import {
   getSessionFromHeaders,
 } from "#lib/session";
 import { code2Session } from "#lib/wechat";
-import { jobService } from "#queues/job.service";
 import { systemConfigRepository } from "#repositories/system-config.repository";
+import { jobService } from "#services/job.service";
 
 export type { AuthSession, AuthSessionUser, AuthType };
 

@@ -4,7 +4,7 @@ import {
   forbiddenResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobService } from "../job.service";
+import { jobService } from "#services/job.service";
 import { createJobBodySchema, jobSchema } from "./schema";
 
 export const enqueueJob = defineOpenAPIRoute({

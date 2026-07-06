@@ -5,11 +5,11 @@ import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { operationLogger } from "#middleware/operation-logger";
 import { traceContext } from "#middleware/trace-context";
-import { registerJobHandlers } from "./queues/handlers";
-import { jobQueue } from "./queues/job-queue";
-import { jobScheduler } from "./queues/job-scheduler";
-import { jobWorker } from "./queues/job-worker";
+import { jobQueue } from "./lib/queues/job-queue";
+import { jobScheduler } from "./lib/queues/job-scheduler";
+import { jobWorker } from "./lib/queues/job-worker";
 import { routes } from "./routes";
+import { registerJobHandlers } from "./services/job-handlers";
 
 const openAPIApp = new OpenAPIHono().basePath("/api");
 
