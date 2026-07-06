@@ -1,4 +1,4 @@
-import type { Job, Prisma } from "#generated/prisma/client";
+import type { Job, JobArchive, Prisma } from "#generated/prisma/client";
 import { JobStatus } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
@@ -60,6 +60,7 @@ export class JobRepository {
       result?: unknown;
       error?: string;
       attempts?: number;
+      scheduledAt?: Date;
     },
   ): Promise<Job> {
     return prisma.job.update({
@@ -71,8 +72,26 @@ export class JobRepository {
         result: data?.result as Prisma.InputJsonValue | undefined,
         error: data?.error,
         attempts: data?.attempts,
+        scheduledAt: data?.scheduledAt,
       },
     });
+  }
+
+  async countByStatus(): Promise<Record<JobStatus, number>> {
+    const groups = await prisma.job.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    });
+    const counts: Record<JobStatus, number> = {
+      [JobStatus.PENDING]: 0,
+      [JobStatus.PROCESSING]: 0,
+      [JobStatus.COMPLETED]: 0,
+      [JobStatus.FAILED]: 0,
+    } as Record<JobStatus, number>;
+    for (const g of groups) {
+      counts[g.status] = g._count._all;
+    }
+    return counts;
   }
 
   async findByFilter(filter: {
@@ -122,6 +141,33 @@ export class JobRepository {
       },
     });
     await prisma.job.delete({ where: { id: job.id } });
+  }
+
+  async findArchivedById(id: string): Promise<JobArchive | null> {
+    return prisma.jobArchive.findUnique({ where: { id } });
+  }
+
+  async findArchivedByFilter(filter: {
+    status?: JobStatus;
+    type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ jobArchives: JobArchive[]; total: number }> {
+    const where: Prisma.JobArchiveWhereInput = {};
+    if (filter.status) where.status = filter.status;
+    if (filter.type) where.type = filter.type;
+
+    const [jobArchives, total] = await Promise.all([
+      prisma.jobArchive.findMany({
+        where,
+        orderBy: { completedAt: "desc" },
+        take: filter.limit ?? 20,
+        skip: filter.offset ?? 0,
+      }),
+      prisma.jobArchive.count({ where }),
+    ]);
+
+    return { jobArchives, total };
   }
 }
 

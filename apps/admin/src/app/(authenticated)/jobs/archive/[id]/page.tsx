@@ -20,13 +20,15 @@ import {
   JobDetailOverview,
   JobDetailPayload,
   JobDetailResult,
-} from "../components/job-detail-tabs";
+} from "../../components/job-detail-tabs";
 
-interface JobDetailPageProps {
+interface ArchivedJobDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function JobDetailPage({ params }: JobDetailPageProps) {
+export default function ArchivedJobDetailPage({
+  params,
+}: ArchivedJobDetailPageProps) {
   const t = useTranslations("Jobs");
   const { id } = use(params);
   const [job, setJob] = useState<JobDetail | null>(null);
@@ -35,9 +37,9 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   const fetchJob = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await withApiFeedback(appClient.api.jobs[":id"].$get)({
-        param: { id },
-      });
+      const res = await withApiFeedback(appClient.api.jobs.archive[":id"].$get)(
+        { param: { id } },
+      );
       setJob((await res.json()) as JobDetail);
     } catch {
       setJob(null);
@@ -63,7 +65,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   if (loading) {
     return (
       <ManagementPageShell
-        title={t("detail.title")}
+        title={t("detail.archivedTitle")}
         description={t("detail.description")}
         header={backLink}
       >
@@ -77,7 +79,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   if (!job) {
     return (
       <ManagementPageShell
-        title={t("detail.title")}
+        title={t("detail.archivedTitle")}
         description={t("detail.description")}
         header={backLink}
       >
@@ -90,14 +92,15 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
     <ManagementPageShell
       title={
         <>
-          {t("detail.title")} — <span className="font-mono">{job.type}</span>
+          {t("detail.archivedTitle")} —{" "}
+          <span className="font-mono">{job.type}</span>
         </>
       }
       description={
         <span className="inline-flex items-center gap-2">
           <Badge variant="outline">{t(`status.${job.status}`)}</Badge>
           <Badge variant="secondary">{t(`priority.${job.priority}`)}</Badge>
-          <span className="font-mono text-xs">{job.id}</span>
+          <span className="font-mono text-xs">{job.originalJobId}</span>
         </span>
       }
       header={backLink}

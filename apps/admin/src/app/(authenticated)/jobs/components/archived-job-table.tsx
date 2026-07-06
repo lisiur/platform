@@ -4,7 +4,6 @@ import { DataTablePagination } from "@repo/frontend";
 import {
   Badge,
   Button,
-  ButtonGroup,
   Input,
   Select,
   SelectContent,
@@ -21,24 +20,25 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui";
-import { Eye, Plus, RotateCcw, X } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
-import { CreateJobDialog } from "./create-job-dialog";
 
-interface Job {
+interface ArchivedJob {
   id: string;
+  originalJobId: string;
   type: string;
   status: string;
   priority: string;
   attempts: number;
   maxAttempts: number;
   createdAt: string;
-  scheduledAt: string | null;
+  completedAt?: string | null;
+  scheduledAt: string;
 }
 
 const STATUS_OPTIONS = [
@@ -59,16 +59,15 @@ function statusVariant(status: string) {
   }
 }
 
-export function JobTable() {
+export function ArchivedJobTable() {
   const router = useRouter();
   const t = useTranslations("Jobs");
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<ArchivedJob[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
   const lastEffectFetchKeyRef = useRef<string>(undefined);
 
   const pageSize = 20;
@@ -84,9 +83,11 @@ export function JobTable() {
       if (statusFilter) query.status = statusFilter;
       if (typeFilter) query.type = typeFilter;
 
-      const res = await withApiFeedback(appClient.api.jobs.$get)({ query });
+      const res = await withApiFeedback(appClient.api.jobs.archive.$get)({
+        query,
+      });
       const data = await res.json();
-      setJobs(data.jobs);
+      setJobs(data.jobArchives);
       setTotal(data.total);
     } catch {
       setJobs([]);
@@ -119,29 +120,6 @@ export function JobTable() {
       if (typeDebounceRef.current) clearTimeout(typeDebounceRef.current);
     };
   }, []);
-
-  async function handleRetry(job: Job) {
-    try {
-      await withApiFeedback(appClient.api.jobs[":id"].retry.$post, {
-        showLoading: true,
-        errorMessage: t("retrySuccess"),
-      })({ param: { id: job.id } });
-      fetchJobs();
-    } catch {
-      // Error handled by API feedback.
-    }
-  }
-
-  async function handleCancel(job: Job) {
-    try {
-      await withApiFeedback(appClient.api.jobs[":id"].$delete)({
-        param: { id: job.id },
-      });
-      fetchJobs();
-    } catch {
-      // Error handled by API feedback.
-    }
-  }
 
   const hasFilters = statusFilter !== "" || typeFilter !== "";
   function handleClearFilters() {
@@ -188,10 +166,6 @@ export function JobTable() {
             </button>
           )}
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t("addJob")}
-        </Button>
       </div>
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
@@ -199,28 +173,30 @@ export function JobTable() {
         </div>
       ) : jobs.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
-          {t("noJobs")}
+          {t("noArchivedJobs")}
         </div>
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1024px] min-w-[1024px]"
+            className="w-[1100px] min-w-[1100px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
               <TableRow>
-                <TableHead className="w-32">{t("columns.id")}</TableHead>
+                <TableHead className="w-32">
+                  {t("columns.originalJobId")}
+                </TableHead>
                 <TableHead className="w-40">{t("columns.type")}</TableHead>
                 <TableHead className="w-28">{t("columns.status")}</TableHead>
                 <TableHead className="w-24">{t("columns.priority")}</TableHead>
                 <TableHead className="w-28">{t("columns.attempts")}</TableHead>
                 <TableHead className="w-44">{t("columns.createdAt")}</TableHead>
                 <TableHead className="w-44">
-                  {t("columns.scheduledAt")}
+                  {t("columns.completedAt")}
                 </TableHead>
                 <TableHead
                   sticky="right"
-                  className="w-32 bg-background text-right"
+                  className="w-20 bg-background text-right"
                 >
                   {t("actions")}
                 </TableHead>
@@ -230,7 +206,7 @@ export function JobTable() {
               {jobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="font-mono text-xs">
-                    {job.id.slice(-8)}
+                    {job.originalJobId.slice(-8)}
                   </TableCell>
                   <TableCell className="font-mono text-sm">
                     {job.type}
@@ -252,63 +228,29 @@ export function JobTable() {
                     {formatDateTime(job.createdAt)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {job.scheduledAt ? formatDateTime(job.scheduledAt) : "-"}
+                    {job.completedAt ? formatDateTime(job.completedAt) : "-"}
                   </TableCell>
                   <TableCell
                     sticky="right"
                     className="bg-background text-right"
                   >
-                    <ButtonGroup className="ml-auto">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("view")}
-                              onClick={() => router.push(`/jobs/${job.id}`)}
-                            >
-                              <Eye />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("view")}</TooltipContent>
-                      </Tooltip>
-                      {job.status === "FAILED" && (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t("retry")}
-                                onClick={() => handleRetry(job)}
-                              >
-                                <RotateCcw />
-                              </Button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t("view")}
+                            onClick={() =>
+                              router.push(`/jobs/archive/${job.id}`)
                             }
-                          />
-                          <TooltipContent>{t("retry")}</TooltipContent>
-                        </Tooltip>
-                      )}
-                      {job.status === "PENDING" && (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t("cancel")}
-                                onClick={() => handleCancel(job)}
-                              >
-                                <X />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>{t("cancel")}</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </ButtonGroup>
+                          >
+                            <Eye />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>{t("view")}</TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -323,11 +265,6 @@ export function JobTable() {
           />
         </div>
       )}
-      <CreateJobDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={fetchJobs}
-      />
     </div>
   );
 }

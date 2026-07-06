@@ -45,6 +45,10 @@ export class JobQueue {
     return this.queue.pending;
   }
 
+  get concurrency(): number {
+    return this.queue.concurrency;
+  }
+
   onIdle(): Promise<unknown> {
     return this.queue.onIdle();
   }

@@ -4,6 +4,7 @@ type JobEvent = {
   "job:created": Job;
   "job:completed": Job;
   "job:failed": Job;
+  "job:rescheduled": Job;
 };
 
 type Listener<T> = (data: T) => void;

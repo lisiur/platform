@@ -683,6 +683,7 @@
     "description": "监控和管理后台任务",
     "search": "按类型搜索...",
     "noJobs": "暂无任务",
+    "noArchivedJobs": "暂无归档任务",
     "actions": "操作",
     "view": "查看",
     "retry": "重试",
@@ -695,6 +696,16 @@
     "save": "创建",
     "creating": "创建中...",
     "cancelBtn": "取消",
+    "tabs": {
+      "active": "活跃",
+      "archived": "已归档"
+    },
+    "stats": {
+      "executor": "执行器",
+      "queued": "队列中",
+      "active": "处理中",
+      "concurrency": "并发数"
+    },
     "columns": {
       "id": "ID",
       "type": "类型",
@@ -702,12 +713,15 @@
       "priority": "优先级",
       "attempts": "尝试次数",
       "createdAt": "创建时间",
-      "scheduledAt": "计划时间"
+      "scheduledAt": "计划时间",
+      "completedAt": "完成时间",
+      "originalJobId": "原始 ID"
     },
     "filters": {
       "allStatus": "全部状态",
       "status": "状态",
-      "type": "类型"
+      "type": "类型",
+      "clear": "清除筛选"
     },
     "status": {
       "PENDING": "等待中",
@@ -724,6 +738,7 @@
     },
     "detail": {
       "title": "任务详情",
+      "archivedTitle": "归档任务详情",
       "description": "查看任务详情和元数据",
       "backToJobs": "返回任务列表",
       "notFound": "任务不存在",
@@ -734,6 +749,7 @@
       },
       "overview": {
         "id": "ID",
+        "originalJobId": "原始 ID",
         "type": "类型",
         "status": "状态",
         "priority": "优先级",
@@ -758,7 +774,7 @@
     },
     "form": {
       "type": "类型",
-      "typePlaceholder": "例如 send-email",
+      "typePlaceholder": "例如 send-notification",
       "typeDescription": "要执行的任务处理器类型",
       "priority": "优先级",
       "scheduledAt": "计划时间",

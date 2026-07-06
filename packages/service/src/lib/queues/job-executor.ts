@@ -44,4 +44,12 @@ export class JobExecutor {
   enqueue(job: Job): void {
     this.context.emit("job:created", job);
   }
+
+  getStats() {
+    return {
+      queueSize: this.queue.size,
+      pending: this.queue.pending,
+      concurrency: this.queue.concurrency,
+    };
+  }
 }

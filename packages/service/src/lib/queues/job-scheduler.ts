@@ -16,6 +16,9 @@ export class JobScheduler {
 
   constructor(private readonly deps: JobSchedulerDeps) {
     this.deps.context.on("job:created", (job) => this.onJobCreated(job));
+    this.deps.context.on("job:rescheduled", (job) =>
+      this.rescheduleIfNeeded(job),
+    );
   }
 
   async start(): Promise<void> {

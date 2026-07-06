@@ -2,7 +2,24 @@
 
 import { useTranslations } from "next-intl";
 import { formatDateTime } from "@/utils/date";
-import type { JobDetail } from "../page";
+
+export interface JobDetail {
+  id: string;
+  type: string;
+  payload: unknown;
+  status: string;
+  priority: string;
+  result: unknown;
+  error: string | null;
+  attempts: number;
+  maxAttempts: number;
+  timeoutMs: number;
+  scheduledAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  originalJobId?: string;
+}
 
 function JsonBlock({ data }: { data: unknown }) {
   const t = useTranslations("Jobs");
@@ -51,6 +68,13 @@ export function JobDetailOverview({ job }: { job: JobDetail }) {
       <OverviewField label={o.id}>
         <span className="font-mono text-xs break-all">{job.id}</span>
       </OverviewField>
+      {job.originalJobId && (
+        <OverviewField label={o.originalJobId}>
+          <span className="font-mono text-xs break-all">
+            {job.originalJobId}
+          </span>
+        </OverviewField>
+      )}
       <OverviewField label={o.type}>
         <span className="font-mono">{job.type}</span>
       </OverviewField>

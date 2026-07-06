@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import type { Job, JobPriority } from "#generated/prisma/client";
+import type { Job, JobArchive, JobPriority } from "#generated/prisma/client";
 import { JobStatus } from "#generated/prisma/client";
 import { jobRepository } from "#repositories/job.repository";
 import { jobExecutor } from "#states";
@@ -53,6 +53,23 @@ export class JobService {
     return jobRepository.findByFilter(filter);
   }
 
+  async getArchivedJob(id: string): Promise<JobArchive> {
+    const job = await jobRepository.findArchivedById(id);
+    if (!job) {
+      throw new HTTPException(404, { message: "Archived job not found" });
+    }
+    return job;
+  }
+
+  async listArchivedJobs(filter: {
+    status?: JobStatus;
+    type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ jobArchives: JobArchive[]; total: number }> {
+    return jobRepository.findArchivedByFilter(filter);
+  }
+
   async retryJob(id: string): Promise<Job> {
     const job = await this.getJob(id);
 
@@ -83,6 +100,12 @@ export class JobService {
     }
 
     await jobRepository.delete(id);
+  }
+
+  async getExecutorStats() {
+    const live = jobExecutor.getStats();
+    const byStatus = await jobRepository.countByStatus();
+    return { ...live, byStatus };
   }
 }
 

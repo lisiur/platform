@@ -683,6 +683,7 @@
     "description": "Monitor and manage background jobs",
     "search": "Search by type...",
     "noJobs": "No jobs found",
+    "noArchivedJobs": "No archived jobs found",
     "actions": "Actions",
     "view": "View",
     "retry": "Retry",
@@ -695,6 +696,16 @@
     "save": "Create",
     "creating": "Creating...",
     "cancelBtn": "Cancel",
+    "tabs": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "stats": {
+      "executor": "Executor",
+      "queued": "Queued",
+      "active": "Active",
+      "concurrency": "Concurrency"
+    },
     "columns": {
       "id": "ID",
       "type": "Type",
@@ -702,12 +713,15 @@
       "priority": "Priority",
       "attempts": "Attempts",
       "createdAt": "Created At",
-      "scheduledAt": "Scheduled At"
+      "scheduledAt": "Scheduled At",
+      "completedAt": "Completed At",
+      "originalJobId": "Original ID"
     },
     "filters": {
       "allStatus": "All Status",
       "status": "Status",
-      "type": "Type"
+      "type": "Type",
+      "clear": "Clear filters"
     },
     "status": {
       "PENDING": "Pending",
@@ -724,6 +738,7 @@
     },
     "detail": {
       "title": "Job Detail",
+      "archivedTitle": "Archived Job Detail",
       "description": "View job details and metadata",
       "backToJobs": "Back to Jobs",
       "notFound": "Job not found",
@@ -734,6 +749,7 @@
       },
       "overview": {
         "id": "ID",
+        "originalJobId": "Original ID",
         "type": "Type",
         "status": "Status",
         "priority": "Priority",
@@ -758,7 +774,7 @@
     },
     "form": {
       "type": "Type",
-      "typePlaceholder": "e.g. send-email",
+      "typePlaceholder": "e.g. send-notification",
       "typeDescription": "The job handler type to execute",
       "priority": "Priority",
       "scheduledAt": "Scheduled At",

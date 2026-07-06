@@ -5,6 +5,9 @@ import type { JobArchiver } from "./job-archive";
 import type { JobExecutorContext } from "./job-executor-context";
 import type { JobHandlerRegistry } from "./job-handler-registry";
 
+const RETRY_BACKOFF_BASE_MS = 5_000;
+const RETRY_BACKOFF_MAX_MS = 5 * 60 * 1000;
+
 interface JobWorkerDeps {
   repository: JobRepository;
   context: JobExecutorContext;
@@ -20,6 +23,8 @@ export class JobWorker {
       startedAt: new Date(),
       attempts: job.attempts + 1,
     });
+
+    let terminal = false;
 
     try {
       const handler = this.deps.registry.get(job.type);
@@ -39,6 +44,7 @@ export class JobWorker {
       });
 
       this.deps.context.emit("job:completed", job);
+      terminal = true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -49,13 +55,30 @@ export class JobWorker {
           error: errorMessage,
         });
         this.deps.context.emit("job:failed", job);
+        terminal = true;
       } else {
-        await this.deps.repository.updateStatus(job.id, JobStatus.PENDING, {
-          error: errorMessage,
-        });
+        const attemptsMade = job.attempts + 1;
+        const backoff = Math.min(
+          RETRY_BACKOFF_BASE_MS * 2 ** (attemptsMade - 1),
+          RETRY_BACKOFF_MAX_MS,
+        );
+        const retriedJob = await this.deps.repository.updateStatus(
+          job.id,
+          JobStatus.PENDING,
+          {
+            error: errorMessage,
+            scheduledAt: new Date(Date.now() + backoff),
+          },
+        );
+        this.deps.context.emit("job:rescheduled", retriedJob);
       }
     }
 
-    await this.deps.archiver.archive(job);
+    if (terminal) {
+      const fresh = await this.deps.repository.findById(job.id);
+      if (fresh) {
+        await this.deps.archiver.archive(fresh);
+      }
+    }
   }
 }
