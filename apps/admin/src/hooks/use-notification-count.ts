@@ -18,7 +18,6 @@ export function useNotificationCount() {
       const data = await res.json();
       return data.count;
     },
-    refetchInterval: 30_000,
   });
 
   return {

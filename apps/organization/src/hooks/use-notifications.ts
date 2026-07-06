@@ -31,7 +31,6 @@ export function useUnreadNotificationCount() {
       return data.count;
     },
     enabled: !!session?.user,
-    refetchInterval: 30_000,
   });
 }
 
