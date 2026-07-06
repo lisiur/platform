@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requireAppId } from "#extractors/app-id";
 import { badRequestResponse, createdResponseFn } from "#lib/openapi";
 import { setSessionCookie } from "#lib/session";
 import { signUpWithEmail } from "#services/auth.service";
@@ -23,8 +24,10 @@ export const signUpEmail = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const body = c.req.valid("json");
+    const appId = await requireAppId(c);
     const { user, session } = await signUpWithEmail({
       ...body,
+      appId,
       ipAddress:
         c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
         c.req.header("x-real-ip") ??

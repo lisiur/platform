@@ -713,6 +713,12 @@ const organizationRolePermissions: Record<string, string[]> = {
 // --- Notification Channels ---
 const notificationChannels = [
   { key: "in-app", name: "In-App", providerKey: "in-app", enabled: true },
+  {
+    key: "smtp-email",
+    name: "Email",
+    providerKey: "smtp-email",
+    enabled: false,
+  },
 ];
 
 // --- Notification Templates (keyed by channel key) ---
@@ -728,6 +734,22 @@ const notificationTemplates = [
         userName: { type: "string", description: "The user's name" },
       },
       required: ["userName"],
+    },
+  },
+  {
+    channelKey: "smtp-email",
+    key: "welcome-email",
+    name: "Welcome Email",
+    enabled: true,
+    subjectTemplate: "Welcome to {{siteName}}!",
+    bodyTemplate:
+      "Hi {{userName}},\n\nWelcome to {{siteName}}! Your account has been created successfully.\n\nWe're glad to have you on board.\n\n— The {{siteName}} Team",
+    variablesSchema: {
+      properties: {
+        userName: { type: "string", description: "The user's name" },
+        siteName: { type: "string", description: "The site name" },
+      },
+      required: ["userName", "siteName"],
     },
   },
 ];

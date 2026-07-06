@@ -9,6 +9,7 @@ import {
   getSessionFromHeaders,
 } from "#lib/session";
 import { code2Session } from "#lib/wechat";
+import { jobService } from "#queues/job.service";
 import { systemConfigRepository } from "#repositories/system-config.repository";
 
 export type { AuthSession, AuthSessionUser, AuthType };
@@ -97,10 +98,59 @@ export async function signInWithEmail(params: {
   return { user, session };
 }
 
+async function enqueueWelcomeNotifications(
+  userId: string,
+  name: string,
+  appId: string,
+) {
+  let siteName = "My Application";
+  try {
+    const config = await systemConfigRepository.findByGroupAndKey(
+      "general",
+      "site.name",
+    );
+    if (config?.value) siteName = config.value;
+  } catch {
+    // fall back to default
+  }
+
+  const basePayload = {
+    recipientUserIds: [userId],
+    appId,
+    source: "auth.signup",
+  };
+
+  try {
+    await jobService.createJob({
+      type: "send-notification",
+      payload: {
+        ...basePayload,
+        templateKey: "welcome",
+        variables: { userName: name },
+      },
+    });
+
+    await jobService.createJob({
+      type: "send-notification",
+      payload: {
+        ...basePayload,
+        templateKey: "welcome-email",
+        variables: { userName: name, siteName },
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[signup] Failed to enqueue welcome notifications for ${userId}:`,
+      err,
+    );
+  }
+}
+
 export async function signUpWithEmail(params: {
   name: string;
   email: string;
   password: string;
+  appId: string;
   ipAddress?: string | null;
   traceId?: string;
   userAgent?: string | null;
@@ -119,6 +169,8 @@ export async function signUpWithEmail(params: {
     email,
     password: params.password,
   });
+
+  await enqueueWelcomeNotifications(user.id, user.name, params.appId);
 
   const session = await createSession({
     userId: user.id,
