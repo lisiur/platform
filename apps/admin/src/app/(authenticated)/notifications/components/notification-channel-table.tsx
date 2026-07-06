@@ -59,7 +59,7 @@ export function NotificationChannelTable() {
 
   const channels = (channelsQuery.data ?? []) as NotificationChannel[];
   const providers = (providersQuery.data ?? []) as NotificationProvider[];
-  const loading = channelsQuery.isLoading || providersQuery.isLoading;
+  const loading = channelsQuery.isFetching || providersQuery.isFetching;
 
   function refreshChannels() {
     void queryClient.invalidateQueries({

@@ -59,7 +59,7 @@ export function NotificationTemplateTable() {
 
   const templates = (templatesQuery.data ?? []) as NotificationTemplate[];
   const channels = (channelsQuery.data ?? []) as NotificationChannel[];
-  const loading = templatesQuery.isLoading || channelsQuery.isLoading;
+  const loading = templatesQuery.isFetching || channelsQuery.isFetching;
 
   function refreshTemplates() {
     void queryClient.invalidateQueries({
