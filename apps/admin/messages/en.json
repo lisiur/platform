@@ -312,7 +312,8 @@
     "signOut": "Sign Out",
     "logs": "Logs",
     "menus": "Menus",
-    "uploads": "Uploads"
+    "uploads": "Uploads",
+    "jobs": "Jobs"
   },
   "Organizations": {
     "title": "Organization Management",

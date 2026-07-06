@@ -312,7 +312,8 @@
     "signOut": "退出登录",
     "logs": "日志",
     "menus": "菜单",
-    "uploads": "文件"
+    "uploads": "文件",
+    "jobs": "任务"
   },
   "Organizations": {
     "title": "组织管理",
