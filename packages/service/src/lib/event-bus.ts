@@ -28,6 +28,16 @@ export class EventBus {
     }
   }
 
+  broadcast(event: ServerEvent): void {
+    for (const subs of this.byUser.values()) {
+      for (const sub of subs) {
+        if (sub.appFilter && event.appId && sub.appFilter !== event.appId)
+          continue;
+        sub.onEvent(event);
+      }
+    }
+  }
+
   disconnectByToken(token: string): void {
     const subs = this.byToken.get(token);
     if (!subs) return;

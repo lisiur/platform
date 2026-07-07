@@ -23,6 +23,7 @@ export class JobWorker {
       startedAt: new Date(),
       attempts: job.attempts + 1,
     });
+    this.deps.context.emit("job:processing", job);
 
     let terminal = false;
 

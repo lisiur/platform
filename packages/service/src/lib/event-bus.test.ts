@@ -1,8 +1,10 @@
-import type { ServerEvent } from "@repo/shared";
+import type { NotificationCreatedEvent, ServerEvent } from "@repo/shared";
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "./event-bus";
 
-function mkEvent(over: Partial<ServerEvent> = {}): ServerEvent {
+function mkEvent(
+  over: Partial<NotificationCreatedEvent> = {},
+): NotificationCreatedEvent {
   return {
     type: "notification.created",
     notificationId: "n1",
@@ -13,6 +15,11 @@ function mkEvent(over: Partial<ServerEvent> = {}): ServerEvent {
     ...over,
   };
 }
+
+const jobStatsEvent: ServerEvent = {
+  type: "job.stats.updated",
+  appId: "admin",
+};
 
 describe("EventBus", () => {
   it("routes events only to the targeted user", () => {
@@ -172,5 +179,54 @@ describe("EventBus", () => {
   it("emit to a user with no subscribers is a no-op", () => {
     const bus = new EventBus();
     expect(() => bus.emit("nobody", mkEvent())).not.toThrow();
+  });
+
+  it("broadcast reaches subscribers across all users", () => {
+    const bus = new EventBus();
+    const a = vi.fn();
+    const b = vi.fn();
+    bus.subscribe({
+      userId: "u1",
+      token: "t1",
+      onEvent: a,
+      disconnect: () => {},
+    });
+    bus.subscribe({
+      userId: "u2",
+      token: "t2",
+      onEvent: b,
+      disconnect: () => {},
+    });
+    bus.broadcast(jobStatsEvent);
+    expect(a).toHaveBeenCalledTimes(1);
+    expect(b).toHaveBeenCalledTimes(1);
+  });
+
+  it("broadcast respects appFilter", () => {
+    const bus = new EventBus();
+    const admin = vi.fn();
+    const org = vi.fn();
+    bus.subscribe({
+      userId: "u1",
+      token: "t1",
+      appFilter: "admin",
+      onEvent: admin,
+      disconnect: () => {},
+    });
+    bus.subscribe({
+      userId: "u1",
+      token: "t2",
+      appFilter: "organization",
+      onEvent: org,
+      disconnect: () => {},
+    });
+    bus.broadcast(jobStatsEvent);
+    expect(admin).toHaveBeenCalledTimes(1);
+    expect(org).not.toHaveBeenCalled();
+  });
+
+  it("broadcast with no subscribers is a no-op", () => {
+    const bus = new EventBus();
+    expect(() => bus.broadcast(jobStatsEvent)).not.toThrow();
   });
 });

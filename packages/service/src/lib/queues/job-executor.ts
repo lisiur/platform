@@ -13,6 +13,18 @@ interface JobExecutorDeps {
   concurrency?: number;
 }
 
+export type JobExecutorEventName =
+  | "job:created"
+  | "job:processing"
+  | "job:completed"
+  | "job:failed"
+  | "job:rescheduled";
+
+export interface JobExecutorEvent {
+  type: JobExecutorEventName;
+  job: Job;
+}
+
 export class JobExecutor {
   private readonly context = new JobExecutorContext();
   private readonly queue: JobQueue;
@@ -43,6 +55,24 @@ export class JobExecutor {
 
   enqueue(job: Job): void {
     this.context.emit("job:created", job);
+  }
+
+  subscribe(listener: (event: JobExecutorEvent) => void): () => void {
+    const events: JobExecutorEventName[] = [
+      "job:created",
+      "job:processing",
+      "job:completed",
+      "job:failed",
+      "job:rescheduled",
+    ];
+    const pairs = events.map((type) => {
+      const fn = (job: Job) => listener({ type, job });
+      this.context.on(type, fn);
+      return { type, fn };
+    });
+    return () => {
+      for (const { type, fn } of pairs) this.context.off(type, fn);
+    };
   }
 
   getStats() {

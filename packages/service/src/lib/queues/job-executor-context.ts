@@ -2,6 +2,7 @@ import type { Job } from "#generated/prisma/client";
 
 type JobEvent = {
   "job:created": Job;
+  "job:processing": Job;
   "job:completed": Job;
   "job:failed": Job;
   "job:rescheduled": Job;

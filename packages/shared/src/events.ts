@@ -7,4 +7,9 @@ export interface NotificationCreatedEvent {
   renderedBody: string;
 }
 
-export type ServerEvent = NotificationCreatedEvent;
+export interface JobStatsUpdatedEvent {
+  type: "job.stats.updated";
+  appId: "admin";
+}
+
+export type ServerEvent = NotificationCreatedEvent | JobStatsUpdatedEvent;

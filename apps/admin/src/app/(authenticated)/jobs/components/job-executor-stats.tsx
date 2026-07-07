@@ -1,5 +1,6 @@
 "use client";
 
+import { useEventStream } from "@repo/frontend";
 import { Card, CardContent } from "@repo/ui";
 import {
   Activity,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
-import { appClient } from "@/lib/api";
+import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
 import { formatTimeUntil } from "@/utils/date";
 
 interface ExecutorStats {
@@ -70,14 +71,18 @@ export function JobExecutorStats() {
   }, []);
 
   useEffect(() => {
-    const update = () => {
+    fetchStats();
+  }, [fetchStats]);
+
+  useEventStream({
+    origin: API_ORIGIN,
+    appCode: APP_CODE,
+    event: "job.stats.updated",
+    handler: () => {
       fetchStats();
       setNow(Date.now());
-    };
-    update();
-    const interval = setInterval(update, 5000);
-    return () => clearInterval(interval);
-  }, [fetchStats]);
+    },
+  });
 
   const nextScheduledMs = stats?.nextScheduledAt
     ? new Date(stats.nextScheduledAt).getTime()
