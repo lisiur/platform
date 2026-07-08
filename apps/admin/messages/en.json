@@ -160,7 +160,8 @@
     "description": "Manage your application configuration",
     "tabs": {
       "auth": "Authentication",
-      "upload": "Upload"
+      "upload": "Upload",
+      "rate-limit": "Rate Limit"
     },
     "save": "Save Changes",
     "saving": "Saving...",
@@ -491,14 +492,24 @@
         "uploadHotlink": "Upload Hotlink Protection",
         "uploadHotlinkEnabled": "Enable Hotlink Protection",
         "uploadHotlinkAllowedDomains": "Allowed Domains",
-        "uploadHotlinkAllowEmptyReferer": "Allow Empty Referer"
+        "uploadHotlinkAllowEmptyReferer": "Allow Empty Referer",
+        "rateLimitEnabled": "Enable Rate Limiting",
+        "rateLimitGlobalMax": "Global — Max Requests",
+        "rateLimitGlobalWindowMs": "Global — Window (ms)",
+        "rateLimitAuthMax": "Auth — Max Requests",
+        "rateLimitAuthWindowMs": "Auth — Window (ms)"
       },
       "fieldsDesc": {
         "enableRegistration": "Allow new users to register",
         "sessionMaxAge": "Maximum session duration in days",
         "uploadHotlink": "Controls global anti-theft-link protection for uploaded files",
         "uploadHotlinkAllowedDomains": "Hostnames allowed to embed uploaded files",
-        "uploadHotlinkAllowEmptyReferer": "Allow direct access when Referer and Origin headers are absent"
+        "uploadHotlinkAllowEmptyReferer": "Allow direct access when Referer and Origin headers are absent",
+        "rateLimitEnabled": "Master switch for all rate limiters (takes effect immediately)",
+        "rateLimitGlobalMax": "Maximum requests per window across all endpoints",
+        "rateLimitGlobalWindowMs": "Window size in milliseconds for the global limiter",
+        "rateLimitAuthMax": "Maximum requests per window for auth endpoints (login, signup, etc.)",
+        "rateLimitAuthWindowMs": "Window size in milliseconds for the auth limiter"
       }
     }
   },

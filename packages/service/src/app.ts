@@ -6,7 +6,10 @@ import { logger } from "hono/logger";
 import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
 import { traceContext } from "#middleware/trace-context";
-import { initRateLimitOverrides } from "#services/rate-limit.service";
+import {
+  initRateLimitDefaults,
+  initRateLimitOverrides,
+} from "#services/rate-limit.service";
 import { jobExecutor } from "#states";
 import { routes } from "./routes";
 
@@ -84,6 +87,9 @@ openAPIApp.doc("/openapi.json", {
 });
 
 jobExecutor.start();
+initRateLimitDefaults().catch((e) =>
+  console.error("Failed to load rate-limit defaults:", e),
+);
 initRateLimitOverrides().catch((e) =>
   console.error("Failed to load rate-limit overrides:", e),
 );

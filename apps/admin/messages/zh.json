@@ -160,7 +160,8 @@
     "description": "管理应用配置",
     "tabs": {
       "auth": "认证",
-      "upload": "上传"
+      "upload": "上传",
+      "rate-limit": "限流"
     },
     "save": "保存更改",
     "saving": "保存中...",
@@ -491,14 +492,24 @@
         "uploadHotlink": "上传防盗链",
         "uploadHotlinkEnabled": "启用防盗链",
         "uploadHotlinkAllowedDomains": "允许的域名",
-        "uploadHotlinkAllowEmptyReferer": "允许空 Referer"
+        "uploadHotlinkAllowEmptyReferer": "允许空 Referer",
+        "rateLimitEnabled": "启用限流",
+        "rateLimitGlobalMax": "全局 — 最大请求数",
+        "rateLimitGlobalWindowMs": "全局 — 时间窗口（毫秒）",
+        "rateLimitAuthMax": "认证 — 最大请求数",
+        "rateLimitAuthWindowMs": "认证 — 时间窗口（毫秒）"
       },
       "fieldsDesc": {
         "enableRegistration": "允许新用户注册",
         "sessionMaxAge": "会话最长有效期（天）",
         "uploadHotlink": "控制上传文件的全局防盗链保护",
         "uploadHotlinkAllowedDomains": "允许引用上传文件的主机名",
-        "uploadHotlinkAllowEmptyReferer": "当 Referer 和 Origin 请求头缺失时允许直接访问"
+        "uploadHotlinkAllowEmptyReferer": "当 Referer 和 Origin 请求头缺失时允许直接访问",
+        "rateLimitEnabled": "所有限流器的总开关（立即生效）",
+        "rateLimitGlobalMax": "全局所有限流器每个时间窗口的最大请求数",
+        "rateLimitGlobalWindowMs": "全局限流器的时间窗口大小（毫秒）",
+        "rateLimitAuthMax": "认证相关接口（登录、注册等）每个时间窗口的最大请求数",
+        "rateLimitAuthWindowMs": "认证限流器的时间窗口大小（毫秒）"
       }
     }
   },

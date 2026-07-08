@@ -27,6 +27,7 @@ type LimiterEntry = {
   name: string;
   max: number;
   windowMs: number;
+  enabled: boolean;
   store: RateLimitStore;
 };
 
@@ -71,6 +72,18 @@ class RateLimitRegistry {
 
   registerLimiter(entry: LimiterEntry): void {
     this.limiters.set(entry.name, entry);
+  }
+
+  updateDefaults(
+    name: string,
+    patch: Partial<Pick<LimiterEntry, "max" | "windowMs" | "enabled">>,
+  ): boolean {
+    const entry = this.limiters.get(name);
+    if (!entry) return false;
+    if (patch.max !== undefined) entry.max = patch.max;
+    if (patch.windowMs !== undefined) entry.windowMs = patch.windowMs;
+    if (patch.enabled !== undefined) entry.enabled = patch.enabled;
+    return true;
   }
 
   getLimiter(name: string): LimiterEntry | undefined {

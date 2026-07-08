@@ -180,6 +180,7 @@ describe("rateLimitRegistry overrides", () => {
       name: "rl-test",
       max: 3,
       windowMs: 1000,
+      enabled: true,
       store: new RateLimitStore(0),
     });
   });
@@ -251,6 +252,7 @@ describe("rateLimitRegistry overrides", () => {
       name: "rl-snap",
       max: 2,
       windowMs: 1000,
+      enabled: true,
       store,
     });
     store.hit("ip:9.9.9.9", 1000);
@@ -279,6 +281,7 @@ describe("rateLimitRegistry release", () => {
       name: "rl-release-key",
       max: 2,
       windowMs: 1000,
+      enabled: true,
       store,
     });
     store.hit("ip:1.1.1.1", 1000);
@@ -303,12 +306,14 @@ describe("rateLimitRegistry release", () => {
       name: "rl-release-a",
       max: 2,
       windowMs: 1000,
+      enabled: true,
       store: storeA,
     });
     rateLimitRegistry.registerLimiter({
       name: "rl-release-b",
       max: 2,
       windowMs: 1000,
+      enabled: true,
       store: storeB,
     });
 
@@ -321,5 +326,89 @@ describe("rateLimitRegistry release", () => {
 
     // After release, releasing again yields nothing
     expect(rateLimitRegistry.releaseSubject("ip:7.7.7.7")).toStrictEqual([]);
+  });
+});
+
+describe("rateLimitRegistry updateDefaults", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date(0) });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("mutates max/windowMs live so resolvePolicy reflects new values", () => {
+    const store = new RateLimitStore(0);
+    rateLimitRegistry.registerLimiter({
+      name: "rl-defaults",
+      max: 2,
+      windowMs: 1000,
+      enabled: true,
+      store,
+    });
+
+    expect(
+      rateLimitRegistry.resolvePolicy("rl-defaults", "ip:1.1.1.1"),
+    ).toEqual({ bypass: false, max: 2, windowMs: 1000 });
+
+    expect(
+      rateLimitRegistry.updateDefaults("rl-defaults", {
+        max: 50,
+        windowMs: 5000,
+      }),
+    ).toBe(true);
+    expect(
+      rateLimitRegistry.resolvePolicy("rl-defaults", "ip:1.1.1.1"),
+    ).toEqual({ bypass: false, max: 50, windowMs: 5000 });
+  });
+
+  it("returns false for an unknown limiter", () => {
+    expect(rateLimitRegistry.updateDefaults("nope", { max: 1 })).toBe(false);
+  });
+
+  it("preserves the store reference across updates", () => {
+    const store = new RateLimitStore(0);
+    rateLimitRegistry.registerLimiter({
+      name: "rl-store-ref",
+      max: 2,
+      windowMs: 1000,
+      enabled: true,
+      store,
+    });
+    store.hit("ip:3.3.3.3", 1000);
+
+    rateLimitRegistry.updateDefaults("rl-store-ref", { max: 99 });
+    const [status] = rateLimitRegistry.snapshot("rl-store-ref");
+    const bucket = status.buckets.find((b) => b.subject === "ip:3.3.3.3");
+    // bucket survived the defaults update because the store ref is unchanged
+    expect(bucket?.count).toBe(1);
+  });
+
+  it("disabling a limiter makes the middleware skip limiting", async () => {
+    const app = new OpenAPIHono();
+    app.use(
+      "*",
+      createRateLimiter({
+        name: "rl-disable-mw",
+        max: 1,
+        windowMs: 1000,
+        enabled: true,
+        store: new RateLimitStore(0),
+      }),
+    );
+    app.get("/ping", (c) => c.json({ ok: true }, 200));
+
+    // First request consumes the single allowed request
+    const first = await app.request("/ping");
+    expect(first.status).toBe(200);
+
+    // Disabling at runtime -> subsequent requests are no longer limited
+    rateLimitRegistry.updateDefaults("rl-disable-mw", { enabled: false });
+    for (let i = 0; i < 5; i++) {
+      const res = await app.request("/ping");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("x-ratelimit-limit")).toBeNull();
+    }
   });
 });

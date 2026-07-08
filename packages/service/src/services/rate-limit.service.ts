@@ -1,6 +1,7 @@
 import type { OverrideRecord } from "#lib/rate-limit-registry";
 import { rateLimitRegistry } from "#lib/rate-limit-registry";
 import { rateLimitRepository } from "#repositories/rate-limit.repository";
+import { systemConfigRepository } from "#repositories/system-config.repository";
 import { eventBus } from "#states/event-bus";
 
 export type RateLimitStatusQuery = {
@@ -54,6 +55,52 @@ function toOverrideRecord(
 export async function initRateLimitOverrides() {
   const rows = await rateLimitRepository.findAll();
   rateLimitRegistry.loadOverrides(rows.map(toOverrideRecord));
+}
+
+const RATE_LIMIT_LIMITERS = ["global", "auth"] as const;
+
+type RateLimitDefaults = {
+  enabled: boolean;
+  limiters: Record<string, { max: number; windowMs: number }>;
+};
+
+async function loadRateLimitDefaults(): Promise<RateLimitDefaults> {
+  const rows = await systemConfigRepository.findByGroup("rate-limit");
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const enabled = (map.get("enabled") ?? "true") === "true";
+  const limiters: Record<string, { max: number; windowMs: number }> = {};
+
+  for (const name of RATE_LIMIT_LIMITERS) {
+    const max = Number(map.get(`${name}.max`));
+    const windowMs = Number(map.get(`${name}.windowMs`));
+    if (
+      Number.isFinite(max) &&
+      max > 0 &&
+      Number.isFinite(windowMs) &&
+      windowMs > 0
+    ) {
+      limiters[name] = { max, windowMs };
+    }
+  }
+
+  return { enabled, limiters };
+}
+
+function applyRateLimitDefaults({ enabled, limiters }: RateLimitDefaults) {
+  for (const name of RATE_LIMIT_LIMITERS) {
+    const cfg = limiters[name];
+    if (!cfg) continue;
+    rateLimitRegistry.updateDefaults(name, { ...cfg, enabled });
+  }
+}
+
+export async function initRateLimitDefaults() {
+  applyRateLimitDefaults(await loadRateLimitDefaults());
+}
+
+export async function reloadRateLimitDefaults() {
+  applyRateLimitDefaults(await loadRateLimitDefaults());
 }
 
 export async function listOverrides() {

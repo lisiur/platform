@@ -26,10 +26,11 @@ export function createRateLimiter(options: RateLimiterOptions) {
   const enabled = options.enabled ?? process.env.RATE_LIMIT_ENABLED !== "false";
   const store = options.store ?? new RateLimitStore();
 
-  rateLimitRegistry.registerLimiter({ name, max, windowMs, store });
+  rateLimitRegistry.registerLimiter({ name, max, windowMs, enabled, store });
 
   return createMiddleware(async (c, next) => {
-    if (!enabled) {
+    const entry = rateLimitRegistry.getLimiter(name);
+    if (!entry?.enabled) {
       return next();
     }
 
