@@ -48,6 +48,11 @@ export interface NotificationRecordRelationTemplate {
   name: string;
 }
 
+export interface NotificationRecordRelationApp {
+  code: string;
+  name: string;
+}
+
 export interface NotificationRecordRelationChannel {
   id: string;
   key: string;
@@ -68,6 +73,7 @@ export interface NotificationRecord {
   renderedTitle?: string | null;
   renderedBody: string;
   status: string;
+  app?: NotificationRecordRelationApp | null;
   attempts: number;
   nextAttemptAt?: string | null;
   sentAt?: string | null;
@@ -90,6 +96,7 @@ export type NotificationRecordListItem = Pick<
   | "renderedSubject"
   | "renderedTitle"
   | "status"
+  | "app"
   | "readAt"
   | "archivedAt"
   | "createdAt"

@@ -25,6 +25,12 @@ const notificationRecordRelations = {
       providerKey: true,
     },
   },
+  app: {
+    select: {
+      code: true,
+      name: true,
+    },
+  },
 } as const;
 
 const notificationRecordListSelect = {
@@ -32,6 +38,7 @@ const notificationRecordListSelect = {
   renderedSubject: true,
   renderedTitle: true,
   status: true,
+  app: notificationRecordRelations.app,
   readAt: true,
   archivedAt: true,
   createdAt: true,

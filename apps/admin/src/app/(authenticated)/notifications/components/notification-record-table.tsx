@@ -172,9 +172,9 @@ export function NotificationRecordTable() {
           <TableRow>
             <TableHead>{t("records.columns.recipient")}</TableHead>
             <TableHead>{t("records.columns.notification")}</TableHead>
+            <TableHead>{t("records.columns.appId")}</TableHead>
             <TableHead>{t("records.columns.template")}</TableHead>
             <TableHead>{t("fields.channel")}</TableHead>
-            <TableHead>{t("fields.provider")}</TableHead>
             <TableHead>{t("fields.status")}</TableHead>
             <TableHead>{t("records.columns.readState")}</TableHead>
             <TableHead>{t("fields.createdAt")}</TableHead>
@@ -203,15 +203,18 @@ export function NotificationRecordTable() {
                 </div>
               </TableCell>
               <TableCell>
+                <div className="font-medium">{record.app?.name ?? "-"}</div>
+                <div className="mt-1 font-mono text-muted-foreground text-[10px]">
+                  {record.app?.code}
+                </div>
+              </TableCell>
+              <TableCell>
                 <div className="font-medium">{record.template.name}</div>
                 <div className="mt-1 font-mono text-muted-foreground text-[10px]">
                   {record.template.key}
                 </div>
               </TableCell>
               <TableCell>{record.channel.name}</TableCell>
-              <TableCell className="font-mono text-xs">
-                {record.channel.providerKey}
-              </TableCell>
               <TableCell>
                 <Badge variant={STATUS_VARIANT[record.status] ?? "outline"}>
                   {record.status}

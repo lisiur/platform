@@ -29,6 +29,13 @@ export const notificationRecordChannelSchema = z
   })
   .openapi("NotificationRecordChannel");
 
+export const notificationRecordAppSchema = z
+  .object({
+    code: z.string().openapi({ example: "organization" }),
+    name: z.string().openapi({ example: "Organization" }),
+  })
+  .openapi("NotificationRecordApp");
+
 export const notificationRecordSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -43,6 +50,7 @@ export const notificationRecordSchema = z
     renderedTitle: z.string().nullable().optional(),
     renderedBody: z.string().openapi({ example: "Welcome, Alice!" }),
     status: z.string().openapi({ example: "sent" }),
+    app: notificationRecordAppSchema.nullable().optional(),
     attempts: z.number().openapi({ example: 0 }),
     nextAttemptAt: nullableDateSchema,
     sentAt: nullableDateSchema,
@@ -66,6 +74,7 @@ export const notificationRecordListItemSchema = z
     renderedSubject: z.string().nullable().optional(),
     renderedTitle: z.string().nullable().optional(),
     status: z.string().openapi({ example: "sent" }),
+    app: notificationRecordAppSchema.nullable().optional(),
     readAt: nullableDateSchema,
     archivedAt: nullableDateSchema,
     createdAt: z.date(),
