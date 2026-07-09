@@ -779,10 +779,10 @@ const builtInUsers = [
     appCode: ADMIN_APP_CODE,
   },
   {
-    id: "user",
-    name: "User",
-    email: "user@system.local",
-    password: "admin123",
+    id: "hapaul",
+    name: "Hapaul",
+    email: "hapaul@system.local",
+    password: "hapaul123",
     flags: [BUILTIN_USER_FLAG],
     roleCode: USER_ROLE_CODE,
     appCode: ADMIN_APP_CODE,
@@ -1271,6 +1271,67 @@ async function seed() {
         appId: appRecords[user.appCode],
       });
       console.log(`  ${user.email} → ${user.roleCode}`);
+    }
+  }
+  console.log();
+
+  // 15. Built-in Organization (Hapaul owned by hapaul user)
+  console.log("Built-in organizations:");
+  const hapaulUserId = builtInUserRecords.hapaul;
+  if (hapaulUserId) {
+    const existingOrg = await prisma.organization.findUnique({
+      where: { slug: "hapaul" },
+    });
+    if (!existingOrg) {
+      await prisma.$transaction(async (tx) => {
+        const org = await tx.organization.create({
+          data: {
+            name: "Hapaul",
+            slug: "hapaul",
+            createdAt: new Date(),
+            members: {
+              create: {
+                userId: hapaulUserId,
+                role: "owner",
+                createdAt: new Date(),
+              },
+            },
+          },
+        });
+        const ownerRole = await tx.role.findUnique({
+          where: {
+            appId_scopeType_scopeId_code: {
+              appId: ORGANIZATION_APP_CODE,
+              scopeType: "PLATFORM",
+              scopeId: "",
+              code: ORG_OWNER_ROLE_CODE,
+            },
+          },
+          select: { id: true },
+        });
+        if (ownerRole) {
+          await tx.roleAssignment.upsert({
+            where: {
+              userId_roleId_scopeType_scopeId: {
+                userId: hapaulUserId,
+                roleId: ownerRole.id,
+                scopeType: "ORGANIZATION",
+                scopeId: org.id,
+              },
+            },
+            update: {},
+            create: {
+              userId: hapaulUserId,
+              roleId: ownerRole.id,
+              scopeType: "ORGANIZATION",
+              scopeId: org.id,
+            },
+          });
+        }
+      });
+      console.log(`  Hapaul organization created for hapaul user`);
+    } else {
+      console.log(`  Hapaul organization already exists, skipping`);
     }
   }
   console.log();
