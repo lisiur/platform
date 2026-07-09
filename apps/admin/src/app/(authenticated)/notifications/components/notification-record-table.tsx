@@ -263,7 +263,16 @@ export function NotificationRecordTable() {
       >
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           <SheetHeader>
-            <SheetTitle>{t("records.detailTitle")}</SheetTitle>
+            <div className="flex items-center gap-2">
+              <SheetTitle>{t("records.detailTitle")}</SheetTitle>
+              {detailRecord && (
+                <Badge
+                  variant={STATUS_VARIANT[detailRecord.status] ?? "outline"}
+                >
+                  {detailRecord.status}
+                </Badge>
+              )}
+            </div>
             <SheetDescription>{detailRecord?.id}</SheetDescription>
           </SheetHeader>
           <SheetBody>
@@ -342,7 +351,13 @@ export function NotificationRecordTable() {
                     />
                     <DetailRow
                       label={t("records.detail.errorMessage")}
-                      value={detailRecord.errorMessage}
+                      value={
+                        detailRecord.errorMessage ? (
+                          <span className="text-destructive">
+                            {detailRecord.errorMessage}
+                          </span>
+                        ) : null
+                      }
                     />
                     <DetailRow
                       label={t("records.detail.nextAttemptAt")}
