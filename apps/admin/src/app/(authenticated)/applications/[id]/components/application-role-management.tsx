@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui";
-import { ListChecks, Pencil, Plus, ShieldUser, Trash2 } from "lucide-react";
+import { ListChecks, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -166,7 +166,7 @@ export function ApplicationRoleManagement({
                           title={t("protected")}
                           aria-label={t("protected")}
                         >
-                          <ShieldUser className="h-3 w-3" />
+                          <Shield className="h-3 w-3" />
                         </Badge>
                       )}
                     </div>

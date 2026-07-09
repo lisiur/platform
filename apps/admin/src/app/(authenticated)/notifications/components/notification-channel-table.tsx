@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, ShieldUser, Trash2 } from "lucide-react";
+import { Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -164,7 +164,7 @@ export function NotificationChannelTable() {
                           title={t("channels.protectedActionDisabled")}
                           aria-label={t("channels.protected")}
                         >
-                          <ShieldUser className="h-3 w-3" />
+                          <Shield className="h-3 w-3" />
                         </Badge>
                       )}
                     </span>

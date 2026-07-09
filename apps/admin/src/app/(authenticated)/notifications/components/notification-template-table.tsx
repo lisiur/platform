@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlaskConical, Pencil, Plus, ShieldUser, Trash2 } from "lucide-react";
+import { FlaskConical, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -166,7 +166,7 @@ export function NotificationTemplateTable() {
                           title={t("templates.protectedActionDisabled")}
                           aria-label={t("templates.protected")}
                         >
-                          <ShieldUser className="h-3 w-3" />
+                          <Shield className="h-3 w-3" />
                         </Badge>
                       )}
                     </span>
