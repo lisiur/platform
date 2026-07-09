@@ -28,6 +28,7 @@ import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
+import { getChannelIcon } from "./channel-icon";
 import {
   NotificationRecordFilter,
   type NotificationRecordFilters,
@@ -171,6 +172,7 @@ export function NotificationRecordTable() {
           <TableRow>
             <TableHead>{t("records.columns.recipient")}</TableHead>
             <TableHead>{t("records.columns.notification")}</TableHead>
+            <TableHead>{t("records.columns.template")}</TableHead>
             <TableHead>{t("fields.channel")}</TableHead>
             <TableHead>{t("fields.provider")}</TableHead>
             <TableHead>{t("fields.status")}</TableHead>
@@ -191,14 +193,17 @@ export function NotificationRecordTable() {
                 </div>
               </TableCell>
               <TableCell className="max-w-80">
-                <div className="truncate font-medium">
-                  {record.channel.providerKey === "smtp-email"
-                    ? (record.renderedSubject ?? "-")
-                    : (record.renderedTitle ?? "-")}
+                <div className="flex items-center gap-2">
+                  {getChannelIcon(record.channel.providerKey)}
+                  <span className="truncate font-medium">
+                    {record.channel.providerKey === "smtp-email"
+                      ? (record.renderedSubject ?? "-")
+                      : (record.renderedTitle ?? "-")}
+                  </span>
                 </div>
-                <div className="text-muted-foreground text-xs">
-                  {record.template.name}
-                </div>
+              </TableCell>
+              <TableCell>
+                <div className="font-medium">{record.template.name}</div>
                 <div className="mt-1 font-mono text-muted-foreground text-[10px]">
                   {record.template.key}
                 </div>

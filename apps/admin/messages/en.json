@@ -271,6 +271,7 @@
       "columns": {
         "recipient": "Recipient",
         "notification": "Notification",
+        "template": "Template",
         "readState": "Read"
       },
       "readState": {

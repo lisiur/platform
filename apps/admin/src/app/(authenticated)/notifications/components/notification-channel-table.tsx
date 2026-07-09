@@ -24,6 +24,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
+import { getChannelIcon } from "./channel-icon";
 import { NotificationChannelDialog } from "./notification-channel-dialog";
 import type { NotificationChannel, NotificationProvider } from "./types";
 
@@ -149,7 +150,12 @@ export function NotificationChannelTable() {
           <TableBody>
             {channels.map((channel) => (
               <TableRow key={channel.id}>
-                <TableCell>{channel.name}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-2">
+                    {getChannelIcon(channel.providerKey)}
+                    {channel.name}
+                  </span>
+                </TableCell>
                 <TableCell className="font-mono text-xs">
                   {channel.key}
                 </TableCell>

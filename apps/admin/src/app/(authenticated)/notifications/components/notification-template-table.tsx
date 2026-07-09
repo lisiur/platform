@@ -24,6 +24,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
+import { getChannelIcon } from "./channel-icon";
 import { NotificationTemplateDialog } from "./notification-template-dialog";
 import { NotificationTestDialog } from "./notification-test-dialog";
 import type { NotificationChannel, NotificationTemplate } from "./types";
@@ -151,7 +152,12 @@ export function NotificationTemplateTable() {
           <TableBody>
             {templates.map((template) => (
               <TableRow key={template.id}>
-                <TableCell>{template.name}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-2">
+                    {getChannelIcon(template.channel?.providerKey)}
+                    {template.name}
+                  </span>
+                </TableCell>
                 <TableCell className="font-mono text-xs">
                   {template.key}
                 </TableCell>
