@@ -20,7 +20,7 @@ openAPIApp.onError((err, c) => {
     return c.json({ code: err.status, message: err.message }, err.status);
   }
   console.error("Unhandled error:", err);
-  return c.json({ code: 500, message: "Internal Server Error" }, 500);
+  return c.json({ code: 500, message: err instanceof Error ? `${err.name}: ${err.message}\n${err.stack}` : String(err) }, 500);
 });
 
 openAPIApp.use("*", logger());

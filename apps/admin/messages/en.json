@@ -930,5 +930,36 @@
       "saving": "Saving...",
       "cancel": "Cancel"
     }
+  },
+  "Cache": {
+    "title": "Cache Manager",
+    "description": "Browse, inspect, and manage in-memory cache entries",
+    "clearAll": "Clear All",
+    "stats": {
+      "totalKeys": "{count, plural, =0 {No cached keys} one {# cached key} other {# cached keys}}",
+      "maxSize": "Max: {count}"
+    },
+    "tree": {
+      "searchPlaceholder": "Search keys...",
+      "clearNamespace": "Clear namespace",
+      "namespaceCleared": "Cleared namespace: {namespace}",
+      "loading": "Loading keys...",
+      "empty": "No cache keys found"
+    },
+    "editor": {
+      "key": "Key",
+      "namespace": "Namespace",
+      "selectKey": "Select a key from the tree to view its value",
+      "loading": "Loading entry...",
+      "notFound": "Entry not found",
+      "save": "Save",
+      "copy": "Copy",
+      "delete": "Delete",
+      "saveSuccess": "Cache entry updated",
+      "deleteSuccess": "Cache entry deleted",
+      "copied": "Copied to clipboard",
+      "unsavedChanges": "Unsaved changes",
+      "booleanValue": "Toggle value"
+    }
   }
 }

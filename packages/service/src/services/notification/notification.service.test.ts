@@ -41,8 +41,9 @@ vi.mock("./mailer", () => ({ sendSmtpEmail: vi.fn() }));
 
 import { prisma } from "#lib/db";
 import { jobRepository } from "#repositories/job.repository";
-import { eventBus, jobExecutor } from "#states";
 import {
+  eventBus,
+  jobExecutor,
   notificationChannelCache,
   notificationTemplateCache,
 } from "#states";

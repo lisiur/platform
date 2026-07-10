@@ -16,7 +16,7 @@ export class Cache {
         this.ns = options.ns;
       }
     } else {
-      this.lru = new LRUCache<string, object>({ maxSize: options.maxSize });
+      this.lru = new LRUCache<string, object>({ max: options.maxSize });
     }
   }
 
@@ -76,5 +76,30 @@ export class Cache {
     const value = await fetchFn();
     this.set(key, value);
     return value;
+  }
+
+  keys(): string[] {
+    const all = [...this.lru.keys()];
+    if (!this.ns) return all;
+    const prefix = `${this.ns}:`;
+    return all
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => k.slice(prefix.length));
+  }
+
+  get size(): number {
+    return this.keys().length;
+  }
+
+  get maxSize(): number {
+    return this.lru.max ?? 0;
+  }
+
+  getFullKey(key: string): string {
+    return this.getNSKey(key);
+  }
+
+  has(key: string): boolean {
+    return this.lru.has(this.getNSKey(key));
   }
 }

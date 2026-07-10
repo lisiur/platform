@@ -930,5 +930,36 @@
       "saving": "保存中...",
       "cancel": "取消"
     }
+  },
+  "Cache": {
+    "title": "缓存管理",
+    "description": "浏览、查看和管理内存缓存条目",
+    "clearAll": "全部清除",
+    "stats": {
+      "totalKeys": "{count, plural, =0 {无缓存键} other {# 个缓存键}}",
+      "maxSize": "上限：{count}"
+    },
+    "tree": {
+      "searchPlaceholder": "搜索键...",
+      "clearNamespace": "清除命名空间",
+      "namespaceCleared": "已清除命名空间：{namespace}",
+      "loading": "加载中...",
+      "empty": "未找到缓存键"
+    },
+    "editor": {
+      "key": "键",
+      "namespace": "命名空间",
+      "selectKey": "从左侧树中选择一个键以查看其值",
+      "loading": "加载中...",
+      "notFound": "未找到条目",
+      "save": "保存",
+      "copy": "复制",
+      "delete": "删除",
+      "saveSuccess": "缓存条目已更新",
+      "deleteSuccess": "缓存条目已删除",
+      "copied": "已复制到剪贴板",
+      "unsavedChanges": "有未保存的更改",
+      "booleanValue": "切换值"
+    }
   }
 }

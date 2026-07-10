@@ -2,6 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { applicationRoutes } from "./application";
 import { auditLogRoutes } from "./audit-log";
 import { authRoutes } from "./auth";
+import { cacheRoutes } from "./cache";
 import { eventsRoutes } from "./events";
 import { jobRoutes } from "./job";
 import { menuRoutes } from "./menu";
@@ -42,6 +43,7 @@ const routes = new OpenAPIHono()
   .route("/events", eventsRoutes)
   .route("/users", userRoutes)
   .route("/jobs", jobRoutes)
-  .route("/rate-limit", rateLimitRoutes);
+  .route("/rate-limit", rateLimitRoutes)
+  .route("/cache", cacheRoutes);
 
 export { routes };
