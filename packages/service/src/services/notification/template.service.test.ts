@@ -16,17 +16,16 @@ vi.mock("./channel.service", () => ({
   redactNotificationChannel: (channel: unknown) => channel,
 }));
 
-vi.mock("./cache", () => ({
-  notificationCache: {
-    getTemplates: vi.fn(),
-    setTemplates: vi.fn(),
-    invalidateTemplates: vi.fn(),
-    invalidateAll: vi.fn(),
+vi.mock("#states", () => ({
+  notificationTemplateCache: {
+    get: vi.fn(),
+    set: vi.fn(),
+    clear: vi.fn(),
   },
 }));
 
 import { prisma } from "#lib/db";
-import { notificationCache } from "./cache";
+import { notificationTemplateCache } from "#states";
 import { getActiveNotificationChannel } from "./channel.service";
 import {
   createNotificationTemplate,
@@ -224,11 +223,10 @@ describe("notification template headline validation", () => {
 });
 
 describe("findTemplateForDelivery", () => {
-  const mockCache = notificationCache as unknown as {
-    getTemplates: ReturnType<typeof vi.fn>;
-    setTemplates: ReturnType<typeof vi.fn>;
-    invalidateTemplates: ReturnType<typeof vi.fn>;
-    invalidateAll: ReturnType<typeof vi.fn>;
+  const mockCache = notificationTemplateCache as unknown as {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
   };
 
   function templateWith(overrides: Record<string, unknown> = {}) {
@@ -253,7 +251,7 @@ describe("findTemplateForDelivery", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    mockCache.getTemplates.mockReturnValue(null);
+    mockCache.get.mockReturnValue(null);
   });
 
   it("returns null when no template matches the key", async () => {
@@ -271,7 +269,7 @@ describe("findTemplateForDelivery", () => {
 
     expect(result?.template.key).toBe("welcome");
     expect(result?.disabledReason).toContain("disabled");
-    expect(mockCache.setTemplates).not.toHaveBeenCalled();
+    expect(mockCache.set).not.toHaveBeenCalled();
   });
 
   it("reports a disabled reason when the channel is disabled", async () => {
@@ -290,7 +288,7 @@ describe("findTemplateForDelivery", () => {
     const result = await findTemplateForDelivery("welcome-email");
 
     expect(result?.disabledReason).toContain("disabled");
-    expect(mockCache.setTemplates).not.toHaveBeenCalled();
+    expect(mockCache.set).not.toHaveBeenCalled();
   });
 
   it("caches an enabled template with no disabled reason", async () => {
@@ -299,14 +297,11 @@ describe("findTemplateForDelivery", () => {
     const result = await findTemplateForDelivery("notice");
 
     expect(result?.disabledReason).toBeNull();
-    expect(mockCache.setTemplates).toHaveBeenCalledWith(
-      "notice",
-      expect.anything(),
-    );
+    expect(mockCache.set).toHaveBeenCalledWith("notice", expect.anything());
   });
 
   it("serves a cached template without querying the database", async () => {
-    mockCache.getTemplates.mockReturnValue(templateWith());
+    mockCache.get.mockReturnValue(templateWith());
 
     const result = await findTemplateForDelivery("notice");
 

@@ -2,7 +2,7 @@ import { isBuiltinNotification } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import { notificationCache } from "./cache";
+import { notificationChannelCache, notificationTemplateCache } from "#states";
 import {
   getNotificationProvider,
   listNotificationProviders,
@@ -111,7 +111,7 @@ export async function createNotificationChannel(data: {
     },
   });
 
-  notificationCache.invalidateChannels();
+  notificationChannelCache.clear();
   return redactNotificationChannel(channel);
 }
 
@@ -194,8 +194,8 @@ export async function updateNotificationChannel(
     },
   });
 
-  notificationCache.invalidateChannels();
-  notificationCache.invalidateTemplates();
+  notificationChannelCache.clear();
+  notificationTemplateCache.clear();
   return redactNotificationChannel(channel);
 }
 
@@ -218,17 +218,16 @@ export async function deleteNotificationChannel(id: string) {
     data: { deletedAt: new Date(), enabled: false },
   });
 
-  notificationCache.invalidateChannels();
-  notificationCache.invalidateTemplates();
+  notificationChannelCache.clear();
+  notificationTemplateCache.clear();
   return { success: true as const };
 }
 
 export async function getActiveNotificationChannel(id: string) {
-  const cacheKey = `channel:${id}`;
   const cached =
-    notificationCache.getChannel<
+    notificationChannelCache.get<
       Awaited<ReturnType<typeof prisma.notificationChannel.findFirst>>
-    >(cacheKey);
+    >(id);
   if (cached) return cached;
 
   const channel = await prisma.notificationChannel.findFirst({
@@ -239,7 +238,7 @@ export async function getActiveNotificationChannel(id: string) {
     throw new HTTPException(404, { message: "Notification channel not found" });
   }
 
-  notificationCache.setChannel(cacheKey, channel);
+  notificationChannelCache.set(id, channel);
   return channel;
 }
 

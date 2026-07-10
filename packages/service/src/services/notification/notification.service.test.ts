@@ -16,6 +16,25 @@ vi.mock("#repositories/job.repository", () => ({
 vi.mock("#states", () => ({
   eventBus: { emit: vi.fn() },
   jobExecutor: { enqueue: vi.fn() },
+  globalCache: {
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+    getOrSet: vi.fn(),
+  },
+  notificationChannelCache: {
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+  },
+  notificationTemplateCache: {
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
+  },
 }));
 
 vi.mock("./mailer", () => ({ sendSmtpEmail: vi.fn() }));
@@ -23,7 +42,10 @@ vi.mock("./mailer", () => ({ sendSmtpEmail: vi.fn() }));
 import { prisma } from "#lib/db";
 import { jobRepository } from "#repositories/job.repository";
 import { eventBus, jobExecutor } from "#states";
-import { notificationCache } from "./cache";
+import {
+  notificationChannelCache,
+  notificationTemplateCache,
+} from "#states";
 import { sendSmtpEmail } from "./mailer";
 import {
   createNotificationsFromTemplate,
@@ -76,7 +98,8 @@ function enabledTemplate(overrides: Record<string, unknown> = {}) {
 describe("notification runtime service", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    notificationCache.invalidateAll();
+    notificationChannelCache.clear();
+    notificationTemplateCache.clear();
 
     mockPrisma.$transaction.mockImplementation(
       async (cb: (tx: unknown) => Promise<unknown>) =>

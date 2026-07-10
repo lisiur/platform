@@ -2,7 +2,7 @@ import { isBuiltinNotification } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import { notificationCache } from "./cache";
+import { notificationTemplateCache } from "#states";
 import {
   getActiveNotificationChannel,
   redactNotificationChannel,
@@ -141,7 +141,7 @@ export async function createNotificationTemplate(data: {
     include: templateWithChannel,
   });
 
-  notificationCache.invalidateTemplates();
+  notificationTemplateCache.clear();
   return redactTemplateChannel(template);
 }
 
@@ -223,7 +223,7 @@ export async function updateNotificationTemplate(
     include: templateWithChannel,
   });
 
-  notificationCache.invalidateTemplates();
+  notificationTemplateCache.clear();
   return redactTemplateChannel(template);
 }
 
@@ -248,7 +248,7 @@ export async function deleteNotificationTemplate(id: string) {
     data: { deletedAt: new Date(), enabled: false },
   });
 
-  notificationCache.invalidateTemplates();
+  notificationTemplateCache.clear();
   return { success: true as const };
 }
 
@@ -257,7 +257,7 @@ export async function findTemplateForDelivery(key: string): Promise<{
   disabledReason: string | null;
 } | null> {
   const cached =
-    notificationCache.getTemplates<NotificationTemplateWithChannel>(key);
+    notificationTemplateCache.get<NotificationTemplateWithChannel>(key);
   if (cached) return { template: cached, disabledReason: null };
 
   const template = await prisma.notificationTemplate.findFirst({
@@ -275,7 +275,7 @@ export async function findTemplateForDelivery(key: string): Promise<{
   }
 
   if (!disabledReason) {
-    notificationCache.setTemplates(key, template);
+    notificationTemplateCache.set(key, template);
   }
 
   return { template, disabledReason };
