@@ -204,9 +204,7 @@ export function CacheTree({
                   type="button"
                   key={k.fullKey}
                   className={`flex w-full items-center gap-1 rounded-md py-2 pr-2 cursor-pointer hover:bg-accent ${
-                    selectedKey === k.fullKey
-                      ? "bg-primary/10"
-                      : ""
+                    selectedKey === k.fullKey ? "bg-primary/10" : ""
                   }`}
                   style={{ paddingLeft: `${(depth + 1) * 12 + 20}px` }}
                   onClick={() => onSelectKey(k.fullKey)}

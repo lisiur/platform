@@ -99,7 +99,7 @@ function SidebarMenuNode({
             />
           </SidebarMenuButton>
           {isExpanded && (
-            <SidebarMenu className="ml-2">
+            <SidebarMenu className="ml-2 group-data-[collapsible=icon]:hidden">
               {node.children.map((child) => (
                 <SidebarMenuNode
                   key={child.id}
