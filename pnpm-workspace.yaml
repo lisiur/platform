@@ -1,6 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+catalog:
+  typescript: "^6.0.2"
+
 allowBuilds:
   '@parcel/watcher': true
   '@prisma/engines': true
