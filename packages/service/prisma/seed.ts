@@ -501,6 +501,17 @@ const applications = [
 
 // --- Admin App Menus ---
 const adminMenus = [
+  // Platform Group
+  {
+    id: "platform",
+    code: "platform",
+    name: "Platform",
+    icon: "ShieldCheck",
+    linkType: "GROUP" as const,
+    url: null,
+    sortOrder: 0,
+    permissions: [],
+  },
   {
     id: "applications",
     code: "applications",
@@ -508,7 +519,8 @@ const adminMenus = [
     icon: "Layers",
     linkType: "INTERNAL" as const,
     url: "/admin/applications",
-    sortOrder: 0,
+    parentId: "platform",
+    sortOrder: 1,
     permissions: ["application::list"],
   },
   {
@@ -518,7 +530,8 @@ const adminMenus = [
     icon: "Building2",
     linkType: "INTERNAL" as const,
     url: "/admin/organizations",
-    sortOrder: 1,
+    parentId: "platform",
+    sortOrder: 2,
     permissions: ["organization::list"],
   },
   {
@@ -528,7 +541,8 @@ const adminMenus = [
     icon: "User",
     linkType: "INTERNAL" as const,
     url: "/admin/users",
-    sortOrder: 2,
+    parentId: "platform",
+    sortOrder: 3,
     permissions: ["user::list"],
   },
   {
@@ -538,7 +552,8 @@ const adminMenus = [
     icon: "Users",
     linkType: "INTERNAL" as const,
     url: "/admin/roles",
-    sortOrder: 3,
+    parentId: "platform",
+    sortOrder: 4,
     permissions: ["role::list"],
   },
   {
@@ -548,8 +563,20 @@ const adminMenus = [
     icon: "Menu",
     linkType: "INTERNAL" as const,
     url: "/admin/menus",
-    sortOrder: 4,
+    parentId: "platform",
+    sortOrder: 5,
     permissions: ["menu::list"],
+  },
+  // System Group
+  {
+    id: "system",
+    code: "system",
+    name: "System",
+    icon: "Cog",
+    linkType: "GROUP" as const,
+    url: null,
+    sortOrder: 10,
+    permissions: [],
   },
   {
     id: "notifications",
@@ -558,28 +585,9 @@ const adminMenus = [
     icon: "Bell",
     linkType: "INTERNAL" as const,
     url: "/admin/notifications",
-    sortOrder: 5,
+    parentId: "system",
+    sortOrder: 11,
     permissions: ["notification::list"],
-  },
-  {
-    id: "logs",
-    code: "logs",
-    name: "Logs",
-    icon: "FileText",
-    linkType: "INTERNAL" as const,
-    url: "/admin/logs",
-    sortOrder: 6,
-    permissions: ["audit-log::list", "operation-log::list"],
-  },
-  {
-    id: "monitor",
-    code: "monitor",
-    name: "Monitor",
-    icon: "Gauge",
-    linkType: "INTERNAL" as const,
-    url: "/admin/monitor",
-    sortOrder: 7,
-    permissions: ["system-info::view"],
   },
   {
     id: "rate-limit",
@@ -588,7 +596,8 @@ const adminMenus = [
     icon: "Timer",
     linkType: "INTERNAL" as const,
     url: "/admin/rate-limit",
-    sortOrder: 8,
+    parentId: "system",
+    sortOrder: 12,
     permissions: ["rate-limit::manage"],
   },
   {
@@ -598,7 +607,8 @@ const adminMenus = [
     icon: "Database",
     linkType: "INTERNAL" as const,
     url: "/admin/cache",
-    sortOrder: 9,
+    parentId: "system",
+    sortOrder: 13,
     permissions: ["cache::view"],
   },
   {
@@ -608,18 +618,9 @@ const adminMenus = [
     icon: "Upload",
     linkType: "INTERNAL" as const,
     url: "/admin/uploads",
-    sortOrder: 10,
+    parentId: "system",
+    sortOrder: 14,
     permissions: ["upload::list"],
-  },
-  {
-    id: "jobs",
-    code: "jobs",
-    name: "Jobs",
-    icon: "CalendarCheck",
-    linkType: "INTERNAL" as const,
-    url: "/admin/jobs",
-    sortOrder: 11,
-    permissions: ["job::list"],
   },
   {
     id: "settings",
@@ -628,8 +629,53 @@ const adminMenus = [
     icon: "Settings",
     linkType: "INTERNAL" as const,
     url: "/admin/settings",
-    sortOrder: 12,
+    parentId: "system",
+    sortOrder: 15,
     permissions: ["system-config::list"],
+  },
+  // Infrastructure Group
+  {
+    id: "infrastructure",
+    code: "infrastructure",
+    name: "Infrastructure",
+    icon: "ServerCog",
+    linkType: "GROUP" as const,
+    url: null,
+    sortOrder: 20,
+    permissions: [],
+  },
+  {
+    id: "monitor",
+    code: "monitor",
+    name: "Monitor",
+    icon: "Gauge",
+    linkType: "INTERNAL" as const,
+    url: "/admin/monitor",
+    parentId: "infrastructure",
+    sortOrder: 21,
+    permissions: ["system-info::view"],
+  },
+  {
+    id: "logs",
+    code: "logs",
+    name: "Logs",
+    icon: "FileText",
+    linkType: "INTERNAL" as const,
+    url: "/admin/logs",
+    parentId: "infrastructure",
+    sortOrder: 22,
+    permissions: ["audit-log::list", "operation-log::list"],
+  },
+  {
+    id: "jobs",
+    code: "jobs",
+    name: "Jobs",
+    icon: "CalendarCheck",
+    linkType: "INTERNAL" as const,
+    url: "/admin/jobs",
+    parentId: "infrastructure",
+    sortOrder: 23,
+    permissions: ["job::list"],
   },
 ];
 
@@ -887,30 +933,33 @@ async function upsertMenu(
     id: string;
     code: string;
     name: string;
-    icon: string;
-    linkType: "INTERNAL";
-    url: string;
+    icon?: string | null;
+    linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
+    url?: string | null;
     sortOrder: number;
+    parentId?: string | null;
   },
 ) {
   return prisma.menu.upsert({
     where: { id: data.id },
     update: {
       name: data.name,
-      icon: data.icon,
+      icon: data.icon ?? null,
       linkType: data.linkType,
-      url: data.url,
+      url: data.url ?? null,
       sortOrder: data.sortOrder,
+      parentId: data.parentId ?? null,
     },
     create: {
       id: data.id,
       appId,
       code: data.code,
       name: data.name,
-      icon: data.icon,
+      icon: data.icon ?? null,
       linkType: data.linkType,
-      url: data.url,
+      url: data.url ?? null,
       sortOrder: data.sortOrder,
+      parentId: data.parentId ?? null,
     },
   });
 }

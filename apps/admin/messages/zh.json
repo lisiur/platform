@@ -333,7 +333,11 @@
     "menus": "菜单",
     "uploads": "文件",
     "jobs": "任务",
-    "rate-limit": "限流"
+    "rate-limit": "限流",
+    "platform": "平台",
+    "system": "系统",
+    "infrastructure": "基础设施",
+    "cache": "缓存"
   },
   "Organizations": {
     "title": "组织管理",

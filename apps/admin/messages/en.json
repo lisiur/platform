@@ -333,7 +333,11 @@
     "menus": "Menus",
     "uploads": "Uploads",
     "jobs": "Jobs",
-    "rate-limit": "Rate Limit"
+    "rate-limit": "Rate Limit",
+    "platform": "Platform",
+    "system": "System",
+    "infrastructure": "Infrastructure",
+    "cache": "Cache"
   },
   "Organizations": {
     "title": "Organization Management",
