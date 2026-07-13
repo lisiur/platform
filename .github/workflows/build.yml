@@ -1,0 +1,86 @@
+name: build
+
+# Builds the next101 monorepo on a native linux/amd64 runner and packages the
+# Next.js standalone artifacts into a tarball ready to deploy under PM2
+# (ecosystem.standalone.cjs). Native deps (argon2, Prisma engines, ...) install
+# for the target arch on the runner.
+#
+# Outputs:
+#   - Workflow artifact: next101-deploy-<sha>.tar.gz  (every run)
+#   - Release asset:       attached to v* tags
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '11.11.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed only to attach the tarball to a GitHub release on version tags.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        env:
+          # prisma generate never connects; the placeholder only satisfies
+          # prisma.config.ts parsing.
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+        run: pnpm db:generate
+
+      - name: Build (Next.js standalone)
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+          # Optional: bake a specific API origin into the client bundle.
+          # Set as a repository variable (Settings → Secrets and variables → Actions).
+          NEXT_PUBLIC_API_ORIGIN: ${{ vars.NEXT_PUBLIC_API_ORIGIN }}
+        run: pnpm build
+
+      - name: Assemble deploy artifacts
+        env:
+          SRC_ROOT: ${{ github.workspace }}
+          OUT: ${{ github.workspace }}/deploy
+        run: sh scripts/assemble.sh
+
+      - name: Pack tarball
+        id: pack
+        run: |
+          sha=$(git rev-parse --short HEAD)
+          tar -czf "next101-deploy-${sha}.tar.gz" -C deploy gateway admin organization
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next101-deploy-${{ steps.pack.outputs.sha }}
+          path: next101-deploy-*.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: next101-deploy-*.tar.gz
