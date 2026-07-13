@@ -14,9 +14,6 @@
 //   Deploy / migrate flow (one-time, then per-release):
 //     npm install                       # installs prisma + dotenv (engines)
 //     npm run migrate && npm run reload # migrate fails → reload skipped
-//
-//   Seeding is automatic: the service self-seeds on boot from app.ts
-//   (SEED_ON_BOOT=false to opt out).
 
 const fs = require("node:fs");
 
@@ -30,14 +27,6 @@ if (fs.existsSync(envPath)) {
       process.env[key] = (raw ?? "").replace(/^["']|["']$/g, "");
     }
   }
-}
-
-const seedFpPath = "./seed.fingerprint";
-const seedFingerprint = fs.existsSync(seedFpPath)
-  ? fs.readFileSync(seedFpPath, "utf8").trim()
-  : undefined;
-if (seedFingerprint) {
-  console.log(`[ecosystem] SEED_FINGERPRINT=${seedFingerprint.slice(0, 8)}…`);
 }
 
 const apps = [
@@ -58,7 +47,6 @@ module.exports = {
     env: {
       NODE_ENV: "production",
       PORT: String(port),
-      ...(seedFingerprint ? { SEED_FINGERPRINT: seedFingerprint } : {}),
     },
   })),
 };
