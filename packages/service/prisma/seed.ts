@@ -1192,9 +1192,7 @@ async function upsertRoleAssignment(params: {
 // 4. MAIN SEED (orchestrates desired state)
 // ============================================================
 
-export async function seed(
-  client: PrismaClient,
-) {
+export async function seed(client: PrismaClient) {
   prisma = client;
 
   // 1. System Configs

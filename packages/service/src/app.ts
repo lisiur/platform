@@ -3,6 +3,7 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+import { prisma } from "#lib/db";
 import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
 import { traceContext } from "#middleware/trace-context";
@@ -11,7 +12,27 @@ import {
   initRateLimitOverrides,
 } from "#services/rate-limit.service";
 import { jobExecutor } from "#states";
+import { seed } from "../prisma/seed";
 import { routes } from "./routes";
+
+(async () => {
+  const adminApp = await prisma.application.findUnique({
+    where: { code: "admin" },
+  });
+  if (!adminApp) {
+    console.log("Running seed...");
+    await seed(prisma);
+    console.log("Seed completed.");
+  }
+
+  jobExecutor.start();
+  await initRateLimitDefaults().catch((e) =>
+    console.error("Failed to load rate-limit defaults:", e),
+  );
+  await initRateLimitOverrides().catch((e) =>
+    console.error("Failed to load rate-limit overrides:", e),
+  );
+})().catch((e) => console.error("Startup failed:", e));
 
 const openAPIApp = new OpenAPIHono().basePath("/api");
 
@@ -94,13 +115,5 @@ openAPIApp.doc("/openapi.json", {
   },
   servers: [{ url: "/api" }],
 });
-
-jobExecutor.start();
-initRateLimitDefaults().catch((e) =>
-  console.error("Failed to load rate-limit defaults:", e),
-);
-initRateLimitOverrides().catch((e) =>
-  console.error("Failed to load rate-limit overrides:", e),
-);
 
 export { app };
