@@ -14,8 +14,3 @@ div[data-slot="sidebar-container"] {
   height: calc(100svh - var(--header-height));
 }
 
-[data-slot="sidebar-content"] [data-slot="sidebar-menu"] {
-  /* Match admin collapsed-sidebar spacing so icons stay visually centered. */
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}

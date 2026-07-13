@@ -53,7 +53,7 @@ function SidebarMenuNode({
   pathname: string;
 }) {
   const t = useTranslations("Sidebar");
-  const hasChildren = node.children.length > 0;
+  const _hasChildren = node.children.length > 0;
   const href = node.linkType === "GROUP" ? undefined : toAppHref(node.url);
   const isActive =
     href && node.linkType === "INTERNAL"
@@ -63,29 +63,13 @@ function SidebarMenuNode({
   const label = t.has(node.code) ? t(node.code) : node.name;
 
   if (node.linkType === "GROUP") {
-    if (!hasChildren) {
-      return (
-        <SidebarGroup>
-          <SidebarGroupLabel>{label}</SidebarGroupLabel>
-        </SidebarGroup>
-      );
-    }
-
     return (
-      <SidebarGroup>
+      <>
         <SidebarGroupLabel>{label}</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {node.children.map((child) => (
-              <SidebarMenuNode
-                key={child.id}
-                node={child}
-                pathname={pathname}
-              />
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        {node.children.map((child) => (
+          <SidebarMenuNode key={child.id} node={child} pathname={pathname} />
+        ))}
+      </>
     );
   }
 
@@ -139,23 +123,34 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarMenu className="flex flex-col gap-1 py-2">
-          {loading && !fetched ? (
-            <SidebarMenuItem className="space-y-2 px-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={skeletonIds.current[i]} className="h-8 w-full" />
-              ))}
-            </SidebarMenuItem>
-          ) : fetched && treeMenus.length === 0 ? (
-            <SidebarMenuItem className="px-2 py-4 text-center text-sm text-muted-foreground">
-              {t("noMenus")}
-            </SidebarMenuItem>
-          ) : (
-            treeMenus.map((node) => (
-              <SidebarMenuNode key={node.id} node={node} pathname={pathname} />
-            ))
-          )}
-        </SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu className="flex flex-col gap-1 py-2">
+              {loading && !fetched ? (
+                <SidebarMenuItem className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton
+                      key={skeletonIds.current[i]}
+                      className="h-8 w-full"
+                    />
+                  ))}
+                </SidebarMenuItem>
+              ) : fetched && treeMenus.length === 0 ? (
+                <SidebarMenuItem className="py-4 text-center text-sm text-muted-foreground">
+                  {t("noMenus")}
+                </SidebarMenuItem>
+              ) : (
+                treeMenus.map((node) => (
+                  <SidebarMenuNode
+                    key={node.id}
+                    node={node}
+                    pathname={pathname}
+                  />
+                ))
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

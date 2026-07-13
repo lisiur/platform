@@ -5,6 +5,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -224,30 +226,37 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarMenu className="flex flex-col gap-1 py-2">
-          {loading && !fetched ? (
-            <SidebarMenuItem className="space-y-2 px-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={skeletonIds.current[i]} className="h-8 w-full" />
-              ))}
-            </SidebarMenuItem>
-          ) : fetched && treeMenus.length === 0 ? (
-            <SidebarMenuItem className="px-2 py-4 text-center text-muted-foreground text-sm">
-              {t("noMenus")}
-            </SidebarMenuItem>
-          ) : (
-            treeMenus.map((node) => (
-              <SidebarMenuNode
-                key={node.id}
-                node={node}
-                level={0}
-                pathname={pathname}
-                expandedIds={expandedIds}
-                onToggle={handleToggle}
-              />
-            ))
-          )}
-        </SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu className="flex flex-col gap-1 py-2">
+              {loading && !fetched ? (
+                <SidebarMenuItem className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton
+                      key={skeletonIds.current[i]}
+                      className="h-8 w-full"
+                    />
+                  ))}
+                </SidebarMenuItem>
+              ) : fetched && treeMenus.length === 0 ? (
+                <SidebarMenuItem className="py-4 text-center text-muted-foreground text-sm">
+                  {t("noMenus")}
+                </SidebarMenuItem>
+              ) : (
+                treeMenus.map((node) => (
+                  <SidebarMenuNode
+                    key={node.id}
+                    node={node}
+                    level={0}
+                    pathname={pathname}
+                    expandedIds={expandedIds}
+                    onToggle={handleToggle}
+                  />
+                ))
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

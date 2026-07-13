@@ -15,10 +15,3 @@ div[data-slot="sidebar-container"] {
   height: calc(100svh - var(--header-height));
 }
 
-[data-slot="sidebar-content"] [data-slot="sidebar-menu"] {
-  /* Add horizontal padding to menu items so icons are visually centered
-     within the sidebar width, especially in collapsed icon mode.
-     Only applied inside SidebarContent — SidebarFooter already has its own p-2. */
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
