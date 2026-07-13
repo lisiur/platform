@@ -591,3 +591,10 @@ model RateLimitOverride {
   @@index([type])
   @@map("rate_limit_override")
 }
+
+model SeedMigration {
+  fingerprint String   @id
+  appliedAt   DateTime @default(now())
+
+  @@map("_seed_migrations")
+}

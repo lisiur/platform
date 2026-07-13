@@ -1192,8 +1192,29 @@ async function upsertRoleAssignment(params: {
 // 4. MAIN SEED (orchestrates desired state)
 // ============================================================
 
-export async function seed(client: PrismaClient) {
+export async function seed(
+  client: PrismaClient,
+  opts: { force?: boolean } = {},
+) {
   prisma = client;
+
+  const fingerprint = process.env.SEED_FINGERPRINT;
+
+  if (!fingerprint) {
+    console.warn(
+      "[seed] SEED_FINGERPRINT unset — cannot idempotency-check; seeding unconditionally.",
+    );
+  } else if (!opts.force) {
+    const applied = await prisma.seedMigration.findUnique({
+      where: { fingerprint },
+    });
+    if (applied) {
+      console.log(
+        `[seed] Fingerprint ${fingerprint.slice(0, 8)} already applied — skipping.`,
+      );
+      return;
+    }
+  }
 
   console.log("=== Seeding desired state ===\n");
 
@@ -1393,6 +1414,14 @@ export async function seed(client: PrismaClient) {
     }
   }
   console.log();
+
+  if (fingerprint) {
+    await prisma.seedMigration.upsert({
+      where: { fingerprint },
+      update: { appliedAt: new Date() },
+      create: { fingerprint },
+    });
+  }
 
   console.log("=== Seed complete ===");
 }

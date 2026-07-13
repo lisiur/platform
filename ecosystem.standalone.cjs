@@ -32,6 +32,14 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+const seedFpPath = "./seed.fingerprint";
+const seedFingerprint = fs.existsSync(seedFpPath)
+  ? fs.readFileSync(seedFpPath, "utf8").trim()
+  : undefined;
+if (seedFingerprint) {
+  console.log(`[ecosystem] SEED_FINGERPRINT=${seedFingerprint.slice(0, 8)}…`);
+}
+
 const apps = [
   { name: "gateway", port: 3000 },
   { name: "admin", port: 3001 },
@@ -50,6 +58,7 @@ module.exports = {
     env: {
       NODE_ENV: "production",
       PORT: String(port),
+      ...(seedFingerprint ? { SEED_FINGERPRINT: seedFingerprint } : {}),
     },
   })),
 };

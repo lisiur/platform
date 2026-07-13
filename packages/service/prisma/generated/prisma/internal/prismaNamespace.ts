@@ -410,7 +410,8 @@ export const ModelName = {
   NotificationChannel: 'NotificationChannel',
   NotificationTemplate: 'NotificationTemplate',
   Notification: 'Notification',
-  RateLimitOverride: 'RateLimitOverride'
+  RateLimitOverride: 'RateLimitOverride',
+  SeedMigration: 'SeedMigration'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "job" | "jobArchive" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "application" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride"
+    modelProps: "user" | "session" | "account" | "verification" | "job" | "jobArchive" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "application" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "seedMigration"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2428,6 +2429,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SeedMigration: {
+      payload: Prisma.$SeedMigrationPayload<ExtArgs>
+      fields: Prisma.SeedMigrationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SeedMigrationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SeedMigrationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        findFirst: {
+          args: Prisma.SeedMigrationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SeedMigrationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        findMany: {
+          args: Prisma.SeedMigrationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>[]
+        }
+        create: {
+          args: Prisma.SeedMigrationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        createMany: {
+          args: Prisma.SeedMigrationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SeedMigrationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>[]
+        }
+        delete: {
+          args: Prisma.SeedMigrationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        update: {
+          args: Prisma.SeedMigrationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        deleteMany: {
+          args: Prisma.SeedMigrationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SeedMigrationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SeedMigrationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>[]
+        }
+        upsert: {
+          args: Prisma.SeedMigrationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SeedMigrationPayload>
+        }
+        aggregate: {
+          args: Prisma.SeedMigrationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSeedMigration>
+        }
+        groupBy: {
+          args: Prisma.SeedMigrationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeedMigrationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SeedMigrationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SeedMigrationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2914,6 +2989,14 @@ export const RateLimitOverrideScalarFieldEnum = {
 export type RateLimitOverrideScalarFieldEnum = (typeof RateLimitOverrideScalarFieldEnum)[keyof typeof RateLimitOverrideScalarFieldEnum]
 
 
+export const SeedMigrationScalarFieldEnum = {
+  fingerprint: 'fingerprint',
+  appliedAt: 'appliedAt'
+} as const
+
+export type SeedMigrationScalarFieldEnum = (typeof SeedMigrationScalarFieldEnum)[keyof typeof SeedMigrationScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3237,6 +3320,7 @@ export type GlobalOmitConfig = {
   notificationTemplate?: Prisma.NotificationTemplateOmit
   notification?: Prisma.NotificationOmit
   rateLimitOverride?: Prisma.RateLimitOverrideOmit
+  seedMigration?: Prisma.SeedMigrationOmit
 }
 
 /* Types for Logging */

@@ -10,7 +10,7 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-seed(prisma)
+seed(prisma, { force: true })
   .catch((e) => {
     console.error("Seed failed:", e);
     process.exit(1);

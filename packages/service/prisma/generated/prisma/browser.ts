@@ -152,3 +152,8 @@ export type Notification = Prisma.NotificationModel
  * 
  */
 export type RateLimitOverride = Prisma.RateLimitOverrideModel
+/**
+ * Model SeedMigration
+ * 
+ */
+export type SeedMigration = Prisma.SeedMigrationModel
