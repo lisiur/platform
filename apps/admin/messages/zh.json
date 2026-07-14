@@ -272,7 +272,10 @@
         "readState": "阅读状态",
         "allReadStates": "全部阅读状态",
         "archivedState": "归档状态",
-        "clear": "清除"
+        "clear": "清除",
+        "filtersButton": "筛选",
+        "filtersTitle": "筛选条件",
+        "apply": "应用"
       },
       "columns": {
         "recipient": "接收人",
@@ -616,6 +619,9 @@
     "batchDelete": "批量删除",
     "cancel": "取消",
     "clearFilters": "清除筛选",
+    "filtersButton": "筛选",
+    "filtersTitle": "筛选条件",
+    "apply": "应用",
     "tabs": {
       "operation": "运行日志",
       "audit": "审计日志"
@@ -696,6 +702,9 @@
     "cancel": "取消",
     "close": "关闭",
     "clearFilters": "清除筛选",
+    "filtersButton": "筛选",
+    "filtersTitle": "筛选条件",
+    "apply": "应用",
     "columns": {
       "preview": "预览",
       "createdAt": "上传时间",

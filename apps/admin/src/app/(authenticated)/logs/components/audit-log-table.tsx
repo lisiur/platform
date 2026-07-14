@@ -163,6 +163,9 @@ export function AuditLogTable({
             allSeverities: t("filters.allSeverities"),
             allOutcomes: t("filters.allOutcomes"),
             clear: t("clearFilters"),
+            filtersButton: t("filtersButton"),
+            filtersTitle: t("filtersTitle"),
+            apply: t("apply"),
           }}
         />
       </div>

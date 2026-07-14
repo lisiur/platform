@@ -164,6 +164,9 @@ export function NotificationRecordTable() {
               archived: t("records.archivedState.archived"),
               allArchivedStates: t("records.archivedState.all"),
               clear: t("records.filters.clear"),
+              filtersButton: t("records.filters.filtersButton"),
+              filtersTitle: t("records.filters.filtersTitle"),
+              apply: t("records.filters.apply"),
             }}
           />
         }

@@ -176,6 +176,9 @@ export function UploadTable() {
             uploader: t("filters.uploader"),
             allVisibility: t("filters.allVisibility"),
             clear: t("clearFilters"),
+            filtersButton: t("filtersButton"),
+            filtersTitle: t("filtersTitle"),
+            apply: t("apply"),
           }}
         />
         {selectedIds.size > 0 && (

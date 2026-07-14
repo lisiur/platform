@@ -30,4 +30,5 @@ export * from "./components/tabs";
 export * from "./components/textarea";
 export * from "./components/tooltip";
 export * from "./components/tree-view";
+export * from "./hooks/use-is-mobile";
 export * from "./utils/cn";

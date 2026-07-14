@@ -272,7 +272,10 @@
         "readState": "Read state",
         "allReadStates": "All read states",
         "archivedState": "Archive state",
-        "clear": "Clear"
+        "clear": "Clear",
+        "filtersButton": "Filters",
+        "filtersTitle": "Filters",
+        "apply": "Apply"
       },
       "columns": {
         "recipient": "Recipient",
@@ -616,6 +619,9 @@
     "batchDelete": "Batch Delete",
     "cancel": "Cancel",
     "clearFilters": "Clear Filters",
+    "filtersButton": "Filters",
+    "filtersTitle": "Filters",
+    "apply": "Apply",
     "tabs": {
       "operation": "Operation Logs",
       "audit": "Audit Logs"
@@ -696,6 +702,9 @@
     "cancel": "Cancel",
     "close": "Close",
     "clearFilters": "Clear Filters",
+    "filtersButton": "Filters",
+    "filtersTitle": "Filters",
+    "apply": "Apply",
     "columns": {
       "preview": "Preview",
       "createdAt": "Uploaded At",

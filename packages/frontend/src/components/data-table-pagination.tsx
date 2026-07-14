@@ -9,6 +9,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  useIsMobile,
 } from "@repo/ui";
 import { useTranslations } from "next-intl";
 
@@ -181,17 +182,22 @@ export function DataTablePagination({
   onPageChange,
 }: DataTablePaginationProps) {
   const t = useTranslations("Frontend.dataTablePagination");
+  const isMobile = useIsMobile();
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   if (totalPages <= 1) return null;
 
-  const { items } = createPageItemsInfo(page, totalPages, pageSlots);
+  const { items } = createPageItemsInfo(
+    page,
+    totalPages,
+    isMobile ? 5 : pageSlots,
+  );
 
   return (
     <div className={cn("flex items-center justify-between py-4", className)}>
-      {showCount && (
+      {showCount && !isMobile && (
         <p className="text-sm text-muted-foreground whitespace-nowrap">
           {t("showing")} {start}-{end} {t("of")} {total}
         </p>

@@ -187,6 +187,9 @@ export function OperationLogTable({
             statusCode: t("filters.statusCode"),
             allLevels: t("filters.allLevels"),
             clear: t("clearFilters"),
+            filtersButton: t("filtersButton"),
+            filtersTitle: t("filtersTitle"),
+            apply: t("apply"),
           }}
         />
         {selectedIds.size > 0 && (
