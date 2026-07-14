@@ -310,7 +310,7 @@ export function MenuTree({
             {node.icon && <span className="shrink-0">{node.icon}</span>}
             <span className="truncate">{node.name}</span>
           </button>
-          <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex shrink-0 gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
             {node.menu.linkType === "GROUP" && (
               <DropdownMenu>
                 <DropdownMenuTrigger
