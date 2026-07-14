@@ -45,6 +45,12 @@ if [ -f "$SRC_ROOT/.env.production.example" ]; then
   cp "$SRC_ROOT/.env.production.example" "$OUT/"
 fi
 
+# Ship the nginx reverse-proxy template alongside the bundles so the tarball
+# is self-contained. The deployer merges its `location` blocks into their
+# existing server { } — it is not a drop-in nginx.conf (see the header
+# comments in scripts/nginx.conf).
+cp -a "$SRC_ROOT/scripts/nginx.conf" "$OUT/nginx_template.conf"
+
 # Ship Prisma schema + migrations + config so `npm run migrate` works on the
 # server after `npm install`. The prisma CLI is a devDependency (pinned to
 # match the generated client baked into each standalone server.js); the CLI
