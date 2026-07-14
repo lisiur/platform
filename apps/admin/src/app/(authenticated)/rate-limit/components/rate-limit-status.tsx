@@ -21,7 +21,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, TimerReset } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
@@ -44,6 +44,8 @@ interface StatusResponse {
   blockedCount: number;
   buckets: Bucket[];
 }
+
+const LIMITER_OPTIONS = ["all", "global", "auth"] as const;
 
 export function RateLimitStatus() {
   const t = useTranslations("RateLimit.status");
@@ -85,11 +87,6 @@ export function RateLimitStatus() {
     },
   });
 
-  const limiterOptions = useMemo(
-    () => ["all", ...(data?.limiters.map((l) => l.name) ?? [])],
-    [data],
-  );
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -98,7 +95,7 @@ export function RateLimitStatus() {
           onChange={(e) => setLimiterFilter(e.target.value)}
           className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
         >
-          {limiterOptions.map((name) => (
+          {LIMITER_OPTIONS.map((name) => (
             <option key={name} value={name}>
               {name === "all" ? t("allLimiters") : name}
             </option>
