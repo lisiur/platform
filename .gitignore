@@ -20,6 +20,10 @@ node_modules
 # production
 /build
 
+# deploy artifacts (output of scripts/assemble.sh)
+/deploy/
+*.tar.gz
+
 # misc
 .DS_Store
 *.pem
