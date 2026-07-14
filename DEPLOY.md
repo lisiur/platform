@@ -75,6 +75,38 @@ pm2 reload ecosystem.config.js            # zero-downtime restart
 `pm2 reload` does a zero-downtime rolling restart. Use `pm2 restart` instead
 only if a native module was recompiled.
 
+## Redeploy from scratch (wipe database only)
+
+Destructive: all database data is lost, but app files and `.env.production` are
+kept in place. Use this when you want a clean database — schema drift that
+`migrate deploy` can't resolve, corrupted state, etc. The gateway re-seeds
+itself on boot, so a fresh admin login is recreated automatically.
+
+```bash
+cd platform
+
+pm2 delete all                              # stop & remove running processes
+
+# Download the tarball for the release tag you're deploying and extract it over
+# the current dir — .env.production is preserved (the tarball ships only the
+# .example).
+wget -O deploy.tar.gz \
+  https://github.com/<org>/<repo>/releases/download/v2.0.0/platform-deploy-<sha>.tar.gz
+tar -xzf deploy.tar.gz && rm deploy.tar.gz
+
+npm install                                 # prisma CLI + dotenv (engines)
+
+npx prisma migrate reset --force            # drop all data, re-apply migrations
+
+pm2 start ecosystem.config.js
+pm2 save                                    # re-persist the process list
+```
+
+`pm2 startup` is NOT repeated — the boot hook installed during first-time setup
+persists. Only `pm2 save` is needed to record the new process list.
+
+For a non-destructive update (keep the data), follow "Update an existing deploy".
+
 ## nginx
 
 The tarball ships `nginx_template.conf` (source: [`scripts/nginx.conf`](scripts/nginx.conf)).
