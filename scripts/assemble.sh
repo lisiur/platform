@@ -40,7 +40,7 @@ done
 # Ship the PM2 config and the env template alongside the app bundles so the
 # tarball is self-contained. The real .env.production (with secrets) is never
 # baked in — it stays on the server; the deployer fills it from the template.
-cp "$SRC_ROOT/ecosystem.config.js" "$OUT/"
+cp "$SRC_ROOT/scripts/ecosystem.config.js" "$OUT/"
 if [ -f "$SRC_ROOT/.env.production.example" ]; then
   cp "$SRC_ROOT/.env.production.example" "$OUT/"
 fi
