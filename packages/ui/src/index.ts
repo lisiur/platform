@@ -11,6 +11,7 @@ export * from "./components/draggable-tree";
 export * from "./components/dropdown-menu";
 export * from "./components/field";
 export * from "./components/icon-picker";
+export * from "./components/image-cropper";
 export * from "./components/input";
 export * from "./components/input-group";
 export * from "./components/label";

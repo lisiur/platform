@@ -366,6 +366,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      react-image-crop:
+        specifier: ^11.1.2
+        version: 11.1.2(react@19.2.4)
       shadcn:
         specifier: ^4.7.0
         version: 4.13.0(typescript@6.0.3)
@@ -3220,6 +3223,11 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
+
+  react-image-crop@11.1.2:
+    resolution: {integrity: sha512-+0Pc2fxpwKL4u4oLmdKBw8XSwUceFbXbKEHvFOlsl/MGB1OVNic4uBlAPmEHGXYgoJIq+b63xHbc/aJMG0AVkA==}
+    peerDependencies:
+      react: '>=16.13.1'
 
   react-universal-interface@0.6.2:
     resolution: {integrity: sha512-dg8yXdcQmvgR13RIlZbTRQOoUrDciFVoSBZILwjE2LFISxZZ8loVJKAkuzswl5js8BHda79bIb2b84ehU8IjXw==}
@@ -6232,6 +6240,10 @@ snapshots:
       scheduler: 0.27.0
 
   react-hook-form@7.81.0(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+
+  react-image-crop@11.1.2(react@19.2.4):
     dependencies:
       react: 19.2.4
 

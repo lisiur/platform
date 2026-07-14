@@ -1,10 +1,21 @@
 "use client";
 
-import { Button } from "@repo/ui";
+import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  ImageCropper,
+  type ImageCropperRef,
+} from "@repo/ui";
 import { ImagePlus } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { appClient } from "@/lib/api";
 import { uploadPublicFile } from "@/lib/api/upload-file";
@@ -25,20 +36,10 @@ export function ApplicationLogoForm({
 }: ApplicationLogoFormProps) {
   const t = useTranslations("Applications");
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const objectUrlRef = useRef<string | null>(null);
-
-  const displayImage = preview ?? currentLogo;
-
-  useEffect(() => {
-    return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, []);
+  const cropperRef = useRef<ImageCropperRef>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,16 +50,19 @@ export function ApplicationLogoForm({
       return;
     }
 
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-    const url = URL.createObjectURL(file);
-    objectUrlRef.current = url;
-    setPreview(url);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropSrc(reader.result as string);
+      setCropOpen(true);
+    };
+    reader.readAsDataURL(file);
   }
 
-  async function handleUpload() {
-    const file = fileInputRef.current?.files?.[0];
+  async function handleCropConfirm() {
+    const file = await cropperRef.current?.getCroppedFile(
+      { width: 128, height: 128, type: "image/png" },
+      "logo.png",
+    );
     if (!file) return;
 
     setUploading(true);
@@ -69,33 +73,36 @@ export function ApplicationLogoForm({
         json: { logo },
       });
 
-      clearPreview();
+      setCropOpen(false);
       toast.success(t("updateSuccess"));
       onSuccess();
     } catch {
       // Error handled by client
     } finally {
       setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }
 
-  function clearPreview() {
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    setPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  function handleCropOpenChange(open: boolean) {
+    setCropOpen(open);
+    if (!open) {
+      setCropSrc(null);
+      cropperRef.current?.reset();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }
 
   return (
     <div className="flex items-center gap-6">
       <div className="h-20 w-20 shrink-0">
-        {displayImage ? (
+        {currentLogo ? (
           <Image
-            src={displayImage}
+            src={currentLogo}
             alt={t("logo")}
             width={80}
             height={80}
@@ -113,7 +120,7 @@ export function ApplicationLogoForm({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/gif,image/webp"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -127,30 +134,56 @@ export function ApplicationLogoForm({
           >
             {t("chooseFile")}
           </Button>
-          {preview && (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleUpload}
-                disabled={uploading}
-              >
-                {uploading ? t("uploading") : t("save")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearPreview}
-                disabled={uploading}
-              >
-                {t("cancel")}
-              </Button>
-            </>
-          )}
         </div>
         <p className="text-xs text-muted-foreground">{t("logoHint")}</p>
       </div>
+
+      <Dialog open={cropOpen} onOpenChange={handleCropOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("cropLogo")}</DialogTitle>
+            <DialogDescription>{t("cropLogoDescription")}</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            {cropSrc && (
+              <ImageCropper
+                ref={cropperRef}
+                src={cropSrc}
+                aspect={1}
+                keepSelection
+              />
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => cropperRef.current?.reset()}
+              disabled={uploading}
+            >
+              {t("resetCrop")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleCropOpenChange(false)}
+              disabled={uploading}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCropConfirm}
+              disabled={uploading}
+            >
+              {uploading ? t("uploading") : t("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
