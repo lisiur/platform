@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Assembles Next.js standalone deploy artifacts under $OUT and packs them into
-# a deployable tarball platform-deploy-<sha>.tar.gz. Run after `pnpm build`.
+# a deployable tarball platform-deploy-<version>.tar.gz. Run after `pnpm build`.
 # Used by .github/workflows/build.yml, but works standalone locally too.
 set -eu
 
@@ -91,10 +91,10 @@ EOF
 echo "==> Artifact tree (depth 3):"
 find "$OUT" -maxdepth 3 -type d | sort | head -80
 
-# Pack the staged dir into a deployable tarball named by the git short SHA,
-# written next to the deploy dir. Produces the same artifact locally that the
-# GitHub Actions workflow ships.
-sha=$(git -C "$SRC_ROOT" rev-parse --short HEAD 2>/dev/null || echo local)
-tarball="$SRC_ROOT/platform-deploy-${sha}.tar.gz"
+# Pack the staged dir into a deployable tarball named by the version (tag),
+# falling back to the git short SHA / 'local'. Produces the same artifact
+# locally that the GitHub Actions workflow ships.
+version="${VERSION:-$(git -C "$SRC_ROOT" rev-parse --short HEAD 2>/dev/null || echo local)}"
+tarball="$SRC_ROOT/platform-deploy-${version}.tar.gz"
 tar -czf "$tarball" -C "$OUT" .
 echo "==> Packed $tarball"

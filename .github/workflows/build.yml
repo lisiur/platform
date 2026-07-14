@@ -7,7 +7,7 @@ name: build
 # for the target arch on the runner.
 #
 # Outputs:
-#   - Workflow artifact: platform-deploy-<sha>.tar.gz  (every run)
+#   - Workflow artifact: platform-deploy-<version>.tar.gz  (every run)
 #   - Release asset:       attached to v* tags
 
 on:
@@ -62,14 +62,15 @@ jobs:
         env:
           SRC_ROOT: ${{ github.workspace }}
           OUT: ${{ github.workspace }}/deploy
+          VERSION: ${{ github.ref_name }}
         run: |
           sh scripts/assemble.sh
-          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: platform-deploy-${{ steps.assemble.outputs.sha }}
+          name: platform-deploy-${{ steps.assemble.outputs.version }}
           path: platform-deploy-*.tar.gz
           if-no-files-found: error
           retention-days: 30
