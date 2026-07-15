@@ -2,10 +2,6 @@
 
 ## High Priority
 
-- [ ] **Response envelope inconsistency** — `signInEmail` returns `{ data, error: null }`
-      (`packages/service/src/routes/auth/signInEmail.ts:39`) while `createOrganization`
-      returns the bare object (`routes/organization/createOrganization.ts:60`). Adopt one
-      contract across all routes.
 - [ ] **WeChat signup bypasses registration gate** — `signUpWithEmail` checks
       `getRegistrationEnabled()` (`services/auth.service.ts:150`) but `signInWithWechat`
       creates users unconditionally (`auth.service.ts:329`).
