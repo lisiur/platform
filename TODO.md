@@ -2,9 +2,6 @@
 
 ## High Priority
 
-- [ ] **WeChat signup bypasses registration gate** — `signUpWithEmail` checks
-      `getRegistrationEnabled()` (`services/auth.service.ts:150`) but `signInWithWechat`
-      creates users unconditionally (`auth.service.ts:329`).
 - [ ] **Boot-time side effects** — `seed()` + `jobExecutor.start()` run at module boot
       (`src/app.ts:18-35`). Anti-pattern for serverless/standalone Next.js; risks cold-start
       races. Move to deploy/migration step.

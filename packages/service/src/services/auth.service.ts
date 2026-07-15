@@ -326,6 +326,10 @@ export async function signInWithWechat(params: {
     return { user: existingAccount.user, session };
   }
 
+  if (!(await getRegistrationEnabled())) {
+    throw new HTTPException(403, { message: "Registration is disabled" });
+  }
+
   const user = await prisma.user.create({
     data: {
       name: `wx_${wechatResult.openid.slice(0, 8)}`,
