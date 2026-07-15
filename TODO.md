@@ -12,10 +12,6 @@
       (`lib/queues/job-worker.ts:22`). Multiple API instances will **duplicate-execute**.
       Add `SELECT … FOR UPDATE SKIP LOCKED` or a conditional `updateMany` on
       `status = 'PENDING'` before processing. See `ARCHITECTURE.md` §8.
-- [ ] **Rate limit trusts `X-Forwarded-For` blindly** — the subject IP is taken as the first
-      `x-forwarded-for` entry with no validation (`middleware/rate-limit.ts:17`). A client
-      not behind a normalising proxy can **spoof its IP** to evade limits. Validate the
-      header chain / trust only a configured proxy.
 
 ## Medium Priority
 
