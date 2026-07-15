@@ -460,6 +460,27 @@ CREATE TABLE "rate_limit_override" (
     CONSTRAINT "rate_limit_override_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "api_token" (
+    "id" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "tokenPrefix" TEXT NOT NULL,
+    "tokenSuffix" TEXT NOT NULL DEFAULT '',
+    "name" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "scopes" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "organizationId" TEXT,
+    "appId" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "expiresAt" TIMESTAMP(3),
+    "lastUsedAt" TIMESTAMP(3),
+    "lastUsedIp" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "api_token_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -703,6 +724,15 @@ CREATE UNIQUE INDEX "rate_limit_override_subject_key" ON "rate_limit_override"("
 -- CreateIndex
 CREATE INDEX "rate_limit_override_type_idx" ON "rate_limit_override"("type");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "api_token_tokenHash_key" ON "api_token"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "api_token_ownerId_idx" ON "api_token"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "api_token_organizationId_idx" ON "api_token"("organizationId");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -789,4 +819,13 @@ ALTER TABLE "notification" ADD CONSTRAINT "notification_recipientUserId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "notification" ADD CONSTRAINT "notification_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "api_token" ADD CONSTRAINT "api_token_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "api_token" ADD CONSTRAINT "api_token_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "api_token" ADD CONSTRAINT "api_token_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
