@@ -43,7 +43,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20.19.40",
+    "@types/node": "^24",
     "@types/nodemailer": "^6.4.0",
     "@types/pg": "^8.20.0",
     "dotenv": "^17.4.2",
