@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requireCurrentApp } from "#extractors/current-app";
 import { okResponseFn, successSchema } from "#lib/openapi";
 import { deleteSessionCookie, getSessionTokenFromContext } from "#lib/session";
 import { signOut as signOutService } from "#services/auth.service";
@@ -14,7 +15,12 @@ export const signOut = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
-    await signOutService(getSessionTokenFromContext(c), c.get("traceId"));
+    const app = await requireCurrentApp(c);
+    await signOutService(
+      getSessionTokenFromContext(c),
+      app.code,
+      c.get("traceId"),
+    );
     deleteSessionCookie(c);
     return c.json({ success: true }, 200);
   },

@@ -13,5 +13,5 @@ export const jobExecutor = new JobExecutor({
 });
 
 jobExecutor.subscribe(() => {
-  eventBus.broadcast({ type: "job.stats.updated", appId: "admin" });
+  eventBus.publish({ type: "job.stats.updated", target: "sse:admin:*:*" });
 });

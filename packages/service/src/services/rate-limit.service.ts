@@ -112,7 +112,7 @@ export async function reloadRateLimitDefaults() {
 
 export async function reloadRateLimitDefaultsAndBroadcast() {
   await reloadRateLimitDefaults();
-  eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+  eventBus.publish({ type: "rate_limit.updated", target: "sse:admin:*:*" });
 }
 
 export function getTrustSpecSync(): TrustSpec {
@@ -139,7 +139,7 @@ export async function upsertOverride(subject: string, data: OverrideInput) {
   });
 
   rateLimitRegistry.setOverride(toOverrideRecord(row));
-  eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+  eventBus.publish({ type: "rate_limit.updated", target: "sse:admin:*:*" });
   return serializeOverride(row);
 }
 
@@ -150,7 +150,7 @@ export async function deleteOverride(subject: string) {
     return false;
   }
   rateLimitRegistry.removeOverride(subject);
-  eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+  eventBus.publish({ type: "rate_limit.updated", target: "sse:admin:*:*" });
   return true;
 }
 
@@ -177,13 +177,13 @@ export function releaseRateLimit(opts: { limiter?: string; subject: string }) {
   if (opts.limiter) {
     const ok = rateLimitRegistry.releaseKey(opts.limiter, opts.subject);
     if (ok) {
-      eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+      eventBus.publish({ type: "rate_limit.updated", target: "sse:admin:*:*" });
     }
     return { released: ok ? [opts.limiter] : [], subject: opts.subject };
   }
   const released = rateLimitRegistry.releaseSubject(opts.subject);
   if (released.length > 0) {
-    eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+    eventBus.publish({ type: "rate_limit.updated", target: "sse:admin:*:*" });
   }
   return { released, subject: opts.subject };
 }

@@ -65,7 +65,10 @@ export function createRateLimiter(options: RateLimiterOptions) {
 
     if (count > policy.max) {
       if (count - 1 <= policy.max) {
-        eventBus.broadcast({ type: "rate_limit.updated", appId: "admin" });
+        eventBus.publish({
+          type: "rate_limit.updated",
+          target: "sse:admin:*:*",
+        });
       }
       c.header("Retry-After", String(resetSeconds));
       return c.json({ code: 429, message: "Too Many Requests" }, 429);

@@ -179,10 +179,16 @@ export async function signUpWithEmail(params: {
   return { user, session };
 }
 
-export async function signOut(token: string | null, traceId?: string) {
+export async function signOut(
+  token: string | null,
+  appCode: string,
+  traceId?: string,
+) {
   const session = await deleteSessionByToken(token);
   if (session) {
-    if (token) eventBus.disconnectByToken(token);
+    if (token) {
+      eventBus.close(`sse:${appCode}:${session.userId}:${token}`);
+    }
     await logAudit({
       traceId,
       userId: session.userId,

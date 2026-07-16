@@ -23,8 +23,10 @@
       `role.repository.ts` and `role-permission.service.ts`. Centralized.
 - [ ] **`member.role` String** (`schema.prisma:223`) separate from `RoleAssignment` RBAC —
       two sources of truth for a member's role.
-- [ ] **Rate-limit SSE broadcast hardcodes `appId: "admin"`** (`middleware/rate-limit.ts:57`)
-      — leaks cross-app, ignores request's actual app.
+- [x] **Rate-limit SSE broadcast hardcodes `appId: "admin"`** (`middleware/rate-limit.ts:57`)
+      — leaks cross-app, ignores request's actual app. Resolved by redesigning
+      `EventBus` into a generic target-based router (`sse:<appCode>:<userId>:<token>`
+      with `*` wildcards); `appId` removed from `ServerEvent` in favour of `target`.
 - [ ] **Client loses RPC type safety** — manual `as` casts (`use-current-organization.ts:24`)
       instead of inferred types; use `withApiFeedback` consistently.
 - [ ] **Job `retryJob` targets archived jobs** — `POST /api/jobs/:id/retry` looks up the live

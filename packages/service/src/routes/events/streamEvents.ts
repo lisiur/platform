@@ -10,7 +10,8 @@ export async function streamEventsHandler(c: Context) {
   const userId = getPrincipalUserId(principal);
   const token =
     principal.kind === "user" ? principal.session.token : principal.token.id;
-  const appFilter = c.req.query("app") ?? undefined;
+  const appCode = c.req.query("app") ?? "*";
+  const target = `sse:${appCode}:${userId}:${token}`;
 
   return streamSSE(
     c,
@@ -26,9 +27,7 @@ export async function streamEventsHandler(c: Context) {
       });
 
       const unsubscribe = eventBus.subscribe({
-        userId,
-        token,
-        appFilter,
+        targets: [target],
         onEvent: (event) => {
           if (stream.aborted || stream.closed) return;
           const id = String(nextId++);
@@ -40,7 +39,7 @@ export async function streamEventsHandler(c: Context) {
             }),
           );
         },
-        disconnect: () => stream.abort(),
+        onClose: () => stream.abort(),
       });
 
       stream.onAbort(unsubscribe);

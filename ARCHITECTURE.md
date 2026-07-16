@@ -222,7 +222,7 @@ which dispatches per provider:
 ## 7. Observability
 
 - **SSE push**: `states/job-executor/index.ts` subscribes to the executor and
-  broadcasts `job.stats.updated` (hardcoded `appId: "admin"`) on every lifecycle
+  publishes `job.stats.updated` (target `sse:admin:*:*`) on every lifecycle
   event. Admin clients receive it via `GET /api/events` (`routes/events/streamEvents.ts`).
 - **Stats endpoint**: `GET /api/jobs/stats` returns live runtime numbers
   (`queueSize`, `pending`, `concurrency`) plus DB aggregates grouped by status
@@ -558,10 +558,14 @@ All endpoints require the `rate-limit::manage` permission:
   evade limits. Ensure all ingress goes through a trusted proxy (or validate the
   header chain) before relying on IP-based limits.
 
-- **SSE broadcast hardcodes `appId: "admin"`.** The over-limit event
-  (`middleware/rate-limit.ts:57`) and the override/release events
-  (`rate-limit.service.ts`) broadcast to the `admin` app's SSE channel regardless
-  of the request's actual app, which can leak cross-app.
+- **SSE routing is target-based.** `EventBus` (`lib/event-bus.ts`) is a generic
+  topic router: subscribers register `targets` (`:`-joined, single-segment `*`
+  wildcard, symmetric), and `publish`/`close` match by `event.target`. Each SSE
+  connection subscribes under `sse:<appCode>:<userId>:<token>`; publishers fan
+  out with wildcards — `sse:admin:*:*` (admin dashboard, e.g. `rate_limit.updated`
+  / `job.stats.updated`), `sse:<appCode>:<userId>:*` (an in-app notification),
+  or `sse:*:<userId>:*` (an app-agnostic notification). `signOut` resolves the
+  app via `requireCurrentApp` and calls `close("sse:<appCode>:<userId>:<token>")`.
 
 - **Direct DB override writes need a restart.** Overrides loaded at boot are kept
   in sync only when mutated *through the API* (which calls `setOverride` live).

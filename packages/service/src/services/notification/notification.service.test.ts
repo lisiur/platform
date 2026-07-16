@@ -14,7 +14,7 @@ vi.mock("#repositories/job.repository", () => ({
 }));
 
 vi.mock("#states", () => ({
-  eventBus: { emit: vi.fn() },
+  eventBus: { publish: vi.fn() },
   jobExecutor: { enqueue: vi.fn() },
   globalCache: {
     get: vi.fn(),
@@ -70,7 +70,9 @@ const mockPrisma = prisma as unknown as {
 const mockJobRepository = jobRepository as unknown as {
   create: ReturnType<typeof vi.fn>;
 };
-const mockEventBus = eventBus as unknown as { emit: ReturnType<typeof vi.fn> };
+const mockEventBus = eventBus as unknown as {
+  publish: ReturnType<typeof vi.fn>;
+};
 const mockJobExecutor = jobExecutor as unknown as {
   enqueue: ReturnType<typeof vi.fn>;
 };
@@ -239,10 +241,10 @@ describe("notification runtime service", () => {
 
       const result = await deliverNotifications(["n1"]);
 
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        "u1",
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "notification.created",
+          target: "sse:*:u1:*",
           notificationId: "n1",
         }),
       );
@@ -341,7 +343,7 @@ describe("notification runtime service", () => {
 
       const result = await deliverNotifications(["n1"]);
 
-      expect(mockEventBus.emit).not.toHaveBeenCalled();
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
       expect(mockPrisma.notification.update).not.toHaveBeenCalled();
       expect(result.delivered).toBe(0);
       expect(result.skipped).toBe(1);

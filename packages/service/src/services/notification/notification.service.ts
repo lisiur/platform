@@ -151,7 +151,7 @@ export async function deliverNotifications(notificationIds: string[]) {
 
   const notifications = await prisma.notification.findMany({
     where: { id: { in: notificationIds } },
-    include: { channel: true },
+    include: { channel: true, app: true },
   });
 
   const now = new Date();
@@ -167,11 +167,15 @@ export async function deliverNotifications(notificationIds: string[]) {
     const providerKey = notification.channel.providerKey;
 
     if (providerKey === "in-app") {
-      eventBus.emit(notification.recipientUserId, {
+      const appCode = notification.app?.code ?? null;
+      const target = appCode
+        ? `sse:${appCode}:${notification.recipientUserId}:*`
+        : `sse:*:${notification.recipientUserId}:*`;
+      eventBus.publish({
         type: "notification.created",
+        target,
         notificationId: notification.id,
         userId: notification.recipientUserId,
-        appId: notification.appId ?? null,
         renderedTitle: notification.renderedTitle,
         renderedBody: notification.renderedBody,
       });

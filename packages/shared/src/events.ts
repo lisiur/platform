@@ -1,20 +1,20 @@
 export interface NotificationCreatedEvent {
   type: "notification.created";
+  target: string;
   notificationId: string;
   userId: string;
-  appId: string | null;
   renderedTitle: string | null;
   renderedBody: string;
 }
 
 export interface JobStatsUpdatedEvent {
   type: "job.stats.updated";
-  appId: "admin";
+  target: string;
 }
 
 export interface RateLimitUpdatedEvent {
   type: "rate_limit.updated";
-  appId: "admin";
+  target: string;
 }
 
 export type ServerEvent =
