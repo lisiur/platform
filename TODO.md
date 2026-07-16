@@ -15,7 +15,7 @@
 
 ## Medium Priority
 
-- [ ] **`app-client.ts` duplicated** between admin and organization apps — only `APP_CODE`
+- [x] **`app-client.ts` duplicated** between admin and organization apps — only `APP_CODE`
       + port differ. Move to `packages/frontend`.
 - [ ] **Redundant extractors** — `tryAppId`/`requireAppId` and `tryCurrentApp`/
       `requireCurrentApp` do the same `X-App-Code` lookup. Consolidate.

@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Frontend API Use
 
 - Use `appClient` from `@/lib/api`; never raw `fetch` for app API calls.
-- `src/lib/api/app-client.ts` uses `hc<AppType>('', { headers: { 'X-App-Code': 'admin' } })`; keep the app-code header unless the backend contract changes.
+- `src/lib/api/app-client.ts` builds the client via `createAppClient<typeof app>("admin")` (from `@repo/frontend`); keep the app-code header unless the backend contract changes.
 - Dynamic RPC segments use bracket notation such as `appClient.api.organizations[':id'].$put({ param: { id }, json })`; request bodies use `json`, not `body`, and check `res.ok` before `res.json()`.
 
 # Overlay Choice

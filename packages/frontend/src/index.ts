@@ -19,6 +19,7 @@ export { useEventStream } from "./hooks/use-event-stream";
 export { usePaginatedQuery } from "./hooks/use-paginated-query";
 export { useRegistrationEnabled } from "./hooks/use-registration-enabled";
 export { withApiFeedback } from "./lib/api-utils";
+export { createAppClient } from "./lib/create-app-client";
 export { formatDate, formatDateTime, formatTimeUntil } from "./lib/date";
 export { Loader, loading } from "./lib/loading";
 export { toast } from "./lib/toast";
