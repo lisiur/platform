@@ -2,6 +2,12 @@
 
 ## High Priority
 
+- [ ] **Job queue: no row-level claim / not multi-instance safe** — the scheduler re-queues
+      every due `PENDING` job and there is no atomic "claim" when moving to `PROCESSING`
+      (`lib/queues/job-worker.ts:22`). Multiple API instances will **duplicate-execute**.
+      Add `SELECT … FOR UPDATE SKIP LOCKED` or a conditional `updateMany` on
+      `status = 'PENDING'` before processing. See `ARCHITECTURE.md` §8.
+
 ## Medium Priority
 
 - [ ] **Client loses RPC type safety** — manual `as` casts (`use-current-organization.ts:24`)
@@ -35,18 +41,16 @@
       `get<T>()` blindly casts (`lib/cache.ts:40-48`). A wrong `T` at the read site compiles
       but returns garbage; keep read/write types aligned or add a typed wrapper.
 
+## No Dues
+
+- [ ] **No email verification** — `emailVerified` set false, never enforced; no verify
+      endpoint in `routes/auth/`. Enforce ownership beyond uniqueness.
+
 ## Not Planned
 
 - [ ] **Boot-time side effects** — `seed()` + `jobExecutor.start()` run at module boot
       (`src/app.ts:18-35`). Anti-pattern for serverless/standalone Next.js; risks cold-start
       races. Move to deploy/migration step.
-- [ ] **No email verification** — `emailVerified` set false, never enforced; no verify
-      endpoint in `routes/auth/`. Enforce ownership beyond uniqueness.
-- [ ] **Job queue: no row-level claim / not multi-instance safe** — the scheduler re-queues
-      every due `PENDING` job and there is no atomic "claim" when moving to `PROCESSING`
-      (`lib/queues/job-worker.ts:22`). Multiple API instances will **duplicate-execute**.
-      Add `SELECT … FOR UPDATE SKIP LOCKED` or a conditional `updateMany` on
-      `status = 'PENDING'` before processing. See `ARCHITECTURE.md` §8.
 - [ ] **Rate limit counters are in-memory / not multi-instance safe** — each instance counts
       independently, so behind a load balancer the effective per-subject limit is ~`N × max`
       (`lib/rate-limit-store.ts`). Same single-process constraint as Jobs/Cache; an external
