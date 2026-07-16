@@ -19,8 +19,8 @@
       + port differ. Move to `packages/frontend`.
 - [x] **Redundant extractors** — `tryAppId`/`requireAppId` and `tryCurrentApp`/
       `requireCurrentApp` do the same `X-App-Code` lookup. Consolidate.
-- [ ] **Duplicated scope logic** — `PLATFORM_SCOPE_ID` + `RoleScopeType` redefined in both
-      `role.repository.ts` and `role-permission.service.ts`. Centralize.
+- [x] **Duplicated scope logic** — `PLATFORM_SCOPE_ID` + `RoleScopeType` redefined in both
+      `role.repository.ts` and `role-permission.service.ts`. Centralized.
 - [ ] **`member.role` String** (`schema.prisma:223`) separate from `RoleAssignment` RBAC —
       two sources of truth for a member's role.
 - [ ] **Rate-limit SSE broadcast hardcodes `appId: "admin"`** (`middleware/rate-limit.ts:57`)

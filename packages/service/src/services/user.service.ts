@@ -3,11 +3,12 @@ import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import { hashPassword } from "#lib/password";
 import { assertUserIsNotBuiltin } from "#lib/protected-user";
+import { PLATFORM_SCOPE_ID, RoleScopeType } from "#lib/role-scope";
 import { createUser as createAuthUser } from "#services/auth.service";
 
 const userWithRolesInclude = {
   roleAssignments: {
-    where: { scopeType: "PLATFORM", scopeId: "" },
+    where: { scopeType: RoleScopeType.PLATFORM, scopeId: PLATFORM_SCOPE_ID },
     include: {
       role: {
         select: {
@@ -84,12 +85,17 @@ export async function createUser(data: {
             userId_roleId_scopeType_scopeId: {
               userId,
               roleId,
-              scopeType: "PLATFORM",
-              scopeId: "",
+              scopeType: RoleScopeType.PLATFORM,
+              scopeId: PLATFORM_SCOPE_ID,
             },
           },
           update: {},
-          create: { userId, roleId, scopeType: "PLATFORM", scopeId: "" },
+          create: {
+            userId,
+            roleId,
+            scopeType: RoleScopeType.PLATFORM,
+            scopeId: PLATFORM_SCOPE_ID,
+          },
         });
       }
     });
@@ -182,7 +188,11 @@ export async function updateUser(
   if (!builtin && roleIds !== undefined) {
     await prisma.$transaction(async (tx) => {
       await tx.roleAssignment.deleteMany({
-        where: { userId: id, scopeType: "PLATFORM", scopeId: "" },
+        where: {
+          userId: id,
+          scopeType: RoleScopeType.PLATFORM,
+          scopeId: PLATFORM_SCOPE_ID,
+        },
       });
 
       for (const roleId of roleIds) {
@@ -191,12 +201,17 @@ export async function updateUser(
             userId_roleId_scopeType_scopeId: {
               userId: id,
               roleId,
-              scopeType: "PLATFORM",
-              scopeId: "",
+              scopeType: RoleScopeType.PLATFORM,
+              scopeId: PLATFORM_SCOPE_ID,
             },
           },
           update: {},
-          create: { userId: id, roleId, scopeType: "PLATFORM", scopeId: "" },
+          create: {
+            userId: id,
+            roleId,
+            scopeType: RoleScopeType.PLATFORM,
+            scopeId: PLATFORM_SCOPE_ID,
+          },
         });
       }
     });

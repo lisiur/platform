@@ -1,7 +1,6 @@
 import { assertUserIsNotBuiltin } from "#lib/protected-user";
+import type { RoleScopeType } from "#lib/role-scope";
 import { userRoleRepository } from "#repositories/user-role.repository";
-
-type RoleScopeType = "PLATFORM" | "ORGANIZATION" | "APPLICATION";
 
 export async function assignUserRole(
   userId: string,

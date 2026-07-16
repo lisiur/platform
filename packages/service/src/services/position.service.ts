@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import { RoleScopeType } from "#lib/role-scope";
 import { getPermissionsForRole } from "#services/role-permission.service";
 
 const ORGANIZATION_APP_ID = "organization";
@@ -260,7 +261,7 @@ export async function setMemberPositions(
         where: {
           userId: member.userId,
           roleId,
-          scopeType: "ORGANIZATION",
+          scopeType: RoleScopeType.ORGANIZATION,
           scopeId: organizationId,
         },
       });
@@ -271,7 +272,7 @@ export async function setMemberPositions(
           userId_roleId_scopeType_scopeId: {
             userId: member.userId,
             roleId,
-            scopeType: "ORGANIZATION",
+            scopeType: RoleScopeType.ORGANIZATION,
             scopeId: organizationId,
           },
         },
@@ -279,7 +280,7 @@ export async function setMemberPositions(
         create: {
           userId: member.userId,
           roleId,
-          scopeType: "ORGANIZATION",
+          scopeType: RoleScopeType.ORGANIZATION,
           scopeId: organizationId,
         },
       });
@@ -389,7 +390,7 @@ export async function setPositionPermissions(
         where: {
           appId_scopeType_scopeId_code: {
             appId: ORGANIZATION_APP_ID,
-            scopeType: "ORGANIZATION",
+            scopeType: RoleScopeType.ORGANIZATION,
             scopeId: organizationId,
             code: roleCode,
           },
@@ -404,7 +405,7 @@ export async function setPositionPermissions(
       const role = await tx.role.create({
         data: {
           appId: ORGANIZATION_APP_ID,
-          scopeType: "ORGANIZATION",
+          scopeType: RoleScopeType.ORGANIZATION,
           scopeId: organizationId,
           name: position.name,
           code: roleCode,

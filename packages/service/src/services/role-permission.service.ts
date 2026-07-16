@@ -3,40 +3,40 @@ import type { Principal } from "#extractors/session";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import {
+  PLATFORM_SCOPE_ID,
+  RoleScopeType,
+  scopeIdOrDefault,
+} from "#lib/role-scope";
+import {
   fillAncestorGroups,
   menuPermissionsInclude,
   serializeMenu,
 } from "./menu.service";
-
-const PLATFORM_SCOPE_ID = "";
-
-type RoleScopeType = "PLATFORM" | "ORGANIZATION" | "APPLICATION";
 
 export type PermissionScope = {
   organizationId?: string | null;
   appId?: string | null;
 };
 
-function toScopeId(scopeId?: string | null) {
-  return scopeId ?? PLATFORM_SCOPE_ID;
-}
-
 function getRoleAssignmentScopeConditions(
   scope?: PermissionScope,
 ): Prisma.RoleAssignmentWhereInput[] {
   const conditions: Prisma.RoleAssignmentWhereInput[] = [
-    { scopeType: "PLATFORM", scopeId: PLATFORM_SCOPE_ID },
+    { scopeType: RoleScopeType.PLATFORM, scopeId: PLATFORM_SCOPE_ID },
   ];
 
   if (scope?.organizationId) {
     conditions.push({
-      scopeType: "ORGANIZATION",
+      scopeType: RoleScopeType.ORGANIZATION,
       scopeId: scope.organizationId,
     });
   }
 
   if (scope?.appId) {
-    conditions.push({ scopeType: "APPLICATION", scopeId: scope.appId });
+    conditions.push({
+      scopeType: RoleScopeType.APPLICATION,
+      scopeId: scope.appId,
+    });
   }
 
   return conditions;
@@ -87,10 +87,11 @@ export async function assignRole(params: {
     throw new HTTPException(404, { message: "Role not found" });
   }
 
-  const scopeId = toScopeId(params.scopeId);
+  const scopeId = scopeIdOrDefault(params.scopeId);
   if (
-    role.scopeType === "ORGANIZATION" &&
-    (params.scopeType !== "ORGANIZATION" || scopeId !== role.scopeId)
+    role.scopeType === RoleScopeType.ORGANIZATION &&
+    (params.scopeType !== RoleScopeType.ORGANIZATION ||
+      scopeId !== role.scopeId)
   ) {
     throw new HTTPException(400, {
       message:

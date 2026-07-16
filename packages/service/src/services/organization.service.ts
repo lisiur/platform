@@ -1,6 +1,7 @@
 import { ORG_OWNER_ROLE_CODE, ORGANIZATION_APP_CODE } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
+import { PLATFORM_SCOPE_ID, RoleScopeType } from "#lib/role-scope";
 
 export async function getOrganizationById(id: string) {
   const org = await prisma.organization.findUnique({ where: { id } });
@@ -65,8 +66,8 @@ export async function registerOrganizationForUser(
       where: {
         appId_scopeType_scopeId_code: {
           appId: ORGANIZATION_APP_CODE,
-          scopeType: "PLATFORM",
-          scopeId: "",
+          scopeType: RoleScopeType.PLATFORM,
+          scopeId: PLATFORM_SCOPE_ID,
           code: ORG_OWNER_ROLE_CODE,
         },
       },
@@ -79,7 +80,7 @@ export async function registerOrganizationForUser(
           userId_roleId_scopeType_scopeId: {
             userId,
             roleId: ownerRole.id,
-            scopeType: "ORGANIZATION",
+            scopeType: RoleScopeType.ORGANIZATION,
             scopeId: organization.id,
           },
         },
@@ -87,7 +88,7 @@ export async function registerOrganizationForUser(
         create: {
           userId,
           roleId: ownerRole.id,
-          scopeType: "ORGANIZATION",
+          scopeType: RoleScopeType.ORGANIZATION,
           scopeId: organization.id,
         },
       });

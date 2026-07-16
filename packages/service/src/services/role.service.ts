@@ -1,8 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
+import type { RoleScopeType } from "#lib/role-scope";
 import { roleRepository } from "#repositories/role.repository";
-
-type RoleScopeType = "PLATFORM" | "ORGANIZATION" | "APPLICATION";
 
 export async function getRoleById(id: string) {
   const role = await roleRepository.findById(id);

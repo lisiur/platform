@@ -1,18 +1,15 @@
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import {
+  PLATFORM_SCOPE_ID,
+  RoleScopeType,
+  scopeIdOrDefault,
+} from "#lib/role-scope";
+import {
   fillAncestorGroups,
   menuPermissionsInclude,
   serializeMenu,
 } from "#services/menu.service";
-
-type RoleScopeType = "PLATFORM" | "ORGANIZATION" | "APPLICATION";
-
-const PLATFORM_SCOPE_ID = "";
-
-function scopeIdOrDefault(scopeId?: string | null) {
-  return scopeId ?? PLATFORM_SCOPE_ID;
-}
 
 export const userRoleRepository = {
   findByUser(
@@ -39,7 +36,7 @@ export const userRoleRepository = {
         userId_roleId_scopeType_scopeId: {
           userId,
           roleId,
-          scopeType: "PLATFORM",
+          scopeType: RoleScopeType.PLATFORM,
           scopeId: PLATFORM_SCOPE_ID,
         },
       },
@@ -52,7 +49,7 @@ export const userRoleRepository = {
     scope?: { scopeType?: RoleScopeType; scopeId?: string | null },
   ) {
     const role = await prisma.role.findUnique({ where: { id: roleId } });
-    const scopeType = scope?.scopeType ?? "PLATFORM";
+    const scopeType = scope?.scopeType ?? RoleScopeType.PLATFORM;
     const scopeId = scopeIdOrDefault(scope?.scopeId);
 
     if (!role) {
@@ -60,8 +57,8 @@ export const userRoleRepository = {
     }
 
     if (
-      role.scopeType === "ORGANIZATION" &&
-      (scopeType !== "ORGANIZATION" || scopeId !== role.scopeId)
+      role.scopeType === RoleScopeType.ORGANIZATION &&
+      (scopeType !== RoleScopeType.ORGANIZATION || scopeId !== role.scopeId)
     ) {
       throw new HTTPException(400, {
         message:
@@ -91,7 +88,7 @@ export const userRoleRepository = {
     roleId: string,
     scope?: { scopeType?: RoleScopeType; scopeId?: string | null },
   ) {
-    const scopeType = scope?.scopeType ?? "PLATFORM";
+    const scopeType = scope?.scopeType ?? RoleScopeType.PLATFORM;
     const scopeId = scopeIdOrDefault(scope?.scopeId);
     return prisma.roleAssignment.deleteMany({
       where: { userId, roleId, scopeType, scopeId },
@@ -110,7 +107,11 @@ export const userRoleRepository = {
                     some: {
                       role: {
                         roleAssignments: {
-                          some: { userId, scopeType: "PLATFORM", scopeId: "" },
+                          some: {
+                            userId,
+                            scopeType: RoleScopeType.PLATFORM,
+                            scopeId: PLATFORM_SCOPE_ID,
+                          },
                         },
                       },
                     },

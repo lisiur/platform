@@ -1,12 +1,9 @@
 import { prisma } from "#lib/db";
-
-type RoleScopeType = "PLATFORM" | "ORGANIZATION" | "APPLICATION";
-
-const PLATFORM_SCOPE_ID = "";
-
-function scopeIdOrDefault(scopeId?: string | null) {
-  return scopeId ?? PLATFORM_SCOPE_ID;
-}
+import {
+  PLATFORM_SCOPE_ID,
+  RoleScopeType,
+  scopeIdOrDefault,
+} from "#lib/role-scope";
 
 export const roleRepository = {
   findByAppId(
@@ -16,14 +13,14 @@ export const roleRepository = {
     const scopedWhere = scope?.scopeType
       ? {
           OR: [
-            { scopeType: "PLATFORM" as const, scopeId: PLATFORM_SCOPE_ID },
+            { scopeType: RoleScopeType.PLATFORM, scopeId: PLATFORM_SCOPE_ID },
             {
               scopeType: scope.scopeType,
               scopeId: scopeIdOrDefault(scope.scopeId),
             },
           ],
         }
-      : { scopeType: "PLATFORM" as const, scopeId: PLATFORM_SCOPE_ID };
+      : { scopeType: RoleScopeType.PLATFORM, scopeId: PLATFORM_SCOPE_ID };
 
     return prisma.role.findMany({
       where: { appId, ...scopedWhere },
@@ -40,7 +37,7 @@ export const roleRepository = {
     code: string,
     scope?: { scopeType?: RoleScopeType; scopeId?: string | null },
   ) {
-    const scopeType = scope?.scopeType ?? "PLATFORM";
+    const scopeType = scope?.scopeType ?? RoleScopeType.PLATFORM;
     const scopeId = scopeIdOrDefault(scope?.scopeId);
     return prisma.role.findUnique({
       where: {
@@ -60,7 +57,7 @@ export const roleRepository = {
     return prisma.role.create({
       data: {
         ...data,
-        scopeType: data.scopeType ?? "PLATFORM",
+        scopeType: data.scopeType ?? RoleScopeType.PLATFORM,
         scopeId: scopeIdOrDefault(data.scopeId),
       },
     });

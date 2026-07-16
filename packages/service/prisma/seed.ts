@@ -34,6 +34,7 @@ import {
   USER_ROLE_CODE,
 } from "@repo/shared";
 import { hashPassword } from "../src/lib/password";
+import { PLATFORM_SCOPE_ID, RoleScopeType } from "../src/lib/role-scope";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 // ============================================================
@@ -996,16 +997,16 @@ async function upsertRole(
     where: {
       appId_scopeType_scopeId_code: {
         appId,
-        scopeType: "PLATFORM",
-        scopeId: "",
+        scopeType: RoleScopeType.PLATFORM,
+        scopeId: PLATFORM_SCOPE_ID,
         code: data.code,
       },
     },
     update: { name: data.name, flags: data.flags },
     create: {
       appId,
-      scopeType: "PLATFORM",
-      scopeId: "",
+      scopeType: RoleScopeType.PLATFORM,
+      scopeId: PLATFORM_SCOPE_ID,
       name: data.name,
       code: data.code,
       flags: data.flags,
@@ -1168,8 +1169,8 @@ async function upsertRoleAssignment(params: {
   const role = await prisma.role.findFirst({
     where: {
       appId: params.appId,
-      scopeType: "PLATFORM",
-      scopeId: "",
+      scopeType: RoleScopeType.PLATFORM,
+      scopeId: PLATFORM_SCOPE_ID,
       code: params.roleCode,
     },
   });
@@ -1184,16 +1185,16 @@ async function upsertRoleAssignment(params: {
       userId_roleId_scopeType_scopeId: {
         userId: params.userId,
         roleId: role.id,
-        scopeType: "PLATFORM",
-        scopeId: "",
+        scopeType: RoleScopeType.PLATFORM,
+        scopeId: PLATFORM_SCOPE_ID,
       },
     },
     update: {},
     create: {
       userId: params.userId,
       roleId: role.id,
-      scopeType: "PLATFORM",
-      scopeId: "",
+      scopeType: RoleScopeType.PLATFORM,
+      scopeId: PLATFORM_SCOPE_ID,
     },
   });
 }
@@ -1368,8 +1369,8 @@ export async function seed(client: PrismaClient) {
           where: {
             appId_scopeType_scopeId_code: {
               appId: ORGANIZATION_APP_CODE,
-              scopeType: "PLATFORM",
-              scopeId: "",
+              scopeType: RoleScopeType.PLATFORM,
+              scopeId: PLATFORM_SCOPE_ID,
               code: ORG_OWNER_ROLE_CODE,
             },
           },
@@ -1381,7 +1382,7 @@ export async function seed(client: PrismaClient) {
               userId_roleId_scopeType_scopeId: {
                 userId: hapaulUserId,
                 roleId: ownerRole.id,
-                scopeType: "ORGANIZATION",
+                scopeType: RoleScopeType.ORGANIZATION,
                 scopeId: org.id,
               },
             },
@@ -1389,7 +1390,7 @@ export async function seed(client: PrismaClient) {
             create: {
               userId: hapaulUserId,
               roleId: ownerRole.id,
-              scopeType: "ORGANIZATION",
+              scopeType: RoleScopeType.ORGANIZATION,
               scopeId: org.id,
             },
           });
