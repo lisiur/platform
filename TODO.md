@@ -2,11 +2,6 @@
 
 ## High Priority
 
-- [ ] **`Member` has no unique constraint on `(organizationId, userId)`** —
-      `schema.prisma:217-232` only indexes the FKs. A double-submitted invite
-      accept, retry, or `registerOrganizationForUser` called twice creates
-      duplicate memberships (double-counted in lists, owner role attached twice).
-      Add `@@unique([organizationId, userId])` and switch creates to `upsert`.
 - [ ] **Soft-deleted Application / NotificationChannel / NotificationTemplate
       can't be re-created by natural key** — each carries `deletedAt` but the
       unique index is plain: `@@unique([code])` (`schema.prisma:319`),

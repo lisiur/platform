@@ -53,12 +53,18 @@ export async function registerOrganizationForUser(
       data: {
         ...data,
         createdAt: new Date(),
-        members: {
-          create: {
-            userId,
-            createdAt: new Date(),
-          },
-        },
+      },
+    });
+
+    await tx.member.upsert({
+      where: {
+        organizationId_userId: { organizationId: organization.id, userId },
+      },
+      update: {},
+      create: {
+        organizationId: organization.id,
+        userId,
+        createdAt: new Date(),
       },
     });
 

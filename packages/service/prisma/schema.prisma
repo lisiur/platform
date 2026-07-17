@@ -226,6 +226,7 @@ model Member {
   memberPositions MemberPosition[]
   createdAt      DateTime
 
+  @@unique([organizationId, userId])
   @@index([organizationId])
   @@index([userId])
   @@map("member")

@@ -38,6 +38,9 @@ const tx = {
     findUnique: vi.fn(),
     create: vi.fn(),
   },
+  member: {
+    upsert: vi.fn(),
+  },
   role: {
     findUnique: vi.fn(),
   },
@@ -97,6 +100,7 @@ describe("POST /register - Register Organization", () => {
       metadata: null,
       createdAt: now,
     });
+    tx.member.upsert.mockResolvedValue({});
     tx.role.findUnique.mockResolvedValue({ id: "owner-role-id" });
     tx.roleAssignment.upsert.mockResolvedValue({});
 
@@ -113,12 +117,20 @@ describe("POST /register - Register Organization", () => {
         name: "Acme Corp",
         slug: "acme-corp",
         createdAt: expect.any(Date),
-        members: {
-          create: {
-            userId: "user1",
-            createdAt: expect.any(Date),
-          },
+      },
+    });
+    expect(tx.member.upsert).toHaveBeenCalledWith({
+      where: {
+        organizationId_userId: {
+          organizationId: "org1",
+          userId: "user1",
         },
+      },
+      update: {},
+      create: {
+        organizationId: "org1",
+        userId: "user1",
+        createdAt: expect.any(Date),
       },
     });
     expect(tx.role.findUnique).toHaveBeenCalledWith({

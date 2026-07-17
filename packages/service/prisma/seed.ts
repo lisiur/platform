@@ -1356,12 +1356,20 @@ export async function seed(client: PrismaClient) {
             name: "Hapaul",
             slug: "hapaul",
             createdAt: new Date(),
-            members: {
-              create: {
-                userId: hapaulUserId,
-                createdAt: new Date(),
-              },
+          },
+        });
+        await tx.member.upsert({
+          where: {
+            organizationId_userId: {
+              organizationId: org.id,
+              userId: hapaulUserId,
             },
+          },
+          update: {},
+          create: {
+            organizationId: org.id,
+            userId: hapaulUserId,
+            createdAt: new Date(),
           },
         });
         const ownerRole = await tx.role.findUnique({
