@@ -9,19 +9,6 @@
       (`routes/upload/getFile.ts:57,66`). An `<svg onload=...>` /
       `<svg><script>` payload executes in the API origin. Drop SVG from the
       allow-list, force `attachment`, or sanitize.
-- [ ] **IDOR: `replaceUpload` / `deleteUploads` check permission but not
-      ownership** — both act on caller-supplied IDs with no `uploaderId` filter
-      (`routes/upload/replaceUpload.ts:36-54`,
-      `routes/upload/deleteUploads.ts:37-42`; service `upload.service.ts:320-411`).
-      Contrast `signFile` which enforces `uploaderId === userId`
-      (`upload.service.ts:248-251`). A holder of `upload::replace` can silently
-      swap any user's file content. Scope the `where` to `uploaderId` for
-      non-superusers.
-- [ ] **Account enumeration via sign-in timing** — when the user is missing,
-      the `||` short-circuits and `verifyPassword` is skipped
-      (`services/auth.service.ts:80-86`); argon2 makes the existing-user branch
-      tens of ms slower, exposing whether an account exists. Run a dummy
-      `verifyPassword` on miss to equalize timing.
 - [ ] **`deleteOrganization` orphans org-scoped Roles and RoleAssignments** —
       `organization.delete` cascades to Member/Department/Position but there is
       no relation to the polymorphic `Role`/`RoleAssignment` (scope-modeled), so
@@ -300,6 +287,19 @@
       rolling or blue-green deploys with overlap, Docker `replicas > 1`, or Next.js
       standalone with multiple workers — none of which are on the roadmap. Revisit
       when multi-instance deployment is actually planned.
+- [ ] **Account enumeration via sign-in timing** — when the user is missing,
+      the `||` short-circuits and `verifyPassword` is skipped
+      (`services/auth.service.ts:80-86`); argon2 makes the existing-user branch
+      tens of ms slower, exposing whether an account exists. Run a dummy
+      `verifyPassword` on miss to equalize timing.
+- [ ] **IDOR: `replaceUpload` / `deleteUploads` check permission but not
+      ownership** — both act on caller-supplied IDs with no `uploaderId` filter
+      (`routes/upload/replaceUpload.ts:36-54`,
+      `routes/upload/deleteUploads.ts:37-42`; service `upload.service.ts:320-411`).
+      Contrast `signFile` which enforces `uploaderId === userId`
+      (`upload.service.ts:248-251`). A holder of `upload::replace` can silently
+      swap any user's file content. Scope the `where` to `uploaderId` for
+      non-superusers.
 
 ## Not Planned
 

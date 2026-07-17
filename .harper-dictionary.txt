@@ -11,9 +11,11 @@ OpenAPI
 OperationLog
 Prisma
 RoleAssignment
+RoleAssignments
 RolePermission
 SystemConfig
 Vitest
+XSS
 Zod
 args
 beforeSignOut
