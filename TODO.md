@@ -2,13 +2,6 @@
 
 ## High Priority
 
-- [ ] **Built-in roles can be deleted or renamed (global lockout)** —
-      `role.service.ts:38-75` has no `isBuiltinRole` guard; the helper exists in
-      `@repo/shared` but is used only in the frontend. Deleting `admin`/`owner`
-      runs `roleAssignment.deleteMany({ roleId })` then `role.delete`, wiping
-      every assignment of that role across every org/user (`role.service.ts:70-73`);
-      renaming `owner` breaks `getOrgOwnerRoleId`/`registerOrganizationForUser`.
-      Reject mutations when `isBuiltinRole(role.flags)`.
 - [ ] **Stored XSS via SVG upload served inline** — `image/svg+xml` is in the
       allow-list (`lib/mime.ts:9`) with a magic-byte check that only matches the
       `<?xml`/`<svg` prefix (`lib/mime.ts:38-41`); `getFile` serves it with

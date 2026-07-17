@@ -1,3 +1,4 @@
+import { isBuiltinRole } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import type { RoleScopeType } from "#lib/role-scope";
@@ -47,6 +48,14 @@ export async function updateRole(
   if (!role) {
     throw new HTTPException(404, { message: "Role not found" });
   }
+  if (
+    isBuiltinRole(role.flags) &&
+    (data.code !== undefined || data.flags !== undefined)
+  ) {
+    throw new HTTPException(400, {
+      message: "Cannot change the code or flags of a built-in role",
+    });
+  }
   if (data.code && data.code !== role.code) {
     const codeTaken = await roleRepository.findByAppAndCode(
       role.appId,
@@ -66,6 +75,9 @@ export async function deleteRole(id: string) {
   const role = await roleRepository.findById(id);
   if (!role) {
     throw new HTTPException(404, { message: "Role not found" });
+  }
+  if (isBuiltinRole(role.flags)) {
+    throw new HTTPException(400, { message: "Cannot delete a built-in role" });
   }
   await prisma.$transaction([
     prisma.roleAssignment.deleteMany({ where: { roleId: id } }),
