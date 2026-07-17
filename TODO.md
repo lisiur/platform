@@ -2,12 +2,6 @@
 
 ## High Priority
 
-- [ ] **Banned users keep access via existing session cookies (up to 7 days)** —
-      `getSessionByToken` checks `revokedAt`/`expiresAt` but never `user.banned`
-      (`lib/session.ts:100-130`). Ban is enforced only at sign-in
-      (`auth.service.ts:24-28`) and on API-token requests
-      (`lib/api-token.ts:33-36`), not on the session path. Re-check
-      `banned`/`banExpires` in `getSessionByToken` (and revoke on ban).
 - [ ] **`removeMember` does not revoke org-scoped roles — kicked members keep
       access** — only runs `member.delete` (`services/member.service.ts:59-76`);
       `RoleAssignment` is untouched. Because org-scoped `assertAccess` resolves

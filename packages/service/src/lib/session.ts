@@ -97,6 +97,16 @@ export function getSessionTokenFromHeaders(headers: Headers) {
   return null;
 }
 
+export function isUserBanned(user: {
+  banned?: boolean | null;
+  banExpires?: Date | null;
+}): boolean {
+  return (
+    !!user.banned &&
+    (!user.banExpires || user.banExpires.getTime() > Date.now())
+  );
+}
+
 export async function getSessionByToken(token: string | null) {
   if (!token) return null;
 
@@ -110,6 +120,13 @@ export async function getSessionByToken(token: string | null) {
   if (result.revokedAt) return null;
 
   if (result.expiresAt.getTime() <= Date.now()) {
+    await prisma.session
+      .update({ where: { id: result.id }, data: { revokedAt: new Date() } })
+      .catch(() => null);
+    return null;
+  }
+
+  if (isUserBanned(result.user)) {
     await prisma.session
       .update({ where: { id: result.id }, data: { revokedAt: new Date() } })
       .catch(() => null);
