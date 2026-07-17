@@ -58,17 +58,22 @@ export const getFile = defineOpenAPIRoute({
     ];
     const isInlineImage = inlineImageTypes.includes(mimeType);
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": mimeType,
-        "Content-Length": String(size),
-        "X-Content-Type-Options": "nosniff",
-        "Content-Disposition": isInlineImage ? "inline" : "attachment",
-        "Cache-Control":
-          visibility === "public" ? "no-cache" : "private, no-store",
-        ETag: etag,
-        "Referrer-Policy": "no-referrer",
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": mimeType,
+      "Content-Length": String(size),
+      "X-Content-Type-Options": "nosniff",
+      "Content-Disposition": isInlineImage ? "inline" : "attachment",
+      "Cache-Control":
+        visibility === "public" ? "no-cache" : "private, no-store",
+      ETag: etag,
+      "Referrer-Policy": "no-referrer",
+    };
+
+    if (mimeType === "image/svg+xml") {
+      headers["Content-Security-Policy"] =
+        "default-src 'none'; base-uri 'none'";
+    }
+
+    return new Response(stream, { headers });
   },
 });

@@ -2,13 +2,6 @@
 
 ## High Priority
 
-- [ ] **Stored XSS via SVG upload served inline** — `image/svg+xml` is in the
-      allow-list (`lib/mime.ts:9`) with a magic-byte check that only matches the
-      `<?xml`/`<svg` prefix (`lib/mime.ts:38-41`); `getFile` serves it with
-      `Content-Disposition: inline` for image types
-      (`routes/upload/getFile.ts:57,66`). An `<svg onload=...>` /
-      `<svg><script>` payload executes in the API origin. Drop SVG from the
-      allow-list, force `attachment`, or sanitize.
 - [ ] **`deleteOrganization` orphans org-scoped Roles and RoleAssignments** —
       `organization.delete` cascades to Member/Department/Position but there is
       no relation to the polymorphic `Role`/`RoleAssignment` (scope-modeled), so
