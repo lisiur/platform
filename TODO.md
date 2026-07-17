@@ -2,13 +2,6 @@
 
 ## High Priority
 
-- [ ] **Sign-in response leaks password hashes and OAuth tokens** —
-      `signInWithEmail` fetches the user with `include: { accounts: true }` and
-      returns `{ user, session }` unchanged (`services/auth.service.ts:74,99`);
-      the route serializes it verbatim (`routes/auth/signInEmail.ts:39`). Every
-      successful login sends `account.password` (argon2 hash) and, for OAuth
-      accounts, plaintext `accessToken`/`refreshToken`/`idToken` to the client.
-      `select` only public fields (or strip `accounts`) before returning.
 - [ ] **`changePassword` does not invalidate other sessions or rotate the
       current token** — only updates the hash (`services/auth.service.ts:231-264`).
       A stolen session cookie keeps working after the victim changes their

@@ -96,7 +96,10 @@ export async function signInWithEmail(params: {
 
   await logAuthLogin(session, params.traceId);
 
-  return { user, session };
+  // `accounts` holds credential password hashes and OAuth tokens; strip it so
+  // secrets are never serialized into the sign-in response.
+  const { accounts: _accounts, ...publicUser } = user;
+  return { user: publicUser, session };
 }
 
 async function enqueueWelcomeNotifications(
