@@ -2,11 +2,6 @@
 
 ## High Priority
 
-- [ ] **Job queue: no row-level claim / not multi-instance safe** — the scheduler re-queues
-      every due `PENDING` job and there is no atomic "claim" when moving to `PROCESSING`
-      (`lib/queues/job-worker.ts:22`). Multiple API instances will **duplicate-execute**.
-      Add `SELECT … FOR UPDATE SKIP LOCKED` or a conditional `updateMany` on
-      `status = 'PENDING'` before processing. See `ARCHITECTURE.md` §8.
 - [ ] **Error handler leaks stack traces to clients** — `openAPIApp.onError`
       returns `err.stack` in the 500 JSON response body (`src/app.ts:44-53`),
       including in production. This exposes internal file paths, package names,
@@ -337,6 +332,17 @@
 
 - [ ] **No email verification** — `emailVerified` set false, never enforced; no verify
       endpoint in `routes/auth/`. Enforce ownership beyond uniqueness.
+- [ ] **Job queue: no row-level claim / not multi-instance safe** — the scheduler re-queues
+      every due `PENDING` job and there is no atomic "claim" when moving to `PROCESSING`
+      (`lib/queues/job-worker.ts:22`). Multiple API instances will **duplicate-execute**.
+      Add `SELECT … FOR UPDATE SKIP LOCKED` or a conditional `updateMany` on
+      `status = 'PENDING'` before processing. See `ARCHITECTURE.md` §8.
+      **Deferred:** the service runs in-process inside Next.js as a single long-lived
+      process by design (ARCHITECTURE.md §8), so no duplicate execution occurs today.
+      This only bites if the API is horizontally scaled — PM2/Node cluster mode,
+      rolling or blue-green deploys with overlap, Docker `replicas > 1`, or Next.js
+      standalone with multiple workers — none of which are on the roadmap. Revisit
+      when multi-instance deployment is actually planned.
 
 ## Not Planned
 
