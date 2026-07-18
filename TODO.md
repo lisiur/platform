@@ -2,10 +2,6 @@
 
 ## Medium Priority
 
-- [ ] **Cache invalidation is coarse (whole-namespace)** — channel/template mutations call
-      `notificationChannelCache.clear()` / `notificationTemplateCache.clear()`, flushing
-      *all* entries instead of the affected key (`services/notification/channel.service.ts:221`).
-      Switch to targeted `delete(key)` to cut redundant DB refetches.
 - [ ] **Sign-up TOCTOU race → unhandled P2002 → 500** — `signUpWithEmail` does
       `findUnique` then `createUser` without catching the unique violation
       (`services/auth.service.ts:156-167`); concurrent same-email signups both
@@ -261,6 +257,23 @@
 
 ## Not Planned
 
+- [ ] **Cache invalidation is coarse (whole-namespace)** — channel/template mutations call
+      `notificationChannelCache.clear()` / `notificationTemplateCache.clear()`, flushing
+      *all* entries instead of the affected key (`services/notification/channel.service.ts:159-160`,
+      `services/notification/template.service.ts:179`).
+      **Deferred:** targeted `delete(key)` is straightforward for the cache's *own* mutation
+      (template cache is keyed by template `key`; channel cache by channel `id`), but the
+      template cache embeds the channel relation (`findTemplateForDelivery` does
+      `include: { channel: true }`), so a channel update must also invalidate every cached
+      template whose `channelId` matches — and there's no reverse index from `channelId` to
+      cached template keys. The three options all fail cost/benefit: (a) `delete(id)` only on
+      the channel cache leaves stale channel config/enabled state in cached templates
+      (correctness regression); (b) keep `notificationTemplateCache.clear()` only on channel
+      update retains a whole-namespace flush on exactly that path; (c) iterate `keys()` and
+      inspect each cached value's `channelId` is O(cache size) and over-engineered for the
+      benefit. Channel/template mutations are admin-only, low-frequency paths, so the coarse
+      flush costs negligible redundant DB refetches in practice. Revisit if/when notification
+      config becomes a hot write path or the cache grows beyond `CACHE_MAX_SIZE=1000`.
 - [ ] **Boot-time side effects** — `seed()` + `jobExecutor.start()` run at module boot
       (`src/app.ts:18-35`). Anti-pattern for serverless/standalone Next.js; risks cold-start
       races. Move to deploy/migration step.
