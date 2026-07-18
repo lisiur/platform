@@ -128,12 +128,6 @@
       app leaves orphaned Role/Permission/Menu rows and silently degrades org
       permission/menu resolution. Refuse to soft-delete apps whose code is
       `admin`/`organization`.
-- [ ] **Client-supplied trace-id trusted verbatim** — `x-trace-id`/`x-request-id`
-      is taken straight from headers with no format/length check
-      (`middleware/trace-context.ts:4-7`) and propagates into audit/operation
-      logs. An attacker can inject huge strings or collide ids to skew log
-      correlation. Only accept values matching `^[0-9a-f-]{8,64}$`, else
-      `crypto.randomUUID()`.
 - [ ] **Permission `@@unique([appId, code])` doesn't enforce uniqueness for
       system perms** — Postgres treats NULLs as distinct (`schema.prisma:373`),
       so `seed.ts` uses `findFirst`+`create` instead of a real upsert
