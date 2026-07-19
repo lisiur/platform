@@ -4,11 +4,18 @@
 
 ### Auth & Session
 
-- [ ] **Password policy is far too weak** — sign-up and change-password both use
+- [x] **Password policy is far too weak** — sign-up and change-password both use
       `z.string().min(6)` (`routes/auth/schema.ts:57,67`); no max length (argon2
       DoS on huge input), no complexity, no breach check, and no centralized
       policy helper in `lib/password.ts`. Enforce a sensible min (10–12), cap
       input length, and centralize the rules.
+      **Done:** centralized rules in `lib/password.ts` (`PASSWORD_POLICY` +
+      `passwordSchema`: 10–256 chars, must contain a letter and a digit).
+      `signUpEmailBodySchema`, `changePasswordBodySchema.newPassword`,
+      `createUserBodySchema.password`, and `resetPasswordBodySchema.password`
+      all import the shared schema. Sign-in / current-password paths unchanged.
+      Seed admin/user passwords bumped to 10 chars. Breach-list check remains
+      out of scope.
 - [ ] **WeChat `session_key` persisted in plaintext** — written verbatim to
       `Account.accessToken` (`services/auth.service.ts:366,403`). A DB leak
       gives attackers decryption material for previously captured

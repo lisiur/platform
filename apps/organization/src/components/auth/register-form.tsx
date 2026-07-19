@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { passwordSchema } from "@repo/shared";
 import {
   Button,
   Field,
@@ -32,7 +33,7 @@ export function RegisterForm({
       .string()
       .min(1, tc("required", { field: tc("email") }))
       .email(t("invalidEmail")),
-    password: z.string().min(6, t("passwordTooShort")),
+    password: passwordSchema(t("passwordTooShort")),
   });
 
   type RegisterInput = z.infer<typeof registerSchema>;

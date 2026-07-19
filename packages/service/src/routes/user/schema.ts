@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { passwordSchema } from "#lib/password";
 
 export { errorSchema, successSchema } from "#lib/openapi";
 
@@ -46,7 +47,7 @@ export const listUsersResponseSchema = z
 export const createUserBodySchema = z.object({
   name: z.string().min(1),
   email: z.email(),
-  password: z.string().min(1),
+  password: passwordSchema,
   roleIds: z.array(z.string()).default([]),
 });
 
@@ -57,7 +58,7 @@ export const updateUserBodySchema = z.object({
 });
 
 export const resetPasswordBodySchema = z.object({
-  password: z.string().min(6),
+  password: passwordSchema,
 });
 
 export const userIdParamSchema = z.object({

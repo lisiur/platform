@@ -1,3 +1,8 @@
+import {
+  passwordSchema as makePasswordSchema,
+  PASSWORD_POLICY,
+  PASSWORD_POLICY_MESSAGE,
+} from "@repo/shared";
 import { hash, verify } from "argon2";
 
 const ARGON2_OPTIONS = {
@@ -5,6 +10,9 @@ const ARGON2_OPTIONS = {
   timeCost: 2,
   parallelism: 1,
 };
+
+export { PASSWORD_POLICY };
+export const passwordSchema = makePasswordSchema(PASSWORD_POLICY_MESSAGE);
 
 export async function hashPassword(password: string) {
   return hash(password, ARGON2_OPTIONS);

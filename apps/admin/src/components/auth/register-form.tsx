@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { passwordSchema } from "@repo/shared";
 import {
   Button,
   Field,
@@ -19,7 +20,7 @@ import { withApiFeedback } from "@/lib/api/utils";
 const registerSchema = z.object({
   name: z.string().min(1),
   email: z.email(),
-  password: z.string().min(6),
+  password: passwordSchema(),
 });
 type RegisterInput = z.infer<typeof registerSchema>;
 

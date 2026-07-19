@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { passwordSchema } from "@repo/shared";
 import {
   Button,
   Field,
@@ -21,12 +22,12 @@ export function PasswordForm() {
   const t = useTranslations("Profile");
   const [saving, setSaving] = useState(false);
 
-  const passwordSchema = z
+  const formSchema = z
     .object({
       currentPassword: z
         .string()
         .min(1, t("validation.currentPasswordRequired")),
-      newPassword: z.string().min(6, t("validation.newPasswordMin")),
+      newPassword: passwordSchema(t("validation.newPasswordMin")),
       confirmPassword: z
         .string()
         .min(1, t("validation.confirmPasswordRequired")),
@@ -36,7 +37,7 @@ export function PasswordForm() {
       path: ["confirmPassword"],
     });
 
-  type PasswordInput = z.infer<typeof passwordSchema>;
+  type PasswordInput = z.infer<typeof formSchema>;
 
   const {
     register,
@@ -44,7 +45,7 @@ export function PasswordForm() {
     reset,
     formState: { errors },
   } = useForm<PasswordInput>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(formSchema),
   });
 
   async function onSubmit(data: PasswordInput) {

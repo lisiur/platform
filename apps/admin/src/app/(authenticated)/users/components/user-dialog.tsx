@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { isBuiltinUser } from "@repo/shared";
+import { isBuiltinUser, passwordSchema } from "@repo/shared";
 import {
   Button,
   Checkbox,
@@ -73,7 +73,7 @@ export function UserDialog({
   const createUserSchema = z.object({
     name: z.string().min(1),
     email: z.email(),
-    password: z.string().min(1, t("passwordRequired")),
+    password: passwordSchema(t("passwordPolicy")),
     roleIds: z.array(z.string()),
   });
   const editUserSchema = z.object({

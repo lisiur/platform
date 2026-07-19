@@ -14,7 +14,7 @@
     "createAccountBtn": "创建账号",
     "hasAccount": "已有账号？",
     "invalidEmail": "请输入有效邮箱地址",
-    "passwordTooShort": "密码至少需要 6 个字符",
+    "passwordTooShort": "密码须为 10–256 个字符,且需同时包含字母和数字",
     "namePlaceholder": "你的姓名",
     "sessionExpired": "会话已过期",
     "sessionExpiredDescription": "您的会话已过期，请重新登录。",
@@ -111,7 +111,7 @@
     "validation": {
       "nameRequired": "姓名不能为空",
       "currentPasswordRequired": "当前密码不能为空",
-      "newPasswordMin": "新密码至少需要 6 个字符",
+      "newPasswordMin": "新密码须为 10–256 个字符,且需同时包含字母和数字",
       "confirmPasswordRequired": "请确认你的密码",
       "passwordsMismatch": "两次输入的密码不一致"
     }

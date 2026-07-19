@@ -127,7 +127,7 @@
     "confirmDelete": "确定要删除",
     "cancel": "取消",
     "password": "密码",
-    "passwordRequired": "请输入密码",
+    "passwordPolicy": "密码须为 10–256 个字符,且需同时包含字母和数字",
     "newPassword": "新密码",
     "passwordOptional": "留空则保持当前密码",
     "save": "保存",
@@ -160,7 +160,7 @@
     "resetPasswordSuccess": "密码重置成功",
     "resetting": "重置中...",
     "validation": {
-      "newPasswordMin": "密码至少需要 6 个字符",
+      "newPasswordMin": "密码须为 10–256 个字符,且需同时包含字母和数字",
       "confirmPasswordRequired": "请确认密码",
       "passwordsMismatch": "两次输入的密码不一致"
     }
@@ -489,7 +489,7 @@
     "validation": {
       "nameRequired": "姓名不能为空",
       "currentPasswordRequired": "当前密码不能为空",
-      "newPasswordMin": "新密码至少需要 6 个字符",
+      "newPasswordMin": "新密码须为 10–256 个字符,且需同时包含字母和数字",
       "confirmPasswordRequired": "请确认新密码",
       "passwordsMismatch": "两次输入的密码不一致"
     }

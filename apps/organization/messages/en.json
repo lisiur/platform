@@ -14,7 +14,7 @@
     "createAccountBtn": "Create account",
     "hasAccount": "Already have an account?",
     "invalidEmail": "Enter a valid email address",
-    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordTooShort": "Password must be 10–256 characters long and contain both letters and numbers",
     "namePlaceholder": "Your name",
     "sessionExpired": "Session Expired",
     "sessionExpiredDescription": "Your session has expired. Please sign in again.",
@@ -111,7 +111,7 @@
     "validation": {
       "nameRequired": "Name is required",
       "currentPasswordRequired": "Current password is required",
-      "newPasswordMin": "New password must be at least 6 characters",
+      "newPasswordMin": "New password must be 10–256 characters long and contain both letters and numbers",
       "confirmPasswordRequired": "Please confirm your password",
       "passwordsMismatch": "Passwords do not match"
     }

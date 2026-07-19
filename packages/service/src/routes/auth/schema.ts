@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { passwordSchema } from "#lib/password";
 
 export const errorSchema = z
   .object({
@@ -54,7 +55,7 @@ export const signInEmailBodySchema = z.object({
 export const signUpEmailBodySchema = z.object({
   name: z.string().min(1),
   email: z.email(),
-  password: z.string().min(6),
+  password: passwordSchema,
 });
 
 export const updateUserBodySchema = z.object({
@@ -64,7 +65,7 @@ export const updateUserBodySchema = z.object({
 
 export const changePasswordBodySchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(6),
+  newPassword: passwordSchema,
 });
 
 export const signInWechatBodySchema = z.object({
