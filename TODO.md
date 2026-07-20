@@ -149,12 +149,6 @@
       and `status String @default("pending")` with no enum (`:545`) — typos
       like `"pendnig"` are silently accepted. Add a `creator User?`
       relation + `@@index([creatorId])` and a `NotificationStatus` enum.
-- [ ] **Missing `updatedAt` on Organization/Member/Position;
-      `Organization.metadata` typed `String?`** — these are user-editable
-      audit-relevant models (`schema.prisma:155,228,197`) but have only
-      `createdAt`; every other metadata column is `Json` while
-      `Organization.metadata` is `String?` (`:154`). Add `updatedAt
-      @updatedAt`; change `metadata` to `Json?`.
 - [ ] **`Member.departmentId` and `Invitation.inviterId` FKs have no
       index** — `schema.prisma:225,244`. List/filter queries on those
       columns table-scan. Add `@@index`.
