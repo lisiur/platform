@@ -89,6 +89,7 @@ export async function logAudit(params: LogAuditParams) {
       sessionId = sessionId ?? principal.session.id;
     } else if (principal?.kind === "token") {
       userId = userId ?? principal.ownerId;
+      userName = userName ?? principal.ownerName;
     } else if ((!userId || !sessionId) && c) {
       const session = await trySession(c);
       userId = session?.user?.id;

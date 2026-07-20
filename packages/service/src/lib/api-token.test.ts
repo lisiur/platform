@@ -34,6 +34,7 @@ const mockPrisma = prisma as unknown as {
 
 const validOwner = {
   id: "user_1",
+  name: "User One",
   banned: false,
   banExpires: null,
 };
@@ -110,6 +111,7 @@ describe("assertAccess (token principal)", () => {
     token: validTokenRow,
     scopes: ["member::read"],
     ownerId: "user_1",
+    ownerName: "User One",
   };
 
   it("passes when scope matches and owner holds the permission", async () => {

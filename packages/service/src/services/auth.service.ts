@@ -31,10 +31,15 @@ function assertNotBanned(user: {
   }
 }
 
-async function logAuthLogin(session: AuthSession, traceId?: string) {
+async function logAuthLogin(
+  session: AuthSession,
+  userName: string,
+  traceId?: string,
+) {
   await logAudit({
     traceId,
     userId: session.userId,
+    userName,
     sessionId: session.id,
     event: "auth.login",
     category: "authentication",
@@ -116,7 +121,7 @@ export async function signInWithEmail(params: {
     activeOrganizationId: await getDefaultActiveOrganizationId(user.id),
   });
 
-  await logAuthLogin(session, params.traceId);
+  await logAuthLogin(session, user.name, params.traceId);
 
   // `accounts` holds credential password hashes and OAuth tokens; strip it so
   // secrets are never serialized into the sign-in response.
@@ -199,7 +204,7 @@ export async function signUpWithEmail(params: {
     userAgent: params.userAgent,
   });
 
-  await logAuthLogin(session, params.traceId);
+  await logAuthLogin(session, user.name, params.traceId);
 
   return { user, session };
 }
@@ -214,9 +219,14 @@ export async function signOut(
     if (token) {
       eventBus.close(`sse:${appCode}:${session.userId}:${token}`);
     }
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true },
+    });
     await logAudit({
       traceId,
       userId: session.userId,
+      userName: user?.name,
       sessionId: session.id,
       event: "auth.logout",
       category: "authentication",
@@ -375,7 +385,7 @@ export async function signInWithWechat(params: {
       ),
     });
 
-    await logAuthLogin(session, params.traceId);
+    await logAuthLogin(session, account.user.name, params.traceId);
 
     return { user: account.user, session };
   }
@@ -412,7 +422,7 @@ export async function signInWithWechat(params: {
       userAgent: params.userAgent,
     });
 
-    await logAuthLogin(session, params.traceId);
+    await logAuthLogin(session, user.name, params.traceId);
 
     return { user, session };
   } catch (err) {

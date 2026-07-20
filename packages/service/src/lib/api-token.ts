@@ -24,6 +24,7 @@ export type ApiTokenPrincipal = {
   token: ApiToken;
   scopes: string[];
   ownerId: string;
+  ownerName: string;
 };
 
 function isOwnerValid(owner: {
@@ -51,11 +52,16 @@ export async function getApiTokenByBearer(
   if (result.expiresAt && result.expiresAt.getTime() <= Date.now()) return null;
   if (!isOwnerValid(result.owner)) return null;
 
-  const { owner: _owner, ...token } = result;
+  const { owner, ...token } = result;
 
   await prisma.apiToken
     .update({ where: { id: token.id }, data: { lastUsedAt: new Date() } })
     .catch(() => null);
 
-  return { token, scopes: token.scopes, ownerId: token.ownerId };
+  return {
+    token,
+    scopes: token.scopes,
+    ownerId: owner.id,
+    ownerName: owner.name,
+  };
 }
