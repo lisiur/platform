@@ -17,32 +17,6 @@
 
 ### Permissions & Roles
 
-- [ ] **TOCTOU in last-org-owner protection** — `removeMember` does
-      findFirst → isOrgOwner → countOrgOwners → delete as separate,
-      non-transactional steps (`services/member.service.ts:60-85`). Two
-      concurrent removes of the last two owners each observe
-      `ownerCount === 2` and both proceed, leaving the org with zero owners.
-      Wrap the count + delete in `$transaction`.
-- [ ] **No last-platform-admin lockout protection** — org owners are guarded
-      by `countOrgOwners`, but the platform `admin` role has no equivalent:
-      `updateUser` (`services/user.service.ts:118-206`) and `removeUserRole`
-      (`services/user-role.service.ts:14-21`, which delegates to
-      `userRoleRepository.remove` at `repositories/user-role.repository.ts:67-72`
-      with no admin-count check; only `assign()` at `:36-49` does any scope
-      validation) can strip the last admin assignment. Count remaining
-      admin assignments and reject with 409 at zero.
-- [x] **`assignRole` scope validation is asymmetric — PLATFORM roles
-      assignable at ORG scope** — only an ORGANIZATION role under a
-      mismatched scope is rejected (`services/role-permission.service.ts:90-100`,
-      `repositories/user-role.repository.ts:36-49`); a PLATFORM role (e.g.
-      `admin`) can be assigned with `scopeType = ORGANIZATION`. Require
-      `params.scopeType === role.scopeType`.
-      Fixed: replaced the asymmetric `roleScope.kind === "org" && ...` check
-      with a strict `role.scope !== scope` equality in both
-      `repositories/user-role.repository.ts:assign()` and
-      `services/role-permission.service.ts:assignRole()`; added unit tests in
-      `repositories/user-role.repository.test.ts` covering platform/org happy
-      paths plus the platform-at-org-scope rejection.
 - [ ] **No audit on user delete or permission denials** — `deleteUser`
       (`services/user.service.ts:274-286`) writes no audit row;
       `assertAccess` throws 403 with no audit
@@ -88,14 +62,6 @@
       `services/system-config.service.ts:5-19`); `value` is a free-form
       string regardless of `type`. Maintain an allowlist of `(group, key)`
       with per-key value schemas.
-- [x] **Operation logger creates a row for every GET on the log endpoints**
-      — `shouldSkipOperationLog` matched `^/api/log(?:/[^/]+)?$` but the real
-      routes are `/api/operation-logs` and `/api/audit-logs`
-      (`routes/index.ts:42-43`), so polling dashboards grew the operation log
-      with every poll. Fixed the regex to
-      `^/api/(operation-logs|audit-logs)(?:/[^/]+)?$` in
-      `middleware/operation-logger.ts:45`; added unit tests in
-      `middleware/operation-logger.test.ts`.
 
 ### Seed & Migrations
 
