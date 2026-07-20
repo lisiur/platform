@@ -326,7 +326,8 @@ CREATE TABLE "role" (
 CREATE TABLE "operation_log" (
     "id" TEXT NOT NULL,
     "traceId" TEXT NOT NULL,
-    "sessionId" TEXT,
+    "authType" TEXT,
+    "authTokenId" TEXT,
     "level" TEXT NOT NULL DEFAULT 'info',
     "source" TEXT,
     "module" TEXT,
@@ -349,16 +350,15 @@ CREATE TABLE "operation_log" (
 CREATE TABLE "audit_log" (
     "id" TEXT NOT NULL,
     "traceId" TEXT NOT NULL,
-    "sessionId" TEXT,
+    "authType" TEXT,
+    "authTokenId" TEXT,
     "userId" TEXT,
     "userName" TEXT,
+    "source" TEXT,
     "event" TEXT NOT NULL,
     "category" TEXT NOT NULL,
     "severity" TEXT NOT NULL DEFAULT 'info',
     "outcome" TEXT NOT NULL DEFAULT 'success',
-    "targetType" TEXT,
-    "targetId" TEXT,
-    "targetName" TEXT,
     "before" JSONB,
     "after" JSONB,
     "metadata" JSONB,
@@ -626,7 +626,10 @@ CREATE UNIQUE INDEX "role_appId_scope_code_key" ON "role"("appId", "scope", "cod
 CREATE INDEX "operation_log_traceId_idx" ON "operation_log"("traceId");
 
 -- CreateIndex
-CREATE INDEX "operation_log_sessionId_idx" ON "operation_log"("sessionId");
+CREATE INDEX "operation_log_authType_idx" ON "operation_log"("authType");
+
+-- CreateIndex
+CREATE INDEX "operation_log_authTokenId_idx" ON "operation_log"("authTokenId");
 
 -- CreateIndex
 CREATE INDEX "operation_log_level_idx" ON "operation_log"("level");
@@ -647,7 +650,10 @@ CREATE INDEX "operation_log_createdAt_idx" ON "operation_log"("createdAt");
 CREATE INDEX "audit_log_traceId_idx" ON "audit_log"("traceId");
 
 -- CreateIndex
-CREATE INDEX "audit_log_sessionId_idx" ON "audit_log"("sessionId");
+CREATE INDEX "audit_log_authType_idx" ON "audit_log"("authType");
+
+-- CreateIndex
+CREATE INDEX "audit_log_authTokenId_idx" ON "audit_log"("authTokenId");
 
 -- CreateIndex
 CREATE INDEX "audit_log_userId_idx" ON "audit_log"("userId");

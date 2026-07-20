@@ -41,8 +41,6 @@ export const createRole = defineOpenAPIRoute({
     logAudit({
       event: "role.created",
       category: "role",
-      targetId: role.id,
-      targetName: role.name,
       c,
     });
 

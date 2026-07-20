@@ -43,8 +43,6 @@ export const updateEntryRoute = defineOpenAPIRoute({
     await logAudit({
       event: "cache.entry.updated",
       category: "cache",
-      targetType: "cache_entry",
-      targetName: body.key,
       c,
     });
 

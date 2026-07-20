@@ -57,8 +57,6 @@ export const replaceUploadRoute = defineOpenAPIRoute({
       event: "upload.replaced",
       category: "file_management",
       severity: "info",
-      targetType: "upload",
-      targetId: id,
       c,
     });
 

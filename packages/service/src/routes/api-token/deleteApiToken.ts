@@ -30,7 +30,7 @@ export const deleteApiToken = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { id } = c.req.valid("param");
 
-    const token = await deleteApiTokenForUser(
+    const _token = await deleteApiTokenForUser(
       getPrincipalUserId(principal),
       id,
     );
@@ -38,8 +38,6 @@ export const deleteApiToken = defineOpenAPIRoute({
     logAudit({
       event: "api_token.revoked",
       category: "api_token",
-      targetId: token.id,
-      targetName: token.name,
       c,
     });
 

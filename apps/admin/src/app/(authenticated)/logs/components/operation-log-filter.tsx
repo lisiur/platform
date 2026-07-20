@@ -22,10 +22,12 @@ import { useCallback, useRef, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
 const LEVEL_OPTIONS = ["debug", "info", "warn", "error"] as const;
+const AUTH_TYPE_OPTIONS = ["session", "api_token"] as const;
 
 export interface OperationLogFilters {
   traceId?: string;
-  sessionId?: string;
+  authType?: string;
+  authTokenId?: string;
   level?: string;
   module?: string;
   event?: string;
@@ -44,13 +46,14 @@ interface OperationLogFilterProps {
   ) => void;
   labels: {
     traceId: string;
-    sessionId: string;
+    authTokenId: string;
     level: string;
     module: string;
     event: string;
     path: string;
     statusCode: string;
     allLevels: string;
+    allAuthTypes: string;
     clear: string;
     filtersButton: string;
     filtersTitle: string;
@@ -81,11 +84,29 @@ function OperationLogFilterFields({
         value={filters.traceId ?? ""}
         onChange={(event) => setFilter("traceId", event.target.value)}
       />
+      <Select
+        value={filters.authType ?? "all"}
+        onValueChange={(value) =>
+          setFilter("authType", !value || value === "all" ? "" : value)
+        }
+      >
+        <SelectTrigger className="h-9 w-full md:w-40">
+          {filters.authType ?? labels.allAuthTypes}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{labels.allAuthTypes}</SelectItem>
+          {AUTH_TYPE_OPTIONS.map((authType) => (
+            <SelectItem key={authType} value={authType}>
+              {authType}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         className="h-9 w-full md:w-48"
-        placeholder={labels.sessionId}
-        value={filters.sessionId ?? ""}
-        onChange={(event) => setFilter("sessionId", event.target.value)}
+        placeholder={labels.authTokenId}
+        value={filters.authTokenId ?? ""}
+        onChange={(event) => setFilter("authTokenId", event.target.value)}
       />
       <Select
         value={filters.level ?? "all"}

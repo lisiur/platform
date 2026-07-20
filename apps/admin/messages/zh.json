@@ -718,18 +718,19 @@
       "statusCode": "状态",
       "durationMs": "耗时",
       "traceId": "Trace ID",
-      "sessionId": "Session ID",
+      "auth": "认证",
+      "source": "来源",
       "message": "消息",
       "category": "分类",
       "outcome": "结果",
       "severity": "严重性",
-      "target": "目标",
       "ip": "IP",
       "detail": "详情"
     },
     "filters": {
       "traceId": "Trace ID",
-      "sessionId": "Session ID",
+      "authTokenId": "认证令牌 ID",
+      "source": "来源",
       "level": "级别",
       "module": "模块",
       "event": "事件",
@@ -737,10 +738,10 @@
       "statusCode": "状态码",
       "userName": "操作人",
       "category": "分类",
-      "targetType": "目标类型",
       "allLevels": "全部级别",
       "allSeverities": "全部严重性",
-      "allOutcomes": "全部结果"
+      "allOutcomes": "全部结果",
+      "allAuthTypes": "全部认证方式"
     }
   },
   "Monitor": {

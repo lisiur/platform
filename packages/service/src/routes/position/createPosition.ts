@@ -62,9 +62,6 @@ export const createPositionRoute = defineOpenAPIRoute({
     logAudit({
       event: "position.created",
       category: "position",
-      targetType: "position",
-      targetId: position.id,
-      targetName: position.name,
       c,
     });
 

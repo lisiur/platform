@@ -34,13 +34,11 @@ export const deleteMenu = defineOpenAPIRoute({
     await assertAccess(principal, "menu::delete");
     const { id } = c.req.valid("param");
 
-    const { name } = await deleteMenuService(id);
+    await deleteMenuService(id);
 
     logAudit({
       event: "menu.deleted",
       category: "menu",
-      targetId: id,
-      targetName: name,
       c,
     });
 

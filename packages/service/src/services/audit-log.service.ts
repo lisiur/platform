@@ -14,15 +14,15 @@ export async function listAuditLogs(params: {
   limit?: number;
   offset?: number;
   traceId?: string;
-  sessionId?: string;
+  authType?: string;
+  authTokenId?: string;
   userId?: string;
   userName?: string;
+  source?: string;
   event?: string;
   category?: string;
   severity?: string;
   outcome?: string;
-  targetType?: string;
-  targetId?: string;
   startDate?: Date;
   endDate?: Date;
 }) {
@@ -30,30 +30,30 @@ export async function listAuditLogs(params: {
     limit = 10,
     offset = 0,
     traceId,
-    sessionId,
+    authType,
+    authTokenId,
     userId,
     userName,
+    source,
     event,
     category,
     severity,
     outcome,
-    targetType,
-    targetId,
     startDate,
     endDate,
   } = params;
 
   const where: Prisma.AuditLogWhereInput = {};
   if (traceId) where.traceId = traceId;
-  if (sessionId) where.sessionId = sessionId;
+  if (authType) where.authType = authType;
+  if (authTokenId) where.authTokenId = authTokenId;
   if (userId) where.userId = userId;
   if (userName) where.userName = { contains: userName, mode: "insensitive" };
+  if (source) where.source = { contains: source, mode: "insensitive" };
   if (event) where.event = event;
   if (category) where.category = category;
   if (severity) where.severity = severity;
   if (outcome) where.outcome = outcome;
-  if (targetType) where.targetType = targetType;
-  if (targetId) where.targetId = targetId;
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) (where.createdAt as Prisma.DateTimeFilter).gte = startDate;

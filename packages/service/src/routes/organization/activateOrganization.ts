@@ -46,8 +46,6 @@ export const activateOrganization = defineOpenAPIRoute({
       c,
       event: "organization.activated",
       category: "organization",
-      targetType: "organization",
-      targetId: id,
     });
 
     return c.json({ success: true }, 200);

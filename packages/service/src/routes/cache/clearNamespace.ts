@@ -44,8 +44,6 @@ export const clearNamespaceRoute = defineOpenAPIRoute({
     await logAudit({
       event: "cache.namespace.cleared",
       category: "cache",
-      targetType: "cache_namespace",
-      targetName: body.namespace,
       metadata: { cleared },
       c,
     });

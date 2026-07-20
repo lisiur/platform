@@ -14,7 +14,8 @@ export async function listLogs(params: {
   limit?: number;
   offset?: number;
   traceId?: string;
-  sessionId?: string;
+  authType?: string;
+  authTokenId?: string;
   level?: string;
   source?: string;
   module?: string;
@@ -29,7 +30,8 @@ export async function listLogs(params: {
     limit = 10,
     offset = 0,
     traceId,
-    sessionId,
+    authType,
+    authTokenId,
     level,
     source,
     module,
@@ -43,7 +45,8 @@ export async function listLogs(params: {
 
   const where: Prisma.OperationLogWhereInput = {};
   if (traceId) where.traceId = traceId;
-  if (sessionId) where.sessionId = sessionId;
+  if (authType) where.authType = authType;
+  if (authTokenId) where.authTokenId = authTokenId;
   if (level) where.level = level;
   if (source) where.source = source;
   if (module) where.module = module;

@@ -54,7 +54,6 @@ export const batchAssignRolePermissions = defineOpenAPIRoute({
     logAudit({
       event: "role.permissions_assigned",
       category: "role",
-      targetId: roleId,
       metadata: { permissionIds },
       c,
     });

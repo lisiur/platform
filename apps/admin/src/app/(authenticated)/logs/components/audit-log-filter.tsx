@@ -23,18 +23,19 @@ import type { DateRange } from "react-day-picker";
 
 const SEVERITY_OPTIONS = ["info", "warning", "critical"] as const;
 const OUTCOME_OPTIONS = ["success", "failure", "denied"] as const;
+const AUTH_TYPE_OPTIONS = ["session", "api_token"] as const;
 
 export interface AuditLogFilters {
   traceId?: string;
-  sessionId?: string;
+  authType?: string;
+  authTokenId?: string;
   userId?: string;
   userName?: string;
+  source?: string;
   event?: string;
   category?: string;
   severity?: string;
   outcome?: string;
-  targetType?: string;
-  targetId?: string;
   startDate?: Date;
   endDate?: Date;
 }
@@ -48,11 +49,12 @@ interface AuditLogFilterProps {
   ) => void;
   labels: {
     traceId: string;
-    sessionId: string;
+    authTokenId: string;
     userName: string;
+    source: string;
     event: string;
     category: string;
-    targetType: string;
+    allAuthTypes: string;
     allSeverities: string;
     allOutcomes: string;
     clear: string;
@@ -85,17 +87,41 @@ function AuditLogFilterFields({
         value={filters.traceId ?? ""}
         onChange={(event) => setFilter("traceId", event.target.value)}
       />
+      <Select
+        value={filters.authType ?? "all"}
+        onValueChange={(value) =>
+          setFilter("authType", !value || value === "all" ? "" : value)
+        }
+      >
+        <SelectTrigger className="h-9 w-full md:w-40">
+          {filters.authType ?? labels.allAuthTypes}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{labels.allAuthTypes}</SelectItem>
+          {AUTH_TYPE_OPTIONS.map((authType) => (
+            <SelectItem key={authType} value={authType}>
+              {authType}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         className="h-9 w-full md:w-48"
-        placeholder={labels.sessionId}
-        value={filters.sessionId ?? ""}
-        onChange={(event) => setFilter("sessionId", event.target.value)}
+        placeholder={labels.authTokenId}
+        value={filters.authTokenId ?? ""}
+        onChange={(event) => setFilter("authTokenId", event.target.value)}
       />
       <Input
         className="h-9 w-full md:w-40"
         placeholder={labels.userName}
         value={filters.userName ?? ""}
         onChange={(event) => setFilter("userName", event.target.value)}
+      />
+      <Input
+        className="h-9 w-full md:w-56"
+        placeholder={labels.source}
+        value={filters.source ?? ""}
+        onChange={(event) => setFilter("source", event.target.value)}
       />
       <Input
         className="h-9 w-full md:w-44"
@@ -145,12 +171,6 @@ function AuditLogFilterFields({
           ))}
         </SelectContent>
       </Select>
-      <Input
-        className="h-9 w-full md:w-36"
-        placeholder={labels.targetType}
-        value={filters.targetType ?? ""}
-        onChange={(event) => setFilter("targetType", event.target.value)}
-      />
       <DateRangePicker
         key={resetKey}
         startDate={filters.startDate ?? null}

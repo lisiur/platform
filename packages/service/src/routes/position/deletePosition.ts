@@ -40,14 +40,11 @@ export const deletePositionRoute = defineOpenAPIRoute({
       organizationId: orgId,
     });
 
-    const position = await deletePosition(orgId, id);
+    const _position = await deletePosition(orgId, id);
 
     logAudit({
       event: "position.deleted",
       category: "position",
-      targetType: "position",
-      targetId: position.id,
-      targetName: position.name,
       c,
     });
 

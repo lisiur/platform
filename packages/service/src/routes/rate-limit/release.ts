@@ -49,8 +49,6 @@ export const releaseRoute = defineOpenAPIRoute({
     await logAudit({
       event: "rate_limit.released",
       category: "rate_limit",
-      targetType: "rate_limit_subject",
-      targetName: body.subject,
       metadata: result,
       c,
     });

@@ -59,8 +59,6 @@ export const setPositionPermissionsRoute = defineOpenAPIRoute({
     logAudit({
       event: "position.permissions_updated",
       category: "position",
-      targetType: "position",
-      targetId: id,
       metadata: { permissionIds: body.permissionIds },
       c,
     });

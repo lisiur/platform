@@ -75,8 +75,6 @@ export const setMemberPositionsRoute = defineOpenAPIRoute({
     logAudit({
       event: "member.positions.updated",
       category: "position",
-      targetType: "member",
-      targetId: memberId,
       c,
     });
 

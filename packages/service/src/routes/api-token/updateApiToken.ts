@@ -55,8 +55,6 @@ export const updateApiToken = defineOpenAPIRoute({
     logAudit({
       event: "api_token.updated",
       category: "api_token",
-      targetId: token.id,
-      targetName: token.name,
       c,
     });
 

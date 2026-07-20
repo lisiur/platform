@@ -33,13 +33,11 @@ export const deleteOrganization = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "organization::delete");
     const { id } = c.req.valid("param");
-    const { name } = await deleteOrganizationService(id);
+    await deleteOrganizationService(id);
 
     logAudit({
       event: "organization.deleted",
       category: "organization",
-      targetId: id,
-      targetName: name,
       c,
     });
 

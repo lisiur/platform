@@ -44,7 +44,6 @@ export const deleteLogsRoute = defineOpenAPIRoute({
       event: "operation_log.deleted",
       category: "log_management",
       severity: "warning",
-      targetType: "operation_log",
       metadata: { ids },
       c,
     });

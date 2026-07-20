@@ -59,9 +59,6 @@ export const updateOrganizationSettings = defineOpenAPIRoute({
     await logAudit({
       event: "organization.settings.updated",
       category: "organization",
-      targetType: "organization",
-      targetId: org.id,
-      targetName: org.name,
       c,
     });
 

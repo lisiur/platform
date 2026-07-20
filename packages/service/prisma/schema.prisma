@@ -423,7 +423,8 @@ model Role {
 model OperationLog {
   id           String   @id @default(cuid())
   traceId      String
-  sessionId    String?
+  authType     String?
+  authTokenId  String?
   level        String   @default("info")
   source       String?
   module       String?
@@ -440,7 +441,8 @@ model OperationLog {
   createdAt    DateTime @default(now())
 
   @@index([traceId])
-  @@index([sessionId])
+  @@index([authType])
+  @@index([authTokenId])
   @@index([level])
   @@index([module])
   @@index([event])
@@ -450,27 +452,27 @@ model OperationLog {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  traceId    String
-  sessionId  String?
-  userId     String?
-  userName   String?
-  event      String
-  category   String
-  severity   String   @default("info")
-  outcome    String   @default("success")
-  targetType String?
-  targetId   String?
-  targetName String?
-  before     Json?
-  after      Json?
-  metadata   Json?
-  ip         String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  traceId     String
+  authType    String?
+  authTokenId String?
+  userId      String?
+  userName    String?
+  source      String?
+  event       String
+  category    String
+  severity    String   @default("info")
+  outcome     String   @default("success")
+  before      Json?
+  after       Json?
+  metadata    Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 
   @@index([traceId])
-  @@index([sessionId])
+  @@index([authType])
+  @@index([authTokenId])
   @@index([userId])
   @@index([event])
   @@index([category])

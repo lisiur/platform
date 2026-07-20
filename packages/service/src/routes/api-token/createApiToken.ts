@@ -61,8 +61,6 @@ export const createApiToken = defineOpenAPIRoute({
     logAudit({
       event: "api_token.created",
       category: "api_token",
-      targetId: result.record.id,
-      targetName: result.record.name,
       c,
     });
 

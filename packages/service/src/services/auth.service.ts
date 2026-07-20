@@ -40,11 +40,10 @@ async function logAuthLogin(
     traceId,
     userId: session.userId,
     userName,
-    sessionId: session.id,
+    authType: "session",
+    authTokenId: session.id,
     event: "auth.login",
     category: "authentication",
-    targetType: "session",
-    targetId: session.id,
     metadata: {
       ipAddress: session.ipAddress,
       userAgent: session.userAgent,
@@ -96,8 +95,6 @@ export async function signInWithEmail(params: {
       category: "authentication",
       outcome: "failure",
       severity: "warning",
-      targetType: "user",
-      targetId: user?.id,
       metadata: {
         email: params.email,
         ipAddress: params.ipAddress,
@@ -227,11 +224,10 @@ export async function signOut(
       traceId,
       userId: session.userId,
       userName: user?.name,
-      sessionId: session.id,
+      authType: "session",
+      authTokenId: session.id,
       event: "auth.logout",
       category: "authentication",
-      targetType: "session",
-      targetId: session.id,
     });
   }
 }
@@ -314,11 +310,10 @@ export async function changePassword(params: {
   await logAudit({
     traceId: params.traceId,
     userId: user.id,
-    sessionId: session.id,
+    authType: "session",
+    authTokenId: session.id,
     event: "auth.password_change",
     category: "authentication",
-    targetType: "user",
-    targetId: user.id,
   });
 
   const updatedUser = await prisma.user.findUniqueOrThrow({

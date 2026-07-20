@@ -32,8 +32,6 @@ export const clearAllRoute = defineOpenAPIRoute({
     await logAudit({
       event: "cache.all_cleared",
       category: "cache",
-      targetType: "cache",
-      targetName: "global",
       metadata: { cleared },
       c,
     });

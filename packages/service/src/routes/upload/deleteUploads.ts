@@ -45,7 +45,6 @@ export const deleteUploadsRoute = defineOpenAPIRoute({
       event: "upload.deleted",
       category: "file_management",
       severity: "warning",
-      targetType: "upload",
       metadata: { ids },
       c,
     });

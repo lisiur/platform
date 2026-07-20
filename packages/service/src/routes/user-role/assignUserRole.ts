@@ -43,7 +43,6 @@ export const assignRoleAssignment = defineOpenAPIRoute({
     logAudit({
       event: "role_assignment.assigned",
       category: "role_assignment",
-      targetId: roleAssignment.id,
       metadata: { userId, roleId, organizationId },
       c,
     });

@@ -35,7 +35,8 @@ export type { OperationLogFilters };
 interface OperationLogEntry {
   id: string;
   traceId: string;
-  sessionId?: string | null;
+  authType?: string | null;
+  authTokenId?: string | null;
   level: string;
   source?: string | null;
   module?: string | null;
@@ -95,7 +96,8 @@ export function OperationLogTable({
         offset: (page - 1) * pageSize,
       };
       if (filters.traceId) query.traceId = filters.traceId;
-      if (filters.sessionId) query.sessionId = filters.sessionId;
+      if (filters.authType) query.authType = filters.authType;
+      if (filters.authTokenId) query.authTokenId = filters.authTokenId;
       if (filters.level) query.level = filters.level;
       if (filters.module) query.module = filters.module;
       if (filters.event) query.event = filters.event;
@@ -179,13 +181,14 @@ export function OperationLogTable({
           onFiltersChange={handleFiltersChange}
           labels={{
             traceId: t("filters.traceId"),
-            sessionId: t("filters.sessionId"),
+            authTokenId: t("filters.authTokenId"),
             level: t("filters.level"),
             module: t("filters.module"),
             event: t("filters.event"),
             path: t("filters.path"),
             statusCode: t("filters.statusCode"),
             allLevels: t("filters.allLevels"),
+            allAuthTypes: t("filters.allAuthTypes"),
             clear: t("clearFilters"),
             filtersButton: t("filtersButton"),
             filtersTitle: t("filtersTitle"),
@@ -210,7 +213,7 @@ export function OperationLogTable({
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1650px] min-w-[1650px]"
+            className="w-[1698px] min-w-[1698px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
@@ -226,7 +229,7 @@ export function OperationLogTable({
                 <TableHead>{t("columns.statusCode")}</TableHead>
                 <TableHead>{t("columns.durationMs")}</TableHead>
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
-                <TableHead className="w-44">{t("columns.sessionId")}</TableHead>
+                <TableHead className="w-56">{t("columns.auth")}</TableHead>
                 <TableHead className="w-72">{t("columns.message")}</TableHead>
                 <TableHead sticky="right" className="bg-background text-right">
                   {t("columns.detail")}
@@ -263,7 +266,14 @@ export function OperationLogTable({
                     {log.traceId}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {log.sessionId || "-"}
+                    {log.authType ? (
+                      <span className="flex items-center gap-2">
+                        <Badge variant="outline">{log.authType}</Badge>
+                        <span className="truncate">{log.authTokenId}</span>
+                      </span>
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell className="max-w-64 truncate">
                     {log.errorMessage || log.message || "-"}

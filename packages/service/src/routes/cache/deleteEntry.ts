@@ -43,8 +43,6 @@ export const deleteEntryRoute = defineOpenAPIRoute({
     await logAudit({
       event: "cache.entry.deleted",
       category: "cache",
-      targetType: "cache_entry",
-      targetName: key,
       c,
     });
 

@@ -58,8 +58,6 @@ export const registerOrganization = defineOpenAPIRoute({
     logAudit({
       event: "organization.registered",
       category: "organization",
-      targetId: org.id,
-      targetName: org.name,
       c,
     });
 

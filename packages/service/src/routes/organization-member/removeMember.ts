@@ -52,8 +52,6 @@ export const removeOrganizationMember = defineOpenAPIRoute({
       c,
       event: "organization.member.removed",
       category: "organization",
-      targetType: "organization",
-      targetId: orgId,
     });
 
     return c.json({ success: true as const }, 200);

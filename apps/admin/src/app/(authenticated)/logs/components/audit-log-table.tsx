@@ -30,16 +30,15 @@ export type { AuditLogFilters };
 interface AuditLogEntry {
   id: string;
   traceId: string;
-  sessionId?: string | null;
+  authType?: string | null;
+  authTokenId?: string | null;
   userId?: string | null;
   userName?: string | null;
+  source?: string | null;
   event: string;
   category: string;
   severity: string;
   outcome: string;
-  targetType?: string | null;
-  targetId?: string | null;
-  targetName?: string | null;
   before?: unknown;
   after?: unknown;
   metadata?: unknown;
@@ -100,15 +99,15 @@ export function AuditLogTable({
         offset: (page - 1) * pageSize,
       };
       if (filters.traceId) query.traceId = filters.traceId;
-      if (filters.sessionId) query.sessionId = filters.sessionId;
+      if (filters.authType) query.authType = filters.authType;
+      if (filters.authTokenId) query.authTokenId = filters.authTokenId;
       if (filters.userId) query.userId = filters.userId;
       if (filters.userName) query.userName = filters.userName;
+      if (filters.source) query.source = filters.source;
       if (filters.event) query.event = filters.event;
       if (filters.category) query.category = filters.category;
       if (filters.severity) query.severity = filters.severity;
       if (filters.outcome) query.outcome = filters.outcome;
-      if (filters.targetType) query.targetType = filters.targetType;
-      if (filters.targetId) query.targetId = filters.targetId;
       if (filters.startDate) query.startDate = filters.startDate.toISOString();
       if (filters.endDate) query.endDate = filters.endDate.toISOString();
 
@@ -155,11 +154,12 @@ export function AuditLogTable({
           onFiltersChange={handleFiltersChange}
           labels={{
             traceId: t("filters.traceId"),
-            sessionId: t("filters.sessionId"),
+            authTokenId: t("filters.authTokenId"),
             userName: t("filters.userName"),
+            source: t("filters.source"),
             event: t("filters.event"),
             category: t("filters.category"),
-            targetType: t("filters.targetType"),
+            allAuthTypes: t("filters.allAuthTypes"),
             allSeverities: t("filters.allSeverities"),
             allOutcomes: t("filters.allOutcomes"),
             clear: t("clearFilters"),
@@ -180,7 +180,7 @@ export function AuditLogTable({
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1650px] min-w-[1650px]"
+            className="w-[1894px] min-w-[1894px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
@@ -191,10 +191,10 @@ export function AuditLogTable({
                 <TableHead className="w-40">{t("columns.category")}</TableHead>
                 <TableHead className="w-28">{t("columns.outcome")}</TableHead>
                 <TableHead className="w-28">{t("columns.severity")}</TableHead>
-                <TableHead className="w-64">{t("columns.target")}</TableHead>
+                <TableHead className="w-56">{t("columns.auth")}</TableHead>
+                <TableHead className="w-72">{t("columns.source")}</TableHead>
                 <TableHead className="w-40">{t("columns.ip")}</TableHead>
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
-                <TableHead className="w-44">{t("columns.sessionId")}</TableHead>
                 <TableHead sticky="right" className="bg-background text-right">
                   {t("columns.detail")}
                 </TableHead>
@@ -225,19 +225,24 @@ export function AuditLogTable({
                       {log.severity}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {[log.targetType, log.targetName || log.targetId]
-                      .filter(Boolean)
-                      .join(" / ") || "-"}
+                  <TableCell className="font-mono text-xs">
+                    {log.authType ? (
+                      <span className="flex items-center gap-2">
+                        <Badge variant="outline">{log.authType}</Badge>
+                        <span className="truncate">{log.authTokenId}</span>
+                      </span>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {log.source || "-"}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {log.ip || "-"}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {log.traceId}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {log.sessionId || "-"}
                   </TableCell>
                   <TableCell
                     sticky="right"

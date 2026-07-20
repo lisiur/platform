@@ -113,9 +113,7 @@ describe("signInWithEmail — failed-login audit", () => {
         category: "authentication",
         outcome: "failure",
         severity: "warning",
-        targetType: "user",
         userId: undefined,
-        targetId: undefined,
         traceId: baseParams.traceId,
         metadata: expect.objectContaining({
           email: baseParams.email,
@@ -143,7 +141,6 @@ describe("signInWithEmail — failed-login audit", () => {
         outcome: "failure",
         userId: existingUser.id,
         userName: existingUser.name,
-        targetId: existingUser.id,
         metadata: expect.objectContaining({ reason: "no_credential" }),
       }),
     );
@@ -163,7 +160,6 @@ describe("signInWithEmail — failed-login audit", () => {
         outcome: "failure",
         userId: existingUser.id,
         userName: existingUser.name,
-        targetId: existingUser.id,
         metadata: expect.objectContaining({ reason: "wrong_password" }),
       }),
     );

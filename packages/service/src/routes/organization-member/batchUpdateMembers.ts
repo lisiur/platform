@@ -69,8 +69,6 @@ export const batchUpdateOrganizationMembers = defineOpenAPIRoute({
     logAudit({
       event: "members.batch_updated",
       category: "member",
-      targetType: "member",
-      targetName: `${memberIds.length} members`,
       metadata: { memberIds, departmentId },
       c,
     });

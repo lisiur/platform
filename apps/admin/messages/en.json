@@ -718,18 +718,19 @@
       "statusCode": "Status",
       "durationMs": "Duration",
       "traceId": "Trace ID",
-      "sessionId": "Session ID",
+      "auth": "Auth",
+      "source": "Source",
       "message": "Message",
       "category": "Category",
       "outcome": "Outcome",
       "severity": "Severity",
-      "target": "Target",
       "ip": "IP",
       "detail": "Detail"
     },
     "filters": {
       "traceId": "Trace ID",
-      "sessionId": "Session ID",
+      "authTokenId": "Auth Token ID",
+      "source": "Source",
       "level": "Level",
       "module": "Module",
       "event": "Event",
@@ -737,10 +738,10 @@
       "statusCode": "Status",
       "userName": "User",
       "category": "Category",
-      "targetType": "Target Type",
       "allLevels": "All Levels",
       "allSeverities": "All Severities",
-      "allOutcomes": "All Outcomes"
+      "allOutcomes": "All Outcomes",
+      "allAuthTypes": "All Auth Types"
     }
   },
   "Monitor": {

@@ -44,8 +44,6 @@ export const deleteOverrideRoute = defineOpenAPIRoute({
     await logAudit({
       event: "rate_limit.override.deleted",
       category: "rate_limit",
-      targetType: "rate_limit_override",
-      targetName: subject,
       c,
     });
 

@@ -250,12 +250,10 @@ export async function resetPassword(
   await logAudit({
     traceId: params.traceId,
     userId: params.actorId,
-    sessionId: params.actorSessionId,
+    authType: "session",
+    authTokenId: params.actorSessionId,
     event: "user.password_reset",
     category: "authentication",
-    targetType: "user",
-    targetId: id,
-    targetName: existingUser.name,
   });
 }
 
@@ -282,5 +280,5 @@ export async function deleteUser(id: string) {
 
   await prisma.user.delete({ where: { id } });
 
-  return { success: true, name: user.name };
+  return { success: true };
 }

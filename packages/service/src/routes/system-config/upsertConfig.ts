@@ -56,7 +56,6 @@ export const upsertConfigRoute = defineOpenAPIRoute({
     await logAudit({
       event: "system_config.updated",
       category: "system_config",
-      targetName: `${group}.${key}`,
       c,
     });
 

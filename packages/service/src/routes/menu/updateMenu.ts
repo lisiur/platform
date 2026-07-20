@@ -48,8 +48,6 @@ export const updateMenu = defineOpenAPIRoute({
     logAudit({
       event: "menu.updated",
       category: "menu",
-      targetId: menu.id,
-      targetName: menu.name,
       c,
     });
 

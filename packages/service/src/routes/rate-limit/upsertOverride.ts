@@ -52,8 +52,6 @@ export const upsertOverrideRoute = defineOpenAPIRoute({
     await logAudit({
       event: "rate_limit.override.upserted",
       category: "rate_limit",
-      targetType: "rate_limit_override",
-      targetName: subject,
       after: override,
       c,
     });

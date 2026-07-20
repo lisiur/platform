@@ -294,13 +294,7 @@ export async function assertPermission(
 ) {
   const allowed = await checkPermission(userId, permission, scope);
   if (!allowed) {
-    await auditPermissionDenied(
-      "user",
-      userId,
-      permission,
-      scope,
-      "user_lacks_permission",
-    );
+    await auditPermissionDenied(permission, scope, "user_lacks_permission");
     throw new HTTPException(403, { message: "Permission denied" });
   }
 }
@@ -312,23 +306,11 @@ async function enforceTokenBinding(
 ) {
   const token = principal.token;
   if (token.organizationId && token.organizationId !== scope?.organizationId) {
-    await auditPermissionDenied(
-      "api_token",
-      token.id,
-      permission,
-      scope,
-      "org_binding_mismatch",
-    );
+    await auditPermissionDenied(permission, scope, "org_binding_mismatch");
     throw new HTTPException(403, { message: "Permission denied" });
   }
   if (token.appId && token.appId !== scope?.appId) {
-    await auditPermissionDenied(
-      "api_token",
-      token.id,
-      permission,
-      scope,
-      "app_binding_mismatch",
-    );
+    await auditPermissionDenied(permission, scope, "app_binding_mismatch");
     throw new HTTPException(403, { message: "Permission denied" });
   }
 }
@@ -345,31 +327,17 @@ export async function assertAccess(
   await enforceTokenBinding(principal, permission, scope);
 
   if (!matchPermission(principal.scopes, permission)) {
-    await auditPermissionDenied(
-      "api_token",
-      principal.token.id,
-      permission,
-      scope,
-      "token_lacks_scope",
-    );
+    await auditPermissionDenied(permission, scope, "token_lacks_scope");
     throw new HTTPException(403, { message: "Permission denied" });
   }
 
   if (!(await checkPermission(principal.ownerId, permission, scope))) {
-    await auditPermissionDenied(
-      "user",
-      principal.ownerId,
-      permission,
-      scope,
-      "owner_lacks_permission",
-    );
+    await auditPermissionDenied(permission, scope, "owner_lacks_permission");
     throw new HTTPException(403, { message: "Permission denied" });
   }
 }
 
 async function auditPermissionDenied(
-  targetType: "user" | "api_token",
-  targetId: string,
   permission: string,
   scope: PermissionScope | undefined,
   reason: string,
@@ -379,8 +347,6 @@ async function auditPermissionDenied(
     category: "permission",
     outcome: "denied",
     severity: "warning",
-    targetType,
-    targetId,
     metadata: { permission, scope, reason },
   });
 }
