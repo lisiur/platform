@@ -1,6 +1,8 @@
 "use client";
 
-import Link from "@tiptap/extension-link";
+import { mergeAttributes, Node } from "@tiptap/core";
+import FileHandler from "@tiptap/extension-file-handler";
+import Image from "@tiptap/extension-image";
 import type { Editor } from "@tiptap/react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -10,17 +12,20 @@ import {
   CodeXml,
   Heading1,
   Heading2,
+  ImageIcon,
   Italic,
   Link2,
   List,
   ListOrdered,
+  Plus,
   Quote,
   Redo2,
   Strikethrough,
   Undo2,
   Variable,
+  Video,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "#lib/utils";
 import { Button } from "./button";
 import {
@@ -34,6 +39,27 @@ import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Separator } from "./separator";
 
+const VideoNode = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return { src: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: "video" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "video",
+      mergeAttributes(HTMLAttributes, {
+        controls: true,
+        class: "w-full rounded-md my-2",
+      }),
+    ];
+  },
+});
+
 export interface TiptapProps {
   value: string;
   onChange?: (html: string) => void;
@@ -41,6 +67,7 @@ export interface TiptapProps {
   id?: string;
   className?: string;
   editable?: boolean;
+  onUploadFile?: (file: File) => Promise<string>;
 }
 
 interface ToolbarButtonProps {
@@ -84,19 +111,43 @@ export function Tiptap({
   id,
   className,
   editable = true,
+  onUploadFile,
 }: TiptapProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2] },
-      }),
-      Link.configure({
-        HTMLAttributes: {
-          target: "_blank",
-          rel: "noopener noreferrer",
-          class: "text-primary underline underline-offset-2",
+        link: {
+          HTMLAttributes: {
+            target: "_blank",
+            rel: "noopener noreferrer",
+            class: "text-primary underline underline-offset-2",
+          },
         },
       }),
+      Image,
+      FileHandler.configure({
+        allowedMimeTypes: [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "video/mp4",
+          "video/webm",
+        ],
+        onPaste: async (editor, files) => {
+          for (const file of files) {
+            await handleFile(editor, file);
+          }
+        },
+        onDrop: async (editor, files, pos) => {
+          for (const file of files) {
+            await handleFile(editor, file, { pos });
+          }
+        },
+      }),
+      VideoNode,
     ],
     content: value || "",
     editable,
@@ -125,6 +176,27 @@ export function Tiptap({
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkText, setLinkText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+
+  async function handleFile(
+    editor: Editor,
+    file: File,
+    insertAt?: { pos: number },
+  ) {
+    const url = await onUploadFile?.(file);
+    if (!url) return;
+
+    if (file.type.startsWith("image/")) {
+      const chain = insertAt
+        ? editor.chain().focus().setTextSelection(insertAt.pos)
+        : editor.chain().focus();
+      chain.setImage({ src: url }).run();
+    } else if (file.type.startsWith("video/")) {
+      const chain = insertAt
+        ? editor.chain().focus().setTextSelection(insertAt.pos)
+        : editor.chain().focus();
+      chain.insertContent({ type: "video", attrs: { src: url } }).run();
+    }
+  }
 
   function insertVariable(name: string) {
     const chain = editor?.chain().focus();
@@ -382,6 +454,48 @@ export function Tiptap({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Insert"
+              >
+                <Plus />
+                Insert
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!editor}
+            >
+              <ImageIcon className="text-muted-foreground" />
+              Image
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!editor}
+            >
+              <Video className="text-muted-foreground" />
+              Video
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && editor) handleFile(editor, file);
+            e.target.value = "";
+          }}
+        />
         <Separator orientation="vertical" className="mx-0.5 h-5" />
         <ToolbarButton
           editor={editor}
