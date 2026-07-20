@@ -24,14 +24,6 @@
       `AuditOutcome "denied"` is dead code. Emit `logAudit` for these
       events.
 
-### Notifications
-
-- [ ] **SMTP transporter rebuilt for every email** — `createTransport` runs
-      inside `sendSmtpEmail` per call (`services/notification/mailer.ts:34-45`);
-      a single SMTP timeout marks the notification `failed` with no in-service
-      retry (`notification.service.ts:227-233`). Cache one transporter per
-      `channelId` and rely on the job worker's retry/backoff.
-
 ### SSE / Events / EventBus
 
 - [ ] **SSE: write failures silently swallowed, no per-user connection cap**
@@ -228,6 +220,16 @@
       `uploaderId === userId` (`upload.service.ts:248-251`). A holder of
       `upload::replace` can silently swap any user's file content. Scope
       the `where` to `uploaderId` for non-superusers.
+
+### Notifications
+
+- [ ] **SMTP transporter rebuilt for every email** — `createTransport` runs
+      inside `sendSmtpEmail` per call (`services/notification/mailer.ts:34-45`);
+      a single SMTP timeout marks the notification `failed` with no in-service
+      retry (`notification.service.ts:227-233`). Cache one transporter per
+      `channelId` and rely on the job worker's retry/backoff.
+      **Deferred:** not a critical problem; the job worker already handles
+      retries and SMTP setup cost is negligible at expected notification volume.
 
 ### Cache
 
