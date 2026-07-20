@@ -30,7 +30,6 @@ function buildRow(overrides: Partial<Record<string, unknown>> = {}) {
     ipAddress: null,
     userAgent: null,
     userId: "user_1",
-    impersonatedBy: null,
     activeOrganizationId: null,
     revokedAt: null,
     createdAt: new Date(),

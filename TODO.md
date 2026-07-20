@@ -144,8 +144,6 @@
 
 ### Schema & DB
 
-- [ ] **`impersonatedBy` field on Session (`schema.prisma:43`) appears
-      unused** — implement or remove.
 - [ ] **`Notification.creatorId` has no FK/index; `status` is a free-text
       string** — `creatorId String?` with no relation (`schema.prisma:539`),
       and `status String @default("pending")` with no enum (`:545`) — typos

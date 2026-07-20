@@ -2566,7 +2566,6 @@ export const SessionScalarFieldEnum = {
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',
   userId: 'userId',
-  impersonatedBy: 'impersonatedBy',
   activeOrganizationId: 'activeOrganizationId',
   revokedAt: 'revokedAt',
   createdAt: 'createdAt',

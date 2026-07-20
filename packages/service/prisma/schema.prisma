@@ -40,7 +40,6 @@ model Session {
   userAgent            String?
   userId               String
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  impersonatedBy       String?
   activeOrganizationId String?
   revokedAt            DateTime?
   createdAt            DateTime  @default(now())
