@@ -17,6 +17,7 @@ export function useCurrentApp() {
       )();
       return res.json();
     },
+    staleTime: 3_000,
     enabled: !session.isPending && !!session.data,
   });
 

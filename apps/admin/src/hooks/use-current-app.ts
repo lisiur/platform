@@ -14,6 +14,7 @@ export function useCurrentApp() {
       )();
       return (await res.json()) as CurrentApplication;
     },
+    staleTime: 3_000,
   });
 
   return {
