@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { updateUserProfile } from "#services/user.service";
@@ -23,6 +24,9 @@ export const updateUser = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
+    if (principal.kind !== "user") {
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
     const body = c.req.valid("json");
     const { user } = await updateUserProfile(
       getPrincipalUserId(principal),
