@@ -8,6 +8,9 @@ CREATE TYPE "JobStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')
 CREATE TYPE "JobPriority" AS ENUM ('CRITICAL', 'HIGH', 'NORMAL', 'LOW', 'IDLE');
 
 -- CreateEnum
+CREATE TYPE "NotificationStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+
+-- CreateEnum
 CREATE TYPE "LinkType" AS ENUM ('GROUP', 'INTERNAL', 'EXTERNAL');
 
 -- CreateTable
@@ -429,7 +432,7 @@ CREATE TABLE "notification" (
     "renderedSubject" TEXT,
     "renderedTitle" TEXT,
     "renderedBody" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'pending',
+    "status" "NotificationStatus" NOT NULL DEFAULT 'PENDING',
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "nextAttemptAt" TIMESTAMP(3),
     "sentAt" TIMESTAMP(3),
@@ -727,6 +730,9 @@ CREATE INDEX "notification_recipientUserId_idx" ON "notification"("recipientUser
 CREATE INDEX "notification_appId_idx" ON "notification"("appId");
 
 -- CreateIndex
+CREATE INDEX "notification_creatorId_idx" ON "notification"("creatorId");
+
+-- CreateIndex
 CREATE INDEX "notification_status_idx" ON "notification"("status");
 
 -- CreateIndex
@@ -836,6 +842,9 @@ ALTER TABLE "notification" ADD CONSTRAINT "notification_recipientUserId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "notification" ADD CONSTRAINT "notification_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notification" ADD CONSTRAINT "notification_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "api_token" ADD CONSTRAINT "api_token_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
