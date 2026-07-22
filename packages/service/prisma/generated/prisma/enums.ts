@@ -30,6 +30,15 @@ export const JobPriority = {
 export type JobPriority = (typeof JobPriority)[keyof typeof JobPriority]
 
 
+export const NotificationStatus = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  FAILED: 'FAILED'
+} as const
+
+export type NotificationStatus = (typeof NotificationStatus)[keyof typeof NotificationStatus]
+
+
 export const LinkType = {
   GROUP: 'GROUP',
   INTERNAL: 'INTERNAL',

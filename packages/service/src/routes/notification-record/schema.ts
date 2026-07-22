@@ -4,6 +4,10 @@ export { errorSchema, idParamSchema } from "#lib/openapi";
 
 const nullableDateSchema = z.date().nullable().optional();
 
+export const notificationStatusSchema = z
+  .enum(["PENDING", "SENT", "FAILED"])
+  .openapi({ example: "SENT" });
+
 export const notificationRecordRecipientSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -49,7 +53,7 @@ export const notificationRecordSchema = z
     renderedSubject: z.string().nullable().optional(),
     renderedTitle: z.string().nullable().optional(),
     renderedBody: z.string().openapi({ example: "Welcome, Alice!" }),
-    status: z.string().openapi({ example: "sent" }),
+    status: notificationStatusSchema,
     app: notificationRecordAppSchema.nullable().optional(),
     attempts: z.number().openapi({ example: 0 }),
     nextAttemptAt: nullableDateSchema,
@@ -73,7 +77,7 @@ export const notificationRecordListItemSchema = z
     id: z.string().openapi({ example: "clx1234567890" }),
     renderedSubject: z.string().nullable().optional(),
     renderedTitle: z.string().nullable().optional(),
-    status: z.string().openapi({ example: "sent" }),
+    status: notificationStatusSchema,
     app: notificationRecordAppSchema.nullable().optional(),
     readAt: nullableDateSchema,
     archivedAt: nullableDateSchema,
@@ -94,7 +98,7 @@ export const listNotificationRecordsQuerySchema = z.object({
   templateKey: z.string().optional(),
   channelId: z.string().optional(),
   providerKey: z.string().optional(),
-  status: z.string().optional(),
+  status: notificationStatusSchema.optional(),
   readState: z.enum(["all", "read", "unread"]).optional().default("all"),
   archivedState: z
     .enum(["all", "active", "archived"])

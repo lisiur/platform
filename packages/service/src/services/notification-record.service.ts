@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import type { Prisma } from "#generated/prisma/client";
+import type { NotificationStatus, Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
 const notificationRecordRelations = {
@@ -57,7 +57,7 @@ export async function listNotificationRecords(params: {
   templateKey?: string;
   channelId?: string;
   providerKey?: string;
-  status?: string;
+  status?: NotificationStatus;
   readState?: "all" | "read" | "unread";
   archivedState?: "all" | "active" | "archived";
   source?: string;

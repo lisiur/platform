@@ -173,7 +173,7 @@ describe("notification runtime service", () => {
       expect(mockPrisma.notification.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            status: "failed",
+            status: "FAILED",
             errorMessage: expect.stringContaining("disabled"),
           }),
         }),
@@ -226,7 +226,7 @@ describe("notification runtime service", () => {
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: "n1",
-          status: "pending",
+          status: "PENDING",
           recipientUserId: "u1",
           appId: null,
           renderedTitle: "Hi",
@@ -248,7 +248,7 @@ describe("notification runtime service", () => {
       expect(mockPrisma.notification.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "n1" },
-          data: expect.objectContaining({ status: "sent" }),
+          data: expect.objectContaining({ status: "SENT" }),
         }),
       );
       expect(result.delivered).toBe(1);
@@ -262,7 +262,7 @@ describe("notification runtime service", () => {
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: "n1",
-          status: "pending",
+          status: "PENDING",
           recipientUserId: "u1",
           renderedSubject: "Welcome",
           renderedTitle: null,
@@ -287,7 +287,7 @@ describe("notification runtime service", () => {
         expect.objectContaining({
           where: { id: "n1" },
           data: expect.objectContaining({
-            status: "sent",
+            status: "SENT",
             providerMessageId: "msg-1",
           }),
         }),
@@ -299,7 +299,7 @@ describe("notification runtime service", () => {
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: "n1",
-          status: "pending",
+          status: "PENDING",
           recipientUserId: "u1",
           renderedSubject: "Welcome",
           renderedTitle: null,
@@ -317,7 +317,7 @@ describe("notification runtime service", () => {
         expect.objectContaining({
           where: { id: "n1" },
           data: expect.objectContaining({
-            status: "failed",
+            status: "FAILED",
             errorMessage: "Recipient has no email address",
           }),
         }),
@@ -328,7 +328,7 @@ describe("notification runtime service", () => {
       mockPrisma.notification.findMany.mockResolvedValue([
         {
           id: "n1",
-          status: "sent",
+          status: "SENT",
           recipientUserId: "u1",
           appId: null,
           renderedTitle: null,

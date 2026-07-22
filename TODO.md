@@ -5,14 +5,16 @@
 ### Auth & Session
 
 - [ ] **WeChat `session_key` persisted in plaintext** — written verbatim to
-      `Account.accessToken` (`services/auth.service.ts:366,403`). A DB leak
+      `Account.accessToken` (`services/auth.service.ts:385,424`). A DB leak
       gives attackers decryption material for previously captured
       `encryptedData`. Encrypt at rest or don't persist beyond the active
       session.
-- [ ] **Session table is never swept** — expired/revoked rows are only lazily
-      marked and never deleted (`lib/session.ts:120-134` lazy `revokedAt`
-      mark, `:159-170` `deleteSessionByToken` only sets `revokedAt`); no
-      scheduled cleanup job (contrast uploads, etc.). Add a sweep that
+- [ ] **Session table is never swept by a scheduled job** — expired/revoked
+      rows are only lazily marked (`lib/session.ts:137-141` lazy `revokedAt`
+      on expired, `:144-148` on banned; `:174-183` `deleteSessionByToken`
+      only sets `revokedAt`). `createSession` now proactively deletes the
+      caller's own dead sessions on login (`:72-85`), but there is no
+      scheduled cleanup for users who never log in again. Add a sweep that
       deletes rows where `revokedAt IS NOT NULL` or `expiresAt < now()`.
 
 ### SSE / Events / EventBus
@@ -21,9 +23,13 @@
       — `writeChain.then(write, () => {})` discards all rejections
       (`routes/events/streamEvents.ts:21-23`); a half-open client never
       aborts, the subscriber is never removed, and the heartbeat loop
-      keeps writing. There is also no cap on concurrent SSE connections
-      per user. On write failure, `unsubscribe()` + `stream.abort()`;
-      track connections per `userId`.
+      keeps writing. Partial mitigations exist: the `onEvent` handler
+      now checks `stream.aborted || stream.closed` (`:32`), and
+      `onClose: () => stream.abort()` is wired (`:42`), but a write
+      rejection still doesn't trigger `unsubscribe()`. There is also
+      no cap on concurrent SSE connections per user. On write failure,
+      call `unsubscribe()` + `stream.abort()`; track connections per
+      `userId`.
 - [ ] **`eventBus.publish` is O(subscribers × targets)** — every publish
       iterates the entire subscriber Set and runs `matches` (which splits
       strings) per comparison (`lib/event-bus.ts:29-35`); a broadcast to
@@ -43,7 +49,7 @@
 ### Seed & Migrations
 
 - [ ] **`seed.ts` is not wrapped in a transaction** — only the built-in-org
-      block uses `$transaction` (`prisma/seed.ts:1318`); the other ~14
+      block uses `$transaction` (`prisma/seed.ts:1370`); the other ~14
       steps are independent writes. A mid-seed failure leaves reference
       data partially updated. Wrap the whole `seed()` body in one
       `$transaction`.
@@ -53,19 +59,20 @@
 ### Auth & Session
 
 - [ ] **Session tokens stored in plaintext (+ raw token embedded in SSE
-      target)** — looked up by exact match (`lib/session.ts:113`); a DB
+      target)** — looked up by exact match (`lib/session.ts:128`); a DB
       read leak yields live sessions. Unlike API tokens (SHA-256 hashed),
       sessions aren't. The raw token also lives in the event-bus subscriber
       target for the connection's lifetime
       (`routes/events/streamEvents.ts:14`). Hash at rest; subscribe by
       `sessionId`, not token.
-- [ ] **No concurrent-session cap per user** — `createSession` inserts
-      unconditionally (`lib/session.ts:63-84`); with no lockout, credential
-      stuffing can flood a victim with sessions. Enforce a max active count
-      (evict oldest).
+- [ ] **No concurrent-session cap per user** — `createSession` now cleans
+      up the caller's own dead sessions before inserting
+      (`lib/session.ts:72-85`), but there is still no cap on the number
+      of *active* sessions; with no lockout, credential stuffing can flood
+      a victim with sessions. Enforce a max active count (evict oldest).
 - [ ] **No account lockout / failed-attempt tracking beyond the IP rate
       limiter** — the only brute-force control is the in-memory `authLimiter`
-      (`app.ts:108-121`). A distributed or slow attack under the per-IP
+      (`app.ts:110-125`). A distributed or slow attack under the per-IP
       limit proceeds unimpeded; the User model has no
       `failedLoginAttempts`/`lockedUntil`. Track per-identity failures and
       lock after a threshold.
@@ -95,7 +102,7 @@
       across all orgs/apps. Restrict by the principal's effective scope or
       treat as platform-admin-only.
 
-### Upload
+### Upload / Attachment
 
 - [ ] **Magic-byte verification is shallow** — several signatures are
       minimal (webp checks only RIFF + "WEBP", PDF only `%PDF`, GIF only
@@ -103,20 +110,24 @@
       passes. Use a real format-aware library (e.g. `file-type`).
 - [ ] **Hotlink guard applied even to valid signed-URL requests** —
       `assertHotlinkAllowed` runs after the private-file signature check
-      (`services/upload.service.ts:152`, helper at `:213-237`, config at
-      `:200-211`), so a correctly-signed URL in an `<img>` on a
+      (`services/attachment.service.ts:184`, helper at `:245-269`, config
+      at `:232-243`), so a correctly-signed URL in an `<img>` on a
       non-allowlisted origin is rejected — defeating much of the purpose
       of signed URLs. Only enforce hotlink protection on
       `visibility === "public"`.
 - [ ] **Dead auth check in `signFile`** — `if (!getPrincipalUserId(principal))
-      throw 401` (`routes/upload/signFile.ts:32-34`) is unreachable because
-      `getPrincipalUserId` always returns a non-empty string. Remove or
-      replace with a real ownership check.
-- [ ] **`replaceUpload` is non-atomic vs concurrent readers** — on content
-      change the new file is written and the old unlinked *before* the row
-      is updated (`services/upload.service.ts:385-409`); a concurrent
-      `getFile` between unlink and update 404s. Update the row first, then
-      unlink.
+      throw 401` (`routes/attachment/signAttachment.ts:32-34`) is unreachable
+      because `getPrincipalUserId` always returns a non-empty string. Remove
+      or replace with a real ownership check.
+- [ ] **IDOR: `replaceAttachment` / `deleteAttachments` check permission but
+      not ownership** — both act on caller-supplied IDs with no `createdBy`
+      filter (`routes/attachment/replaceAttachment.ts:52-71`,
+      `routes/attachment/deleteAttachments.ts:38-43`; service
+      `attachment.service.ts:417-511` for replace, `:361-384` for delete).
+      Contrast `signFile` which enforces `bizType === "user:avatar" &&
+      bizId === userId` (`attachment.service.ts:281-285`). A holder of
+      `attachment::replace` can silently swap any user's file content.
+      Scope the `where` to `createdBy` for non-superusers.
 
 ### Cache
 
@@ -144,13 +155,13 @@
 
 ### Schema & DB
 
-- [ ] **`Notification.creatorId` has no FK/index; `status` is a free-text
-      string** — `creatorId String?` with no relation (`schema.prisma:539`),
-      and `status String @default("pending")` with no enum (`:545`) — typos
+- [x] **`Notification.creatorId` has no FK/index; `status` is a free-text
+      string** — `creatorId String?` with no relation (`schema.prisma:556`),
+      and `status String @default("pending")` with no enum (`:562`) — typos
       like `"pendnig"` are silently accepted. Add a `creator User?`
       relation + `@@index([creatorId])` and a `NotificationStatus` enum.
 - [ ] **`Member.departmentId` and `Invitation.inviterId` FKs have no
-      index** — `schema.prisma:225,244`. List/filter queries on those
+      index** — `schema.prisma:221,241`. List/filter queries on those
       columns table-scan. Add `@@index`.
 - [ ] **`db.ts` configures no pool sizing, statement_timeout, or logging**
       — `new PrismaClient({ adapter })` and `new PrismaPg({ connectionString })`
@@ -165,7 +176,7 @@
       schema changes.
 - [ ] **`Verification` rows are never cleaned up** — `expiresAt` is set
       but unindexed, and no scheduled job deletes expired rows
-      (`schema.prisma:75-85`). Add `@@index([expiresAt])` and a sweep job.
+      (`schema.prisma:69-79`). Add `@@index([expiresAt])` and a sweep job.
 
 ## No Dues
 
@@ -173,7 +184,7 @@
 
 - [ ] **Sign-up TOCTOU race → unhandled P2002 → 500** — `signUpWithEmail`
       does `findUnique` then `createUser` without catching the unique
-      violation (`services/auth.service.ts:181-192`); concurrent same-email
+      violation (`services/auth.service.ts:189-200`); concurrent same-email
       signups both pass the check and the loser throws
       `PrismaClientKnownRequestError (P2002)`, surfacing as a 500. Map
       `P2002` to `409 "User already exists"`.
@@ -182,34 +193,24 @@
       and the impact is just an ugly 500 for the loser — no data
       corruption, no security breach. The `findUnique` pre-check returns a
       clean 400 for the 99.99% case, and the DB unique constraint remains
-      the source of truth. Revisit only if error-monitoring noise from
-      collisions becomes problematic.
+      the source of truth. Note: the WeChat login path (`signInWithWechat`)
+      already catches P2002 and retries (`auth.service.ts:439-452`). Revisit
+      only if error-monitoring noise from collisions becomes problematic.
 - [ ] **No email verification** — `emailVerified` set false, never
       enforced; no verify endpoint in `routes/auth/`. Enforce ownership
       beyond uniqueness.
 - [ ] **Account enumeration via sign-in timing** — when the user is
       missing, the `||` short-circuits and `verifyPassword` is skipped
-      (`services/auth.service.ts:81-108`); argon2 makes the existing-user
+      (`services/auth.service.ts:81-116`); argon2 makes the existing-user
       branch tens of ms slower, exposing whether an account exists. Run a
       dummy `verifyPassword` on miss to equalize timing.
-
-### Upload
-
-- [ ] **IDOR: `replaceUpload` / `deleteUploads` check permission but not
-      ownership** — both act on caller-supplied IDs with no `uploaderId`
-      filter (`routes/upload/replaceUpload.ts:36-54`,
-      `routes/upload/deleteUploads.ts:37-42`; service
-      `upload.service.ts:320-411`). Contrast `signFile` which enforces
-      `uploaderId === userId` (`upload.service.ts:248-251`). A holder of
-      `upload::replace` can silently swap any user's file content. Scope
-      the `where` to `uploaderId` for non-superusers.
 
 ### Notifications
 
 - [ ] **SMTP transporter rebuilt for every email** — `createTransport` runs
-      inside `sendSmtpEmail` per call (`services/notification/mailer.ts:34-45`);
+      inside `sendSmtpEmail` per call (`services/notification/mailer.ts:57-68`);
       a single SMTP timeout marks the notification `failed` with no in-service
-      retry (`notification.service.ts:227-233`). Cache one transporter per
+      retry (`notification.service.ts:231-237`). Cache one transporter per
       `channelId` and rely on the job worker's retry/backoff.
       **Deferred:** not a critical problem; the job worker already handles
       retries and SMTP setup cost is negligible at expected notification volume.
@@ -269,7 +270,7 @@
 ### Infra / Boot
 
 - [ ] **Boot-time side effects** — `seed()` + `jobExecutor.start()` run at
-      module boot (`src/app.ts:27-44`). Anti-pattern for
+      module boot (`src/app.ts:28-45`). Anti-pattern for
       serverless/standalone Next.js; risks cold-start races. Move to
       deploy/migration step.
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
-import type { Prisma } from "#generated/prisma/client";
+import { NotificationStatus, type Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { jobRepository } from "#repositories/job.repository";
 import { eventBus, jobExecutor } from "#states";
@@ -83,7 +83,7 @@ export async function createNotificationsFromTemplate(params: {
             renderedSubject: null,
             renderedTitle: null,
             renderedBody: "",
-            status: "failed",
+            status: NotificationStatus.FAILED,
             failedAt: now,
             errorMessage: disabledReason,
           },
@@ -120,7 +120,7 @@ export async function createNotificationsFromTemplate(params: {
           renderedSubject,
           renderedTitle,
           renderedBody,
-          status: "pending",
+          status: NotificationStatus.PENDING,
         },
         select: { id: true },
       });
@@ -163,7 +163,7 @@ export async function deliverNotifications(notificationIds: string[]) {
   let skipped = 0;
 
   for (const notification of notifications) {
-    if (notification.status !== "pending") {
+    if (notification.status !== NotificationStatus.PENDING) {
       skipped++;
       continue;
     }
@@ -185,7 +185,7 @@ export async function deliverNotifications(notificationIds: string[]) {
       });
       await prisma.notification.update({
         where: { id: notification.id },
-        data: { status: "sent", sentAt: now },
+        data: { status: NotificationStatus.SENT, sentAt: now },
       });
       delivered++;
       continue;
@@ -200,7 +200,7 @@ export async function deliverNotifications(notificationIds: string[]) {
         await prisma.notification.update({
           where: { id: notification.id },
           data: {
-            status: "failed",
+            status: NotificationStatus.FAILED,
             failedAt: now,
             errorMessage: "Recipient has no email address",
           },
@@ -222,7 +222,7 @@ export async function deliverNotifications(notificationIds: string[]) {
         await prisma.notification.update({
           where: { id: notification.id },
           data: {
-            status: "sent",
+            status: NotificationStatus.SENT,
             sentAt: result.sentAt,
             providerMessageId: result.messageId,
           },
@@ -232,7 +232,11 @@ export async function deliverNotifications(notificationIds: string[]) {
         const msg = err instanceof Error ? err.message : String(err);
         await prisma.notification.update({
           where: { id: notification.id },
-          data: { status: "failed", failedAt: now, errorMessage: msg },
+          data: {
+            status: NotificationStatus.FAILED,
+            failedAt: now,
+            errorMessage: msg,
+          },
         });
       }
       continue;
