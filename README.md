@@ -1,6 +1,6 @@
 # platform
 
-A multi-tenant admin and organization platform built as a pnpm monorepo: a typed Hono REST API, two Next.js frontends, and shared packages for UI, frontend utilities, and permissions.
+A multi-tenant admin and organization platform built as a pnpm monorepo: a typed Hono REST API, three Next.js apps (an admin UI, an organization portal, and a gateway entry point), and shared packages for UI, frontend utilities, and permissions.
 
 ## Monorepo structure
 
@@ -15,6 +15,48 @@ packages/
   ui/            shared UI component library (@repo/ui)
   shared/        shared permissions/types (@repo/shared)
 ```
+
+## Features
+
+**Multi-tenancy & applications**
+
+- Organization portal with departments, positions, and member management.
+- Multi-app support: each application gets its own menus, roles, branding (logo, favicon, watermark, footer), and permission scope.
+- Application registration and self-service organization onboarding.
+
+**Authentication & authorization**
+
+- Email/password sign-in and sign-up with argon2 hashing.
+- Passkey (WebAuthn) registration and login, plus WeChat OAuth login.
+- Session-based auth with secure cookies; API tokens for programmatic access.
+- Granular RBAC with `group::action` permission codes, role assignment, and per-menu permission gating — scoped per app and organization.
+
+**Notifications**
+
+- Multi-channel dispatch: in-app, SMTP email (Nodemailer), and SMS outbox.
+- Templated messages with variable rendering, delivery records, retry with backoff, and a test-send workflow.
+- Background dispatch via the job queue.
+
+**Background jobs**
+
+- Persistent job queue with a pluggable handler registry, scheduled execution, concurrency control, retry/backoff, and automatic archival of completed jobs.
+
+**Rate limiting**
+
+- Global and auth-specific (sign-in/sign-up) limiters with configurable windows and caps via env vars.
+- Database-backed per-key overrides with an admin management UI, plus a live rate-limit status view.
+
+**Observability & operations**
+
+- Audit logs and operation logs with full traceability and per-request trace IDs.
+- System config with JSON-schema-driven admin UI; runtime cache inspector/editor (LRU).
+
+**Developer experience**
+
+- Typed end-to-end RPC from frontends to the Hono API (no codegen step).
+- Scalar OpenAPI docs at `/api/docs` with JSON at `/api/openapi.json`.
+- Real-time push via Server-Sent Events (SSE) event bus.
+- Internationalization (next-intl, English/Chinese), dark/light theming, and a shared UI library (Base UI + Tailwind v4 + TipTap rich text).
 
 ## Prerequisites
 
@@ -58,6 +100,15 @@ Both frontends call the API through typed Hono RPC (`appClient` from `@/lib/api`
 | `NEXT_PUBLIC_ADMIN_URL`        | No       | Gateway dev rewrite target for `/admin` (defaults to `http://localhost:3001`).      |
 | `NEXT_PUBLIC_ORGANIZATION_URL` | No       | Gateway dev rewrite target for `/organization` (defaults to `http://localhost:3002`).|
 | `RATE_LIMIT_ENABLED`           | No       | Set to `false` to disable rate limiting (defaults to enabled).                       |
+| `RATE_LIMIT_GLOBAL_MAX`        | No       | Max requests per global window (default `300`).                                      |
+| `RATE_LIMIT_GLOBAL_WINDOW_MS`  | No       | Global limiter window length in ms (default `60000`).                                |
+| `RATE_LIMIT_AUTH_MAX`          | No       | Max requests per auth-endpoint window (default `10`).                                |
+| `RATE_LIMIT_AUTH_WINDOW_MS`    | No       | Auth limiter window length in ms (default `60000`).                                  |
+| `UPLOAD_SIGN_SECRET`           | No       | Secret used to sign upload access URLs.                                              |
+| `WEBAUTHN_RP_ID`               | No       | WebAuthn relying-party ID (defaults to `localhost`; overridable via system config).  |
+| `WEBAUTHN_ORIGIN`              | No       | WebAuthn origin (defaults to `https://<rpID>`; overridable via system config).       |
+| `CACHE_MAX_SIZE`               | No       | Max entries in the runtime LRU cache (default `1000`).                               |
+| `JOB_CONCURRENCY`              | No       | Background job worker concurrency (default `5`).                                     |
 
 ## Common scripts
 
@@ -78,7 +129,9 @@ Both frontends call the API through typed Hono RPC (`appClient` from `@/lib/api`
 
 ## Architecture notes
 
-Apps consume the Hono service via typed end-to-end RPC through the gateway's `/api` route (`AppType` is exported from the gateway route), with OpenAPI docs at `/api/docs` and JSON at `/api/openapi.json`. Access is RBAC-scoped through the shared permissions package. Tech stack: TypeScript, Next.js 16, React 19, Hono 4, Prisma 7, PostgreSQL, Zod 4, TanStack Query, Tailwind v4, Biome 2, next-intl, and Zustand.
+Apps consume the Hono service via typed end-to-end RPC through the gateway's `/api` route (`AppType` is exported from the gateway route), with OpenAPI docs at `/api/docs` and JSON at `/api/openapi.json`. Access is RBAC-scoped through the shared permissions package. The service layer is split into routes (validation/permissions/audit), services (business logic), and repositories (Prisma data access) — see `packages/service/AGENTS.md`.
+
+Tech stack: TypeScript, Next.js 16, React 19, Hono 4, Prisma 7, PostgreSQL, Zod 4, TanStack Query, TanStack Virtual, Tailwind v4, Base UI, TipTap, Biome 2, next-intl, Zustand, and Vitest.
 
 ## Conventions
 
