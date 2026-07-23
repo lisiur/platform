@@ -62,15 +62,15 @@ export type Account = Prisma.AccountModel
  */
 export type Verification = Prisma.VerificationModel
 /**
+ * Model JobInstance
+ * 
+ */
+export type JobInstance = Prisma.JobInstanceModel
+/**
  * Model Job
  * 
  */
 export type Job = Prisma.JobModel
-/**
- * Model JobArchive
- * 
- */
-export type JobArchive = Prisma.JobArchiveModel
 /**
  * Model Organization
  * 

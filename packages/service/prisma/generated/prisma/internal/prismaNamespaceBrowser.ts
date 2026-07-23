@@ -55,8 +55,8 @@ export const ModelName = {
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
+  JobInstance: 'JobInstance',
   Job: 'Job',
-  JobArchive: 'JobArchive',
   Organization: 'Organization',
   Department: 'Department',
   Position: 'Position',
@@ -157,8 +157,9 @@ export const VerificationScalarFieldEnum = {
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
-export const JobScalarFieldEnum = {
+export const JobInstanceScalarFieldEnum = {
   id: 'id',
+  jobId: 'jobId',
   type: 'type',
   description: 'description',
   payload: 'payload',
@@ -176,29 +177,27 @@ export const JobScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type JobScalarFieldEnum = (typeof JobScalarFieldEnum)[keyof typeof JobScalarFieldEnum]
+export type JobInstanceScalarFieldEnum = (typeof JobInstanceScalarFieldEnum)[keyof typeof JobInstanceScalarFieldEnum]
 
 
-export const JobArchiveScalarFieldEnum = {
+export const JobScalarFieldEnum = {
   id: 'id',
+  name: 'name',
   type: 'type',
   description: 'description',
   payload: 'payload',
-  status: 'status',
+  cronExpression: 'cronExpression',
+  enabled: 'enabled',
   priority: 'priority',
-  result: 'result',
-  error: 'error',
-  attempts: 'attempts',
   maxAttempts: 'maxAttempts',
   timeoutMs: 'timeoutMs',
-  scheduledAt: 'scheduledAt',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt',
+  lastRunAt: 'lastRunAt',
+  nextRunAt: 'nextRunAt',
   createdAt: 'createdAt',
-  originalJobId: 'originalJobId'
+  updatedAt: 'updatedAt'
 } as const
 
-export type JobArchiveScalarFieldEnum = (typeof JobArchiveScalarFieldEnum)[keyof typeof JobArchiveScalarFieldEnum]
+export type JobScalarFieldEnum = (typeof JobScalarFieldEnum)[keyof typeof JobScalarFieldEnum]
 
 
 export const OrganizationScalarFieldEnum = {

@@ -21,18 +21,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui";
-import { Copy, Eye, Plus, X } from "lucide-react";
+import { Eye, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
-import { CreateJobDialog, type JobInitialValues } from "./create-job-dialog";
 import { JobDetailSheet } from "./job-detail-sheet";
 import type { JobDetail } from "./job-detail-tabs";
 
-interface Job {
+interface JobInstance {
   id: string;
+  jobId?: string | null;
   type: string;
   description?: string | null;
   status: string;
@@ -41,6 +41,8 @@ interface Job {
   maxAttempts: number;
   createdAt: string;
   scheduledAt: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -63,20 +65,15 @@ function statusVariant(status: string) {
 
 export function JobTable() {
   const t = useTranslations("Jobs");
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JobInstance[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
   const [detailJob, setDetailJob] = useState<JobDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
-  const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [duplicateInitial, setDuplicateInitial] =
-    useState<JobInitialValues | null>(null);
   const lastEffectFetchKeyRef = useRef<string>(undefined);
 
   const pageSize = 20;
@@ -92,7 +89,9 @@ export function JobTable() {
       if (statusFilter) query.status = statusFilter;
       if (typeFilter) query.type = typeFilter;
 
-      const res = await withApiFeedback(appClient.api.jobs.$get)({ query });
+      const res = await withApiFeedback(appClient.api["job-instances"].$get)({
+        query,
+      });
       const data = await res.json();
       setJobs(data.jobs);
       setTotal(data.total);
@@ -128,9 +127,9 @@ export function JobTable() {
     };
   }, []);
 
-  async function handleCancel(job: Job) {
+  async function handleCancel(job: JobInstance) {
     try {
-      await withApiFeedback(appClient.api.jobs[":id"].$delete)({
+      await withApiFeedback(appClient.api["job-instances"][":id"].$delete)({
         param: { id: job.id },
       });
       fetchJobs();
@@ -139,42 +138,19 @@ export function JobTable() {
     }
   }
 
-  async function handleView(job: Job) {
+  async function handleView(job: JobInstance) {
     setDetailOpen(true);
     setDetailLoading(true);
     setDetailJob(null);
     try {
-      const res = await withApiFeedback(appClient.api.jobs[":id"].$get)({
-        param: { id: job.id },
-      });
+      const res = await withApiFeedback(
+        appClient.api["job-instances"][":id"].$get,
+      )({ param: { id: job.id } });
       setDetailJob((await res.json()) as JobDetail);
     } catch {
       setDetailJob(null);
     } finally {
       setDetailLoading(false);
-    }
-  }
-
-  async function handleDuplicate(job: Job) {
-    setDuplicatingId(job.id);
-    try {
-      const res = await withApiFeedback(appClient.api.jobs[":id"].$get)({
-        param: { id: job.id },
-      });
-      const detail = (await res.json()) as JobDetail;
-      setDuplicateInitial({
-        type: detail.type,
-        description: detail.description ?? undefined,
-        payload: detail.payload,
-        priority: detail.priority,
-        maxAttempts: detail.maxAttempts,
-        timeoutMs: detail.timeoutMs,
-      });
-      setDuplicateOpen(true);
-    } catch {
-      // Error handled by API feedback.
-    } finally {
-      setDuplicatingId(null);
     }
   }
 
@@ -223,10 +199,6 @@ export function JobTable() {
             </button>
           )}
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t("addJob")}
-        </Button>
       </div>
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
@@ -239,7 +211,7 @@ export function JobTable() {
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1280px] min-w-[1280px]"
+            className="w-[1320px] min-w-[1320px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
@@ -254,11 +226,11 @@ export function JobTable() {
                 <TableHead className="w-28">{t("columns.attempts")}</TableHead>
                 <TableHead className="w-44">{t("columns.createdAt")}</TableHead>
                 <TableHead className="w-44">
-                  {t("columns.scheduledAt")}
+                  {t("columns.completedAt")}
                 </TableHead>
                 <TableHead
                   sticky="right"
-                  className="w-32 bg-background text-right"
+                  className="w-24 bg-background text-right"
                 >
                   {t("actions")}
                 </TableHead>
@@ -296,7 +268,7 @@ export function JobTable() {
                     {formatDateTime(job.createdAt)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {job.scheduledAt ? formatDateTime(job.scheduledAt) : "-"}
+                    {job.completedAt ? formatDateTime(job.completedAt) : "-"}
                   </TableCell>
                   <TableCell
                     sticky="right"
@@ -317,26 +289,6 @@ export function JobTable() {
                           }
                         />
                         <TooltipContent>{t("view")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("duplicate")}
-                              disabled={duplicatingId === job.id}
-                              onClick={() => handleDuplicate(job)}
-                            >
-                              {duplicatingId === job.id ? (
-                                <Spinner />
-                              ) : (
-                                <Copy />
-                              )}
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("duplicate")}</TooltipContent>
                       </Tooltip>
                       {job.status === "PENDING" && (
                         <Tooltip>
@@ -370,17 +322,6 @@ export function JobTable() {
           />
         </div>
       )}
-      <CreateJobDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={fetchJobs}
-      />
-      <CreateJobDialog
-        open={duplicateOpen}
-        onOpenChange={setDuplicateOpen}
-        onCreated={fetchJobs}
-        initialValues={duplicateInitial ?? undefined}
-      />
       <JobDetailSheet
         open={detailOpen}
         onOpenChange={setDetailOpen}

@@ -33,6 +33,7 @@ import {
   ORGANIZATION_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
+import { nextRunFromNow } from "../src/lib/cron";
 import { hashPassword } from "../src/lib/password";
 import { ADMIN_SCOPE, orgScope } from "../src/lib/scope";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
@@ -882,6 +883,22 @@ const builtInUsers = [
   },
 ];
 
+// --- Built-in Job Templates ---
+const builtInJobTemplates = [
+  {
+    name: "session-sweep",
+    type: "session-sweep",
+    description: "Delete expired and revoked session rows",
+    cronExpression: "0 * * * *",
+  },
+  {
+    name: "job-instance-cleanup",
+    type: "job-instance-cleanup",
+    description: "Delete completed/failed job instances older than 30 days",
+    cronExpression: "0 3 * * *",
+  },
+];
+
 // ============================================================
 // 2. DATABASE CLIENT
 // ============================================================
@@ -1074,6 +1091,38 @@ async function upsertSystemConfig(data: {
   });
 }
 
+async function upsertJobTemplate(data: {
+  name: string;
+  type: string;
+  description: string;
+  cronExpression: string;
+}) {
+  const nextRunAt = nextRunFromNow(data.cronExpression);
+  const existing = await prisma.job.findUnique({ where: { name: data.name } });
+  if (existing) {
+    return prisma.job.update({
+      where: { name: data.name },
+      data: {
+        type: data.type,
+        description: data.description,
+        cronExpression: data.cronExpression,
+        enabled: true,
+        nextRunAt: existing.enabled ? existing.nextRunAt : nextRunAt,
+      },
+    });
+  }
+  return prisma.job.create({
+    data: {
+      name: data.name,
+      type: data.type,
+      description: data.description,
+      cronExpression: data.cronExpression,
+      enabled: true,
+      nextRunAt,
+    },
+  });
+}
+
 async function upsertNotificationChannel(data: {
   key: string;
   name: string;
@@ -1253,7 +1302,14 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${notificationTemplates.length} templates ready.\n`);
 
-  // 4. Applications
+  // 4. Built-in Job Templates
+  console.log("Job templates:");
+  for (const tpl of builtInJobTemplates) {
+    await upsertJobTemplate(tpl);
+  }
+  console.log(`  ${builtInJobTemplates.length} job templates ready.\n`);
+
+  // 5. Applications
   console.log("Applications:");
   const appRecords: Record<string, string> = {};
   for (const app of applications) {
@@ -1262,7 +1318,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${applications.length} applications ready.\n`);
 
-  // 5. System Permissions (admin app)
+  // 6. System Permissions (admin app)
   console.log("System permissions:");
   const systemPermIds = await upsertPermissions(
     appRecords[ADMIN_APP_CODE],
@@ -1270,7 +1326,7 @@ export async function seed(client: PrismaClient) {
   );
   console.log(`  ${systemPermissions.length} system permissions ready.\n`);
 
-  // 6. Organization App Permissions
+  // 7. Organization App Permissions
   console.log("Organization app permissions:");
   const orgPermIds = await upsertPermissions(
     appRecords[ORGANIZATION_APP_CODE],
@@ -1280,7 +1336,7 @@ export async function seed(client: PrismaClient) {
     `  ${organizationPermissions.length} organization permissions ready.\n`,
   );
 
-  // 7. Admin Menus + Permissions
+  // 8. Admin Menus + Permissions
   console.log("Admin menus:");
   const allAdminPermIds = { ...systemPermIds };
   for (const menu of adminMenus) {
@@ -1289,7 +1345,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${adminMenus.length} admin menus ready.\n`);
 
-  // 8. Organization Menus + Permissions
+  // 9. Organization Menus + Permissions
   console.log("Organization menus:");
   for (const menu of organizationMenus) {
     await upsertMenu(appRecords[ORGANIZATION_APP_CODE], menu);
@@ -1297,7 +1353,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${organizationMenus.length} organization menus ready.\n`);
 
-  // 9. Admin Roles
+  // 10. Admin Roles
   console.log("Admin roles:");
   const adminRoleRecords: Record<string, string> = {};
   for (const role of adminRoles) {
@@ -1306,7 +1362,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${adminRoles.length} admin roles ready.\n`);
 
-  // 10. Organization Roles
+  // 11. Organization Roles
   console.log("Organization roles:");
   const orgRoleRecords: Record<string, string> = {};
   for (const role of organizationRoles) {
@@ -1315,7 +1371,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${organizationRoles.length} organization roles ready.\n`);
 
-  // 11. Admin Role -> Permission assignments
+  // 12. Admin Role -> Permission assignments
   console.log("Admin role permissions:");
   for (const [roleCode, permCodes] of Object.entries(adminRolePermissions)) {
     const roleId = adminRoleRecords[roleCode];
@@ -1328,7 +1384,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log();
 
-  // 12. Organization Role -> Permission assignments
+  // 13. Organization Role -> Permission assignments
   console.log("Organization role permissions:");
   for (const [roleCode, permCodes] of Object.entries(
     organizationRolePermissions,
@@ -1341,7 +1397,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log();
 
-  // 13. Built-in Users (create user + account)
+  // 14. Built-in Users (create user + account)
   console.log("Built-in users:");
   const builtInUserRecords: Record<string, string> = {};
   for (const user of builtInUsers) {
@@ -1350,7 +1406,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${builtInUsers.length} users ready.\n`);
 
-  // 14. Built-in User Role Assignments
+  // 15. Built-in User Role Assignments
   console.log("Built-in user role assignments:");
   for (const user of builtInUsers) {
     if (user.roleCode && user.appCode) {
@@ -1364,7 +1420,7 @@ export async function seed(client: PrismaClient) {
   }
   console.log();
 
-  // 15. Built-in Organization (Hapaul owned by hapaul user)
+  // 16. Built-in Organization (Hapaul owned by hapaul user)
   console.log("Built-in organizations:");
   const hapaulUserId = builtInUserRecords.hapaul;
   if (hapaulUserId) {

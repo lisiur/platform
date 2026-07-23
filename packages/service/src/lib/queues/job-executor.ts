@@ -1,14 +1,16 @@
-import type { Job } from "#generated/prisma/client";
+import type { JobInstance } from "#generated/prisma/client";
 import type { JobRepository } from "#repositories/job.repository";
-import { JobArchiver } from "./job-archive";
+import type { JobInstanceRepository } from "#repositories/job-instance.repository";
 import { JobExecutorContext } from "./job-executor-context";
 import type { JobHandlerRegistry } from "./job-handler-registry";
 import { JobQueue } from "./job-queue";
 import { JobScheduler } from "./job-scheduler";
+import { JobTemplateScheduler } from "./job-template-scheduler";
 import { JobWorker } from "./job-worker";
 
 interface JobExecutorDeps {
-  repository: JobRepository;
+  jobRepository: JobRepository;
+  instanceRepository: JobInstanceRepository;
   registry: JobHandlerRegistry;
   concurrency?: number;
 }
@@ -22,39 +24,47 @@ export type JobExecutorEventName =
 
 export interface JobExecutorEvent {
   type: JobExecutorEventName;
-  job: Job;
+  job: JobInstance;
 }
 
 export class JobExecutor {
   private readonly context = new JobExecutorContext();
   private readonly queue: JobQueue;
-  private readonly archiver: JobArchiver;
   private readonly worker: JobWorker;
   private readonly scheduler: JobScheduler;
+  private readonly templateScheduler: JobTemplateScheduler;
 
   constructor(deps: JobExecutorDeps) {
     this.queue = new JobQueue({ concurrency: deps.concurrency });
-    this.archiver = new JobArchiver(deps.repository);
     this.worker = new JobWorker({
-      repository: deps.repository,
+      repository: deps.instanceRepository,
       context: this.context,
-      archiver: this.archiver,
       registry: deps.registry,
     });
     this.queue.setProcessor((job) => this.worker.processJob(job));
     this.scheduler = new JobScheduler({
-      repository: deps.repository,
+      repository: deps.instanceRepository,
       queue: this.queue,
+      context: this.context,
+    });
+    this.templateScheduler = new JobTemplateScheduler({
+      jobRepository: deps.jobRepository,
+      instanceRepository: deps.instanceRepository,
       context: this.context,
     });
   }
 
   start(): void {
     this.scheduler.start().catch(console.error);
+    this.templateScheduler.start().catch(console.error);
   }
 
-  enqueue(job: Job): void {
+  enqueue(job: JobInstance): void {
     this.context.emit("job:created", job);
+  }
+
+  async rearmTemplateScheduler(): Promise<void> {
+    await this.templateScheduler.onTemplateChanged();
   }
 
   subscribe(listener: (event: JobExecutorEvent) => void): () => void {
@@ -66,7 +76,7 @@ export class JobExecutor {
       "job:rescheduled",
     ];
     const pairs = events.map((type) => {
-      const fn = (job: Job) => listener({ type, job });
+      const fn = (job: JobInstance) => listener({ type, job });
       this.context.on(type, fn);
       return { type, fn };
     });

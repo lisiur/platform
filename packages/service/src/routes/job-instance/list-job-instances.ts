@@ -1,18 +1,21 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
-import { jobService } from "#services/job.service";
-import { listJobArchivesResponseSchema, listJobsQuerySchema } from "./schema";
+import { jobInstanceService } from "#services/job-instance.service";
+import {
+  listJobInstancesQuerySchema,
+  listJobInstancesResponseSchema,
+} from "./schema";
 
-export const listJobArchives = defineOpenAPIRoute({
+export const listJobInstances = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
-    path: "/archive",
-    tags: ["Job"],
-    summary: "List archived jobs",
+    path: "/",
+    tags: ["Job Instance"],
+    summary: "List job instances",
     description:
-      "List archived jobs with optional filtering by status or type.",
+      "List job instances with optional filtering by status, type, or template (jobId).",
     request: {
-      query: listJobsQuerySchema,
+      query: listJobInstancesQuerySchema,
     },
     responses: {
       ...unauthorizedResponse,
@@ -20,18 +23,19 @@ export const listJobArchives = defineOpenAPIRoute({
       200: {
         content: {
           "application/json": {
-            schema: listJobArchivesResponseSchema,
+            schema: listJobInstancesResponseSchema,
           },
         },
-        description: "List of archived jobs",
+        description: "List of job instances",
       },
     },
   }),
   handler: async (c) => {
     const query = c.req.valid("query");
-    const result = await jobService.listArchivedJobs({
+    const result = await jobInstanceService.listInstances({
       status: query.status,
       type: query.type,
+      jobId: query.jobId,
       limit: query.limit,
       offset: query.offset,
     });

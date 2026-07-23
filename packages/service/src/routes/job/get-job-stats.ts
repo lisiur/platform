@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
-import { jobService } from "#services/job.service";
+import { jobInstanceService } from "#services/job-instance.service";
 import { jobExecutorStatsSchema } from "./schema";
 
 export const getJobStats = defineOpenAPIRoute({
@@ -25,7 +25,7 @@ export const getJobStats = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
-    const stats = await jobService.getExecutorStats();
+    const stats = await jobInstanceService.getExecutorStats();
 
     return c.json(stats, 200);
   },

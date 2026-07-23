@@ -5,6 +5,7 @@ import { formatDateTime } from "@/utils/date";
 
 export interface JobDetail {
   id: string;
+  jobId?: string | null;
   type: string;
   description?: string | null;
   payload: unknown;
@@ -19,7 +20,6 @@ export interface JobDetail {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
-  originalJobId?: string;
 }
 
 function JsonBlock({ data }: { data: unknown }) {
@@ -69,11 +69,9 @@ export function JobDetailOverview({ job }: { job: JobDetail }) {
       <OverviewField label={o.id}>
         <span className="font-mono text-xs break-all">{job.id}</span>
       </OverviewField>
-      {job.originalJobId && (
-        <OverviewField label={o.originalJobId}>
-          <span className="font-mono text-xs break-all">
-            {job.originalJobId}
-          </span>
+      {job.jobId && (
+        <OverviewField label={o.jobId}>
+          <span className="font-mono text-xs break-all">{job.jobId}</span>
         </OverviewField>
       )}
       <OverviewField label={o.type}>

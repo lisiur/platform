@@ -1,7 +1,7 @@
 import PQueue from "p-queue";
-import type { Job } from "./job.types";
+import type { JobInstance } from "./job.types";
 
-type JobProcessor = (job: Job) => Promise<void>;
+type JobProcessor = (job: JobInstance) => Promise<void>;
 
 interface JobQueueOptions {
   concurrency?: number;
@@ -25,13 +25,13 @@ export class JobQueue {
     this.processor = fn;
   }
 
-  add(job: Job): void {
+  add(job: JobInstance): void {
     this.queue.add(async () => {
       if (this.processor) await this.processor(job);
     });
   }
 
-  async addAndWait(job: Job): Promise<void> {
+  async addAndWait(job: JobInstance): Promise<void> {
     await this.queue.add(async () => {
       if (this.processor) await this.processor(job);
     });

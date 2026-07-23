@@ -1,7 +1,6 @@
-import type { Job } from "#generated/prisma/client";
+import type { JobInstance } from "#generated/prisma/client";
 import { JobStatus } from "#generated/prisma/client";
-import type { JobRepository } from "#repositories/job.repository";
-import type { JobArchiver } from "./job-archive";
+import type { JobInstanceRepository } from "#repositories/job-instance.repository";
 import type { JobExecutorContext } from "./job-executor-context";
 import type { JobHandlerRegistry } from "./job-handler-registry";
 
@@ -9,23 +8,20 @@ const RETRY_BACKOFF_BASE_MS = 5_000;
 const RETRY_BACKOFF_MAX_MS = 5 * 60 * 1000;
 
 interface JobWorkerDeps {
-  repository: JobRepository;
+  repository: JobInstanceRepository;
   context: JobExecutorContext;
-  archiver: JobArchiver;
   registry: JobHandlerRegistry;
 }
 
 export class JobWorker {
   constructor(private readonly deps: JobWorkerDeps) {}
 
-  async processJob(job: Job): Promise<void> {
+  async processJob(job: JobInstance): Promise<void> {
     await this.deps.repository.updateStatus(job.id, JobStatus.PROCESSING, {
       startedAt: new Date(),
       attempts: job.attempts + 1,
     });
     this.deps.context.emit("job:processing", job);
-
-    let terminal = false;
 
     try {
       const handler = this.deps.registry.get(job.type);
@@ -45,7 +41,6 @@ export class JobWorker {
       });
 
       this.deps.context.emit("job:completed", job);
-      terminal = true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -56,7 +51,6 @@ export class JobWorker {
           error: errorMessage,
         });
         this.deps.context.emit("job:failed", job);
-        terminal = true;
       } else {
         const attemptsMade = job.attempts + 1;
         const backoff = Math.min(
@@ -72,13 +66,6 @@ export class JobWorker {
           },
         );
         this.deps.context.emit("job:rescheduled", retriedJob);
-      }
-    }
-
-    if (terminal) {
-      const fresh = await this.deps.repository.findById(job.id);
-      if (fresh) {
-        await this.deps.archiver.archive(fresh);
       }
     }
   }

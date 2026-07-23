@@ -5,16 +5,17 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobService } from "#services/job.service";
+import { jobTemplateService } from "#services/job-template.service";
 import { jobIdParamSchema } from "./schema";
 
-export const deleteJobArchive = defineOpenAPIRoute({
+export const deleteJob = defineOpenAPIRoute({
   route: createRoute({
     method: "delete",
-    path: "/archive/{id}",
+    path: "/{id}",
     tags: ["Job"],
-    summary: "Remove an archived job",
-    description: "Permanently remove an archived job record.",
+    summary: "Delete a job template",
+    description:
+      "Delete a job template. Existing instances become standalone (jobId set to null).",
     request: {
       params: jobIdParamSchema,
     },
@@ -28,13 +29,13 @@ export const deleteJobArchive = defineOpenAPIRoute({
             schema: deleteSuccessSchema,
           },
         },
-        description: "Archived job removed",
+        description: "Job template deleted",
       },
     },
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-    await jobService.removeArchivedJob(id);
+    await jobTemplateService.deleteTemplate(id);
 
     return c.json({ success: true } as const, 200);
   },

@@ -1,7 +1,7 @@
-import type { Job } from "#generated/prisma/client";
+import type { JobInstance } from "#generated/prisma/client";
 
-export type { Job };
+export type { JobInstance };
 
 export type JobHandler<_TPayload = unknown, TResult = unknown> = (
-  job: Job,
+  job: JobInstance,
 ) => Promise<TResult>;

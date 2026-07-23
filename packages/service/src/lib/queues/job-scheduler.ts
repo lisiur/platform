@@ -1,12 +1,12 @@
-import type { JobRepository } from "#repositories/job.repository";
-import type { Job } from "./job.types";
+import type { JobInstanceRepository } from "#repositories/job-instance.repository";
+import type { JobInstance } from "./job.types";
 import type { JobExecutorContext } from "./job-executor-context";
 import type { JobQueue } from "./job-queue";
 
 const MAX_TIMER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 interface JobSchedulerDeps {
-  repository: JobRepository;
+  repository: JobInstanceRepository;
   queue: JobQueue;
   context: JobExecutorContext;
 }
@@ -78,14 +78,14 @@ export class JobScheduler {
     await this.loadExpiredJobs();
   }
 
-  private async onJobCreated(job: Job): Promise<void> {
+  private async onJobCreated(job: JobInstance): Promise<void> {
     if (job.scheduledAt <= new Date()) {
       this.deps.queue.add(job);
     }
     await this.rescheduleIfNeeded(job);
   }
 
-  private async rescheduleIfNeeded(_job: Job): Promise<void> {
+  private async rescheduleIfNeeded(_job: JobInstance): Promise<void> {
     const nextJob = await this.deps.repository.findNextScheduledJob();
     if (!nextJob) return;
 

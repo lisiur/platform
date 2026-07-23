@@ -1,29 +1,34 @@
-import type { Job, JobArchive, Prisma } from "#generated/prisma/client";
-import { JobStatus } from "#generated/prisma/client";
+import type { Job, JobPriority, Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
 export class JobRepository {
   async create(
     data: {
+      name: string;
       type: string;
-      description?: string;
-      payload: unknown;
-      priority?: string;
-      scheduledAt?: Date;
+      description?: string | null;
+      payload?: unknown;
+      cronExpression?: string | null;
+      enabled?: boolean;
+      priority?: JobPriority;
       maxAttempts?: number;
       timeoutMs?: number;
+      nextRunAt?: Date | null;
     },
     tx: Prisma.TransactionClient = prisma,
   ): Promise<Job> {
     return tx.job.create({
       data: {
+        name: data.name,
         type: data.type,
-        description: data.description,
-        payload: data.payload as Prisma.InputJsonValue,
-        priority: (data.priority as Job["priority"]) ?? "NORMAL",
-        scheduledAt: data.scheduledAt ?? new Date(),
+        description: data.description ?? undefined,
+        payload: data.payload as Prisma.InputJsonValue | undefined,
+        cronExpression: data.cronExpression ?? undefined,
+        enabled: data.enabled ?? true,
+        priority: data.priority ?? "NORMAL",
         maxAttempts: data.maxAttempts ?? 3,
         timeoutMs: data.timeoutMs ?? 60000,
+        nextRunAt: data.nextRunAt,
       },
     });
   }
@@ -32,81 +37,18 @@ export class JobRepository {
     return prisma.job.findUnique({ where: { id } });
   }
 
-  async findPendingJobs(opts: { limit: number }): Promise<Job[]> {
-    return prisma.job.findMany({
-      where: { status: JobStatus.PENDING },
-      orderBy: { scheduledAt: "asc" },
-      take: opts.limit,
-    });
+  async findByName(name: string): Promise<Job | null> {
+    return prisma.job.findUnique({ where: { name } });
   }
 
-  async findNextScheduledJob(): Promise<Job | null> {
-    return prisma.job.findFirst({
-      where: { status: JobStatus.PENDING },
-      orderBy: { scheduledAt: "asc" },
-    });
-  }
-
-  async countExpiredJobs(): Promise<number> {
-    return prisma.job.count({
-      where: {
-        status: JobStatus.PENDING,
-        scheduledAt: { lte: new Date() },
-      },
-    });
-  }
-
-  async updateStatus(
-    id: string,
-    status: JobStatus,
-    data?: {
-      startedAt?: Date;
-      completedAt?: Date;
-      result?: unknown;
-      error?: string;
-      attempts?: number;
-      scheduledAt?: Date;
-    },
-  ): Promise<Job> {
-    return prisma.job.update({
-      where: { id },
-      data: {
-        status,
-        startedAt: data?.startedAt,
-        completedAt: data?.completedAt,
-        result: data?.result as Prisma.InputJsonValue | undefined,
-        error: data?.error,
-        attempts: data?.attempts,
-        scheduledAt: data?.scheduledAt,
-      },
-    });
-  }
-
-  async countByStatus(): Promise<Record<JobStatus, number>> {
-    const groups = await prisma.job.groupBy({
-      by: ["status"],
-      _count: { _all: true },
-    });
-    const counts: Record<JobStatus, number> = {
-      [JobStatus.PENDING]: 0,
-      [JobStatus.PROCESSING]: 0,
-      [JobStatus.COMPLETED]: 0,
-      [JobStatus.FAILED]: 0,
-    } as Record<JobStatus, number>;
-    for (const g of groups) {
-      counts[g.status] = g._count._all;
-    }
-    return counts;
-  }
-
-  async findByFilter(filter: {
-    status?: JobStatus;
+  async findMany(filter: {
+    enabled?: boolean;
     type?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ jobs: Job[]; total: number }> {
     const where: Prisma.JobWhereInput = {};
-    if (filter.status) where.status = filter.status;
+    if (filter.enabled !== undefined) where.enabled = filter.enabled;
     if (filter.type) where.type = filter.type;
 
     const [jobs, total] = await Promise.all([
@@ -122,64 +64,115 @@ export class JobRepository {
     return { jobs, total };
   }
 
+  async findDueTemplates(now: Date = new Date()): Promise<Job[]> {
+    return prisma.job.findMany({
+      where: {
+        enabled: true,
+        cronExpression: { not: null },
+        nextRunAt: { lte: now },
+      },
+      take: 100,
+    });
+  }
+
+  /**
+   * Atomically claim due job templates and advance their schedule, so that
+   * concurrent workers cannot produce duplicate instances.
+   *
+   * Uses `SELECT ... FOR UPDATE SKIP LOCKED` inside a transaction: locked rows
+   * are re-fetched, their `lastRunAt`/`nextRunAt` are advanced via
+   * `computeNext`, and the claimed templates are returned so the caller can
+   * create instances for them. The schedule is advanced within the claim so a
+   * transient error during instance creation cannot cause re-dispatch storms.
+   */
+  async claimDueTemplates(
+    now: Date,
+    computeNext: (cronExpression: string) => Date,
+  ): Promise<Job[]> {
+    return prisma.$transaction(async (t) => {
+      const rows = await t.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "job"
+        WHERE "enabled" = true
+          AND "cronExpression" IS NOT NULL
+          AND "nextRunAt" <= ${now}
+        FOR UPDATE SKIP LOCKED
+      `;
+      if (rows.length === 0) return [];
+
+      const claimed = await t.job.findMany({
+        where: { id: { in: rows.map((r) => r.id) } },
+      });
+
+      for (const tpl of claimed) {
+        if (!tpl.cronExpression) continue;
+        await t.job.update({
+          where: { id: tpl.id },
+          data: { lastRunAt: now, nextRunAt: computeNext(tpl.cronExpression) },
+        });
+      }
+
+      return claimed;
+    });
+  }
+
+  async findNextDueTemplate(now: Date = new Date()): Promise<Job | null> {
+    return prisma.job.findFirst({
+      where: {
+        enabled: true,
+        cronExpression: { not: null },
+        nextRunAt: { gt: now },
+      },
+      orderBy: { nextRunAt: "asc" },
+    });
+  }
+
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      type?: string;
+      description?: string;
+      payload?: unknown;
+      cronExpression?: string | null;
+      enabled?: boolean;
+      priority?: JobPriority;
+      maxAttempts?: number;
+      timeoutMs?: number;
+      nextRunAt?: Date | null;
+    },
+  ): Promise<Job> {
+    return prisma.job.update({
+      where: { id },
+      data: {
+        name: data.name,
+        type: data.type,
+        description: data.description,
+        payload: data.payload as Prisma.InputJsonValue | undefined,
+        cronExpression: data.cronExpression,
+        enabled: data.enabled,
+        priority: data.priority,
+        maxAttempts: data.maxAttempts,
+        timeoutMs: data.timeoutMs,
+        nextRunAt: data.nextRunAt,
+      },
+    });
+  }
+
+  async updateSchedule(
+    id: string,
+    data: { lastRunAt?: Date; nextRunAt?: Date | null },
+  ): Promise<Job> {
+    return prisma.job.update({
+      where: { id },
+      data: {
+        lastRunAt: data.lastRunAt,
+        nextRunAt: data.nextRunAt,
+      },
+    });
+  }
+
   async delete(id: string): Promise<void> {
     await prisma.job.delete({ where: { id } });
-  }
-
-  async archiveAndDelete(job: Job): Promise<void> {
-    await prisma.$transaction([
-      prisma.jobArchive.create({
-        data: {
-          type: job.type,
-          description: job.description,
-          payload: job.payload as Prisma.InputJsonValue,
-          status: job.status,
-          priority: job.priority,
-          result: job.result as Prisma.InputJsonValue | undefined,
-          error: job.error,
-          attempts: job.attempts,
-          maxAttempts: job.maxAttempts,
-          timeoutMs: job.timeoutMs,
-          scheduledAt: job.scheduledAt,
-          startedAt: job.startedAt,
-          completedAt: job.completedAt,
-          createdAt: job.createdAt,
-          originalJobId: job.id,
-        },
-      }),
-      prisma.job.delete({ where: { id: job.id } }),
-    ]);
-  }
-
-  async findArchivedById(id: string): Promise<JobArchive | null> {
-    return prisma.jobArchive.findUnique({ where: { id } });
-  }
-
-  async deleteArchived(id: string): Promise<void> {
-    await prisma.jobArchive.delete({ where: { id } });
-  }
-
-  async findArchivedByFilter(filter: {
-    status?: JobStatus;
-    type?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<{ jobArchives: JobArchive[]; total: number }> {
-    const where: Prisma.JobArchiveWhereInput = {};
-    if (filter.status) where.status = filter.status;
-    if (filter.type) where.type = filter.type;
-
-    const [jobArchives, total] = await Promise.all([
-      prisma.jobArchive.findMany({
-        where,
-        orderBy: { completedAt: "desc" },
-        take: filter.limit ?? 20,
-        skip: filter.offset ?? 0,
-      }),
-      prisma.jobArchive.count({ where }),
-    ]);
-
-    return { jobArchives, total };
   }
 }
 

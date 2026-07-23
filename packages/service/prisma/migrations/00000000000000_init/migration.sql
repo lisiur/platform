@@ -73,8 +73,9 @@ CREATE TABLE "verification" (
 );
 
 -- CreateTable
-CREATE TABLE "job" (
+CREATE TABLE "job_instance" (
     "id" TEXT NOT NULL,
+    "jobId" TEXT,
     "type" TEXT NOT NULL,
     "description" TEXT,
     "payload" JSONB NOT NULL,
@@ -91,29 +92,27 @@ CREATE TABLE "job" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "job_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "job_instance_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "job_archive" (
+CREATE TABLE "job" (
     "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "description" TEXT,
-    "payload" JSONB NOT NULL,
-    "status" "JobStatus" NOT NULL,
-    "priority" "JobPriority" NOT NULL,
-    "result" JSONB,
-    "error" TEXT,
-    "attempts" INTEGER NOT NULL,
-    "maxAttempts" INTEGER NOT NULL,
-    "timeoutMs" INTEGER NOT NULL,
-    "scheduledAt" TIMESTAMP(3) NOT NULL,
-    "startedAt" TIMESTAMP(3),
-    "completedAt" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL,
-    "originalJobId" TEXT NOT NULL,
+    "payload" JSONB,
+    "cronExpression" TEXT,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "priority" "JobPriority" NOT NULL DEFAULT 'NORMAL',
+    "maxAttempts" INTEGER NOT NULL DEFAULT 3,
+    "timeoutMs" INTEGER NOT NULL DEFAULT 60000,
+    "lastRunAt" TIMESTAMP(3),
+    "nextRunAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "job_archive_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "job_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -495,6 +494,9 @@ CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 CREATE INDEX "session_userId_idx" ON "session"("userId");
 
 -- CreateIndex
+CREATE INDEX "session_expiresAt_idx" ON "session"("expiresAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 
 -- CreateIndex
@@ -507,22 +509,25 @@ CREATE UNIQUE INDEX "account_providerId_accountId_key" ON "account"("providerId"
 CREATE INDEX "verification_identifier_idx" ON "verification"("identifier");
 
 -- CreateIndex
-CREATE INDEX "job_status_scheduledAt_idx" ON "job"("status", "scheduledAt");
+CREATE INDEX "job_instance_jobId_idx" ON "job_instance"("jobId");
 
 -- CreateIndex
-CREATE INDEX "job_status_priority_idx" ON "job"("status", "priority");
+CREATE INDEX "job_instance_status_scheduledAt_idx" ON "job_instance"("status", "scheduledAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "job_archive_originalJobId_key" ON "job_archive"("originalJobId");
+CREATE INDEX "job_instance_status_priority_idx" ON "job_instance"("status", "priority");
 
 -- CreateIndex
-CREATE INDEX "job_archive_status_idx" ON "job_archive"("status");
+CREATE INDEX "job_instance_type_idx" ON "job_instance"("type");
 
 -- CreateIndex
-CREATE INDEX "job_archive_type_idx" ON "job_archive"("type");
+CREATE INDEX "job_instance_completedAt_idx" ON "job_instance"("completedAt");
 
 -- CreateIndex
-CREATE INDEX "job_archive_completedAt_idx" ON "job_archive"("completedAt");
+CREATE UNIQUE INDEX "job_name_key" ON "job"("name");
+
+-- CreateIndex
+CREATE INDEX "job_enabled_nextRunAt_idx" ON "job"("enabled", "nextRunAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
@@ -769,6 +774,9 @@ ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "job_instance" ADD CONSTRAINT "job_instance_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "job"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "department" ADD CONSTRAINT "department_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

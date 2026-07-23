@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { NotificationStatus, type Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import { jobRepository } from "#repositories/job.repository";
+import { jobInstanceRepository } from "#repositories/job-instance.repository";
 import { eventBus, jobExecutor } from "#states";
 import { findTemplateForDelivery } from "./template.service";
 import { renderTemplate, validateTemplateVariables } from "./template-renderer";
@@ -127,7 +127,7 @@ export async function createNotificationsFromTemplate(params: {
       created.push(notification.id);
     }
 
-    const createdJob = await jobRepository.create(
+    const createdJob = await jobInstanceRepository.create(
       {
         type: "send-notification",
         description: `Deliver ${created.length} notification(s) for template '${params.templateKey}'`,

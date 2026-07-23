@@ -9,76 +9,90 @@ export const errorSchema = z.object({
 export const jobSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
-    type: z.string().openapi({ example: "send-notification" }),
+    name: z.string().openapi({ example: "session-sweep" }),
+    type: z.string().openapi({ example: "session-sweep" }),
     description: z.string().nullable().optional().openapi({
       description: "Human-readable summary of what the job does",
-      example: "Send welcome email to new users",
+      example: "Sweep expired/revoked sessions",
     }),
-    payload: z.unknown().openapi({ description: "Job payload data" }),
-    status: z
-      .enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"])
-      .openapi({ example: "PENDING" }),
+    payload: z
+      .unknown()
+      .nullable()
+      .openapi({ description: "Default payload for produced instances" }),
+    cronExpression: z.string().nullable().optional().openapi({
+      description: "Cron expression (NULL = manual trigger only)",
+      example: "0 * * * *",
+    }),
+    enabled: z.boolean().openapi({ example: true }),
     priority: z
       .enum(["CRITICAL", "HIGH", "NORMAL", "LOW", "IDLE"])
       .openapi({ example: "NORMAL" }),
-    result: z
-      .unknown()
-      .nullable()
-      .optional()
-      .openapi({ description: "Job result on completion" }),
-    error: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ description: "Error message on failure" }),
-    attempts: z.number().openapi({ example: 0 }),
     maxAttempts: z.number().openapi({ example: 3 }),
     timeoutMs: z.number().openapi({ example: 60000 }),
-    scheduledAt: z.date().openapi({ example: "2026-07-04T10:00:00Z" }),
-    startedAt: z
+    lastRunAt: z
       .date()
       .nullable()
       .optional()
-      .openapi({ example: "2026-07-04T10:00:01Z" }),
-    completedAt: z
+      .openapi({ example: "2026-07-04T10:00:00Z" }),
+    nextRunAt: z
       .date()
       .nullable()
       .optional()
-      .openapi({ example: "2026-07-04T10:00:05Z" }),
+      .openapi({ example: "2026-07-04T11:00:00Z" }),
     createdAt: z.date().openapi({ example: "2026-07-04T08:00:00Z" }),
+    updatedAt: z.date().openapi({ example: "2026-07-04T08:00:00Z" }),
   })
   .openapi("Job");
 
 export const createJobBodySchema = z.object({
+  name: z.string().min(1).openapi({
+    example: "session-sweep",
+    description: "Unique name identifying this job template",
+  }),
   type: z.string().min(1).openapi({
-    example: "send-notification",
-    description: "Job type identifier",
+    example: "session-sweep",
+    description: "Job type identifier (maps to a registered handler)",
   }),
   description: z.string().optional().openapi({
     description: "Optional human-readable summary of what the job does",
-    example: "Send welcome email to new users",
+    example: "Sweep expired/revoked sessions",
   }),
-  payload: z.unknown().openapi({ description: "Job payload data" }),
+  payload: z
+    .unknown()
+    .optional()
+    .openapi({ description: "Default payload data" }),
+  cronExpression: z.string().optional().openapi({
+    description:
+      "Cron expression for recurring schedule (omit for manual-trigger only)",
+    example: "0 * * * *",
+  }),
+  enabled: z.boolean().default(true).openapi({ example: true }),
   priority: z
     .enum(["CRITICAL", "HIGH", "NORMAL", "LOW", "IDLE"])
     .default("NORMAL")
     .openapi({ example: "NORMAL" }),
-  scheduledAt: z
-    .string()
-    .refine((v) => !Number.isNaN(Date.parse(v)), {
-      message: "Invalid ISO datetime",
-    })
-    .optional()
-    .openapi({
-      description: "ISO 8601 datetime to run job (e.g. 2026-07-04T10:00:00Z)",
-      example: "2026-07-04T10:00:00Z",
-    }),
   maxAttempts: z.number().int().min(1).default(3).openapi({ example: 3 }),
   timeoutMs: z.number().int().min(1).default(60000).openapi({ example: 60000 }),
 });
 
+export const updateJobBodySchema = createJobBodySchema.partial().extend({
+  cronExpression: z.string().nullable().optional().openapi({
+    description: "Set to null to disable recurring schedule",
+    example: "0 * * * *",
+  }),
+});
+
 export const listJobsQuerySchema = z.object({
-  status: z.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]).optional(),
+  enabled: z
+    .preprocess((v) => {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v !== 0;
+      if (typeof v === "string") {
+        return !["false", "0", "", "no", "off"].includes(v.toLowerCase());
+      }
+      return v;
+    }, z.boolean())
+    .optional(),
   type: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
@@ -92,62 +106,6 @@ export const listJobsResponseSchema = z
     total: z.number(),
   })
   .openapi("ListJobsResponse");
-
-export const jobArchiveSchema = z
-  .object({
-    id: z.string().openapi({ example: "clx1234567890" }),
-    type: z.string().openapi({ example: "send-notification" }),
-    description: z.string().nullable().optional().openapi({
-      description: "Human-readable summary of what the job does",
-      example: "Send welcome email to new users",
-    }),
-    payload: z.unknown().openapi({ description: "Job payload data" }),
-    status: z
-      .enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"])
-      .openapi({ example: "COMPLETED" }),
-    priority: z
-      .enum(["CRITICAL", "HIGH", "NORMAL", "LOW", "IDLE"])
-      .openapi({ example: "NORMAL" }),
-    result: z
-      .unknown()
-      .nullable()
-      .optional()
-      .openapi({ description: "Job result on completion" }),
-    error: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ description: "Error message on failure" }),
-    attempts: z.number().openapi({ example: 1 }),
-    maxAttempts: z.number().openapi({ example: 3 }),
-    timeoutMs: z.number().openapi({ example: 60000 }),
-    scheduledAt: z.date().openapi({ example: "2026-07-04T10:00:00Z" }),
-    startedAt: z
-      .date()
-      .nullable()
-      .optional()
-      .openapi({ example: "2026-07-04T10:00:01Z" }),
-    completedAt: z
-      .date()
-      .nullable()
-      .optional()
-      .openapi({ example: "2026-07-04T10:00:05Z" }),
-    createdAt: z.date().openapi({ example: "2026-07-04T08:00:00Z" }),
-    originalJobId: z
-      .string()
-      .openapi({ description: "ID of the job before archiving" }),
-  })
-  .openapi("JobArchive");
-
-export const listJobArchivesResponseSchema = z
-  .object({
-    jobArchives: jobArchiveSchema.array(),
-    total: z.number(),
-  })
-  .openapi("ListJobArchivesResponse");
-
-export type CreateJobBody = z.infer<typeof createJobBodySchema>;
-export type ListJobsQuery = z.infer<typeof listJobsQuerySchema>;
 
 export const jobExecutorStatsSchema = z
   .object({
@@ -164,7 +122,7 @@ export const jobExecutorStatsSchema = z
     nextScheduledAt: z.date().nullable().openapi({
       example: "2026-07-04T10:00:00Z",
       description:
-        "Scheduled time of the earliest pending job, or null if none pending",
+        "Scheduled time of the earliest pending job instance, or null if none pending",
     }),
     byStatus: z
       .object({
@@ -174,7 +132,11 @@ export const jobExecutorStatsSchema = z
         FAILED: z.number().openapi({ example: 2 }),
       })
       .openapi({
-        description: "Total job counts grouped by status (from database)",
+        description: "Job instance counts grouped by status (from database)",
       }),
   })
   .openapi("JobExecutorStats");
+
+export type CreateJobBody = z.infer<typeof createJobBodySchema>;
+export type UpdateJobBody = z.infer<typeof updateJobBodySchema>;
+export type ListJobsQuery = z.infer<typeof listJobsQuerySchema>;

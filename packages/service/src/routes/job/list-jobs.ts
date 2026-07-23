@@ -1,6 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
-import { jobService } from "#services/job.service";
+import { jobTemplateService } from "#services/job-template.service";
 import { listJobsQuerySchema, listJobsResponseSchema } from "./schema";
 
 export const listJobs = defineOpenAPIRoute({
@@ -8,8 +8,9 @@ export const listJobs = defineOpenAPIRoute({
     method: "get",
     path: "/",
     tags: ["Job"],
-    summary: "List jobs",
-    description: "List all jobs with optional filtering by status or type.",
+    summary: "List job templates",
+    description:
+      "List all job templates with optional filtering by enabled or type.",
     request: {
       query: listJobsQuerySchema,
     },
@@ -22,14 +23,14 @@ export const listJobs = defineOpenAPIRoute({
             schema: listJobsResponseSchema,
           },
         },
-        description: "List of jobs",
+        description: "List of job templates",
       },
     },
   }),
   handler: async (c) => {
     const query = c.req.valid("query");
-    const result = await jobService.listJobs({
-      status: query.status,
+    const result = await jobTemplateService.listTemplates({
+      enabled: query.enabled,
       type: query.type,
       limit: query.limit,
       offset: query.offset,

@@ -1,4 +1,4 @@
-import type { Job, JobHandler } from "./job.types";
+import type { JobHandler, JobInstance } from "./job.types";
 
 type JobHandlerMap = Record<string, JobHandler>;
 
@@ -21,7 +21,7 @@ export class JobHandlerRegistry {
     return type in this.handlers;
   }
 
-  async execute(job: Job): Promise<unknown> {
+  async execute(job: JobInstance): Promise<unknown> {
     const handler = this.handlers[job.type];
     if (!handler) {
       throw new Error(`No handler registered for job type: ${job.type}`);

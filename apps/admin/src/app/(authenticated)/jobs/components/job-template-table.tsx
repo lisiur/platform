@@ -6,11 +6,8 @@ import {
   Button,
   ButtonGroup,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
   Spinner,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -21,7 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui";
-import { Copy, Eye, Trash2 } from "lucide-react";
+import { Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -29,101 +26,71 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
-import { CreateJobDialog, type JobInitialValues } from "./create-job-dialog";
-import { JobDetailSheet } from "./job-detail-sheet";
-import type { JobDetail } from "./job-detail-tabs";
+import {
+  JobTemplateDialog,
+  type JobTemplateInitialValues,
+} from "./job-template-dialog";
 
-interface ArchivedJob {
+interface JobTemplate {
   id: string;
-  originalJobId: string;
+  name: string;
   type: string;
   description?: string | null;
-  status: string;
+  cronExpression?: string | null;
+  enabled: boolean;
   priority: string;
-  attempts: number;
   maxAttempts: number;
+  timeoutMs: number;
+  payload?: unknown;
+  lastRunAt?: string | null;
+  nextRunAt?: string | null;
   createdAt: string;
-  completedAt?: string | null;
-  scheduledAt: string;
 }
 
-const STATUS_OPTIONS = [
-  "PENDING",
-  "PROCESSING",
-  "COMPLETED",
-  "FAILED",
-] as const;
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "secondary" as const;
-    case "FAILED":
-      return "destructive" as const;
-    default:
-      return "outline" as const;
-  }
-}
-
-export function ArchivedJobTable({
-  onJobCreated,
-}: {
-  onJobCreated?: () => void;
-}) {
+export function JobTemplateTable() {
   const t = useTranslations("Jobs");
   const confirm = useConfirm();
-  const [jobs, setJobs] = useState<ArchivedJob[]>([]);
+  const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [detailJob, setDetailJob] = useState<JobDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
-  const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [duplicateInitial, setDuplicateInitial] =
-    useState<JobInitialValues | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editInitial, setEditInitial] =
+    useState<JobTemplateInitialValues | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const lastEffectFetchKeyRef = useRef<string>(undefined);
 
   const pageSize = 20;
-  const effectFetchKey = JSON.stringify({ page, statusFilter, typeFilter });
+  const effectFetchKey = JSON.stringify({ page, typeFilter });
 
-  const fetchJobs = useCallback(async () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true);
     try {
       const query: Record<string, string | number> = {
         limit: pageSize,
         offset: (page - 1) * pageSize,
       };
-      if (statusFilter) query.status = statusFilter;
       if (typeFilter) query.type = typeFilter;
 
-      const res = await withApiFeedback(appClient.api.jobs.archive.$get)({
-        query,
-      });
+      const res = await withApiFeedback(appClient.api.jobs.$get)({ query });
       const data = await res.json();
-      setJobs(data.jobArchives);
+      setTemplates(data.jobs);
       setTotal(data.total);
     } catch {
-      setJobs([]);
+      setTemplates([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, typeFilter]);
+  }, [page, typeFilter]);
 
   useEffect(() => {
     if (lastEffectFetchKeyRef.current === effectFetchKey) return;
     lastEffectFetchKeyRef.current = effectFetchKey;
-    fetchJobs();
-  }, [effectFetchKey, fetchJobs]);
-
-  function handleStatusChange(value: string | null) {
-    setStatusFilter(!value || value === "all" ? "" : value);
-    setPage(1);
-  }
+    fetchTemplates();
+  }, [effectFetchKey, fetchTemplates]);
 
   const typeDebounceRef = useRef<NodeJS.Timeout | null>(null);
   function handleTypeChange(value: string) {
@@ -138,93 +105,78 @@ export function ArchivedJobTable({
     };
   }, []);
 
-  const hasFilters = statusFilter !== "" || typeFilter !== "";
-  function handleClearFilters() {
-    setStatusFilter("");
-    setTypeFilter("");
-    setPage(1);
-  }
-
-  async function handleView(job: ArchivedJob) {
-    setDetailOpen(true);
-    setDetailLoading(true);
-    setDetailJob(null);
+  async function handleToggleEnabled(tpl: JobTemplate) {
+    setTogglingId(tpl.id);
     try {
-      const res = await withApiFeedback(appClient.api.jobs.archive[":id"].$get)(
-        { param: { id: job.id } },
-      );
-      setDetailJob((await res.json()) as JobDetail);
-    } catch {
-      setDetailJob(null);
-    } finally {
-      setDetailLoading(false);
-    }
-  }
-
-  async function handleDuplicate(job: ArchivedJob) {
-    setDuplicatingId(job.id);
-    try {
-      const res = await withApiFeedback(appClient.api.jobs.archive[":id"].$get)(
-        { param: { id: job.id } },
-      );
-      const detail = (await res.json()) as JobDetail;
-      setDuplicateInitial({
-        type: detail.type,
-        payload: detail.payload,
-        priority: detail.priority,
-        maxAttempts: detail.maxAttempts,
-        timeoutMs: detail.timeoutMs,
+      await withApiFeedback(appClient.api.jobs[":id"].$patch)({
+        param: { id: tpl.id },
+        json: { enabled: !tpl.enabled },
       });
-      setDuplicateOpen(true);
+      fetchTemplates();
     } catch {
       // Error handled by API feedback.
     } finally {
-      setDuplicatingId(null);
+      setTogglingId(null);
     }
   }
 
-  async function handleRemove(job: ArchivedJob) {
+  function handleEdit(tpl: JobTemplate) {
+    setEditInitial({
+      id: tpl.id,
+      name: tpl.name,
+      type: tpl.type,
+      description: tpl.description ?? undefined,
+      cronExpression: tpl.cronExpression,
+      enabled: tpl.enabled,
+      priority: tpl.priority,
+      maxAttempts: tpl.maxAttempts,
+      timeoutMs: tpl.timeoutMs,
+      payload: tpl.payload,
+    });
+    setEditOpen(true);
+  }
+
+  async function handleTrigger(tpl: JobTemplate) {
+    try {
+      await withApiFeedback(appClient.api.jobs[":id"].trigger.$post)({
+        param: { id: tpl.id },
+      });
+      toast.success(t("triggerSuccess"));
+    } catch {
+      // Error handled by API feedback.
+    }
+  }
+
+  async function handleDelete(tpl: JobTemplate) {
     const confirmed = await confirm({
       title: t("remove"),
-      description: t("confirmRemove"),
+      description: t("confirmDelete"),
       confirmLabel: t("remove"),
       cancelLabel: t("cancelBtn"),
     });
     if (!confirmed) return;
 
     try {
-      await withApiFeedback(appClient.api.jobs.archive[":id"].$delete)({
-        param: { id: job.id },
+      await withApiFeedback(appClient.api.jobs[":id"].$delete)({
+        param: { id: tpl.id },
       });
-      toast.success(t("removeSuccess"));
-      fetchJobs();
+      toast.success(t("deleteSuccess"));
+      fetchTemplates();
     } catch {
       // Error handled by API feedback.
     }
+  }
+
+  const hasFilters = typeFilter !== "";
+  function handleClearFilters() {
+    setTypeFilter("");
+    setPage(1);
   }
 
   return (
     <div className="flex min-h-0 w-full flex-col">
       <div className="mb-4 flex shrink-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={statusFilter || "all"}
-            onValueChange={handleStatusChange}
-          >
-            <SelectTrigger className="h-9 w-36">
-              {statusFilter
-                ? t(`status.${statusFilter}`)
-                : t("filters.allStatus")}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("filters.allStatus")}</SelectItem>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`status.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Input
             className="h-9 w-48"
             placeholder={t("search")}
@@ -241,78 +193,80 @@ export function ArchivedJobTable({
             </button>
           )}
         </div>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" />
+          {t("addTemplate")}
+        </Button>
       </div>
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
           <Spinner />
         </div>
-      ) : jobs.length === 0 ? (
+      ) : templates.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-muted-foreground">
-          {t("noArchivedJobs")}
+          {t("noTemplates")}
         </div>
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1360px] min-w-[1360px]"
+            className="w-[1320px] min-w-[1320px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
               <TableRow>
-                <TableHead className="w-32">
-                  {t("columns.originalJobId")}
-                </TableHead>
+                <TableHead className="w-36">{t("columns.name")}</TableHead>
                 <TableHead className="w-40">{t("columns.type")}</TableHead>
-                <TableHead className="w-64">
+                <TableHead className="w-56">
                   {t("columns.description")}
                 </TableHead>
-                <TableHead className="w-28">{t("columns.status")}</TableHead>
+                <TableHead className="w-36">{t("columns.cron")}</TableHead>
+                <TableHead className="w-24">{t("columns.enabled")}</TableHead>
                 <TableHead className="w-24">{t("columns.priority")}</TableHead>
-                <TableHead className="w-28">{t("columns.attempts")}</TableHead>
-                <TableHead className="w-44">{t("columns.createdAt")}</TableHead>
-                <TableHead className="w-44">
-                  {t("columns.completedAt")}
-                </TableHead>
+                <TableHead className="w-44">{t("columns.nextRun")}</TableHead>
+                <TableHead className="w-44">{t("columns.lastRun")}</TableHead>
                 <TableHead
                   sticky="right"
-                  className="w-32 bg-background text-right"
+                  className="w-36 bg-background text-right"
                 >
                   {t("actions")}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-mono text-xs">
-                    {job.originalJobId.slice(-8)}
+              {templates.map((tpl) => (
+                <TableRow key={tpl.id}>
+                  <TableCell className="font-mono text-sm">
+                    {tpl.name}
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {job.type}
+                    {tpl.type}
                   </TableCell>
                   <TableCell
-                    className="max-w-64 truncate text-xs text-muted-foreground"
-                    title={job.description ?? ""}
+                    className="max-w-56 truncate text-xs text-muted-foreground"
+                    title={tpl.description ?? ""}
                   >
-                    {job.description ?? "-"}
+                    {tpl.description ?? "-"}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {tpl.cronExpression ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant(job.status)}>
-                      {t(`status.${job.status}`)}
-                    </Badge>
+                    <Switch
+                      checked={tpl.enabled}
+                      disabled={togglingId === tpl.id}
+                      onCheckedChange={() => handleToggleEnabled(tpl)}
+                    />
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {t(`priority.${job.priority}`)}
+                      {t(`priority.${tpl.priority}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {job.attempts}/{job.maxAttempts}
+                  <TableCell className="whitespace-nowrap text-sm">
+                    {tpl.nextRunAt ? formatDateTime(tpl.nextRunAt) : "-"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {formatDateTime(job.createdAt)}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-sm">
-                    {job.completedAt ? formatDateTime(job.completedAt) : "-"}
+                    {tpl.lastRunAt ? formatDateTime(tpl.lastRunAt) : "-"}
                   </TableCell>
                   <TableCell
                     sticky="right"
@@ -325,14 +279,14 @@ export function ArchivedJobTable({
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={t("view")}
-                              onClick={() => handleView(job)}
+                              aria-label={t("trigger")}
+                              onClick={() => handleTrigger(tpl)}
                             >
-                              <Eye />
+                              <Play />
                             </Button>
                           }
                         />
-                        <TooltipContent>{t("view")}</TooltipContent>
+                        <TooltipContent>{t("trigger")}</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger
@@ -340,19 +294,14 @@ export function ArchivedJobTable({
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={t("duplicate")}
-                              disabled={duplicatingId === job.id}
-                              onClick={() => handleDuplicate(job)}
+                              aria-label={t("edit")}
+                              onClick={() => handleEdit(tpl)}
                             >
-                              {duplicatingId === job.id ? (
-                                <Spinner />
-                              ) : (
-                                <Copy />
-                              )}
+                              <Pencil />
                             </Button>
                           }
                         />
-                        <TooltipContent>{t("duplicate")}</TooltipContent>
+                        <TooltipContent>{t("edit")}</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger
@@ -361,7 +310,7 @@ export function ArchivedJobTable({
                               variant="ghost"
                               size="icon-sm"
                               aria-label={t("remove")}
-                              onClick={() => handleRemove(job)}
+                              onClick={() => handleDelete(tpl)}
                             >
                               <Trash2 />
                             </Button>
@@ -384,18 +333,16 @@ export function ArchivedJobTable({
           />
         </div>
       )}
-      <CreateJobDialog
-        open={duplicateOpen}
-        onOpenChange={setDuplicateOpen}
-        onCreated={() => onJobCreated?.()}
-        initialValues={duplicateInitial ?? undefined}
+      <JobTemplateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSaved={fetchTemplates}
       />
-      <JobDetailSheet
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        job={detailJob}
-        loading={detailLoading}
-        title={t("detail.archivedTitle")}
+      <JobTemplateDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={fetchTemplates}
+        initialValues={editInitial}
       />
     </div>
   );

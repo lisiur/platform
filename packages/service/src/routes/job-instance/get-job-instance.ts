@@ -4,18 +4,18 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobTemplateService } from "#services/job-template.service";
-import { jobIdParamSchema, jobSchema } from "./schema";
+import { jobInstanceService } from "#services/job-instance.service";
+import { jobInstanceIdParamSchema, jobInstanceSchema } from "./schema";
 
-export const getJob = defineOpenAPIRoute({
+export const getJobInstance = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
     path: "/{id}",
-    tags: ["Job"],
-    summary: "Get a job template",
-    description: "Get job template details by ID.",
+    tags: ["Job Instance"],
+    summary: "Get a job instance",
+    description: "Get job instance details by ID.",
     request: {
-      params: jobIdParamSchema,
+      params: jobInstanceIdParamSchema,
     },
     responses: {
       ...unauthorizedResponse,
@@ -24,17 +24,17 @@ export const getJob = defineOpenAPIRoute({
       200: {
         content: {
           "application/json": {
-            schema: jobSchema,
+            schema: jobInstanceSchema,
           },
         },
-        description: "Job template details",
+        description: "Job instance details",
       },
     },
   }),
   handler: async (c) => {
     const { id } = c.req.valid("param");
-    const job = await jobTemplateService.getTemplate(id);
+    const instance = await jobInstanceService.getInstance(id);
 
-    return c.json(job, 200);
+    return c.json(instance, 200);
   },
 });

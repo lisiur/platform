@@ -9,8 +9,8 @@ vi.mock("#lib/db", () => ({
   },
 }));
 
-vi.mock("#repositories/job.repository", () => ({
-  jobRepository: { create: vi.fn() },
+vi.mock("#repositories/job-instance.repository", () => ({
+  jobInstanceRepository: { create: vi.fn() },
 }));
 
 vi.mock("#states", () => ({
@@ -40,7 +40,7 @@ vi.mock("#states", () => ({
 vi.mock("./mailer", () => ({ sendSmtpEmail: vi.fn() }));
 
 import { prisma } from "#lib/db";
-import { jobRepository } from "#repositories/job.repository";
+import { jobInstanceRepository } from "#repositories/job-instance.repository";
 import {
   eventBus,
   jobExecutor,
@@ -67,7 +67,7 @@ const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
 };
 
-const mockJobRepository = jobRepository as unknown as {
+const mockJobRepository = jobInstanceRepository as unknown as {
   create: ReturnType<typeof vi.fn>;
 };
 const mockEventBus = eventBus as unknown as {

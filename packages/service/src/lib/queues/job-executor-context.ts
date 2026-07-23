@@ -1,11 +1,11 @@
-import type { Job } from "#generated/prisma/client";
+import type { JobInstance } from "#generated/prisma/client";
 
 type JobEvent = {
-  "job:created": Job;
-  "job:processing": Job;
-  "job:completed": Job;
-  "job:failed": Job;
-  "job:rescheduled": Job;
+  "job:created": JobInstance;
+  "job:processing": JobInstance;
+  "job:completed": JobInstance;
+  "job:failed": JobInstance;
+  "job:rescheduled": JobInstance;
 };
 
 type Listener<T> = (data: T) => void;

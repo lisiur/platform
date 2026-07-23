@@ -4,21 +4,21 @@ import {
   forbiddenResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { jobService } from "#services/job.service";
-import { createJobBodySchema, jobSchema } from "./schema";
+import { jobInstanceService } from "#services/job-instance.service";
+import { createJobInstanceBodySchema, jobInstanceSchema } from "./schema";
 
-export const enqueueJob = defineOpenAPIRoute({
+export const createJobInstance = defineOpenAPIRoute({
   route: createRoute({
     method: "post",
     path: "/",
-    tags: ["Job"],
-    summary: "Enqueue a new job",
-    description: "Create and enqueue a new background job.",
+    tags: ["Job Instance"],
+    summary: "Create an ad-hoc job instance",
+    description: "Create and enqueue a one-shot job instance (no template).",
     request: {
       body: {
         content: {
           "application/json": {
-            schema: createJobBodySchema,
+            schema: createJobInstanceBodySchema,
           },
         },
         required: true,
@@ -27,7 +27,7 @@ export const enqueueJob = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      ...createdResponseFn(jobSchema, "The enqueued job"),
+      ...createdResponseFn(jobInstanceSchema, "The created job instance"),
     },
   }),
   handler: async (c) => {
@@ -36,7 +36,7 @@ export const enqueueJob = defineOpenAPIRoute({
       ? new Date(body.scheduledAt)
       : undefined;
 
-    const job = await jobService.createJob({
+    const instance = await jobInstanceService.createInstance({
       type: body.type,
       description: body.description,
       payload: body.payload,
@@ -46,6 +46,6 @@ export const enqueueJob = defineOpenAPIRoute({
       timeoutMs: body.timeoutMs,
     });
 
-    return c.json(job, 201);
+    return c.json(instance, 201);
   },
 });

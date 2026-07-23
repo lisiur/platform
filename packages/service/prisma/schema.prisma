@@ -49,6 +49,7 @@ model Session {
 
   @@unique([token])
   @@index([userId])
+  @@index([expiresAt])
   @@map("session")
 }
 
@@ -100,8 +101,10 @@ enum NotificationStatus {
   FAILED
 }
 
-model Job {
+model JobInstance {
   id          String      @id @default(cuid())
+  jobId       String?
+  job         Job?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
   type        String
   description String?
   payload     Json
@@ -118,33 +121,34 @@ model Job {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  @@index([jobId])
   @@index([status, scheduledAt])
   @@index([status, priority])
-  @@map("job")
-}
-
-model JobArchive {
-  id            String      @id @default(cuid())
-  type          String
-  description   String?
-  payload       Json
-  status        JobStatus
-  priority      JobPriority
-  result        Json?
-  error         String?
-  attempts      Int
-  maxAttempts   Int
-  timeoutMs     Int
-  scheduledAt   DateTime
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime
-  originalJobId String      @unique
-
-  @@index([status])
   @@index([type])
   @@index([completedAt])
-  @@map("job_archive")
+  @@map("job_instance")
+}
+
+model Job {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  type           String
+  description    String?
+  payload        Json?
+  cronExpression String?
+  enabled        Boolean      @default(true)
+  priority       JobPriority  @default(NORMAL)
+  maxAttempts    Int          @default(3)
+  timeoutMs      Int          @default(60000)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  instances      JobInstance[]
+
+  @@index([enabled, nextRunAt])
+  @@map("job")
 }
 
 model Organization {

@@ -1,9 +1,11 @@
 # Architecture: Job System
 
 The platform ships an in-process background job queue built on top of Postgres
-(for durability) and `p-queue` (for in-memory concurrency control). Jobs are
-created by application code or via the REST API, persisted as rows, picked up by
-an in-process scheduler/worker, and archived once they reach a terminal state.
+(for durability) and `p-queue` (for in-memory concurrency control). Work is
+defined by **`Job` templates** (recurring via cron or manual trigger); templates
+produce **`JobInstance`** rows that are picked up by an in-process
+scheduler/worker. Instances keep their terminal status in place — there is no
+separate archive table.
 
 > All Job code lives under `packages/service/src/lib/queues/`. The job queue is
 > **in-process** — there is no external broker (no Redis/BullMQ). It runs inside
@@ -20,39 +22,56 @@ enum JobStatus    { PENDING | PROCESSING | COMPLETED | FAILED }
 enum JobPriority  { CRITICAL | HIGH | NORMAL | LOW | IDLE }
 ```
 
-**`Job`** (`schema.prisma:101`) — the live/active job table:
+**`Job`** (`schema.prisma`, table `job`) — the *template*: defines a
+group of jobs (recurring or manual-trigger). Templates are mutable.
 
 | Field | Purpose |
 |---|---|
 | `id` | cuid |
+| `name` | Unique human-friendly identifier (e.g. `"session-sweep"`) |
 | `type` | Handler key, e.g. `"send-notification"` |
+| `payload` | `Json?` — default payload copied into each produced instance |
+| `cronExpression` | `String?` — 5-field cron. `NULL` = manual-trigger only |
+| `enabled` | When `false`, the recurring schedule is paused |
+| `priority` / `maxAttempts` / `timeoutMs` | Defaults inherited by instances |
+| `lastRunAt` | When the last instance was dispatched |
+| `nextRunAt` | Pre-computed next cron occurrence (via `croner`) |
+
+**`JobInstance`** (table `job_instance`) — a single execution, produced either
+by a template (`jobId` set) or ad-hoc by application code (`jobId = null`).
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `jobId` | `String?` — FK to the template; `null` for ad-hoc/event-driven jobs |
+| `type` | Handler key (denormalized from template or set directly) |
 | `payload` | `Json` — opaque data passed to the handler |
 | `status` | Current lifecycle state |
 | `priority` | Ordering hint (currently informational) |
 | `attempts` / `maxAttempts` | Retry bookkeeping (default max 3) |
-| `timeoutMs` | Per-job execution timeout (default 60 000 ms) |
-| `scheduledAt` | When the job becomes eligible to run (enables delayed jobs) |
+| `timeoutMs` | Per-instance execution timeout (default 60 000 ms) |
+| `scheduledAt` | When the instance becomes eligible to run |
 | `startedAt` / `completedAt` | Lifecycle timestamps |
 | `result` / `error` | Handler return value / failure message |
 
-**`JobArchive`** (`schema.prisma:124`) — a cold-storage mirror of `Job`. When a
-job reaches a terminal state (`COMPLETED` or `FAILED`) it is copied here and the
-`Job` row is deleted. `originalJobId` preserves the link. This keeps the hot
-`Job` table small while retaining history.
+On template deletion, `JobInstance.jobId` is set to `null` (`onDelete: SetNull`)
+so execution history is preserved.
 
 ---
 
 ## 2. Core Components
 
 ```
-                    ┌─────────────────────────────────────────────┐
-                    │              JobExecutor (facade)            │
-                    │  start() · enqueue() · subscribe() · stats() │
-                    └──────────────────────┬──────────────────────┘
-        ┌──────────────┬──────────────────┼──────────────────┬──────────────┐
-        ▼              ▼                  ▼                  ▼              ▼
-  JobScheduler     JobQueue        JobExecutorContext    JobWorker     JobArchiver
-  (timer/load)   (p-queue, N concurrent)  (event hub)   (run+retry)   (→ JobArchive)
+                    ┌─────────────────────────────────────────────────────┐
+                    │              JobExecutor (facade)                     │
+                    │  start() · enqueue() · subscribe() · stats()          │
+                    └──────────────┬─────────────────────────┬─────────────┘
+         ┌────────────────────────┘                           │
+         ▼                                                    ▼
+   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌──────────────────┐
+   │JobScheduler │   │  JobQueue   │   │  JobWorker  │   │JobTemplateScheduler│
+   │(instances)  │   │(p-queue, N) │   │(run+retry)  │   │  (cron dispatch)  │
+   └─────────────┘   └─────────────┘   └─────────────┘   └──────────────────┘
 ```
 
 ### JobQueue — `lib/queues/job-queue.ts`
@@ -60,18 +79,34 @@ A thin wrapper around [`p-queue`](https://github.com/sindresorhus/p-queue) that
 enforces concurrency. A single `JobProcessor` callback is registered by the
 executor. Concurrency comes from `JOB_CONCURRENCY` (default `5`).
 
-### JobScheduler — `lib/queues/job-scheduler.ts`
-Decides *when* a job enters the in-memory queue.
-- On `start()` it calls `loadExpiredJobs()`: pages through all `PENDING` jobs
-  (1000 at a time), enqueues any whose `scheduledAt <= now`, and arms a
-  `setTimeout` for the next future-scheduled job.
+### JobScheduler — `lib/queues/job-scheduler.ts` (instance scheduler)
+Decides *when* a `JobInstance` enters the in-memory queue.
+- On `start()` it calls `loadExpiredJobs()`: pages through all `PENDING`
+  instances (1000 at a time), enqueues any whose `scheduledAt <= now`, and arms
+  a `setTimeout` for the next future-scheduled instance.
 - Listens to the `job:created` and `job:rescheduled` context events to enqueue
-  due jobs immediately and to re-arm the timer when a new sooner job appears.
+  due instances immediately and to re-arm the timer.
 - Long delays are capped at `MAX_TIMER_DURATION_MS` (24h) and re-evaluated on
-  fire, so very-far-future jobs don't rely on a single fragile timer.
+  fire.
+
+### JobTemplateScheduler — `lib/queues/job-template-scheduler.ts` (recurring engine)
+Produces `JobInstance` rows from due templates — this is what makes recurring
+jobs work.
+- On `start()` it calls `dispatchDue()`: atomically claims due templates via
+  `claimDueTemplates` (`SELECT ... FOR UPDATE SKIP LOCKED`), advancing each
+  template's `lastRunAt`/`nextRunAt` within the same transaction, then creates a
+  `JobInstance` for each claimed template (copying `type`/payload defaults) and
+  emits `job:created` (→ the instance scheduler enqueues it). The schedule is
+  advanced inside the claim so a transient error during instance creation cannot
+  cause re-dispatch storms.
+- **Skip-semantics:** `nextRunAt` is always computed from "now", so downtime gaps
+  produce one catch-up run on recovery, not a backlog of missed runs.
+- After dispatch it arms a `setTimeout` for the next due template (capped at 24h,
+  same pattern as the instance scheduler). The executor's
+  `rearmTemplateScheduler()` is called after template create/update/delete.
 
 ### JobWorker — `lib/queues/job-worker.ts`
-Processes one job. This is the heart of the execution model:
+Processes one instance. This is the heart of the execution model:
 1. Mark `PROCESSING`, set `startedAt`, increment `attempts`.
 2. Look up the handler by `job.type` in the registry (404-ish error if missing).
 3. Run `handler(job)` racing against a `setTimeout(job.timeoutMs)` timeout.
@@ -80,15 +115,12 @@ Processes one job. This is the heart of the execution model:
    - If `attempts >= maxAttempts` → `FAILED` + store `error`.
    - Otherwise → set back to `PENDING` with `scheduledAt = now + backoff`,
      where `backoff = min(5 000ms · 2^(attempts-1), 5min)` (exponential, capped).
-6. If the job reached a terminal state, re-fetch the fresh row and **archive** it.
+
+There is **no archiving** — the instance row simply retains its terminal status.
 
 ### JobHandlerRegistry — `lib/queues/job-handler-registry.ts`
 A `Record<type, JobHandler>` lookup. Handlers are registered at startup (see
-§5). `JobHandler` is `(job: Job) => Promise<unknown>` (`job.types.ts`).
-
-### JobArchiver — `lib/queues/job-archive.ts`
-Copies a terminal `Job` into `JobArchive` and deletes the original, in two
-sequential writes (see §8 caveat).
+§5). `JobHandler` is `(job: JobInstance) => Promise<unknown>` (`job.types.ts`).
 
 ### JobExecutorContext — `lib/queues/job-executor-context.ts`
 A tiny typed event emitter for the five lifecycle events:
@@ -96,32 +128,35 @@ A tiny typed event emitter for the five lifecycle events:
 
 ### JobExecutor — `lib/queues/job-executor.ts`
 The facade that wires everything together. Public API:
-- `start()` — boots the scheduler (loads recoverable jobs).
-- `enqueue(job)` — emits `job:created` (scheduler decides if it runs now).
+- `start()` — boots both schedulers (instance recovery + template dispatch).
+- `enqueue(job)` — emits `job:created` (instance scheduler decides if it runs now).
+- `rearmTemplateScheduler()` — re-arms the template timer after template changes.
 - `subscribe(fn)` — fan-out over all five lifecycle events.
 - `getStats()` — live `queueSize`, `pending`, `concurrency` from `p-queue`.
 
 ---
 
-## 3. Lifecycle of a Job
+## 3. Lifecycle of a Job Instance
 
 ```
- create  ──►  PENDING  ──(due)──►  PROCESSING  ──►  COMPLETED
-                 │                      │               │
-                 │                      │ fail          │  (archive → JobArchive)
-                 │                      ▼               ▼
-                 └─ reschedule ◄── attempts < max    FAILED ──► (archive → JobArchive)
-                   (backoff)        attempts ≥ max
+  create  ──►  PENDING  ──(due)──►  PROCESSING  ──►  COMPLETED
+                  │                      │
+                  │                      │ fail
+                  │                      ▼
+                  └─ reschedule ◄── attempts < max
+                    (backoff)        attempts ≥ max ──► FAILED
 ```
 
-1. **Create** — a `Job` row is inserted (`PENDING`, `attempts=0`).
+1. **Create** — a `JobInstance` row is inserted (`PENDING`, `attempts=0`). This
+   happens either from a template (via `JobTemplateScheduler`) or ad-hoc.
 2. **Schedule** — `jobExecutor.enqueue(job)` emits `job:created`. The scheduler
    enqueues it immediately if `scheduledAt <= now`, else arms a timer.
 3. **Process** — `p-queue` calls `JobWorker.processJob` under concurrency.
 4. **Retry** — failures before `maxAttempts` flip back to `PENDING` with an
    exponential backoff and a `job:rescheduled` event; the scheduler re-arms.
-5. **Archive** — `COMPLETED`/`FAILED` jobs are moved to `JobArchive` and removed
-   from `Job`, so the live table only ever holds `PENDING`/`PROCESSING` rows.
+5. **Terminal** — `COMPLETED`/`FAILED` rows stay in the `job_instance` table
+   (status + `completedAt`/`result`/`error` set). History is queried by status
+   filter; no archive table exists.
 
 Every lifecycle event is also broadcast to admin clients over SSE as a
 `job.stats.updated` event (see §7).
@@ -130,50 +165,64 @@ Every lifecycle event is also broadcast to admin clients over SSE as a
 
 ## 4. Producing Jobs
 
-There are two ways to enqueue work.
+There are two paths: **templates** (recurring / manual-trigger) and **ad-hoc
+instances** (event-driven).
 
-### A. Internally (from service code)
+### A. Recurring templates (from service code or REST API)
 
-Prefer the **`JobService`** (`services/job.service.ts`) — it persists the row
-*and* notifies the executor in one call:
+Create a `Job` template via **`JobTemplateService`**
+(`services/job-template.service.ts`):
 
 ```ts
-import { jobService } from "#services/job.service";
+import { jobTemplateService } from "#services/job-template.service";
 
-const job = await jobService.createJob({
-  type: "send-notification",
-  description: "Deliver welcome emails",
-  payload: { notificationIds: [...] },
-  priority: "NORMAL",        // optional, default NORMAL
-  scheduledAt: new Date(...), // optional → delayed job
-  maxAttempts: 3,            // optional, default 3
-  timeoutMs: 60_000,         // optional, default 60s
+const template = await jobTemplateService.createTemplate({
+  name: "session-sweep",                 // unique
+  type: "session-sweep",                 // handler key
+  description: "Delete expired sessions",
+  cronExpression: "0 * * * *",           // optional; omit for manual-trigger only
+  enabled: true,
+  priority: "NORMAL",
+  maxAttempts: 3,
+  timeoutMs: 60_000,
 });
 ```
 
-For atomicity with related writes, drop down to the repository inside a
-transaction and then `enqueue` the returned row yourself — this is exactly what
-the notification service does (`notification.service.ts:109`):
+The service computes `nextRunAt` via `croner` and calls
+`rearmTemplateScheduler()`. To run a template once without affecting the
+schedule, use `jobTemplateService.triggerTemplate(id)`.
+
+Templates are mutable (`updateTemplate`); changes to cron/enabled recompute
+`nextRunAt` and take effect from the next scheduled run.
+
+### B. Ad-hoc instances (event-driven, from service code)
+
+For event-driven work (e.g. delivering notifications), create a `JobInstance`
+directly via **`JobInstanceService`** (`services/job-instance.service.ts`) or
+the repository inside a transaction:
 
 ```ts
-import { jobRepository } from "#repositories/job.repository";
+import { jobInstanceRepository } from "#repositories/job-instance.repository";
 import { jobExecutor } from "#states";
 
 const job = await prisma.$transaction(async (tx) => {
   // ...create child rows in the same tx...
-  return jobRepository.create({ type: "send-notification", payload, description }, tx);
+  return jobInstanceRepository.create(
+    { type: "send-notification", payload, description }, tx,
+  );
 });
 jobExecutor.enqueue(job); // notify the scheduler AFTER the tx commits
 ```
 
 > Always `enqueue()` **after** the transaction commits, so the worker never sees
-> a job whose payload rows aren't visible yet.
+> a job whose payload rows aren't visible yet. The notification service
+> (`notification.service.ts`) follows this pattern.
 
-### B. Externally (REST API)
+### C. Externally (REST API)
 
-`POST /api/jobs` (`routes/job/enqueue-job.ts`) accepts the same fields as
-`createJobBodySchema` (`routes/job/schema.ts:52`) and returns the created job.
-Note `scheduledAt` is sent as an ISO string.
+- `POST /api/jobs` — create a job **template**.
+- `POST /api/jobs/:id/trigger` — run a template once immediately.
+- `POST /api/job-instances` — create an ad-hoc **instance** (one-shot, no template).
 
 ---
 
@@ -200,22 +249,28 @@ Note `scheduledAt` is sent as an ISO string.
    registry.register("my-job-type", myHandler);
    ```
 
-The handler is keyed by the string passed as the job's `type`. Throwing rejects
-the job (subject to retry/backoff); returning a value stores it as `result`.
+3. (For recurring work) Seed a `Job` template with the matching `type` and a
+   `cronExpression` in `prisma/seed.ts` (`builtInJobTemplates`), or create one
+   via the admin API/`JobTemplateService`.
+
+The handler is keyed by the string passed as the instance's `type`. Throwing
+rejects the instance (subject to retry/backoff); returning a value stores it as
+`result`.
 
 ---
 
-## 6. The Built-in Handler: `send-notification`
+## 6. Built-in Handlers
 
-The only registered handler today. When notifications are created from a template
-(`createNotificationsFromTemplate`), a single `send-notification` job carrying
-the `notificationIds` is created *in the same transaction* as the notification
-rows. The handler (`send-notification.handler.ts`) calls `deliverNotifications`,
-which dispatches per provider:
+Two handlers ship today (`handlers/index.ts`):
 
-- `in-app` → emits a `notification.created` SSE event to the recipient and marks `sent`.
-- `smtp-email` → dynamically imports the mailer and sends; marks `sent`/`failed`.
-- others → left `pending` (skipped).
+- **`send-notification`** — when notifications are created from a template
+  (`createNotificationsFromTemplate`), a single `send-notification` instance
+  carrying the `notificationIds` is created *in the same transaction* as the
+  notification rows (`jobId = null`, ad-hoc). The handler calls
+  `deliverNotifications`, dispatching per provider (`in-app`, `smtp-email`, …).
+- **`session-sweep`** — deletes rows where `revokedAt IS NOT NULL` or
+  `expiresAt < now()`. Seeded as a recurring template (`cron "0 * * * *"`,
+  hourly) in `prisma/seed.ts` (`builtInJobTemplates`). Resolves issue #1.
 
 ---
 
@@ -227,50 +282,50 @@ which dispatches per provider:
 - **Stats endpoint**: `GET /api/jobs/stats` returns live runtime numbers
   (`queueSize`, `pending`, `concurrency`) plus DB aggregates grouped by status
   and the next scheduled time.
-- **Listing**: `GET /api/jobs` (live) and `GET /api/jobs/archives` (history),
-  both filterable by `status`/`type` with pagination.
-- **Control**: `POST /api/jobs/:id/retry` (FAILED → PENDING), `POST /api/jobs/:id/cancel`
-  (PENDING → delete), `DELETE /api/jobs/archives/:id`.
+- **Listing**: `GET /api/jobs` (templates) and `GET /api/job-instances`
+  (instances, filterable by `status`/`type`/`jobId`), both paginated.
+- **Control**: `DELETE /api/jobs/:id` (delete template), `PATCH /api/jobs/:id`
+  (edit template), `DELETE /api/job-instances/:id` (cancel pending instance).
 
 ---
 
 ## 8. Configuration & Caveats
 
 **Environment variables**
-- `JOB_CONCURRENCY` — max in-flight jobs for the `p-queue` (default `5`).
-- Job-level overrides: `maxAttempts` (3), `timeoutMs` (60 000), `priority` (NORMAL).
+- `JOB_CONCURRENCY` — max in-flight instances for the `p-queue` (default `5`).
+- Template/instance-level overrides: `maxAttempts` (3), `timeoutMs` (60 000),
+  `priority` (NORMAL).
 
-**Startup**: `jobExecutor.start()` is invoked at module load in `src/app.ts:28`.
-On boot it runs `loadExpiredJobs()` to recover any `PENDING` rows left behind by
-a previous/crashed process — so pending work survives restarts.
+**Startup**: `jobExecutor.start()` is invoked at module load in `src/app.ts`.
+On boot it runs both `loadExpiredJobs()` (recovers `PENDING` instances left
+behind by a previous/crashed process) and `dispatchDue()` (dispatches due
+templates).
 
 **Important limitations to keep in mind:**
 
-- **Single-process only.** The queue, scheduler timers, and lifecycle events
-  live in memory. There is **no row-level lock / "claim"** step when moving a job
-  to `PROCESSING`, so running multiple API instances will cause **duplicate
-  execution** — every instance's scheduler re-queues every due `PENDING` job.
-  This design assumes a single long-lived process (e.g. one standalone Next.js
-  server). Do not horizontally scale the API without first adding a claim/lease
-  mechanism (e.g. `SELECT ... FOR UPDATE SKIP LOCKED` or an atomic
-  `updateMany` conditional on `status = 'PENDING'`).
+- **Single-process only.** The queue, both schedulers' timers, and lifecycle
+  events live in memory. There is **no row-level lock / "claim"** step when
+  moving an instance to `PROCESSING`, so running multiple API instances will
+  cause **duplicate execution**. This design assumes a single long-lived process
+  (e.g. one standalone Next.js server). Do not horizontally scale the API
+  without first adding a claim/lease mechanism (e.g.
+  `SELECT ... FOR UPDATE SKIP LOCKED` or an atomic `updateMany` conditional on
+  `status = 'PENDING'`). Template *dispatch* is already claim-protected
+  (`claimDueTemplates` uses `SKIP LOCKED`), so concurrent workers cannot create
+  duplicate instances from the same due template — but the duplicate-execution
+  risk remains at the instance-processing level.
 
-- **Retry vs. archive interaction.** `FAILED` jobs are archived and deleted from
-  the `Job` table immediately. `POST /api/jobs/:id/retry` looks the job up in
-  the **live `Job`** table, so by the time a human can click "retry" the failed
-  job is usually already in `JobArchive` and the call will 404. Retries are
-  primarily automatic (backoff); manual retry needs to target archived jobs.
-
-- **Non-atomic archive.** `archiveAndDelete` performs `jobArchive.create` then
-  `job.delete` as two separate writes (not in a transaction). A crash between
-  them leaves the row duplicated. Wrapping both in `prisma.$transaction` would
-  make it safe.
+- **Unbounded instance growth.** Terminal instances (`COMPLETED`/`FAILED`) are
+  kept in place rather than archived. The table grows forever; there is no
+  retention/pruning job yet. Query history via status filters. (See ISSUES.md
+  #18 for the analogous retention concern.)
 
 - **Priority is informational.** `priority` is stored and surfaced in the API but
   does not influence execution order — `p-queue` runs in FIFO insertion order.
 
 - **Timer ceiling.** Delays beyond 24h are served by chained 24h timers; a
-  process restart before the final fire re-covers them via `loadExpiredJobs()`.
+  process restart before the final fire re-covers them via `loadExpiredJobs()`
+  / `dispatchDue()`.
 
 ---
 

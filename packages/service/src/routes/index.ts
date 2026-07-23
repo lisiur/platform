@@ -7,6 +7,7 @@ import { authRoutes } from "./auth";
 import { cacheRoutes } from "./cache";
 import { eventsRoutes } from "./events";
 import { jobRoutes } from "./job";
+import { jobInstanceRoutes } from "./job-instance";
 import { menuRoutes } from "./menu";
 import { notificationRoutes } from "./notification";
 import { notificationChannelRoutes } from "./notification-channel";
@@ -45,6 +46,7 @@ const routes = new OpenAPIHono()
   .route("/users", userRoutes)
   .route("/api-tokens", apiTokenRoutes)
   .route("/jobs", jobRoutes)
+  .route("/job-instances", jobInstanceRoutes)
   .route("/rate-limit", rateLimitRoutes)
   .route("/cache", cacheRoutes);
 

@@ -27,66 +27,60 @@ export type AggregateJob = {
 }
 
 export type JobAvgAggregateOutputType = {
-  attempts: number | null
   maxAttempts: number | null
   timeoutMs: number | null
 }
 
 export type JobSumAggregateOutputType = {
-  attempts: number | null
   maxAttempts: number | null
   timeoutMs: number | null
 }
 
 export type JobMinAggregateOutputType = {
   id: string | null
+  name: string | null
   type: string | null
   description: string | null
-  status: $Enums.JobStatus | null
+  cronExpression: string | null
+  enabled: boolean | null
   priority: $Enums.JobPriority | null
-  error: string | null
-  attempts: number | null
   maxAttempts: number | null
   timeoutMs: number | null
-  scheduledAt: Date | null
-  startedAt: Date | null
-  completedAt: Date | null
+  lastRunAt: Date | null
+  nextRunAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type JobMaxAggregateOutputType = {
   id: string | null
+  name: string | null
   type: string | null
   description: string | null
-  status: $Enums.JobStatus | null
+  cronExpression: string | null
+  enabled: boolean | null
   priority: $Enums.JobPriority | null
-  error: string | null
-  attempts: number | null
   maxAttempts: number | null
   timeoutMs: number | null
-  scheduledAt: Date | null
-  startedAt: Date | null
-  completedAt: Date | null
+  lastRunAt: Date | null
+  nextRunAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type JobCountAggregateOutputType = {
   id: number
+  name: number
   type: number
   description: number
   payload: number
-  status: number
+  cronExpression: number
+  enabled: number
   priority: number
-  result: number
-  error: number
-  attempts: number
   maxAttempts: number
   timeoutMs: number
-  scheduledAt: number
-  startedAt: number
-  completedAt: number
+  lastRunAt: number
+  nextRunAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -94,66 +88,60 @@ export type JobCountAggregateOutputType = {
 
 
 export type JobAvgAggregateInputType = {
-  attempts?: true
   maxAttempts?: true
   timeoutMs?: true
 }
 
 export type JobSumAggregateInputType = {
-  attempts?: true
   maxAttempts?: true
   timeoutMs?: true
 }
 
 export type JobMinAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   description?: true
-  status?: true
+  cronExpression?: true
+  enabled?: true
   priority?: true
-  error?: true
-  attempts?: true
   maxAttempts?: true
   timeoutMs?: true
-  scheduledAt?: true
-  startedAt?: true
-  completedAt?: true
+  lastRunAt?: true
+  nextRunAt?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type JobMaxAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   description?: true
-  status?: true
+  cronExpression?: true
+  enabled?: true
   priority?: true
-  error?: true
-  attempts?: true
   maxAttempts?: true
   timeoutMs?: true
-  scheduledAt?: true
-  startedAt?: true
-  completedAt?: true
+  lastRunAt?: true
+  nextRunAt?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type JobCountAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   description?: true
   payload?: true
-  status?: true
+  cronExpression?: true
+  enabled?: true
   priority?: true
-  result?: true
-  error?: true
-  attempts?: true
   maxAttempts?: true
   timeoutMs?: true
-  scheduledAt?: true
-  startedAt?: true
-  completedAt?: true
+  lastRunAt?: true
+  nextRunAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -247,19 +235,17 @@ export type JobGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
 
 export type JobGroupByOutputType = {
   id: string
+  name: string
   type: string
   description: string | null
-  payload: runtime.JsonValue
-  status: $Enums.JobStatus
+  payload: runtime.JsonValue | null
+  cronExpression: string | null
+  enabled: boolean
   priority: $Enums.JobPriority
-  result: runtime.JsonValue | null
-  error: string | null
-  attempts: number
   maxAttempts: number
   timeoutMs: number
-  scheduledAt: Date
-  startedAt: Date | null
-  completedAt: Date | null
+  lastRunAt: Date | null
+  nextRunAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: JobCountAggregateOutputType | null
@@ -289,79 +275,74 @@ export type JobWhereInput = {
   OR?: Prisma.JobWhereInput[]
   NOT?: Prisma.JobWhereInput | Prisma.JobWhereInput[]
   id?: Prisma.StringFilter<"Job"> | string
+  name?: Prisma.StringFilter<"Job"> | string
   type?: Prisma.StringFilter<"Job"> | string
   description?: Prisma.StringNullableFilter<"Job"> | string | null
-  payload?: Prisma.JsonFilter<"Job">
-  status?: Prisma.EnumJobStatusFilter<"Job"> | $Enums.JobStatus
+  payload?: Prisma.JsonNullableFilter<"Job">
+  cronExpression?: Prisma.StringNullableFilter<"Job"> | string | null
+  enabled?: Prisma.BoolFilter<"Job"> | boolean
   priority?: Prisma.EnumJobPriorityFilter<"Job"> | $Enums.JobPriority
-  result?: Prisma.JsonNullableFilter<"Job">
-  error?: Prisma.StringNullableFilter<"Job"> | string | null
-  attempts?: Prisma.IntFilter<"Job"> | number
   maxAttempts?: Prisma.IntFilter<"Job"> | number
   timeoutMs?: Prisma.IntFilter<"Job"> | number
-  scheduledAt?: Prisma.DateTimeFilter<"Job"> | Date | string
-  startedAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
-  completedAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
+  lastRunAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
+  nextRunAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Job"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Job"> | Date | string
+  instances?: Prisma.JobInstanceListRelationFilter
 }
 
 export type JobOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  payload?: Prisma.SortOrder
-  status?: Prisma.SortOrder
+  payload?: Prisma.SortOrderInput | Prisma.SortOrder
+  cronExpression?: Prisma.SortOrderInput | Prisma.SortOrder
+  enabled?: Prisma.SortOrder
   priority?: Prisma.SortOrder
-  result?: Prisma.SortOrderInput | Prisma.SortOrder
-  error?: Prisma.SortOrderInput | Prisma.SortOrder
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
-  startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  nextRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  instances?: Prisma.JobInstanceOrderByRelationAggregateInput
 }
 
 export type JobWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  name?: string
   AND?: Prisma.JobWhereInput | Prisma.JobWhereInput[]
   OR?: Prisma.JobWhereInput[]
   NOT?: Prisma.JobWhereInput | Prisma.JobWhereInput[]
   type?: Prisma.StringFilter<"Job"> | string
   description?: Prisma.StringNullableFilter<"Job"> | string | null
-  payload?: Prisma.JsonFilter<"Job">
-  status?: Prisma.EnumJobStatusFilter<"Job"> | $Enums.JobStatus
+  payload?: Prisma.JsonNullableFilter<"Job">
+  cronExpression?: Prisma.StringNullableFilter<"Job"> | string | null
+  enabled?: Prisma.BoolFilter<"Job"> | boolean
   priority?: Prisma.EnumJobPriorityFilter<"Job"> | $Enums.JobPriority
-  result?: Prisma.JsonNullableFilter<"Job">
-  error?: Prisma.StringNullableFilter<"Job"> | string | null
-  attempts?: Prisma.IntFilter<"Job"> | number
   maxAttempts?: Prisma.IntFilter<"Job"> | number
   timeoutMs?: Prisma.IntFilter<"Job"> | number
-  scheduledAt?: Prisma.DateTimeFilter<"Job"> | Date | string
-  startedAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
-  completedAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
+  lastRunAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
+  nextRunAt?: Prisma.DateTimeNullableFilter<"Job"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Job"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Job"> | Date | string
-}, "id">
+  instances?: Prisma.JobInstanceListRelationFilter
+}, "id" | "name">
 
 export type JobOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  payload?: Prisma.SortOrder
-  status?: Prisma.SortOrder
+  payload?: Prisma.SortOrderInput | Prisma.SortOrder
+  cronExpression?: Prisma.SortOrderInput | Prisma.SortOrder
+  enabled?: Prisma.SortOrder
   priority?: Prisma.SortOrder
-  result?: Prisma.SortOrderInput | Prisma.SortOrder
-  error?: Prisma.SortOrderInput | Prisma.SortOrder
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
-  startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  nextRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.JobCountOrderByAggregateInput
@@ -376,335 +357,435 @@ export type JobScalarWhereWithAggregatesInput = {
   OR?: Prisma.JobScalarWhereWithAggregatesInput[]
   NOT?: Prisma.JobScalarWhereWithAggregatesInput | Prisma.JobScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Job"> | string
+  name?: Prisma.StringWithAggregatesFilter<"Job"> | string
   type?: Prisma.StringWithAggregatesFilter<"Job"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Job"> | string | null
-  payload?: Prisma.JsonWithAggregatesFilter<"Job">
-  status?: Prisma.EnumJobStatusWithAggregatesFilter<"Job"> | $Enums.JobStatus
+  payload?: Prisma.JsonNullableWithAggregatesFilter<"Job">
+  cronExpression?: Prisma.StringNullableWithAggregatesFilter<"Job"> | string | null
+  enabled?: Prisma.BoolWithAggregatesFilter<"Job"> | boolean
   priority?: Prisma.EnumJobPriorityWithAggregatesFilter<"Job"> | $Enums.JobPriority
-  result?: Prisma.JsonNullableWithAggregatesFilter<"Job">
-  error?: Prisma.StringNullableWithAggregatesFilter<"Job"> | string | null
-  attempts?: Prisma.IntWithAggregatesFilter<"Job"> | number
   maxAttempts?: Prisma.IntWithAggregatesFilter<"Job"> | number
   timeoutMs?: Prisma.IntWithAggregatesFilter<"Job"> | number
-  scheduledAt?: Prisma.DateTimeWithAggregatesFilter<"Job"> | Date | string
-  startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
-  completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
+  lastRunAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
+  nextRunAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Job"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Job"> | Date | string
 }
 
 export type JobCreateInput = {
   id?: string
+  name: string
   type: string
   description?: string | null
-  payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: string | null
+  enabled?: boolean
   priority?: $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: string | null
-  attempts?: number
   maxAttempts?: number
   timeoutMs?: number
-  scheduledAt?: Date | string
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
+  lastRunAt?: Date | string | null
+  nextRunAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  instances?: Prisma.JobInstanceCreateNestedManyWithoutJobInput
 }
 
 export type JobUncheckedCreateInput = {
   id?: string
+  name: string
   type: string
   description?: string | null
-  payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: string | null
+  enabled?: boolean
   priority?: $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: string | null
-  attempts?: number
   maxAttempts?: number
   timeoutMs?: number
-  scheduledAt?: Date | string
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
+  lastRunAt?: Date | string | null
+  nextRunAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  instances?: Prisma.JobInstanceUncheckedCreateNestedManyWithoutJobInput
 }
 
 export type JobUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: Prisma.EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  attempts?: Prisma.IntFieldUpdateOperationsInput | number
   maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  instances?: Prisma.JobInstanceUpdateManyWithoutJobNestedInput
 }
 
 export type JobUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: Prisma.EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  attempts?: Prisma.IntFieldUpdateOperationsInput | number
   maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  instances?: Prisma.JobInstanceUncheckedUpdateManyWithoutJobNestedInput
 }
 
 export type JobCreateManyInput = {
   id?: string
+  name: string
   type: string
   description?: string | null
-  payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: string | null
+  enabled?: boolean
   priority?: $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: string | null
-  attempts?: number
   maxAttempts?: number
   timeoutMs?: number
-  scheduledAt?: Date | string
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
+  lastRunAt?: Date | string | null
+  nextRunAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type JobUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: Prisma.EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  attempts?: Prisma.IntFieldUpdateOperationsInput | number
   maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type JobUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  status?: Prisma.EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
-  result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  attempts?: Prisma.IntFieldUpdateOperationsInput | number
   maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
-  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type JobNullableScalarRelationFilter = {
+  is?: Prisma.JobWhereInput | null
+  isNot?: Prisma.JobWhereInput | null
+}
+
 export type JobCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   payload?: Prisma.SortOrder
-  status?: Prisma.SortOrder
+  cronExpression?: Prisma.SortOrder
+  enabled?: Prisma.SortOrder
   priority?: Prisma.SortOrder
-  result?: Prisma.SortOrder
-  error?: Prisma.SortOrder
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
-  startedAt?: Prisma.SortOrder
-  completedAt?: Prisma.SortOrder
+  lastRunAt?: Prisma.SortOrder
+  nextRunAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type JobAvgOrderByAggregateInput = {
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
 }
 
 export type JobMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  status?: Prisma.SortOrder
+  cronExpression?: Prisma.SortOrder
+  enabled?: Prisma.SortOrder
   priority?: Prisma.SortOrder
-  error?: Prisma.SortOrder
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
-  startedAt?: Prisma.SortOrder
-  completedAt?: Prisma.SortOrder
+  lastRunAt?: Prisma.SortOrder
+  nextRunAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type JobMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  status?: Prisma.SortOrder
+  cronExpression?: Prisma.SortOrder
+  enabled?: Prisma.SortOrder
   priority?: Prisma.SortOrder
-  error?: Prisma.SortOrder
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
-  scheduledAt?: Prisma.SortOrder
-  startedAt?: Prisma.SortOrder
-  completedAt?: Prisma.SortOrder
+  lastRunAt?: Prisma.SortOrder
+  nextRunAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type JobSumOrderByAggregateInput = {
-  attempts?: Prisma.SortOrder
   maxAttempts?: Prisma.SortOrder
   timeoutMs?: Prisma.SortOrder
 }
 
-export type EnumJobStatusFieldUpdateOperationsInput = {
-  set?: $Enums.JobStatus
+export type JobCreateNestedOneWithoutInstancesInput = {
+  create?: Prisma.XOR<Prisma.JobCreateWithoutInstancesInput, Prisma.JobUncheckedCreateWithoutInstancesInput>
+  connectOrCreate?: Prisma.JobCreateOrConnectWithoutInstancesInput
+  connect?: Prisma.JobWhereUniqueInput
 }
 
-export type EnumJobPriorityFieldUpdateOperationsInput = {
-  set?: $Enums.JobPriority
+export type JobUpdateOneWithoutInstancesNestedInput = {
+  create?: Prisma.XOR<Prisma.JobCreateWithoutInstancesInput, Prisma.JobUncheckedCreateWithoutInstancesInput>
+  connectOrCreate?: Prisma.JobCreateOrConnectWithoutInstancesInput
+  upsert?: Prisma.JobUpsertWithoutInstancesInput
+  disconnect?: Prisma.JobWhereInput | boolean
+  delete?: Prisma.JobWhereInput | boolean
+  connect?: Prisma.JobWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.JobUpdateToOneWithWhereWithoutInstancesInput, Prisma.JobUpdateWithoutInstancesInput>, Prisma.JobUncheckedUpdateWithoutInstancesInput>
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
+export type JobCreateWithoutInstancesInput = {
+  id?: string
+  name: string
+  type: string
+  description?: string | null
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: string | null
+  enabled?: boolean
+  priority?: $Enums.JobPriority
+  maxAttempts?: number
+  timeoutMs?: number
+  lastRunAt?: Date | string | null
+  nextRunAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
+export type JobUncheckedCreateWithoutInstancesInput = {
+  id?: string
+  name: string
+  type: string
+  description?: string | null
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: string | null
+  enabled?: boolean
+  priority?: $Enums.JobPriority
+  maxAttempts?: number
+  timeoutMs?: number
+  lastRunAt?: Date | string | null
+  nextRunAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type JobCreateOrConnectWithoutInstancesInput = {
+  where: Prisma.JobWhereUniqueInput
+  create: Prisma.XOR<Prisma.JobCreateWithoutInstancesInput, Prisma.JobUncheckedCreateWithoutInstancesInput>
+}
+
+export type JobUpsertWithoutInstancesInput = {
+  update: Prisma.XOR<Prisma.JobUpdateWithoutInstancesInput, Prisma.JobUncheckedUpdateWithoutInstancesInput>
+  create: Prisma.XOR<Prisma.JobCreateWithoutInstancesInput, Prisma.JobUncheckedCreateWithoutInstancesInput>
+  where?: Prisma.JobWhereInput
+}
+
+export type JobUpdateToOneWithWhereWithoutInstancesInput = {
+  where?: Prisma.JobWhereInput
+  data: Prisma.XOR<Prisma.JobUpdateWithoutInstancesInput, Prisma.JobUncheckedUpdateWithoutInstancesInput>
+}
+
+export type JobUpdateWithoutInstancesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
+  maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type JobUncheckedUpdateWithoutInstancesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  cronExpression?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  priority?: Prisma.EnumJobPriorityFieldUpdateOperationsInput | $Enums.JobPriority
+  maxAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  timeoutMs?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  nextRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+
+/**
+ * Count Type JobCountOutputType
+ */
+
+export type JobCountOutputType = {
+  instances: number
+}
+
+export type JobCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  instances?: boolean | JobCountOutputTypeCountInstancesArgs
+}
+
+/**
+ * JobCountOutputType without action
+ */
+export type JobCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JobCountOutputType
+   */
+  select?: Prisma.JobCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * JobCountOutputType without action
+ */
+export type JobCountOutputTypeCountInstancesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.JobInstanceWhereInput
+}
 
 
 export type JobSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   description?: boolean
   payload?: boolean
-  status?: boolean
+  cronExpression?: boolean
+  enabled?: boolean
   priority?: boolean
-  result?: boolean
-  error?: boolean
-  attempts?: boolean
   maxAttempts?: boolean
   timeoutMs?: boolean
-  scheduledAt?: boolean
-  startedAt?: boolean
-  completedAt?: boolean
+  lastRunAt?: boolean
+  nextRunAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  instances?: boolean | Prisma.Job$instancesArgs<ExtArgs>
+  _count?: boolean | Prisma.JobCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["job"]>
 
 export type JobSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   description?: boolean
   payload?: boolean
-  status?: boolean
+  cronExpression?: boolean
+  enabled?: boolean
   priority?: boolean
-  result?: boolean
-  error?: boolean
-  attempts?: boolean
   maxAttempts?: boolean
   timeoutMs?: boolean
-  scheduledAt?: boolean
-  startedAt?: boolean
-  completedAt?: boolean
+  lastRunAt?: boolean
+  nextRunAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["job"]>
 
 export type JobSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   description?: boolean
   payload?: boolean
-  status?: boolean
+  cronExpression?: boolean
+  enabled?: boolean
   priority?: boolean
-  result?: boolean
-  error?: boolean
-  attempts?: boolean
   maxAttempts?: boolean
   timeoutMs?: boolean
-  scheduledAt?: boolean
-  startedAt?: boolean
-  completedAt?: boolean
+  lastRunAt?: boolean
+  nextRunAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["job"]>
 
 export type JobSelectScalar = {
   id?: boolean
+  name?: boolean
   type?: boolean
   description?: boolean
   payload?: boolean
-  status?: boolean
+  cronExpression?: boolean
+  enabled?: boolean
   priority?: boolean
-  result?: boolean
-  error?: boolean
-  attempts?: boolean
   maxAttempts?: boolean
   timeoutMs?: boolean
-  scheduledAt?: boolean
-  startedAt?: boolean
-  completedAt?: boolean
+  lastRunAt?: boolean
+  nextRunAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type JobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "description" | "payload" | "status" | "priority" | "result" | "error" | "attempts" | "maxAttempts" | "timeoutMs" | "scheduledAt" | "startedAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["job"]>
+export type JobOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "description" | "payload" | "cronExpression" | "enabled" | "priority" | "maxAttempts" | "timeoutMs" | "lastRunAt" | "nextRunAt" | "createdAt" | "updatedAt", ExtArgs["result"]["job"]>
+export type JobInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  instances?: boolean | Prisma.Job$instancesArgs<ExtArgs>
+  _count?: boolean | Prisma.JobCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type JobIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type JobIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $JobPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Job"
-  objects: {}
+  objects: {
+    instances: Prisma.$JobInstancePayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    name: string
     type: string
     description: string | null
-    payload: runtime.JsonValue
-    status: $Enums.JobStatus
+    payload: runtime.JsonValue | null
+    cronExpression: string | null
+    enabled: boolean
     priority: $Enums.JobPriority
-    result: runtime.JsonValue | null
-    error: string | null
-    attempts: number
     maxAttempts: number
     timeoutMs: number
-    scheduledAt: Date
-    startedAt: Date | null
-    completedAt: Date | null
+    lastRunAt: Date | null
+    nextRunAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["job"]>
@@ -1101,6 +1182,7 @@ readonly fields: JobFieldRefs;
  */
 export interface Prisma__JobClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  instances<T extends Prisma.Job$instancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Job$instancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JobInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1131,19 +1213,17 @@ export interface Prisma__JobClient<T, Null = never, ExtArgs extends runtime.Type
  */
 export interface JobFieldRefs {
   readonly id: Prisma.FieldRef<"Job", 'String'>
+  readonly name: Prisma.FieldRef<"Job", 'String'>
   readonly type: Prisma.FieldRef<"Job", 'String'>
   readonly description: Prisma.FieldRef<"Job", 'String'>
   readonly payload: Prisma.FieldRef<"Job", 'Json'>
-  readonly status: Prisma.FieldRef<"Job", 'JobStatus'>
+  readonly cronExpression: Prisma.FieldRef<"Job", 'String'>
+  readonly enabled: Prisma.FieldRef<"Job", 'Boolean'>
   readonly priority: Prisma.FieldRef<"Job", 'JobPriority'>
-  readonly result: Prisma.FieldRef<"Job", 'Json'>
-  readonly error: Prisma.FieldRef<"Job", 'String'>
-  readonly attempts: Prisma.FieldRef<"Job", 'Int'>
   readonly maxAttempts: Prisma.FieldRef<"Job", 'Int'>
   readonly timeoutMs: Prisma.FieldRef<"Job", 'Int'>
-  readonly scheduledAt: Prisma.FieldRef<"Job", 'DateTime'>
-  readonly startedAt: Prisma.FieldRef<"Job", 'DateTime'>
-  readonly completedAt: Prisma.FieldRef<"Job", 'DateTime'>
+  readonly lastRunAt: Prisma.FieldRef<"Job", 'DateTime'>
+  readonly nextRunAt: Prisma.FieldRef<"Job", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Job", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Job", 'DateTime'>
 }
@@ -1163,6 +1243,10 @@ export type JobFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * Filter, which Job to fetch.
    */
   where: Prisma.JobWhereUniqueInput
@@ -1181,6 +1265,10 @@ export type JobFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * Filter, which Job to fetch.
    */
   where: Prisma.JobWhereUniqueInput
@@ -1198,6 +1286,10 @@ export type JobFindFirstArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Job
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
   /**
    * Filter, which Job to fetch.
    */
@@ -1247,6 +1339,10 @@ export type JobFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * Filter, which Job to fetch.
    */
   where?: Prisma.JobWhereInput
@@ -1294,6 +1390,10 @@ export type JobFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    * Omit specific fields from the Job
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
   /**
    * Filter, which Jobs to fetch.
    */
@@ -1343,6 +1443,10 @@ export type JobCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * The data needed to create a Job.
    */
   data: Prisma.XOR<Prisma.JobCreateInput, Prisma.JobUncheckedCreateInput>
@@ -1390,6 +1494,10 @@ export type JobUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    * Omit specific fields from the Job
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
   /**
    * The data needed to update a Job.
    */
@@ -1457,6 +1565,10 @@ export type JobUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * The filter to search for the Job to update in case it exists.
    */
   where: Prisma.JobWhereUniqueInput
@@ -1483,6 +1595,10 @@ export type JobDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs 
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
+  /**
    * Filter which Job to delete.
    */
   where: Prisma.JobWhereUniqueInput
@@ -1503,6 +1619,30 @@ export type JobDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 }
 
 /**
+ * Job.instances
+ */
+export type Job$instancesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JobInstance
+   */
+  select?: Prisma.JobInstanceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the JobInstance
+   */
+  omit?: Prisma.JobInstanceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInstanceInclude<ExtArgs> | null
+  where?: Prisma.JobInstanceWhereInput
+  orderBy?: Prisma.JobInstanceOrderByWithRelationInput | Prisma.JobInstanceOrderByWithRelationInput[]
+  cursor?: Prisma.JobInstanceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.JobInstanceScalarFieldEnum | Prisma.JobInstanceScalarFieldEnum[]
+}
+
+/**
  * Job without action
  */
 export type JobDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1514,4 +1654,8 @@ export type JobDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
    * Omit specific fields from the Job
    */
   omit?: Prisma.JobOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JobInclude<ExtArgs> | null
 }

@@ -1,24 +1,22 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { cancelJob } from "./cancel-job";
-import { deleteJobArchive } from "./delete-job-archive";
-import { enqueueJob } from "./enqueue-job";
+import { createJob } from "./create-job";
+import { deleteJob } from "./delete-job";
 import { getJob } from "./get-job";
-import { getJobArchive } from "./get-job-archive";
 import { getJobStats } from "./get-job-stats";
-import { listJobArchives } from "./list-job-archives";
 import { listJobs } from "./list-jobs";
+import { triggerJob } from "./trigger-job";
+import { updateJob } from "./update-job";
 
 const jobRoutes = new OpenAPIHono();
 
 const routes = jobRoutes.openapiRoutes([
-  enqueueJob,
+  createJob,
   listJobs,
   getJobStats,
-  listJobArchives,
-  getJobArchive,
-  deleteJobArchive,
   getJob,
-  cancelJob,
+  updateJob,
+  deleteJob,
+  triggerJob,
 ] as const);
 
 export { routes as jobRoutes };
