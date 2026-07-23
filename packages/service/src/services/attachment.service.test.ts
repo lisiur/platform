@@ -185,6 +185,7 @@ describe("createAttachment validation", () => {
           type: "text/html",
         }),
         visibility: "public",
+        bizType: "user:avatar",
         uploaderId: "user1",
       }),
     ).rejects.toMatchObject({ status: 400 });
@@ -199,6 +200,7 @@ describe("createAttachment validation", () => {
           { type: "image/jpeg" },
         ),
         visibility: "public",
+        bizType: "user:avatar",
         uploaderId: "user1",
       }),
     ).rejects.toMatchObject({ status: 400 });
@@ -220,6 +222,7 @@ describe("createAttachment validation", () => {
         type: "image/png",
       }),
       visibility: "public",
+      bizType: "user:avatar",
       uploaderId: "user1",
     });
     expect(result.uploadId).toBe("up1");
@@ -242,6 +245,7 @@ describe("createAttachment validation", () => {
       createAttachment({
         file: oversized,
         visibility: "public",
+        bizType: "user:avatar",
         uploaderId: "user1",
       }),
     ).rejects.toMatchObject({ status: 400 });
@@ -261,6 +265,7 @@ describe("createAttachment validation", () => {
         type: "application/pdf",
       }),
       visibility: "private",
+      bizType: "user:avatar",
       uploaderId: "user1",
     });
     expect(result.uploadId).toBe("up2");
@@ -284,6 +289,7 @@ describe("createAttachment validation", () => {
         type: "image/x-icon",
       }),
       visibility: "public",
+      bizType: "user:avatar",
       uploaderId: "user1",
     });
     expect(result.uploadId).toBe("up3");
@@ -306,6 +312,7 @@ describe("createAttachment validation", () => {
         type: "image/png",
       }),
       visibility: "public",
+      bizType: "user:avatar",
       uploaderId: "user1",
     });
     expect(mockPrisma.upload.create).not.toHaveBeenCalled();

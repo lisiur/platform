@@ -65,7 +65,7 @@ export function bodyLimit(options: BodyLimitOptions) {
     });
 
     const headers = new Headers(Array.from(raw.headers.entries()));
-    const newRequestInit: RequestInit = {
+    const newRequestInit: RequestInit & { duplex?: "half" } = {
       method: raw.method,
       headers,
       body,
