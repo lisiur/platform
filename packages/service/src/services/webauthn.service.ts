@@ -166,7 +166,9 @@ export async function generateRegistrationOptions(userId: string) {
     expiresAt: Date.now() + CHALLENGE_TIMEOUT_MS,
   };
 
-  webauthnChallengeCache.set(`register:${options.challenge}`, challengeData);
+  webauthnChallengeCache.set(`register:${options.challenge}`, challengeData, {
+    ttl: challengeData.expiresAt - Date.now(),
+  });
 
   return {
     ...options,
@@ -326,7 +328,9 @@ export async function generateAuthenticationOptions(email?: string) {
       expiresAt: Date.now() + CHALLENGE_TIMEOUT_MS,
     };
 
-    webauthnChallengeCache.set(`auth:${options.challenge}`, challengeData);
+    webauthnChallengeCache.set(`auth:${options.challenge}`, challengeData, {
+      ttl: challengeData.expiresAt - Date.now(),
+    });
 
     return {
       ...options,
@@ -373,7 +377,9 @@ export async function generateAuthenticationOptions(email?: string) {
       expiresAt: Date.now() + CHALLENGE_TIMEOUT_MS,
     };
 
-    webauthnChallengeCache.set(`auth:${options.challenge}`, challengeData);
+    webauthnChallengeCache.set(`auth:${options.challenge}`, challengeData, {
+      ttl: challengeData.expiresAt - Date.now(),
+    });
   }
 
   return {

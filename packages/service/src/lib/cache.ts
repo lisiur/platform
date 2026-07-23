@@ -6,7 +6,7 @@ export class Cache {
 
   private constructor(
     options:
-      | { maxSize: number }
+      | { maxSize: number; ttlAutopurge?: boolean }
       | { lru: LRUCache<string, object>; ns?: string },
   ) {
     this.ns = "";
@@ -16,7 +16,10 @@ export class Cache {
         this.ns = options.ns;
       }
     } else {
-      this.lru = new LRUCache<string, object>({ max: options.maxSize });
+      this.lru = new LRUCache<string, object>({
+        max: options.maxSize,
+        ttlAutopurge: options.ttlAutopurge ?? false,
+      });
     }
   }
 
@@ -29,7 +32,7 @@ export class Cache {
   }
 
   static create(maxSize: number = 1000): Cache {
-    return new Cache({ maxSize });
+    return new Cache({ maxSize, ttlAutopurge: true });
   }
 
   namespace(ns: string): Cache {
@@ -42,9 +45,9 @@ export class Cache {
     return this.lru.get(key) as T | undefined;
   }
 
-  set(key: string, value: unknown): void {
+  set(key: string, value: unknown, options?: { ttl?: number }): void {
     key = this.getNSKey(key);
-    this.lru.set(key, value as object);
+    this.lru.set(key, value as object, options);
   }
 
   delete(key: string): boolean {
@@ -70,11 +73,15 @@ export class Cache {
     }
   }
 
-  async getOrSet<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+  async getOrSet<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    options?: { ttl?: number },
+  ): Promise<T> {
     const cached = this.get<T>(key);
     if (cached !== undefined) return cached;
     const value = await fetchFn();
-    this.set(key, value);
+    this.set(key, value, options);
     return value;
   }
 
