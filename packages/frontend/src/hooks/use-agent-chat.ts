@@ -13,6 +13,14 @@ export interface UseAgentChatOptions {
   appCode: string;
   /** Called when a request/stream fails. */
   onError?: (error: Error) => void;
+  /**
+   * Skip the initial history rehydration on mount (and on session change).
+   * Use when the session is known to be empty and will be populated by an
+   * immediate `sendMessage` (e.g. a freshly created session) — avoids a race
+   * where the empty-history fetch resolves after the optimistic send and
+   * wipes the in-flight messages.
+   */
+  skipInitialHistory?: boolean;
 }
 
 export interface AgentChatApi {
@@ -42,9 +50,17 @@ export function useAgentChat({
   apiOrigin,
   appCode,
   onError,
+  skipInitialHistory = false,
 }: UseAgentChatOptions): AgentChatApi {
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  // Captured at mount and held for the life of this hook instance. ActiveChat
+  // is keyed by `activeId`, so a session switch remounts the hook and
+  // re-evaluates the flag. We intentionally do NOT reset this inside the
+  // effect — doing so would break under React Strict Mode, where the mount
+  // effect double-invokes and the second invoke would fetch empty history and
+  // wipe an in-flight optimistic send.
+  const skipHistoryRef = useRef(skipInitialHistory);
 
   const messagesApi = useMemo(
     () =>
@@ -84,6 +100,9 @@ export function useAgentChat({
   useEffect(() => {
     if (!sessionId) {
       setMessagesRef.current([]);
+      return;
+    }
+    if (skipHistoryRef.current) {
       return;
     }
     let cancelled = false;

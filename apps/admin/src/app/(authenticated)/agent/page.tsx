@@ -263,6 +263,10 @@ function ActiveChat({
     sessionId: isNew ? null : sessionId,
     apiOrigin: API_ORIGIN,
     appCode: APP_CODE,
+    // A pending prompt means this session was just created and is about to
+    // receive its first message — skip the (empty) history fetch so it can't
+    // race the optimistic send and wipe the in-flight user message.
+    skipInitialHistory: !!pendingPrompt,
   });
   const firstMessageRef = useRef(false);
 
