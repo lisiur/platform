@@ -2,7 +2,7 @@
 
 import { Button } from "@repo/ui";
 import { Send, Square } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ChatComposerProps {
   status: "submitted" | "streaming" | "ready" | "error";
@@ -20,7 +20,12 @@ export function ChatComposer({
   disabled,
 }: ChatComposerProps) {
   const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const busy = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   function submit() {
     const text = input.trim();
@@ -32,6 +37,7 @@ export function ChatComposer({
   return (
     <div className="flex shrink-0 items-end gap-2 border-t border-border p-3">
       <textarea
+        ref={inputRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
