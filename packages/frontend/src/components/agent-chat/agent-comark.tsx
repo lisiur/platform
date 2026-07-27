@@ -95,7 +95,7 @@ function ReasoningPanel({ thinking, streaming }: ReasoningPanelProps) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="rounded-md border border-border bg-muted/30">
+      <div className="first:mt-2 rounded-md border border-border bg-muted/30">
         <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs">
           <ChevronRight
             className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
