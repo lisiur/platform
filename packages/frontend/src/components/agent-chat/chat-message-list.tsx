@@ -10,6 +10,7 @@ import { isToolPart, ToolCard } from "./tool-card";
 interface ChatMessageListProps {
   messages: UIMessage[];
   status: "submitted" | "streaming" | "ready" | "error";
+  isLoadingHistory?: boolean;
   emptyState?: ReactNode;
 }
 
@@ -49,9 +50,19 @@ function isLastAssistantText(
 export function ChatMessageList({
   messages,
   status,
+  isLoadingHistory,
   emptyState,
 }: ChatMessageListProps) {
+  const pending = status === "submitted" || status === "streaming";
+
   if (messages.length === 0) {
+    if (pending || isLoadingHistory) {
+      return (
+        <div className="flex flex-1 items-center justify-center p-8">
+          <Spinner />
+        </div>
+      );
+    }
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground">
         {emptyState ?? "Ask the agent anything about the platform."}
@@ -64,7 +75,6 @@ export function ChatMessageList({
   const lastMessage = messages[messages.length - 1];
   const hasAssistantContent =
     lastMessage?.role === "assistant" && lastMessage.parts.length > 0;
-  const pending = status === "submitted" || status === "streaming";
   const showSpinner = pending && !hasAssistantContent;
 
   return (

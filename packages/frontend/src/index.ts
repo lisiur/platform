@@ -1,5 +1,13 @@
 export type { AgentChatProps } from "./components/agent-chat/agent-chat";
 export { AgentChat } from "./components/agent-chat/agent-chat";
+export type { AgentLauncherProps } from "./components/agent-launcher/agent-launcher";
+export { AgentLauncher } from "./components/agent-launcher/agent-launcher";
+export type {
+  AgentPanelProps,
+  AgentSessionSummary,
+  AgentSessionsApi,
+} from "./components/agent-launcher/agent-panel";
+export { AgentPanel } from "./components/agent-launcher/agent-panel";
 export { DataTablePagination } from "./components/data-table-pagination";
 export { PaginatedTableFrame } from "./components/paginated-table-frame";
 export type {

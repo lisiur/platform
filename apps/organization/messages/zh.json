@@ -402,5 +402,16 @@
       "previous": "上一页",
       "next": "下一页"
     }
+  },
+  "Agent": {
+    "title": "AI 智能体",
+    "description": "只读运维助手，可查看任务、缓存、限流及系统健康状态。",
+    "newChat": "新对话",
+    "sessions": "会话",
+    "empty": "暂无对话。开始新对话以使用。",
+    "placeholder": "询问任务、缓存、限流或系统健康状态…",
+    "loading": "正在加载会话…",
+    "deleteChat": "删除对话",
+    "untitled": "新对话"
   }
 }

@@ -1,4 +1,5 @@
 import { SidebarInset, SidebarProvider, TooltipProvider } from "@repo/ui";
+import { AgentLauncherConnected } from "@/components/agent-launcher";
 import { AppWatermark } from "@/components/app-watermark";
 import { SessionGuard } from "@/components/auth/session-guard";
 import { AppSidebar } from "@/components/layout/sidebar";
@@ -19,6 +20,7 @@ export default function Layout({
           <AppSidebar />
           <SidebarBorderTrigger />
           <SidebarInset>{children}</SidebarInset>
+          <AgentLauncherConnected />
         </SidebarProvider>
       </TooltipProvider>
     </SessionGuard>

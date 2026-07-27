@@ -11,6 +11,8 @@ export interface AgentChatProps {
   /** Send a prompt from `useAgentChat().sendMessage`. */
   sendMessage: (text: string) => void;
   status: "submitted" | "streaming" | "ready" | "error";
+  /** True while session history is being rehydrated. */
+  isLoadingHistory?: boolean;
   stop: () => void;
   error: Error | null;
   /** Optional UI overrides. */
@@ -35,6 +37,7 @@ export function AgentChat({
   messages,
   sendMessage,
   status,
+  isLoadingHistory,
   stop,
   error,
   placeholder,
@@ -48,6 +51,7 @@ export function AgentChat({
       <ChatMessageList
         messages={messages}
         status={status}
+        isLoadingHistory={isLoadingHistory}
         emptyState={emptyState}
       />
       {error ? (

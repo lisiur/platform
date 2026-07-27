@@ -402,5 +402,16 @@
       "previous": "Previous",
       "next": "Next"
     }
+  },
+  "Agent": {
+    "title": "AI Agent",
+    "description": "A read-only operations assistant that inspects jobs, cache, rate limits, and system health.",
+    "newChat": "New Chat",
+    "sessions": "Sessions",
+    "empty": "No conversations yet. Start a new chat to begin.",
+    "placeholder": "Ask about jobs, cache, rate limits, or system health…",
+    "loading": "Loading sessions…",
+    "deleteChat": "Delete conversation",
+    "untitled": "New conversation"
   }
 }

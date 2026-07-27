@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface UseAgentChatOptions {
   /** Active session id. When null, the hook is idle. */
@@ -27,6 +27,8 @@ export interface AgentChatApi {
   messages: UIMessage[];
   sendMessage: (text: string) => void;
   status: "submitted" | "streaming" | "ready" | "error";
+  /** True while session history is being rehydrated (e.g. on session switch). */
+  isLoadingHistory: boolean;
   stop: () => void;
   error: Error | null;
 }
@@ -96,27 +98,39 @@ export function useAgentChat({
   const setMessagesRef = useRef(chat.setMessages);
   setMessagesRef.current = chat.setMessages;
 
+  // True while a session's history is being fetched. Distinguished from
+  // `status` (which reflects send/stream), so consumers can show a loading
+  // state when switching into a session whose messages haven't arrived yet.
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   // Rehydrate history when switching sessions.
   useEffect(() => {
     if (!sessionId) {
       setMessagesRef.current([]);
+      setIsLoadingHistory(false);
       return;
     }
     if (skipHistoryRef.current) {
+      setIsLoadingHistory(false);
       return;
     }
     let cancelled = false;
+    setIsLoadingHistory(true);
     fetch(`${apiOrigin}/api/agent/sessions/${sessionId}`, {
       credentials: "include",
       headers: { "X-App-Code": appCode },
     })
       .then((res) => (res.ok ? res.json() : []))
       .then((messages: UIMessage[]) => {
-        if (!cancelled) setMessagesRef.current(messages);
+        if (!cancelled) {
+          setMessagesRef.current(messages);
+          setIsLoadingHistory(false);
+        }
       })
       .catch((error) => {
         if (!cancelled) {
           setMessagesRef.current([]);
+          setIsLoadingHistory(false);
           onErrorRef.current?.(
             error instanceof Error ? error : new Error(String(error)),
           );
@@ -131,6 +145,7 @@ export function useAgentChat({
     messages: chat.messages,
     sendMessage: (text) => chat.sendMessage({ text }),
     status: chat.status,
+    isLoadingHistory,
     stop: chat.stop,
     error: chat.error ?? null,
   };
