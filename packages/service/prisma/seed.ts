@@ -57,7 +57,8 @@ const systemConfigs = [
   {
     group: "auth",
     key: "session.maxAge",
-    value: "7",
+    // Value is in SECONDS (604800 = 7 days). Honors AUTH_SESSION_MAX_AGE env.
+    value: "604800",
     type: "number",
     label: "settings.fields.sessionMaxAge",
     description: "settings.fieldsDesc.sessionMaxAge",
@@ -82,12 +83,13 @@ const systemConfigs = [
     label: "settings.fields.wechatSecret",
     description: "settings.fieldsDesc.wechatSecret",
     isSecret: true,
+    mask: "start{4}.{*}",
     sortOrder: 1,
   },
   {
     group: "webauthn",
     key: "enabled",
-    value: "true",
+    value: "",
     type: "boolean",
     label: "settings.fields.webauthnEnabled",
     description: "settings.fieldsDesc.webauthnEnabled",
@@ -97,7 +99,7 @@ const systemConfigs = [
   {
     group: "webauthn",
     key: "rp.name",
-    value: "My Application",
+    value: "",
     type: "string",
     label: "settings.fields.webauthnRpName",
     description: "settings.fieldsDesc.webauthnRpName",
@@ -107,7 +109,7 @@ const systemConfigs = [
   {
     group: "webauthn",
     key: "rp.id",
-    value: "localhost",
+    value: "",
     type: "string",
     label: "settings.fields.webauthnRpId",
     description: "settings.fieldsDesc.webauthnRpId",
@@ -117,7 +119,7 @@ const systemConfigs = [
   {
     group: "webauthn",
     key: "origin",
-    value: "http://localhost:3000",
+    value: "",
     type: "string",
     label: "settings.fields.webauthnOrigin",
     description: "settings.fieldsDesc.webauthnOrigin",
@@ -224,6 +226,67 @@ const systemConfigs = [
     isSecret: false,
     sortOrder: 5,
   },
+  {
+    group: "ai-agent",
+    key: "baseURL",
+    value: "",
+    type: "string",
+    label: "settings.fields.aiAgentBaseURL",
+    description: "settings.fieldsDesc.aiAgentBaseURL",
+    isSecret: false,
+    sortOrder: 0,
+  },
+  {
+    group: "ai-agent",
+    key: "apiKey",
+    value: "",
+    type: "string",
+    label: "settings.fields.aiAgentApiKey",
+    description: "settings.fieldsDesc.aiAgentApiKey",
+    isSecret: true,
+    mask: "start{4}.{*}end{4}",
+    sortOrder: 1,
+  },
+  {
+    group: "ai-agent",
+    key: "model",
+    value: "",
+    type: "string",
+    label: "settings.fields.aiAgentModel",
+    description: "settings.fieldsDesc.aiAgentModel",
+    isSecret: false,
+    sortOrder: 2,
+  },
+  {
+    group: "ai-agent",
+    key: "reasoning",
+    value: "",
+    type: "select",
+    label: "settings.fields.aiAgentReasoning",
+    description: "settings.fieldsDesc.aiAgentReasoning",
+    schema: {
+      options: [
+        { value: "off", label: "settings.aiAgentReasoningOptions.off" },
+        { value: "minimal", label: "settings.aiAgentReasoningOptions.minimal" },
+        { value: "low", label: "settings.aiAgentReasoningOptions.low" },
+        { value: "medium", label: "settings.aiAgentReasoningOptions.medium" },
+        { value: "high", label: "settings.aiAgentReasoningOptions.high" },
+        { value: "xhigh", label: "settings.aiAgentReasoningOptions.xhigh" },
+      ],
+    },
+    isSecret: false,
+    sortOrder: 3,
+  },
+  {
+    group: "ai-agent",
+    key: "systemPrompt",
+    value: "",
+    type: "string",
+    label: "settings.fields.aiAgentSystemPrompt",
+    description: "settings.fieldsDesc.aiAgentSystemPrompt",
+    isSecret: false,
+    sortOrder: 4,
+  },
 ];
 
 // --- System Permissions (appId: null) ---
@@ -261,6 +324,7 @@ const systemPermissions = [
   },
   { code: "cache::view", group: "cache", name: "View Cache" },
   { code: "cache::manage", group: "cache", name: "Manage Cache" },
+  { code: "agent::manage", group: "agent", name: "Manage AI Agent" },
   { code: "user::list", group: "user", name: "List Users" },
   { code: "user::create", group: "user", name: "Create User" },
   { code: "user::update", group: "user", name: "Update User" },
@@ -657,6 +721,17 @@ const adminMenus = [
     parentId: "infrastructure",
     sortOrder: 15,
     permissions: ["system-config::list"],
+  },
+  {
+    id: "ai-agent",
+    code: "ai-agent",
+    name: "AI Agent",
+    icon: "Bot",
+    linkType: "INTERNAL" as const,
+    url: "/admin/agent",
+    parentId: "infrastructure",
+    sortOrder: 16,
+    permissions: ["agent::manage"],
   },
   // Developer Group
   {
@@ -1093,6 +1168,7 @@ async function upsertSystemConfig(data: {
   isSecret: boolean;
   sortOrder: number;
   schema?: object;
+  mask?: string | null;
 }) {
   return prisma.systemConfig.upsert({
     where: { group_key: { group: data.group, key: data.key } },
@@ -1103,6 +1179,7 @@ async function upsertSystemConfig(data: {
       label: data.label,
       description: data.description,
       isSecret: data.isSecret,
+      mask: data.mask,
       sortOrder: data.sortOrder,
     },
     create: data,

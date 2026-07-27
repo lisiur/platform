@@ -46,3 +46,11 @@ export const LinkType = {
 } as const
 
 export type LinkType = (typeof LinkType)[keyof typeof LinkType]
+
+
+export const AgentMessageRole = {
+  user: 'user',
+  assistant: 'assistant'
+} as const
+
+export type AgentMessageRole = (typeof AgentMessageRole)[keyof typeof AgentMessageRole]

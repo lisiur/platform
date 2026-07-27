@@ -13,6 +13,9 @@ CREATE TYPE "NotificationStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
 -- CreateEnum
 CREATE TYPE "LinkType" AS ENUM ('GROUP', 'INTERNAL', 'EXTERNAL');
 
+-- CreateEnum
+CREATE TYPE "agent_message_role" AS ENUM ('user', 'assistant');
+
 -- CreateTable
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
@@ -205,6 +208,7 @@ CREATE TABLE "system_config" (
     "label" TEXT NOT NULL,
     "description" TEXT,
     "isSecret" BOOLEAN NOT NULL DEFAULT false,
+    "mask" TEXT,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -485,6 +489,27 @@ CREATE TABLE "api_token" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "api_token_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "agent_session" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "agent_session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "agent_message" (
+    "id" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "role" "agent_message_role" NOT NULL,
+    "parts" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "agent_message_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -772,6 +797,12 @@ CREATE INDEX "api_token_ownerId_idx" ON "api_token"("ownerId");
 -- CreateIndex
 CREATE INDEX "api_token_organizationId_idx" ON "api_token"("organizationId");
 
+-- CreateIndex
+CREATE INDEX "agent_session_userId_createdAt_idx" ON "agent_session"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "agent_message_sessionId_createdAt_idx" ON "agent_message"("sessionId", "createdAt");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -876,4 +907,10 @@ ALTER TABLE "api_token" ADD CONSTRAINT "api_token_organizationId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "api_token" ADD CONSTRAINT "api_token_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_session" ADD CONSTRAINT "agent_session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agent_message" ADD CONSTRAINT "agent_message_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "agent_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

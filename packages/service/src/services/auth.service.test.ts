@@ -28,7 +28,7 @@ vi.mock("#lib/wechat", () => ({
 }));
 
 vi.mock("#repositories/system-config.repository", () => ({
-  systemConfigRepository: { findByGroupAndKey: vi.fn() },
+  systemConfigRepository: { findByGroup: vi.fn() },
 }));
 
 vi.mock("#services/notification/notification.service", () => ({

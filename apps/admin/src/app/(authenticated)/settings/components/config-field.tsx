@@ -1,6 +1,16 @@
 "use client";
 
-import { Field, FieldLabel, Input, Textarea } from "@repo/ui";
+import {
+  Field,
+  FieldLabel,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { type Control, Controller } from "react-hook-form";
 import { ConfigFieldLabel } from "./config-field-label";
@@ -16,7 +26,27 @@ interface ConfigItem {
   description?: string | null;
   schema?: unknown | null;
   isSecret: boolean;
+  mask?: string | null;
   sortOrder: number;
+}
+
+/** A `select` config field's `schema` is `{ options: [{ value, label }] }`. */
+interface SelectConfigSchema {
+  options: Array<{ value: string; label: string }>;
+}
+
+function isSelectConfigSchema(schema: unknown): schema is SelectConfigSchema {
+  if (!schema || typeof schema !== "object") return false;
+  const opts = (schema as { options?: unknown }).options;
+  return (
+    Array.isArray(opts) &&
+    opts.every(
+      (o) =>
+        o &&
+        typeof o === "object" &&
+        typeof (o as { value?: unknown }).value === "string",
+    )
+  );
 }
 
 interface ConfigFieldProps {
@@ -89,16 +119,33 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
             );
           }
 
+          if (item.type === "select" && isSelectConfigSchema(item.schema)) {
+            return (
+              <Select
+                value={field.value ?? ""}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  field.onBlur();
+                }}
+              >
+                <SelectTrigger id={item.key} className="w-full">
+                  <SelectValue placeholder={t("selectPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {item.schema.options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {tr(opt.label)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            );
+          }
+
           return (
             <Input
               id={item.key}
-              type={
-                item.isSecret
-                  ? "password"
-                  : item.type === "number"
-                    ? "number"
-                    : "text"
-              }
+              type={item.type === "number" ? "number" : "text"}
               value={field.value ?? ""}
               onChange={field.onChange}
               onBlur={field.onBlur}

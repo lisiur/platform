@@ -44,7 +44,7 @@ vi.mock("#lib/logger", () => ({ logAudit: vi.fn() }));
 vi.mock("#lib/session", () => ({ createSession: vi.fn() }));
 
 vi.mock("#repositories/system-config.repository", () => ({
-  systemConfigRepository: { findByGroupAndKey: vi.fn() },
+  systemConfigRepository: { findByGroup: vi.fn() },
 }));
 
 vi.mock("#services/auth.service", () => ({
@@ -93,7 +93,7 @@ const mockPrisma = prisma as unknown as {
   };
 };
 const mockConfigRepo = systemConfigRepository as unknown as {
-  findByGroupAndKey: ReturnType<typeof vi.fn>;
+  findByGroup: ReturnType<typeof vi.fn>;
 };
 const mockCreateSession = createSession as unknown as ReturnType<typeof vi.fn>;
 const mockAssertNotBanned = assertNotBanned as unknown as ReturnType<
@@ -130,20 +130,14 @@ function buildClientDataJSON(challenge: string): string {
 beforeEach(() => {
   vi.resetAllMocks();
   cacheStore.clear();
-  mockConfigRepo.findByGroupAndKey.mockImplementation(
-    (group: string, key: string) => {
-      if (group === "webauthn" && key === "rp.name") {
-        return Promise.resolve({ value: "Test RP" });
-      }
-      if (group === "webauthn" && key === "rp.id") {
-        return Promise.resolve({ value: "localhost" });
-      }
-      if (group === "webauthn" && key === "origin") {
-        return Promise.resolve({ value: "http://localhost:3000" });
-      }
-      return Promise.resolve(null);
-    },
-  );
+  mockConfigRepo.findByGroup.mockImplementation((group: string) => {
+    if (group !== "webauthn") return Promise.resolve([]);
+    return Promise.resolve([
+      { group: "webauthn", key: "rp.name", value: "Test RP" },
+      { group: "webauthn", key: "rp.id", value: "localhost" },
+      { group: "webauthn", key: "origin", value: "http://localhost:3000" },
+    ]);
+  });
 });
 
 async function expectStatus(fn: () => Promise<unknown>, status: number) {
@@ -154,22 +148,28 @@ async function expectStatus(fn: () => Promise<unknown>, status: number) {
 
 describe("getWebAuthnEnabled / assertWebAuthnEnabled", () => {
   it("returns false when the config is missing (default-off)", async () => {
-    mockConfigRepo.findByGroupAndKey.mockResolvedValue(null);
+    mockConfigRepo.findByGroup.mockResolvedValue([]);
     expect(await getWebAuthnEnabled()).toBe(false);
   });
 
   it("returns false when the config is explicitly 'false'", async () => {
-    mockConfigRepo.findByGroupAndKey.mockResolvedValue({ value: "false" });
+    mockConfigRepo.findByGroup.mockResolvedValue([
+      { group: "webauthn", key: "enabled", value: "false" },
+    ]);
     expect(await getWebAuthnEnabled()).toBe(false);
   });
 
   it("returns true when the config is 'true'", async () => {
-    mockConfigRepo.findByGroupAndKey.mockResolvedValue({ value: "true" });
+    mockConfigRepo.findByGroup.mockResolvedValue([
+      { group: "webauthn", key: "enabled", value: "true" },
+    ]);
     expect(await getWebAuthnEnabled()).toBe(true);
   });
 
   it("throws 403 when disabled", async () => {
-    mockConfigRepo.findByGroupAndKey.mockResolvedValue({ value: "false" });
+    mockConfigRepo.findByGroup.mockResolvedValue([
+      { group: "webauthn", key: "enabled", value: "false" },
+    ]);
     await expectStatus(() => assertWebAuthnEnabled(), 403);
   });
 });

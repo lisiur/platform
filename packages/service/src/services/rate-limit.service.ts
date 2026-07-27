@@ -3,7 +3,7 @@ import { DEFAULT_TRUST, parseTrust } from "#lib/client-ip";
 import type { OverrideRecord } from "#lib/rate-limit-registry";
 import { rateLimitRegistry } from "#lib/rate-limit-registry";
 import { rateLimitRepository } from "#repositories/rate-limit.repository";
-import { systemConfigRepository } from "#repositories/system-config.repository";
+import { getMergedConfigRows } from "#services/system-config-env.service";
 import { rateLimitCache } from "#states/cache";
 import { eventBus } from "#states/event-bus";
 
@@ -68,8 +68,9 @@ type RateLimitDefaults = {
 };
 
 async function loadRateLimitDefaults(): Promise<RateLimitDefaults> {
-  const rows = await systemConfigRepository.findByGroup("rate-limit");
-  const map = new Map(rows.map((r) => [r.key, r.value]));
+  const map = new Map(
+    (await getMergedConfigRows("rate-limit")).map((r) => [r.key, r.value]),
+  );
 
   const enabled = (map.get("enabled") ?? "true") === "true";
   const limiters: Record<string, { max: number; windowMs: number }> = {};

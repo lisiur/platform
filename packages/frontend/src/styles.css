@@ -1,1 +1,8 @@
+@import "./typeset.css";
 @source "./components";
+
+.typeset-docs {
+  --typeset-size: 15px;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+}

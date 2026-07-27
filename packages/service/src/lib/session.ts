@@ -4,8 +4,24 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { prisma } from "#lib/db";
 
 export const SESSION_COOKIE_NAME = "session_token";
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const DEFAULT_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+let sessionMaxAgeSeconds = DEFAULT_SESSION_MAX_AGE_SECONDS;
 export const SESSION_REFRESH_AFTER_MS = 60 * 60 * 24 * 1000;
+
+/**
+ * Overrides the session max-age (seconds). Loaded from the `auth.session.maxAge`
+ * config (with `AUTH_SESSION_MAX_AGE` env fallback) at boot and on config
+ * change. Falls back to the 7-day default when unset/invalid.
+ */
+export function setSessionMaxAgeSeconds(seconds: number): void {
+  if (Number.isFinite(seconds) && seconds > 0) {
+    sessionMaxAgeSeconds = seconds;
+  }
+}
+
+export function getSessionMaxAgeSeconds(): number {
+  return sessionMaxAgeSeconds;
+}
 
 export type AuthSessionUser = {
   id: string;
@@ -48,7 +64,7 @@ export function setSessionCookie(c: Context, token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
     path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge: sessionMaxAgeSeconds,
   });
 }
 
@@ -67,7 +83,7 @@ export async function createSession(params: {
   activeOrganizationId?: string | null;
 }) {
   const token = createSessionToken();
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const expiresAt = new Date(Date.now() + sessionMaxAgeSeconds * 1000);
 
   const sessions = await prisma.session.findMany({
     where: { userId: params.userId },
@@ -152,7 +168,7 @@ export async function getSessionByToken(token: string | null) {
     return prisma.session.update({
       where: { id: result.id },
       data: {
-        expiresAt: new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000),
+        expiresAt: new Date(Date.now() + sessionMaxAgeSeconds * 1000),
       },
       include: { user: true },
     });

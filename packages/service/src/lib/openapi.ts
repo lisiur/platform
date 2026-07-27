@@ -55,6 +55,15 @@ export const notFoundResponse = {
   },
 } as const;
 
+export const serviceUnavailableResponse = {
+  503: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Service Unavailable",
+  },
+} as const;
+
 export function okResponseFn<Schema extends z.ZodType>(
   schema: Schema,
   description: string,

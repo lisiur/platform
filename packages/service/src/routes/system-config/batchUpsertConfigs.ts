@@ -7,6 +7,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { reloadAuthDefaults } from "#services/auth-config.service";
 import { reloadRateLimitDefaultsAndBroadcast } from "#services/rate-limit.service";
 import { assertAccess } from "#services/role-permission.service";
 import { batchUpsertConfigs } from "#services/system-config.service";
@@ -49,6 +50,9 @@ export const batchUpsertConfigsRoute = defineOpenAPIRoute({
 
     if (items.some((i: { group: string }) => i.group === "rate-limit")) {
       await reloadRateLimitDefaultsAndBroadcast();
+    }
+    if (items.some((i: { group: string }) => i.group === "auth")) {
+      await reloadAuthDefaults();
     }
 
     await logAudit({

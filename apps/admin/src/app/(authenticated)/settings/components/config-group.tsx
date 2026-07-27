@@ -22,6 +22,7 @@ interface ConfigItem {
   description?: string | null;
   schema?: unknown | null;
   isSecret: boolean;
+  mask?: string | null;
   sortOrder: number;
 }
 
@@ -70,18 +71,22 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
   async function handleSave() {
     setSaving(true);
     try {
-      const payload = items.map((item) => ({
-        group: item.group,
-        key: item.key,
-        value: form.getValues(item.key),
-        schema:
-          (item.schema as Record<string, unknown> | undefined) ?? undefined,
-        type: item.type as "string" | "number" | "boolean" | "json",
-        label: item.label,
-        description: item.description ?? undefined,
-        isSecret: item.isSecret,
-        sortOrder: item.sortOrder,
-      }));
+      const dirty = form.formState.dirtyFields as Record<string, boolean>;
+      const payload = items
+        .filter((item) => dirty[item.key])
+        .map((item) => ({
+          group: item.group,
+          key: item.key,
+          value: form.getValues(item.key),
+          schema:
+            (item.schema as Record<string, unknown> | undefined) ?? undefined,
+          type: item.type as "string" | "number" | "boolean" | "json",
+          label: item.label,
+          description: item.description ?? undefined,
+          isSecret: item.isSecret,
+          mask: item.mask ?? undefined,
+          sortOrder: item.sortOrder,
+        }));
       await withApiFeedback(appClient.api["system-config"].batch.$put)({
         json: {
           items: payload,

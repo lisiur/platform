@@ -3,7 +3,7 @@ import { z } from "@hono/zod-openapi";
 // ---- Base schemas ----
 
 export const configTypeSchema = z
-  .enum(["string", "number", "boolean", "json"])
+  .enum(["string", "number", "boolean", "json", "select"])
   .openapi({ example: "string" });
 
 const jsonSchemaValueSchema = z.any().nullable();
@@ -22,6 +22,17 @@ export const systemConfigItemSchema = z
     label: z.string().openapi({ example: "Site Name" }),
     description: z.string().nullable().optional(),
     isSecret: z.boolean().openapi({ example: false }),
+    mask: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({
+        example: "start{4}.{*}end{4}",
+        description:
+          "Mask template for secret display, e.g. 'start{4}.{*}end{4}'. " +
+          "start{N}/end{N} keep N chars; .{N} emits N mask chars; .{*} emits " +
+          "one mask char per hidden char. Unknown tokens are ignored.",
+      }),
     sortOrder: z.number().openapi({ example: 0 }),
     createdAt: z
       .string()
@@ -56,6 +67,7 @@ export const upsertConfigBodySchema = z.object({
   label: z.string().min(1).openapi({ example: "Site Name" }),
   description: z.string().optional(),
   isSecret: z.boolean().default(false),
+  mask: z.string().nullable().optional(),
   sortOrder: z.number().int().default(0),
 });
 
@@ -71,6 +83,7 @@ export const batchUpsertBodySchema = z.object({
         label: z.string().min(1).openapi({ example: "Site Name" }),
         description: z.string().optional(),
         isSecret: z.boolean().default(false),
+        mask: z.string().nullable().optional(),
         sortOrder: z.number().int().default(0),
       }),
     )

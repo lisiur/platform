@@ -1,3 +1,5 @@
+export type { AgentChatProps } from "./components/agent-chat/agent-chat";
+export { AgentChat } from "./components/agent-chat/agent-chat";
 export { DataTablePagination } from "./components/data-table-pagination";
 export { PaginatedTableFrame } from "./components/paginated-table-frame";
 export type {
@@ -10,6 +12,11 @@ export type {
 export { PermissionSelector } from "./components/permission-selector";
 export type { WatermarkConfig, WatermarkProps } from "./components/watermark";
 export { Watermark } from "./components/watermark";
+export type {
+  AgentChatApi,
+  UseAgentChatOptions,
+} from "./hooks/use-agent-chat";
+export { useAgentChat } from "./hooks/use-agent-chat";
 export type {
   EventStreamOptions,
   SseEventHandler,

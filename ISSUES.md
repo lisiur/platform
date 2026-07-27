@@ -37,7 +37,7 @@
 ### Seed & Migrations
 
 - [ ] **`seed.ts` is not wrapped in a transaction** [#3](https://github.com/lisiur/platform/issues/3) — only the built-in-org
-      block uses `$transaction` (`prisma/seed.ts:1370`); the other ~14
+      block uses `$transaction` (`prisma/seed.ts:1449`); the other ~15
       steps are independent writes. A mid-seed failure leaves reference
       data partially updated. Wrap the whole `seed()` body in one
       `$transaction`.
@@ -73,13 +73,15 @@
       `js_code` are all URL params (`lib/wechat.ts:22-26`); WeChat requires
       this, but the secret is liable to appear in outbound proxy/HTTP-tracing
       logs. Ensure no middleware logs this request's URL.
-- [ ] **`/auth/update-user` accepts API tokens with no scope check** [#11](https://github.com/lisiur/platform/issues/11) —
-      calls `requirePrincipal` (which accepts a bearer token) then acts on
-      `getPrincipalUserId` with no `assertAccess` or principal-kind gate
-      (`routes/auth/updateUser.ts:24-34`); a leaked token can rewrite the
-      owner's profile. Require `principal.kind === "user"` for self-service
-      auth mutations (mirroring the check already in
-      `routes/auth/changePassword.ts:33-35`).
+- [ ] **API token `lastUsedAt` updated on every authenticated request** [#31](https://github.com/lisiur/platform/issues/31) —
+      `getApiTokenByBearer` runs `prisma.apiToken.update({ lastUsedAt })`
+      per call (`lib/api-token.ts:57-59`); every bearer-token request
+      triggers a DB write, adding write amplification and lock contention
+      under token-based API load (read-on-every-write). The write is
+      fire-and-forget (`.catch(() => null)`) so it can't fail the request,
+      but the per-request write is wasteful. Throttle the update (e.g.
+      only when the stored value is older than N seconds) or move it to a
+      best-effort async background tick.
 
 ### Notifications
 
@@ -94,8 +96,14 @@
 
 - [ ] **Magic-byte verification is shallow** [#13](https://github.com/lisiur/platform/issues/13) — several signatures are
       minimal (webp checks only RIFF + "WEBP", PDF only `%PDF`, GIF only
-      `GIF8`) (`lib/mime.ts:22-46`); a polyglot (JPEG with trailing HTML)
+      `GIF8`) (`lib/mime.ts:22-46`); the SVG check is weaker still — a
+      pure `<?xml`/`<svg` string prefix with no structural validation
+      (`lib/mime.ts:38-41`); a polyglot (JPEG with trailing HTML)
       passes. Use a real format-aware library (e.g. `file-type`).
+      Note: SVG script execution is mitigated at serve time via
+      `Content-Security-Policy: default-src 'none'` + `nosniff`
+      (`routes/attachment/getAttachment.ts:64,72-75`), so the shallow
+      SVG check is not currently exploitable.
 - [ ] **Dead auth check in `signFile`** [#14](https://github.com/lisiur/platform/issues/14) — `if (!getPrincipalUserId(principal))
       throw 401` (`routes/attachment/signAttachment.ts:32-34`) is unreachable
       because `getPrincipalUserId` always returns a non-empty string. Remove
@@ -104,11 +112,11 @@
 ### Cache
 
 - [ ] **Cache `getOrSet` is unused and not stampede-safe** [#15](https://github.com/lisiur/platform/issues/15) — the cache-aside
-      helper exists (`lib/cache.ts:73`) but has no callers; concurrent misses
+      helper exists (`lib/cache.ts:76`) but has no callers; concurrent misses
       each fetch independently. Either adopt it (with in-flight promise
       de-dup) or remove it.
 - [ ] **Cache `get<T>()` is an unchecked cast** [#16](https://github.com/lisiur/platform/issues/16) — `set(key, unknown)`
-      stores untyped and `get<T>()` blindly casts (`lib/cache.ts:40-48`). A
+      stores untyped and `get<T>()` blindly casts (`lib/cache.ts:43-51`). A
       wrong `T` at the read site compiles but returns garbage; keep
       read/write types aligned or add a typed wrapper.
 
@@ -126,9 +134,6 @@
       RateLimitOverride, etc.) aren't captured as migrations, so prod/dev
       drift is invisible. Adopt `prisma migrate dev`/`migrate deploy` for
       schema changes.
-- [ ] **`Verification` rows are never cleaned up** [#20](https://github.com/lisiur/platform/issues/20) — `expiresAt` is set
-      but unindexed, and no scheduled job deletes expired rows
-      (`schema.prisma:69-79`). Add `@@index([expiresAt])` and a sweep job.
 
 ## No Dues
 
@@ -235,3 +240,20 @@
       publish, and plaintext in-process session store are all unfixable
       without an external broker/shared store; same horizontal-scaling
       blocker as Jobs/Cache/Rate-limit above.
+
+## Resolved
+
+### Auth & Session
+
+- [x] **`/auth/update-user` accepts API tokens with no scope check** [#11](https://github.com/lisiur/platform/issues/11)
+      — the handler now gates on `principal.kind !== "user"` before acting
+      (`routes/auth/updateUser.ts:27-29`), so a bearer API token can no
+      longer rewrite the owner's profile.
+
+### Schema & DB
+
+- [x] **`Verification` rows are never cleaned up** [#20](https://github.com/lisiur/platform/issues/20)
+      — resolved on both fronts: `@@index([expiresAt])` is now present
+      (`prisma/schema.prisma:80`) and the `verification-sweep` job handler
+      deletes expired rows (`states/job-executor/handlers/verification-sweep.handler.ts`).
+

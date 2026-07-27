@@ -242,6 +242,7 @@ export type UserWhereInput = {
   notifications?: Prisma.NotificationListRelationFilter
   createdNotifications?: Prisma.NotificationListRelationFilter
   apiTokens?: Prisma.ApiTokenListRelationFilter
+  agentSessions?: Prisma.AgentSessionListRelationFilter
   attachments?: Prisma.AttachmentListRelationFilter
 }
 
@@ -266,6 +267,7 @@ export type UserOrderByWithRelationInput = {
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   createdNotifications?: Prisma.NotificationOrderByRelationAggregateInput
   apiTokens?: Prisma.ApiTokenOrderByRelationAggregateInput
+  agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
   attachments?: Prisma.AttachmentOrderByRelationAggregateInput
 }
 
@@ -293,6 +295,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   notifications?: Prisma.NotificationListRelationFilter
   createdNotifications?: Prisma.NotificationListRelationFilter
   apiTokens?: Prisma.ApiTokenListRelationFilter
+  agentSessions?: Prisma.AgentSessionListRelationFilter
   attachments?: Prisma.AttachmentListRelationFilter
 }, "id" | "email">
 
@@ -353,6 +356,7 @@ export type UserCreateInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -377,6 +381,7 @@ export type UserUncheckedCreateInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -401,6 +406,7 @@ export type UserUpdateInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -425,6 +431,7 @@ export type UserUncheckedUpdateInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -695,6 +702,20 @@ export type UserUpdateOneRequiredWithoutApiTokensNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutApiTokensInput, Prisma.UserUpdateWithoutApiTokensInput>, Prisma.UserUncheckedUpdateWithoutApiTokensInput>
 }
 
+export type UserCreateNestedOneWithoutAgentSessionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAgentSessionsInput, Prisma.UserUncheckedCreateWithoutAgentSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAgentSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAgentSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAgentSessionsInput, Prisma.UserUncheckedCreateWithoutAgentSessionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAgentSessionsInput
+  upsert?: Prisma.UserUpsertWithoutAgentSessionsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAgentSessionsInput, Prisma.UserUpdateWithoutAgentSessionsInput>, Prisma.UserUncheckedUpdateWithoutAgentSessionsInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   name: string
@@ -715,6 +736,7 @@ export type UserCreateWithoutSessionsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -738,6 +760,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -777,6 +800,7 @@ export type UserUpdateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -800,6 +824,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -823,6 +848,7 @@ export type UserCreateWithoutAccountsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -846,6 +872,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -885,6 +912,7 @@ export type UserUpdateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -908,6 +936,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -931,6 +960,7 @@ export type UserCreateWithoutMembersInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -954,6 +984,7 @@ export type UserUncheckedCreateWithoutMembersInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -993,6 +1024,7 @@ export type UserUpdateWithoutMembersInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1016,6 +1048,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1039,6 +1072,7 @@ export type UserCreateWithoutInvitationsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -1062,6 +1096,7 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -1101,6 +1136,7 @@ export type UserUpdateWithoutInvitationsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1124,6 +1160,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1148,6 +1185,7 @@ export type UserCreateWithoutAttachmentsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAttachmentsInput = {
@@ -1171,6 +1209,7 @@ export type UserUncheckedCreateWithoutAttachmentsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAttachmentsInput = {
@@ -1210,6 +1249,7 @@ export type UserUpdateWithoutAttachmentsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAttachmentsInput = {
@@ -1233,6 +1273,7 @@ export type UserUncheckedUpdateWithoutAttachmentsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRoleAssignmentsInput = {
@@ -1255,6 +1296,7 @@ export type UserCreateWithoutRoleAssignmentsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -1278,6 +1320,7 @@ export type UserUncheckedCreateWithoutRoleAssignmentsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -1317,6 +1360,7 @@ export type UserUpdateWithoutRoleAssignmentsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1340,6 +1384,7 @@ export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1363,6 +1408,7 @@ export type UserCreateWithoutNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -1386,6 +1432,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -1414,6 +1461,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -1437,6 +1485,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -1476,6 +1525,7 @@ export type UserUpdateWithoutNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1499,6 +1549,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1533,6 +1584,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1556,6 +1608,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1579,6 +1632,7 @@ export type UserCreateWithoutApiTokensInput = {
   roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
 }
 
@@ -1602,6 +1656,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
 }
 
@@ -1641,6 +1696,7 @@ export type UserUpdateWithoutApiTokensInput = {
   roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1664,6 +1720,119 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserCreateWithoutAgentSessionsInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+}
+
+export type UserUncheckedCreateWithoutAgentSessionsInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+}
+
+export type UserCreateOrConnectWithoutAgentSessionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAgentSessionsInput, Prisma.UserUncheckedCreateWithoutAgentSessionsInput>
+}
+
+export type UserUpsertWithoutAgentSessionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAgentSessionsInput, Prisma.UserUncheckedUpdateWithoutAgentSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAgentSessionsInput, Prisma.UserUncheckedCreateWithoutAgentSessionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAgentSessionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAgentSessionsInput, Prisma.UserUncheckedUpdateWithoutAgentSessionsInput>
+}
+
+export type UserUpdateWithoutAgentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAgentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
@@ -1681,6 +1850,7 @@ export type UserCountOutputType = {
   notifications: number
   createdNotifications: number
   apiTokens: number
+  agentSessions: number
   attachments: number
 }
 
@@ -1693,6 +1863,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   createdNotifications?: boolean | UserCountOutputTypeCountCreatedNotificationsArgs
   apiTokens?: boolean | UserCountOutputTypeCountApiTokensArgs
+  agentSessions?: boolean | UserCountOutputTypeCountAgentSessionsArgs
   attachments?: boolean | UserCountOutputTypeCountAttachmentsArgs
 }
 
@@ -1765,6 +1936,13 @@ export type UserCountOutputTypeCountApiTokensArgs<ExtArgs extends runtime.Types.
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountAgentSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AgentSessionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountAttachmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AttachmentWhereInput
 }
@@ -1791,6 +1969,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   createdNotifications?: boolean | Prisma.User$createdNotificationsArgs<ExtArgs>
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
+  agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
   attachments?: boolean | Prisma.User$attachmentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -1850,6 +2029,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   createdNotifications?: boolean | Prisma.User$createdNotificationsArgs<ExtArgs>
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
+  agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
   attachments?: boolean | Prisma.User$attachmentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1867,6 +2047,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     createdNotifications: Prisma.$NotificationPayload<ExtArgs>[]
     apiTokens: Prisma.$ApiTokenPayload<ExtArgs>[]
+    agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
     attachments: Prisma.$AttachmentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -2284,6 +2465,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdNotifications<T extends Prisma.User$createdNotificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdNotificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   apiTokens<T extends Prisma.User$apiTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$apiTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApiTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  agentSessions<T extends Prisma.User$agentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$agentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   attachments<T extends Prisma.User$attachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$attachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2908,6 +3090,30 @@ export type User$apiTokensArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.ApiTokenScalarFieldEnum | Prisma.ApiTokenScalarFieldEnum[]
+}
+
+/**
+ * User.agentSessions
+ */
+export type User$agentSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentSession
+   */
+  select?: Prisma.AgentSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentSession
+   */
+  omit?: Prisma.AgentSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentSessionInclude<ExtArgs> | null
+  where?: Prisma.AgentSessionWhereInput
+  orderBy?: Prisma.AgentSessionOrderByWithRelationInput | Prisma.AgentSessionOrderByWithRelationInput[]
+  cursor?: Prisma.AgentSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AgentSessionScalarFieldEnum | Prisma.AgentSessionScalarFieldEnum[]
 }
 
 /**

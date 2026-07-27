@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { agentRoutes } from "./agent";
 import { apiTokenRoutes } from "./api-token";
 import { applicationRoutes } from "./application";
 import { attachmentRoutes } from "./attachment";
@@ -48,6 +49,7 @@ const routes = new OpenAPIHono()
   .route("/jobs", jobRoutes)
   .route("/job-instances", jobInstanceRoutes)
   .route("/rate-limit", rateLimitRoutes)
-  .route("/cache", cacheRoutes);
+  .route("/cache", cacheRoutes)
+  .route("/agent", agentRoutes);
 
 export { routes };

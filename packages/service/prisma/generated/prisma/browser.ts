@@ -162,3 +162,13 @@ export type RateLimitOverride = Prisma.RateLimitOverrideModel
  * 
  */
 export type ApiToken = Prisma.ApiTokenModel
+/**
+ * Model AgentSession
+ * 
+ */
+export type AgentSession = Prisma.AgentSessionModel
+/**
+ * Model AgentMessage
+ * 
+ */
+export type AgentMessage = Prisma.AgentMessageModel

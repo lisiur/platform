@@ -17,7 +17,15 @@ export interface RateLimitUpdatedEvent {
   target: string;
 }
 
+export interface AgentSessionTitleUpdatedEvent {
+  type: "agent.session.title.updated";
+  target: string;
+  sessionId: string;
+  name: string;
+}
+
 export type ServerEvent =
   | NotificationCreatedEvent
   | JobStatsUpdatedEvent
-  | RateLimitUpdatedEvent;
+  | RateLimitUpdatedEvent
+  | AgentSessionTitleUpdatedEvent;

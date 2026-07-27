@@ -43,6 +43,7 @@ export type SystemConfigMinAggregateOutputType = {
   label: string | null
   description: string | null
   isSecret: boolean | null
+  mask: string | null
   sortOrder: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -57,6 +58,7 @@ export type SystemConfigMaxAggregateOutputType = {
   label: string | null
   description: string | null
   isSecret: boolean | null
+  mask: string | null
   sortOrder: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -72,6 +74,7 @@ export type SystemConfigCountAggregateOutputType = {
   label: number
   description: number
   isSecret: number
+  mask: number
   sortOrder: number
   createdAt: number
   updatedAt: number
@@ -96,6 +99,7 @@ export type SystemConfigMinAggregateInputType = {
   label?: true
   description?: true
   isSecret?: true
+  mask?: true
   sortOrder?: true
   createdAt?: true
   updatedAt?: true
@@ -110,6 +114,7 @@ export type SystemConfigMaxAggregateInputType = {
   label?: true
   description?: true
   isSecret?: true
+  mask?: true
   sortOrder?: true
   createdAt?: true
   updatedAt?: true
@@ -125,6 +130,7 @@ export type SystemConfigCountAggregateInputType = {
   label?: true
   description?: true
   isSecret?: true
+  mask?: true
   sortOrder?: true
   createdAt?: true
   updatedAt?: true
@@ -227,6 +233,7 @@ export type SystemConfigGroupByOutputType = {
   label: string
   description: string | null
   isSecret: boolean
+  mask: string | null
   sortOrder: number
   createdAt: Date
   updatedAt: Date
@@ -265,6 +272,7 @@ export type SystemConfigWhereInput = {
   label?: Prisma.StringFilter<"SystemConfig"> | string
   description?: Prisma.StringNullableFilter<"SystemConfig"> | string | null
   isSecret?: Prisma.BoolFilter<"SystemConfig"> | boolean
+  mask?: Prisma.StringNullableFilter<"SystemConfig"> | string | null
   sortOrder?: Prisma.IntFilter<"SystemConfig"> | number
   createdAt?: Prisma.DateTimeFilter<"SystemConfig"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SystemConfig"> | Date | string
@@ -280,6 +288,7 @@ export type SystemConfigOrderByWithRelationInput = {
   label?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   isSecret?: Prisma.SortOrder
+  mask?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -299,6 +308,7 @@ export type SystemConfigWhereUniqueInput = Prisma.AtLeast<{
   label?: Prisma.StringFilter<"SystemConfig"> | string
   description?: Prisma.StringNullableFilter<"SystemConfig"> | string | null
   isSecret?: Prisma.BoolFilter<"SystemConfig"> | boolean
+  mask?: Prisma.StringNullableFilter<"SystemConfig"> | string | null
   sortOrder?: Prisma.IntFilter<"SystemConfig"> | number
   createdAt?: Prisma.DateTimeFilter<"SystemConfig"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SystemConfig"> | Date | string
@@ -314,6 +324,7 @@ export type SystemConfigOrderByWithAggregationInput = {
   label?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   isSecret?: Prisma.SortOrder
+  mask?: Prisma.SortOrderInput | Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -337,6 +348,7 @@ export type SystemConfigScalarWhereWithAggregatesInput = {
   label?: Prisma.StringWithAggregatesFilter<"SystemConfig"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"SystemConfig"> | string | null
   isSecret?: Prisma.BoolWithAggregatesFilter<"SystemConfig"> | boolean
+  mask?: Prisma.StringNullableWithAggregatesFilter<"SystemConfig"> | string | null
   sortOrder?: Prisma.IntWithAggregatesFilter<"SystemConfig"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SystemConfig"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SystemConfig"> | Date | string
@@ -352,6 +364,7 @@ export type SystemConfigCreateInput = {
   label: string
   description?: string | null
   isSecret?: boolean
+  mask?: string | null
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -367,6 +380,7 @@ export type SystemConfigUncheckedCreateInput = {
   label: string
   description?: string | null
   isSecret?: boolean
+  mask?: string | null
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -382,6 +396,7 @@ export type SystemConfigUpdateInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isSecret?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mask?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -397,6 +412,7 @@ export type SystemConfigUncheckedUpdateInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isSecret?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mask?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -412,6 +428,7 @@ export type SystemConfigCreateManyInput = {
   label: string
   description?: string | null
   isSecret?: boolean
+  mask?: string | null
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -427,6 +444,7 @@ export type SystemConfigUpdateManyMutationInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isSecret?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mask?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -442,6 +460,7 @@ export type SystemConfigUncheckedUpdateManyInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isSecret?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mask?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -462,6 +481,7 @@ export type SystemConfigCountOrderByAggregateInput = {
   label?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isSecret?: Prisma.SortOrder
+  mask?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -480,6 +500,7 @@ export type SystemConfigMaxOrderByAggregateInput = {
   label?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isSecret?: Prisma.SortOrder
+  mask?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -494,6 +515,7 @@ export type SystemConfigMinOrderByAggregateInput = {
   label?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isSecret?: Prisma.SortOrder
+  mask?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -515,6 +537,7 @@ export type SystemConfigSelect<ExtArgs extends runtime.Types.Extensions.Internal
   label?: boolean
   description?: boolean
   isSecret?: boolean
+  mask?: boolean
   sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -530,6 +553,7 @@ export type SystemConfigSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   label?: boolean
   description?: boolean
   isSecret?: boolean
+  mask?: boolean
   sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -545,6 +569,7 @@ export type SystemConfigSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   label?: boolean
   description?: boolean
   isSecret?: boolean
+  mask?: boolean
   sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -560,12 +585,13 @@ export type SystemConfigSelectScalar = {
   label?: boolean
   description?: boolean
   isSecret?: boolean
+  mask?: boolean
   sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SystemConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "group" | "key" | "value" | "type" | "schema" | "label" | "description" | "isSecret" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["systemConfig"]>
+export type SystemConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "group" | "key" | "value" | "type" | "schema" | "label" | "description" | "isSecret" | "mask" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["systemConfig"]>
 
 export type $SystemConfigPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SystemConfig"
@@ -580,6 +606,7 @@ export type $SystemConfigPayload<ExtArgs extends runtime.Types.Extensions.Intern
     label: string
     description: string | null
     isSecret: boolean
+    mask: string | null
     sortOrder: number
     createdAt: Date
     updatedAt: Date
@@ -1015,6 +1042,7 @@ export interface SystemConfigFieldRefs {
   readonly label: Prisma.FieldRef<"SystemConfig", 'String'>
   readonly description: Prisma.FieldRef<"SystemConfig", 'String'>
   readonly isSecret: Prisma.FieldRef<"SystemConfig", 'Boolean'>
+  readonly mask: Prisma.FieldRef<"SystemConfig", 'String'>
   readonly sortOrder: Prisma.FieldRef<"SystemConfig", 'Int'>
   readonly createdAt: Prisma.FieldRef<"SystemConfig", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SystemConfig", 'DateTime'>

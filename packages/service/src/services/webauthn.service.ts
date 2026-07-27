@@ -12,11 +12,11 @@ import { getWebAuthnProviderData } from "#lib/account-provider-data";
 import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { createSession } from "#lib/session";
-import { systemConfigRepository } from "#repositories/system-config.repository";
 import {
   assertNotBanned,
   getDefaultActiveOrganizationId,
 } from "#services/auth.service";
+import { getMergedConfigRows } from "#services/system-config-env.service";
 import { webauthnChallengeCache } from "#states/cache";
 import type { WebAuthnProviderData } from "#types/account";
 import type { WebAuthnChallenge } from "#types/webauthn";
@@ -81,16 +81,13 @@ function deriveDeviceName(params: {
 }
 
 async function getWebAuthnConfig() {
-  const [rpNameConfig, rpIdConfig, originConfig] = await Promise.all([
-    systemConfigRepository.findByGroupAndKey("webauthn", "rp.name"),
-    systemConfigRepository.findByGroupAndKey("webauthn", "rp.id"),
-    systemConfigRepository.findByGroupAndKey("webauthn", "origin"),
-  ]);
-  const rpID = rpIdConfig?.value || process.env.WEBAUTHN_RP_ID || "localhost";
-  const origin =
-    originConfig?.value || process.env.WEBAUTHN_ORIGIN || `https://${rpID}`;
+  const map = new Map(
+    (await getMergedConfigRows("webauthn")).map((r) => [r.key, r.value]),
+  );
+  const rpID = map.get("rp.id") || "localhost";
+  const origin = map.get("origin") || `https://${rpID}`;
   return {
-    rpName: rpNameConfig?.value || "My Application",
+    rpName: map.get("rp.name") || "My Application",
     rpID,
     origin,
   };
@@ -99,14 +96,13 @@ async function getWebAuthnConfig() {
 /**
  * Whether WebAuthn (passkey) sign-in / registration is enabled.
  * Defaults to `false` when the config row is missing — matching the
- * registration-enabled convention.
+ * registration-enabled convention. Honors the `WEBAUTHN_ENABLED` env fallback.
  */
 export async function getWebAuthnEnabled(): Promise<boolean> {
-  const config = await systemConfigRepository.findByGroupAndKey(
-    "webauthn",
-    "enabled",
+  const map = new Map(
+    (await getMergedConfigRows("webauthn")).map((r) => [r.key, r.value]),
   );
-  return config?.value === "true";
+  return map.get("enabled") === "true";
 }
 
 /**

@@ -42,6 +42,7 @@ export const systemConfigRepository = {
             label: item.label,
             description: item.description,
             isSecret: item.isSecret,
+            mask: item.mask,
             sortOrder: item.sortOrder,
           },
         }),
@@ -64,6 +65,7 @@ interface UpsertInput {
   description?: string;
   isSecret?: boolean;
   sortOrder?: number;
+  mask?: string | null;
 }
 
 interface BatchItem extends UpsertInput {

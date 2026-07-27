@@ -1,0 +1,191 @@
+import { randomUUID } from "node:crypto";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { convertToModelMessages, generateText, type UIMessage } from "ai";
+import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { z } from "zod";
+import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import type { Prisma } from "#generated/prisma/client";
+import { streamAgent } from "#lib/agent-tools/stream";
+import { prisma } from "#lib/db";
+import {
+  isAgentConfigured,
+  loadAiAgentConfig,
+} from "#services/agent-config.service";
+import {
+  AgentSessionNotFoundError,
+  agentSessionManager,
+} from "#services/agent-session.service";
+import { assertAccess } from "#services/role-permission.service";
+import { eventBus } from "#states";
+
+const promptRequestSchema = z.object({
+  prompt: z.string().trim().min(1),
+});
+
+type PersistedMessage = {
+  id: string;
+  role: "user" | "assistant";
+  parts: UIMessage["parts"];
+};
+
+/** Prisma's JSON column requires InputJsonValue; UIMessage.parts is one. */
+function asJson(parts: UIMessage["parts"]): Prisma.InputJsonValue {
+  return parts as unknown as Prisma.InputJsonValue;
+}
+
+async function generateAndSaveTitle(
+  sessionId: string,
+  userPrompt: string,
+  config: { baseURL: string; apiKey: string; model: string },
+  userId: string,
+): Promise<void> {
+  const openai = createOpenAICompatible({
+    name: "platform-agent-title",
+    baseURL: config.baseURL,
+    apiKey: config.apiKey,
+  });
+
+  const result = await generateText({
+    model: openai(config.model),
+    system:
+      "Generate a short title (5-6 words max) summarizing the user's first message below. Return only the title, no quotes or punctuation.",
+    prompt: userPrompt,
+    maxOutputTokens: 30,
+  });
+
+  const title = result.text.trim();
+  if (!title) return;
+
+  await agentSessionManager.updateName(sessionId, title);
+
+  eventBus.publish({
+    type: "agent.session.title.updated",
+    target: `sse:admin:${userId}:*`,
+    sessionId,
+    name: title,
+  });
+}
+
+export async function sendMessageHandler(c: Context) {
+  const principal = await requirePrincipal(c);
+  await assertAccess(principal, "agent::manage");
+  const userId = getPrincipalUserId(principal);
+  const id = c.req.param("id") ?? "";
+
+  try {
+    await agentSessionManager.ensureSession(id, userId);
+  } catch (err) {
+    if (err instanceof AgentSessionNotFoundError) {
+      throw new HTTPException(404, { message: "Agent session not found" });
+    }
+    throw err;
+  }
+
+  const parsed = promptRequestSchema.safeParse(
+    await c.req.json().catch(() => ({})),
+  );
+  if (!parsed.success) {
+    throw new HTTPException(400, {
+      message: "A non-empty 'prompt' is required.",
+    });
+  }
+  const userText = parsed.data.prompt;
+
+  const config = await loadAiAgentConfig();
+  if (!isAgentConfigured(config)) {
+    throw new HTTPException(503, { message: "AI Agent is not configured." });
+  }
+
+  const rows = await prisma.agentMessage.findMany({
+    where: { sessionId: id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, role: true, parts: true },
+  });
+  const priorMessages: UIMessage[] = rows.map((row) => ({
+    id: row.id,
+    role: row.role,
+    parts: row.parts as UIMessage["parts"],
+  }));
+
+  const isFirstMessage = rows.length === 0;
+
+  const userMessage: UIMessage = {
+    id: randomUUID(),
+    role: "user",
+    parts: [{ type: "text", text: userText }],
+  };
+  priorMessages.push(userMessage);
+  await prisma.agentMessage.create({
+    data: {
+      id: userMessage.id,
+      sessionId: id,
+      role: "user",
+      parts: asJson(userMessage.parts),
+    },
+  });
+
+  if (isFirstMessage && config.apiKey) {
+    const cfg = {
+      baseURL: config.baseURL,
+      apiKey: config.apiKey,
+      model: config.model,
+    };
+    generateAndSaveTitle(id, userText, cfg, userId).catch((err) => {
+      console.error("[agent] failed to generate title:", err);
+    });
+  }
+
+  const modelMessages = await convertToModelMessages(priorMessages);
+
+  const result = streamAgent({
+    config,
+    messages: modelMessages,
+    abortSignal: c.req.raw.signal,
+  });
+
+  const knownIds = new Set(priorMessages.map((m) => m.id));
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: priorMessages,
+    generateMessageId: randomUUID,
+    onError: (error) => {
+      console.error("[agent] stream error:", error);
+      return process.env.NODE_ENV === "production"
+        ? "An error occurred."
+        : error instanceof Error
+          ? error.message
+          : String(error);
+    },
+    onFinish: async ({ messages, isAborted }) => {
+      if (isAborted) return;
+      try {
+        const newRows: PersistedMessage[] = messages
+          .filter((m) => !knownIds.has(m.id))
+          .map((m) => ({
+            id: m.id,
+            role: m.role === "user" ? "user" : "assistant",
+            parts: m.parts,
+          }));
+        if (newRows.length === 0) return;
+        await prisma.agentMessage.createMany({
+          data: newRows.map((row) => ({
+            id: row.id,
+            sessionId: id,
+            role: row.role,
+            parts: asJson(row.parts),
+          })),
+        });
+      } catch (err) {
+        const code =
+          err && typeof err === "object" && "code" in err
+            ? String(err.code)
+            : "unknown";
+        console.error(
+          `[agent] failed to persist assistant messages [${code}]:`,
+          err,
+        );
+      }
+    },
+  });
+}

@@ -14,8 +14,8 @@ import {
   getSessionFromHeaders,
 } from "#lib/session";
 import { code2Session } from "#lib/wechat";
-import { systemConfigRepository } from "#repositories/system-config.repository";
 import { createNotificationsFromTemplate } from "#services/notification/notification.service";
+import { getMergedConfigRows } from "#services/system-config-env.service";
 import { eventBus } from "#states";
 
 export type { AuthSession, AuthSessionUser, AuthType };
@@ -164,11 +164,10 @@ async function enqueueWelcomeNotifications(
 }
 
 export async function getRegistrationEnabled(): Promise<boolean> {
-  const config = await systemConfigRepository.findByGroupAndKey(
-    "auth",
-    "registration.enabled",
+  const map = new Map(
+    (await getMergedConfigRows("auth")).map((r) => [r.key, r.value]),
   );
-  return config?.value === "true";
+  return map.get("registration.enabled") === "true";
 }
 
 export async function signUpWithEmail(params: {
@@ -340,24 +339,21 @@ export async function signInWithWechat(params: {
   traceId?: string;
   userAgent?: string | null;
 }) {
-  const appidConfig = await systemConfigRepository.findByGroupAndKey(
-    "wechat",
-    "appid",
+  const wechatMap = new Map(
+    (await getMergedConfigRows("wechat")).map((r) => [r.key, r.value]),
   );
-  const secretConfig = await systemConfigRepository.findByGroupAndKey(
-    "wechat",
-    "secret",
-  );
+  const appid = wechatMap.get("appid");
+  const secret = wechatMap.get("secret");
 
-  if (!appidConfig?.value || !secretConfig?.value) {
+  if (!appid || !secret) {
     throw new HTTPException(500, {
       message: "WeChat configuration is incomplete",
     });
   }
 
   const wechatResult = await code2Session({
-    appid: appidConfig.value,
-    secret: secretConfig.value,
+    appid,
+    secret,
     js_code: params.code,
   });
 

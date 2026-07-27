@@ -177,7 +177,8 @@
       "auth": "Authentication",
       "webauthn": "WebAuthn",
       "upload": "Upload",
-      "rate-limit": "Rate Limit"
+      "rate-limit": "Rate Limit",
+      "ai-agent": "AI Agent"
     },
     "save": "Save Changes",
     "saving": "Saving...",
@@ -187,7 +188,8 @@
     "enable": "Enable",
     "jsonPlaceholder": "Enter JSON",
     "addArrayItem": "Add",
-    "arrayItemPlaceholder": "Enter item"
+    "arrayItemPlaceholder": "Enter item",
+    "selectPlaceholder": "Select an option"
   },
   "Notifications": {
     "title": "Notification Management",
@@ -357,7 +359,8 @@
     "platform": "Platform",
     "infrastructure": "Infrastructure",
     "developer": "Developer",
-    "cache": "Cache"
+    "cache": "Cache",
+    "ai-agent": "AI Agent"
   },
   "Organizations": {
     "title": "Organization Management",
@@ -606,7 +609,7 @@
     "settings": {
       "fields": {
         "enableRegistration": "Enable Registration",
-        "sessionMaxAge": "Session Max Age (days)",
+        "sessionMaxAge": "Session Max Age (seconds)",
         "uploadHotlink": "Upload Hotlink Protection",
         "uploadHotlinkEnabled": "Enable Hotlink Protection",
         "uploadHotlinkAllowedDomains": "Allowed Domains",
@@ -620,11 +623,16 @@
         "webauthnEnabled": "Enable WebAuthn",
         "webauthnRpName": "Relying Party Name",
         "webauthnRpId": "Relying Party ID",
-        "webauthnOrigin": "Expected Origin"
+        "webauthnOrigin": "Expected Origin",
+        "aiAgentBaseURL": "Base URL",
+        "aiAgentApiKey": "API Key",
+        "aiAgentModel": "Model",
+        "aiAgentReasoning": "Reasoning",
+        "aiAgentSystemPrompt": "System Prompt Override"
       },
       "fieldsDesc": {
         "enableRegistration": "Allow new users to register",
-        "sessionMaxAge": "Maximum session duration in days",
+        "sessionMaxAge": "Maximum session duration in seconds",
         "uploadHotlink": "Controls global anti-theft-link protection for uploaded files",
         "uploadHotlinkAllowedDomains": "Hostnames allowed to embed uploaded files",
         "uploadHotlinkAllowEmptyReferer": "Allow direct access when Referer and Origin headers are absent",
@@ -637,7 +645,20 @@
         "webauthnEnabled": "Allow users to sign in and register passkey credentials",
         "webauthnRpName": "Human-friendly name shown in the browser's WebAuthn prompt",
         "webauthnRpId": "Domain of the relying party (e.g. localhost, example.com). Must match the browser origin's domain.",
-        "webauthnOrigin": "Full origin the browser uses to access the app (e.g. http://localhost:3000, https://example.com)"
+        "webauthnOrigin": "Full origin the browser uses to access the app (e.g. http://localhost:3000, https://example.com)",
+        "aiAgentBaseURL": "OpenAI-compatible endpoint (e.g. https://api.openai.com/v1 or an OpenRouter URL).",
+        "aiAgentApiKey": "API key for the configured endpoint. Stored as a secret.",
+        "aiAgentModel": "Model identifier understood by the endpoint (e.g. gpt-4o).",
+        "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc.",
+        "aiAgentSystemPrompt": "Optional override for the agent system prompt. Leave empty to use the default."
+      },
+      "aiAgentReasoningOptions": {
+        "off": "Off",
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Extra High"
       }
     }
   },
@@ -1097,5 +1118,16 @@
       "unsavedChanges": "Unsaved changes",
       "booleanValue": "Toggle value"
     }
+  },
+  "Agent": {
+    "title": "AI Agent",
+    "description": "A read-only operations assistant that inspects jobs, cache, rate limits, and system health.",
+    "newChat": "New Chat",
+    "sessions": "Sessions",
+    "empty": "No conversations yet. Start a new chat to begin.",
+    "placeholder": "Ask about jobs, cache, rate limits, or system health…",
+    "loading": "Loading sessions…",
+    "deleteChat": "Delete conversation",
+    "untitled": "New conversation"
   }
 }

@@ -79,7 +79,9 @@ export const ModelName = {
   NotificationTemplate: 'NotificationTemplate',
   Notification: 'Notification',
   RateLimitOverride: 'RateLimitOverride',
-  ApiToken: 'ApiToken'
+  ApiToken: 'ApiToken',
+  AgentSession: 'AgentSession',
+  AgentMessage: 'AgentMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -289,6 +291,7 @@ export const SystemConfigScalarFieldEnum = {
   label: 'label',
   description: 'description',
   isSecret: 'isSecret',
+  mask: 'mask',
   sortOrder: 'sortOrder',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -570,6 +573,27 @@ export const ApiTokenScalarFieldEnum = {
 } as const
 
 export type ApiTokenScalarFieldEnum = (typeof ApiTokenScalarFieldEnum)[keyof typeof ApiTokenScalarFieldEnum]
+
+
+export const AgentSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type AgentSessionScalarFieldEnum = (typeof AgentSessionScalarFieldEnum)[keyof typeof AgentSessionScalarFieldEnum]
+
+
+export const AgentMessageScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  role: 'role',
+  parts: 'parts',
+  createdAt: 'createdAt'
+} as const
+
+export type AgentMessageScalarFieldEnum = (typeof AgentMessageScalarFieldEnum)[keyof typeof AgentMessageScalarFieldEnum]
 
 
 export const SortOrder = {

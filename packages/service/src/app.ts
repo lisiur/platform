@@ -17,6 +17,7 @@ import { bodyLimit } from "#middleware/body-limit";
 import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
 import { traceContext } from "#middleware/trace-context";
+import { loadAuthDefaults } from "#services/auth-config.service";
 import {
   initRateLimitDefaults,
   initRateLimitOverrides,
@@ -36,6 +37,9 @@ import { routes } from "./routes";
   }
 
   jobExecutor.start();
+  await loadAuthDefaults().catch((e) =>
+    console.error("Failed to load auth defaults:", e),
+  );
   await initRateLimitDefaults().catch((e) =>
     console.error("Failed to load rate-limit defaults:", e),
   );

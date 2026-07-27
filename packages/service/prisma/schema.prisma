@@ -28,6 +28,7 @@ model User {
   notifications       Notification[]
   createdNotifications Notification[] @relation("NotificationCreator")
   apiTokens           ApiToken[]
+  agentSessions   AgentSession[]
   attachments     Attachment[] @relation("AttachmentCreator")
 
   @@unique([email])
@@ -271,6 +272,7 @@ model SystemConfig {
   label       String
   description String?
   isSecret    Boolean  @default(false)
+  mask        String?
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -641,5 +643,42 @@ model ApiToken {
   @@index([ownerId])
   @@index([organizationId])
   @@map("api_token")
+}
+
+// ============================================================
+// AI Agent (Vercel AI SDK)
+// ============================================================
+
+enum AgentMessageRole {
+  user
+  assistant
+
+  @@map("agent_message_role")
+}
+
+model AgentSession {
+  id        String   @id
+  userId    String
+  name      String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  messages  AgentMessage[]
+
+  @@index([userId, createdAt])
+  @@map("agent_session")
+}
+
+model AgentMessage {
+  id        String           @id @default(cuid())
+  sessionId String
+  role      AgentMessageRole
+  parts     Json
+  createdAt DateTime         @default(now())
+
+  session   AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("agent_message")
 }
 
