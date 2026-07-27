@@ -34,6 +34,8 @@ export function ChatComposer({
     setInput("");
   }
 
+  const rows = Math.min(Math.max(input.split("\n").length, 1), 6);
+
   return (
     <div className="flex shrink-0 items-end gap-2 border-t border-border p-3">
       <textarea
@@ -46,7 +48,7 @@ export function ChatComposer({
             submit();
           }
         }}
-        rows={1}
+        rows={rows}
         placeholder={
           placeholder ??
           "Message the agent…  (Enter to send, Shift+Enter for newline)"
