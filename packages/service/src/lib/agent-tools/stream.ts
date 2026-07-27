@@ -64,6 +64,9 @@ export function streamAgent({
     // Portable reasoning option. `off` -> `'none'` disables it; other
     // levels are translated by the provider to its native API
     // (`reasoning_effort` for openai-compatible, `thinking` for Anthropic, etc.).
-    reasoning: config.reasoning === "off" || !config.reasoning ? "none" : config.reasoning,
+    reasoning:
+      config.reasoning === "off" || !config.reasoning
+        ? "none"
+        : config.reasoning,
   });
 }

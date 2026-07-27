@@ -17,12 +17,14 @@ interface SessionSummary {
 }
 
 const PAGE_SIZE = 20;
+const NEW_CHAT_ID = "__NEW__";
 
 export default function AgentPage() {
   const t = useTranslations("Agent");
 
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -107,8 +109,21 @@ export default function AgentPage() {
   });
 
   function handleNewChat() {
-    const sessionId = crypto.randomUUID();
+    setActiveId(NEW_CHAT_ID);
+    setPendingPrompt(null);
+  }
+
+  function handleSelectSession(sessionId: string) {
     setActiveId(sessionId);
+    setPendingPrompt(null);
+  }
+
+  async function handleCreateSession(prompt: string) {
+    const res = await withApiFeedback(appClient.api.agent.sessions.$post)({});
+    if (!res.ok) return;
+    const data = await res.json();
+    setPendingPrompt(prompt);
+    setActiveId(data.sessionId);
   }
 
   const onFirstMessage = useCallback((sessionId: string) => {
@@ -161,7 +176,7 @@ export default function AgentPage() {
                   <li key={s.sessionId}>
                     <button
                       type="button"
-                      onClick={() => setActiveId(s.sessionId)}
+                      onClick={() => handleSelectSession(s.sessionId)}
                       className={`group flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors ${
                         s.sessionId === activeId
                           ? "bg-accent text-accent-foreground"
@@ -213,6 +228,9 @@ export default function AgentPage() {
               sessionId={activeId}
               placeholder={t("placeholder")}
               onFirstMessage={onFirstMessage}
+              pendingPrompt={pendingPrompt}
+              onCreateSession={handleCreateSession}
+              onPendingPromptConsumed={() => setPendingPrompt(null)}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground">
@@ -229,13 +247,20 @@ function ActiveChat({
   sessionId,
   placeholder,
   onFirstMessage,
+  pendingPrompt,
+  onCreateSession,
+  onPendingPromptConsumed,
 }: {
   sessionId: string;
   placeholder: string;
   onFirstMessage: (sessionId: string) => void;
+  pendingPrompt: string | null;
+  onCreateSession: (prompt: string) => void;
+  onPendingPromptConsumed: () => void;
 }) {
+  const isNew = sessionId === NEW_CHAT_ID;
   const chat = useAgentChat({
-    sessionId,
+    sessionId: isNew ? null : sessionId,
     apiOrigin: API_ORIGIN,
     appCode: APP_CODE,
   });
@@ -248,5 +273,31 @@ function ActiveChat({
     }
   }, [chat.messages.length, sessionId, onFirstMessage]);
 
-  return <AgentChat {...chat} placeholder={placeholder} />;
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (!isNew && pendingPrompt && !autoSentRef.current) {
+      autoSentRef.current = true;
+      chat.sendMessage(pendingPrompt);
+      onPendingPromptConsumed();
+    }
+  }, [isNew, pendingPrompt, chat, onPendingPromptConsumed]);
+
+  function handleSend(text: string) {
+    if (isNew) {
+      onCreateSession(text);
+      return;
+    }
+    chat.sendMessage(text);
+  }
+
+  return (
+    <AgentChat
+      messages={chat.messages}
+      sendMessage={handleSend}
+      status={chat.status}
+      stop={chat.stop}
+      error={chat.error}
+      placeholder={placeholder}
+    />
+  );
 }

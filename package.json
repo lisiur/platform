@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter './apps/*' dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter './apps/*' --stream dev",
     "build": "pnpm --filter './apps/*' build",
     "build:server": "NODE_OPTIONS=\"--max-old-space-size=512\" UV_THREADPOOL_SIZE=1 pnpm --filter './apps/*' --workspace-concurrency=1 build",
     "lint": "biome check .",

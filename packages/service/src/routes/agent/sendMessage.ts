@@ -51,10 +51,17 @@ async function generateAndSaveTitle(
     system:
       "Generate a short title (5-6 words max) summarizing the user's first message below. Return only the title, no quotes or punctuation.",
     prompt: userPrompt,
-    maxOutputTokens: 30,
+    // Reasoning models (DeepSeek-R1, QwQ, etc.) ignore `reasoning: "none"` and
+    // spend output tokens on <think> blocks. A tight cap starves the actual
+    // text output, so leave enough headroom for reasoning + the short title.
+    maxOutputTokens: 1000,
+    reasoning: "none",
   });
 
-  const title = result.text.trim();
+  const title = result.text
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<\/?think>/gi, "")
+    .trim();
   if (!title) return;
 
   await agentSessionManager.updateName(sessionId, title);
