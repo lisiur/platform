@@ -226,6 +226,10 @@ export default function AgentPage() {
             <ActiveChat
               key={activeId}
               sessionId={activeId}
+              title={
+                sessions.find((s) => s.sessionId === activeId)?.name ??
+                t("untitled")
+              }
               placeholder={t("placeholder")}
               onFirstMessage={onFirstMessage}
               pendingPrompt={pendingPrompt}
@@ -245,6 +249,7 @@ export default function AgentPage() {
 
 function ActiveChat({
   sessionId,
+  title,
   placeholder,
   onFirstMessage,
   pendingPrompt,
@@ -252,6 +257,7 @@ function ActiveChat({
   onPendingPromptConsumed,
 }: {
   sessionId: string;
+  title: string;
   placeholder: string;
   onFirstMessage: (sessionId: string) => void;
   pendingPrompt: string | null;
@@ -302,6 +308,11 @@ function ActiveChat({
       stop={chat.stop}
       error={chat.error}
       placeholder={placeholder}
+      header={
+        <div className="flex shrink-0 items-center border-b border-border px-3 py-2.5">
+          <span className="truncate text-sm font-medium">{title}</span>
+        </div>
+      }
     />
   );
 }
