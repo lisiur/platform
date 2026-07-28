@@ -28,7 +28,7 @@ export const listMenus = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::list");
+    await assertAccess(principal, "system/menu:list");
     const { appId } = c.req.valid("query");
 
     const result = await listMenusService(appId);

@@ -31,7 +31,7 @@ export const deleteUser = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user::delete");
+    await assertAccess(principal, "system/user:delete");
     const { id } = c.req.valid("param");
     await deleteUserSvc(id);
 

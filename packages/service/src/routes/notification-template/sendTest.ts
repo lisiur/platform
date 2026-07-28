@@ -45,7 +45,7 @@ export const sendTestNotificationRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-template::test");
+    await assertAccess(principal, "system/notification-template:test");
     const appId = await requireAppId(c);
     const { id } = c.req.valid("param");
     const { recipientUserId, variables } = c.req.valid("json");

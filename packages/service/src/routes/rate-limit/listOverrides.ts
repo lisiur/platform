@@ -28,7 +28,7 @@ export const listOverridesRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "rate-limit::manage");
+    await assertAccess(principal, "system/rate-limit:manage");
     const overrides = await listOverrides();
     return c.json(overrides, 200);
   },

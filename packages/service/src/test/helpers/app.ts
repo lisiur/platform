@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
+import { serializeHTTPException } from "#lib/http-error";
 
 type OpenAPIRoute = {
   route: unknown;
@@ -11,10 +12,7 @@ export function mountRoute(route: OpenAPIRoute) {
   const app = new OpenAPIHono();
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json(
-        { code: err.status, message: err.message },
-        err.status as never,
-      );
+      return c.json(serializeHTTPException(err), err.status as never);
     }
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });

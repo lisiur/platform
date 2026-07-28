@@ -29,7 +29,7 @@ export const getNotificationChannelRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-channel::view");
+    await assertAccess(principal, "system/notification-channel:view");
     const { id } = c.req.valid("param");
     const channel = await getNotificationChannel(id);
     return c.json(channel, 200);

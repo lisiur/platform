@@ -35,7 +35,7 @@ export const listApplications = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "application::list");
+    await assertAccess(principal, "system/application:list");
     const { search, limit, offset } = c.req.valid("query");
     const result = await listApplicationsService({ search, limit, offset });
     return c.json(result, 200);

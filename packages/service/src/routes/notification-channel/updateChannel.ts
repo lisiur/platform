@@ -43,7 +43,7 @@ export const updateNotificationChannelRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-channel::update");
+    await assertAccess(principal, "system/notification-channel:update");
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
     const channel = await updateNotificationChannel(id, body);

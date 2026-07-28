@@ -25,7 +25,7 @@ export const getStatsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "cache::view");
+    await assertAccess(principal, "system/cache:view");
     const stats = getCacheStats();
     return c.json(stats, 200);
   },

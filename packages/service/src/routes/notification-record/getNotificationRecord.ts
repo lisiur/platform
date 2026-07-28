@@ -27,7 +27,7 @@ export const getNotificationRecordRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-record::view");
+    await assertAccess(principal, "system/notification-record:view");
     const { id } = c.req.valid("param");
     const record = await getNotificationRecordById(id);
     return c.json(record, 200);

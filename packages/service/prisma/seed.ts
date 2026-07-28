@@ -28,14 +28,12 @@ import {
   BUILTIN_NOTIFICATION_FLAG,
   BUILTIN_ROLE_FLAG,
   BUILTIN_USER_FLAG,
-  ORG_MEMBER_ROLE_CODE,
-  ORG_OWNER_ROLE_CODE,
   ORGANIZATION_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
 import { nextRunFromNow } from "../src/lib/cron";
+import { provisionOrgRoles } from "../src/lib/org-role";
 import { hashPassword } from "../src/lib/password";
-import { ADMIN_SCOPE, orgScope } from "../src/lib/scope";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 // ============================================================
@@ -226,6 +224,14 @@ const systemConfigs = [
     isSecret: false,
     sortOrder: 5,
   },
+];
+
+/**
+ * AI Agent config field definitions. Seeded per-application (each app gets its
+ * own baseURL/apiKey/model/reasoning/systemPrompt) under the application_config
+ * table. Labels/descriptions reuse the shared `settings.*` i18n keys.
+ */
+const aiAgentConfigFields = [
   {
     group: "ai-agent",
     key: "baseURL",
@@ -292,293 +298,324 @@ const systemConfigs = [
 // --- System Permissions (appId: null) ---
 const systemPermissions = [
   {
-    code: "system-config::list",
+    code: "system/system-config:list",
     group: "system-config",
     name: "List System Configs",
   },
   {
-    code: "system-config::listByGroup",
+    code: "system/system-config:listByGroup",
     group: "system-config",
     name: "List System Configs by Group",
   },
   {
-    code: "system-config::upsert",
+    code: "system/system-config:upsert",
     group: "system-config",
     name: "Upsert System Config",
   },
   {
-    code: "system-config::batchUpsert",
+    code: "system/system-config:batchUpsert",
     group: "system-config",
     name: "Batch Upsert System Configs",
   },
   {
-    code: "system-config::delete",
+    code: "system/system-config:delete",
     group: "system-config",
     name: "Delete System Config",
   },
-  { code: "system-info::view", group: "system-info", name: "View System Info" },
   {
-    code: "rate-limit::manage",
+    code: "system/system-info:view",
+    group: "system-info",
+    name: "View System Info",
+  },
+  {
+    code: "system/rate-limit:manage",
     group: "rate-limit",
     name: "Manage Rate Limits",
   },
-  { code: "cache::view", group: "cache", name: "View Cache" },
-  { code: "cache::manage", group: "cache", name: "Manage Cache" },
-  { code: "agent::manage", group: "agent", name: "Manage AI Agent" },
-  { code: "user::list", group: "user", name: "List Users" },
-  { code: "user::create", group: "user", name: "Create User" },
-  { code: "user::update", group: "user", name: "Update User" },
-  { code: "user::delete", group: "user", name: "Delete User" },
-  { code: "role::list", group: "role", name: "List Roles" },
-  { code: "role::create", group: "role", name: "Create Role" },
-  { code: "role::update", group: "role", name: "Update Role" },
-  { code: "role::delete", group: "role", name: "Delete Role" },
-  { code: "permission::list", group: "permission", name: "List Permissions" },
-  { code: "permission::view", group: "permission", name: "View Permission" },
+  { code: "system/cache:view", group: "cache", name: "View Cache" },
+  { code: "system/cache:manage", group: "cache", name: "Manage Cache" },
+  { code: "system/agent:manage", group: "agent", name: "Manage AI Agent" },
+  { code: "system/agent:chat", group: "agent", name: "Use AI Agent" },
+  { code: "system/user:list", group: "user", name: "List Users" },
+  { code: "system/user:create", group: "user", name: "Create User" },
+  { code: "system/user:update", group: "user", name: "Update User" },
+  { code: "system/user:delete", group: "user", name: "Delete User" },
+  { code: "system/role:list", group: "role", name: "List Roles" },
+  { code: "system/role:create", group: "role", name: "Create Role" },
+  { code: "system/role:update", group: "role", name: "Update Role" },
+  { code: "system/role:delete", group: "role", name: "Delete Role" },
   {
-    code: "user-role::list",
+    code: "system/permission:list",
+    group: "permission",
+    name: "List Permissions",
+  },
+  {
+    code: "system/permission:view",
+    group: "permission",
+    name: "View Permission",
+  },
+  {
+    code: "system/user-role:list",
     group: "user-role",
     name: "List User-Role Assignments",
   },
   {
-    code: "user-role::assign",
+    code: "system/user-role:assign",
     group: "user-role",
     name: "Assign Role to User",
   },
   {
-    code: "user-role::remove",
+    code: "system/user-role:remove",
     group: "user-role",
     name: "Remove Role from User",
   },
-  { code: "menu::list", group: "menu", name: "List Menus" },
-  { code: "menu::view", group: "menu", name: "View Menu" },
-  { code: "menu::create", group: "menu", name: "Create Menu" },
-  { code: "menu::update", group: "menu", name: "Update Menu" },
-  { code: "menu::delete", group: "menu", name: "Delete Menu" },
-  { code: "menu::reorder", group: "menu", name: "Reorder Menus" },
+  { code: "system/menu:list", group: "menu", name: "List Menus" },
+  { code: "system/menu:view", group: "menu", name: "View Menu" },
+  { code: "system/menu:create", group: "menu", name: "Create Menu" },
+  { code: "system/menu:update", group: "menu", name: "Update Menu" },
+  { code: "system/menu:delete", group: "menu", name: "Delete Menu" },
+  { code: "system/menu:reorder", group: "menu", name: "Reorder Menus" },
   {
-    code: "application::list",
+    code: "system/application:list",
     group: "application",
     name: "List Applications",
   },
-  { code: "application::view", group: "application", name: "View Application" },
   {
-    code: "application::update",
+    code: "system/application:view",
+    group: "application",
+    name: "View Application",
+  },
+  {
+    code: "system/application:update",
     group: "application",
     name: "Update Application",
   },
   {
-    code: "organization::list",
+    code: "system/organization:list",
     group: "organization",
     name: "List Organizations",
   },
   {
-    code: "organization::view",
+    code: "system/organization:view",
     group: "organization",
     name: "View Organization",
   },
   {
-    code: "organization::create",
+    code: "system/organization:create",
     group: "organization",
     name: "Create Organization",
   },
   {
-    code: "organization::update",
+    code: "system/organization:update",
     group: "organization",
     name: "Update Organization",
   },
   {
-    code: "organization::delete",
+    code: "system/organization:delete",
     group: "organization",
     name: "Delete Organization",
   },
-  { code: "audit-log::list", group: "audit-log", name: "List Audit Logs" },
-  { code: "audit-log::view", group: "audit-log", name: "View Audit Log" },
   {
-    code: "operation-log::list",
+    code: "system/audit-log:list",
+    group: "audit-log",
+    name: "List Audit Logs",
+  },
+  { code: "system/audit-log:view", group: "audit-log", name: "View Audit Log" },
+  {
+    code: "system/operation-log:list",
     group: "operation-log",
     name: "List Operation Logs",
   },
   {
-    code: "operation-log::view",
+    code: "system/operation-log:view",
     group: "operation-log",
     name: "View Operation Log",
   },
   {
-    code: "operation-log::delete",
+    code: "system/operation-log:delete",
     group: "operation-log",
     name: "Delete Operation Logs",
   },
   {
-    code: "notification-channel::list",
+    code: "system/notification-channel:list",
     group: "notification-channel",
     name: "List Notification Channels",
   },
   {
-    code: "notification-channel::view",
+    code: "system/notification-channel:view",
     group: "notification-channel",
     name: "View Notification Channel",
   },
   {
-    code: "notification-channel::update",
+    code: "system/notification-channel:update",
     group: "notification-channel",
     name: "Update Notification Channel",
   },
   {
-    code: "notification-template::list",
+    code: "system/notification-template:list",
     group: "notification-template",
     name: "List Notification Templates",
   },
   {
-    code: "notification-template::view",
+    code: "system/notification-template:view",
     group: "notification-template",
     name: "View Notification Template",
   },
   {
-    code: "notification-template::update",
+    code: "system/notification-template:update",
     group: "notification-template",
     name: "Update Notification Template",
   },
   {
-    code: "notification-template::test",
+    code: "system/notification-template:test",
     group: "notification-template",
     name: "Test Notification Template",
   },
   {
-    code: "notification::list",
+    code: "system/notification:list",
     group: "notification",
     name: "List Notifications",
   },
   {
-    code: "notification::view",
+    code: "system/notification:view",
     group: "notification",
     name: "View Notification",
   },
   {
-    code: "notification-record::list",
+    code: "system/notification-record:list",
     group: "notification-record",
     name: "List Notification Records",
   },
   {
-    code: "notification-record::view",
+    code: "system/notification-record:view",
     group: "notification-record",
     name: "View Notification Record",
   },
   {
-    code: "attachment::sign",
+    code: "system/attachment:sign",
     group: "attachment",
     name: "Sign Attachment URL",
   },
-  { code: "attachment::list", group: "attachment", name: "List Attachments" },
   {
-    code: "attachment::delete",
+    code: "system/attachment:list",
+    group: "attachment",
+    name: "List Attachments",
+  },
+  {
+    code: "system/attachment:delete",
     group: "attachment",
     name: "Delete Attachments",
   },
   {
-    code: "attachment::replace",
+    code: "system/attachment:replace",
     group: "attachment",
     name: "Replace Attachment",
   },
   {
-    code: "attachment::manage-all",
+    code: "system/attachment:manage-all",
     group: "attachment",
     name: "Manage All Users' Attachments",
   },
-  { code: "job::list", group: "job", name: "List Jobs" },
-  { code: "job::create", group: "job", name: "Create Job" },
-  { code: "job::view", group: "job", name: "View Job" },
-  { code: "job::cancel", group: "job", name: "Cancel Job" },
+  { code: "system/job:list", group: "job", name: "List Jobs" },
+  { code: "system/job:create", group: "job", name: "Create Job" },
+  { code: "system/job:view", group: "job", name: "View Job" },
+  { code: "system/job:cancel", group: "job", name: "Cancel Job" },
 ];
 
 // --- Organization App Permissions ---
 const organizationPermissions = [
   {
-    code: "dashboard::view",
+    code: "org/dashboard:view",
     group: "dashboard",
     name: "View Dashboard",
     description: "View the organization dashboard",
   },
   {
-    code: "organization-member::list",
+    code: "org/agent:chat",
+    group: "agent",
+    name: "Use AI Agent",
+    description: "Use the AI Agent assistant",
+  },
+  {
+    code: "org/organization-member:list",
     group: "organization-member",
     name: "List Organization Members",
     description: "List members of an organization",
   },
   {
-    code: "organization-member::remove",
+    code: "org/organization-member:remove",
     group: "organization-member",
     name: "Remove Organization Member",
     description: "Remove a member from an organization",
   },
   {
-    code: "organization-member::update",
+    code: "org/organization-member:update",
     group: "organization-member",
     name: "Update Organization Member",
     description: "Update an organization member's department assignment",
   },
   {
-    code: "organization-settings::view",
+    code: "org/organization-settings:view",
     group: "organization-settings",
     name: "View Organization Settings",
     description: "View an organization's settings",
   },
   {
-    code: "organization-settings::update",
+    code: "org/organization-settings:update",
     group: "organization-settings",
     name: "Update Organization Settings",
     description: "Update an organization's settings",
   },
   {
-    code: "department::list",
+    code: "org/department:list",
     group: "department",
     name: "List Departments",
     description: "List departments in an organization",
   },
   {
-    code: "department::create",
+    code: "org/department:create",
     group: "department",
     name: "Create Department",
     description: "Create a department in an organization",
   },
   {
-    code: "department::update",
+    code: "org/department:update",
     group: "department",
     name: "Update Department",
     description: "Update a department in an organization",
   },
   {
-    code: "department::delete",
+    code: "org/department:delete",
     group: "department",
     name: "Delete Department",
     description: "Delete a department from an organization",
   },
   {
-    code: "position::list",
+    code: "org/position:list",
     group: "position",
     name: "List Positions",
     description: "List positions in an organization",
   },
   {
-    code: "position::create",
+    code: "org/position:create",
     group: "position",
     name: "Create Position",
     description: "Create a position in an organization",
   },
   {
-    code: "position::update",
+    code: "org/position:update",
     group: "position",
     name: "Update Position",
     description: "Update a position in an organization",
   },
   {
-    code: "position::delete",
+    code: "org/position:delete",
     group: "position",
     name: "Delete Position",
     description: "Delete a position from an organization",
   },
   {
-    code: "position-permission::manage",
+    code: "org/position-permission:manage",
     group: "position-permission",
     name: "Manage Position Permissions",
     description: "Assign permissions to positions in an organization",
@@ -621,7 +658,7 @@ const adminMenus = [
     url: "/admin/applications",
     parentId: "platform",
     sortOrder: 1,
-    permissions: ["application::list"],
+    permissions: ["system/application:list"],
   },
   {
     id: "organizations",
@@ -632,7 +669,7 @@ const adminMenus = [
     url: "/admin/organizations",
     parentId: "platform",
     sortOrder: 2,
-    permissions: ["organization::list"],
+    permissions: ["system/organization:list"],
   },
   {
     id: "users",
@@ -643,7 +680,7 @@ const adminMenus = [
     url: "/admin/users",
     parentId: "platform",
     sortOrder: 3,
-    permissions: ["user::list"],
+    permissions: ["system/user:list"],
   },
   {
     id: "roles",
@@ -654,7 +691,7 @@ const adminMenus = [
     url: "/admin/roles",
     parentId: "platform",
     sortOrder: 4,
-    permissions: ["role::list"],
+    permissions: ["system/role:list"],
   },
   {
     id: "menus",
@@ -665,7 +702,7 @@ const adminMenus = [
     url: "/admin/menus",
     parentId: "platform",
     sortOrder: 5,
-    permissions: ["menu::list"],
+    permissions: ["system/menu:list"],
   },
   // Infrastructure Group
   {
@@ -675,7 +712,7 @@ const adminMenus = [
     icon: "Cog",
     linkType: "GROUP" as const,
     url: null,
-    sortOrder: 10,
+    sortOrder: 6,
     permissions: [],
   },
   {
@@ -686,8 +723,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/notifications",
     parentId: "infrastructure",
-    sortOrder: 11,
-    permissions: ["notification::list"],
+    sortOrder: 7,
+    permissions: ["system/notification:list"],
   },
   {
     id: "rate-limit",
@@ -697,8 +734,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/rate-limit",
     parentId: "infrastructure",
-    sortOrder: 12,
-    permissions: ["rate-limit::manage"],
+    sortOrder: 8,
+    permissions: ["system/rate-limit:manage"],
   },
   {
     id: "attachments",
@@ -708,8 +745,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/attachments",
     parentId: "infrastructure",
-    sortOrder: 14,
-    permissions: ["attachment::list"],
+    sortOrder: 9,
+    permissions: ["system/attachment:list"],
   },
   {
     id: "settings",
@@ -719,19 +756,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/settings",
     parentId: "infrastructure",
-    sortOrder: 15,
-    permissions: ["system-config::list"],
-  },
-  {
-    id: "ai-agent",
-    code: "ai-agent",
-    name: "AI Agent",
-    icon: "Bot",
-    linkType: "INTERNAL" as const,
-    url: "/admin/agent",
-    parentId: "infrastructure",
-    sortOrder: 16,
-    permissions: ["agent::manage"],
+    sortOrder: 10,
+    permissions: ["system/system-config:list"],
   },
   // Developer Group
   {
@@ -741,7 +767,7 @@ const adminMenus = [
     icon: "ServerCog",
     linkType: "GROUP" as const,
     url: null,
-    sortOrder: 20,
+    sortOrder: 11,
     permissions: [],
   },
   {
@@ -752,8 +778,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/monitor",
     parentId: "developer",
-    sortOrder: 21,
-    permissions: ["system-info::view"],
+    sortOrder: 12,
+    permissions: ["system/system-info:view"],
   },
   {
     id: "logs",
@@ -763,8 +789,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/logs",
     parentId: "developer",
-    sortOrder: 22,
-    permissions: ["audit-log::list", "operation-log::list"],
+    sortOrder: 13,
+    permissions: ["system/audit-log:list", "system/operation-log:list"],
   },
   {
     id: "jobs",
@@ -774,8 +800,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/jobs",
     parentId: "developer",
-    sortOrder: 23,
-    permissions: ["job::list"],
+    sortOrder: 14,
+    permissions: ["system/job:list"],
   },
   {
     id: "cache",
@@ -785,8 +811,8 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/cache",
     parentId: "developer",
-    sortOrder: 24,
-    permissions: ["cache::view"],
+    sortOrder: 15,
+    permissions: ["system/cache:view"],
   },
 ];
 
@@ -800,7 +826,7 @@ const organizationMenus = [
     linkType: "INTERNAL" as const,
     url: "/organization/dashboard",
     sortOrder: 0,
-    permissions: ["dashboard::view"],
+    permissions: ["org/dashboard:view"],
   },
   {
     id: "organization-members",
@@ -810,7 +836,7 @@ const organizationMenus = [
     linkType: "INTERNAL" as const,
     url: "/organization/members",
     sortOrder: 1,
-    permissions: ["organization-member::list"],
+    permissions: ["org/organization-member:list"],
   },
   {
     id: "organization-positions",
@@ -820,7 +846,7 @@ const organizationMenus = [
     linkType: "INTERNAL" as const,
     url: "/organization/positions",
     sortOrder: 2,
-    permissions: ["position::list"],
+    permissions: ["org/position:list"],
   },
   {
     id: "organization-departments",
@@ -830,7 +856,7 @@ const organizationMenus = [
     linkType: "INTERNAL" as const,
     url: "/organization/departments",
     sortOrder: 3,
-    permissions: ["department::list"],
+    permissions: ["org/department:list"],
   },
   {
     id: "organization-settings",
@@ -840,7 +866,7 @@ const organizationMenus = [
     linkType: "INTERNAL" as const,
     url: "/organization/settings",
     sortOrder: 4,
-    permissions: ["organization-settings::view"],
+    permissions: ["org/organization-settings:view"],
   },
 ];
 
@@ -850,24 +876,15 @@ const adminRoles = [
   { code: USER_ROLE_CODE, name: "User", flags: [BUILTIN_ROLE_FLAG] },
 ];
 
-const organizationRoles = [
-  { code: ORG_OWNER_ROLE_CODE, name: "Owner", flags: [BUILTIN_ROLE_FLAG] },
-  { code: ORG_MEMBER_ROLE_CODE, name: "Member", flags: [BUILTIN_ROLE_FLAG] },
-];
+// Organization roles (owner/member) are NOT global templates — they are
+// provisioned per-org-instance when an organization is created (see
+// provisionOrgRoles). Owner receives all `org/...` permissions; member receives
+// ORG_MEMBER_PERMISSION_CODES (defined in lib/org-role.ts).
 
 // --- Role -> Permission mappings (by role code) ---
 const adminRolePermissions: Record<string, string[]> = {
   [ADMIN_ROLE_CODE]: systemPermissions.map((p) => p.code),
-  [USER_ROLE_CODE]: ["attachment::sign"],
-};
-
-const organizationRolePermissions: Record<string, string[]> = {
-  [ORG_OWNER_ROLE_CODE]: organizationPermissions.map((p) => p.code),
-  [ORG_MEMBER_ROLE_CODE]: [
-    "dashboard::view",
-    "organization-member::list",
-    "department::list",
-  ],
+  [USER_ROLE_CODE]: ["system/attachment:sign"],
 };
 
 // --- Notification Channels ---
@@ -945,7 +962,6 @@ const builtInUsers = [
     password: "admin123",
     flags: [BUILTIN_USER_FLAG],
     roleCode: ADMIN_ROLE_CODE,
-    appCode: ADMIN_APP_CODE,
   },
   {
     id: "hapaul",
@@ -954,7 +970,6 @@ const builtInUsers = [
     password: "hapaul123",
     flags: [BUILTIN_USER_FLAG],
     roleCode: USER_ROLE_CODE,
-    appCode: ADMIN_APP_CODE,
   },
 ];
 
@@ -1022,12 +1037,14 @@ async function upsertApplication(data: {
   });
 }
 
-async function upsertPermission(
-  appId: string,
-  data: { code: string; name: string; group: string; description?: string },
-) {
-  const existing = await prisma.permission.findFirst({
-    where: { appId, code: data.code },
+async function upsertPermission(data: {
+  code: string;
+  name: string;
+  group: string;
+  description?: string;
+}) {
+  const existing = await prisma.permission.findUnique({
+    where: { code: data.code },
   });
 
   if (existing) {
@@ -1043,7 +1060,6 @@ async function upsertPermission(
 
   return prisma.permission.create({
     data: {
-      appId,
       code: data.code,
       name: data.name,
       group: data.group,
@@ -1053,7 +1069,6 @@ async function upsertPermission(
 }
 
 async function upsertPermissions(
-  appId: string,
   definitions: {
     code: string;
     name: string;
@@ -1063,7 +1078,7 @@ async function upsertPermissions(
 ) {
   const ids: Record<string, string> = {};
   for (const def of definitions) {
-    const perm = await upsertPermission(appId, def);
+    const perm = await upsertPermission(def);
     ids[def.code] = perm.id;
   }
   return ids;
@@ -1125,26 +1140,15 @@ async function linkMenuPermissions(
   }
 }
 
-async function upsertRole(
-  appId: string,
-  data: { code: string; name: string; flags: string[] },
-) {
+async function upsertRole(data: {
+  code: string;
+  name: string;
+  flags: string[];
+}) {
   return prisma.role.upsert({
-    where: {
-      appId_scope_code: {
-        appId,
-        scope: ADMIN_SCOPE,
-        code: data.code,
-      },
-    },
+    where: { code: data.code },
     update: { name: data.name, flags: data.flags },
-    create: {
-      appId,
-      scope: ADMIN_SCOPE,
-      name: data.name,
-      code: data.code,
-      flags: data.flags,
-    },
+    create: { code: data.code, name: data.name, flags: data.flags },
   });
 }
 
@@ -1183,6 +1187,37 @@ async function upsertSystemConfig(data: {
       sortOrder: data.sortOrder,
     },
     create: data,
+  });
+}
+
+async function upsertApplicationConfig(
+  appId: string,
+  data: {
+    group: string;
+    key: string;
+    value: string;
+    type: string;
+    label: string;
+    description: string;
+    isSecret: boolean;
+    sortOrder: number;
+    schema?: object;
+    mask?: string | null;
+  },
+) {
+  return prisma.applicationConfig.upsert({
+    where: { appId_group_key: { appId, group: data.group, key: data.key } },
+    update: {
+      value: data.value,
+      type: data.type,
+      schema: data.schema,
+      label: data.label,
+      description: data.description,
+      isSecret: data.isSecret,
+      mask: data.mask,
+      sortOrder: data.sortOrder,
+    },
+    create: { appId, ...data },
   });
 }
 
@@ -1288,7 +1323,6 @@ async function upsertUser(params: {
   password: string;
   flags: string[];
   roleCode?: string;
-  appCode?: string;
 }) {
   const user = await prisma.user.upsert({
     where: { email: params.email },
@@ -1330,34 +1364,27 @@ async function upsertUser(params: {
 async function upsertRoleAssignment(params: {
   userId: string;
   roleCode: string;
-  appId: string;
 }) {
-  const role = await prisma.role.findFirst({
-    where: {
-      appId: params.appId,
-      scope: ADMIN_SCOPE,
-      code: params.roleCode,
-    },
+  const role = await prisma.role.findUnique({
+    where: { code: params.roleCode },
   });
   if (!role) {
     console.warn(
-      `  [seed] Role not found for assignment: appId=${params.appId} code=${params.roleCode}`,
+      `  [seed] Role not found for assignment: code=${params.roleCode}`,
     );
     return;
   }
   await prisma.roleAssignment.upsert({
     where: {
-      userId_roleId_scope: {
+      userId_roleId: {
         userId: params.userId,
         roleId: role.id,
-        scope: ADMIN_SCOPE,
       },
     },
     update: {},
     create: {
       userId: params.userId,
       roleId: role.id,
-      scope: ADMIN_SCOPE,
     },
   });
 }
@@ -1413,30 +1440,35 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${applications.length} applications ready.\n`);
 
-  // 6. System Permissions (admin app)
-  console.log("System permissions:");
-  const systemPermIds = await upsertPermissions(
-    appRecords[ADMIN_APP_CODE],
-    systemPermissions,
+  // 5b. Per-application AI Agent config
+  console.log("Application configs (ai-agent):");
+  for (const code of Object.keys(appRecords)) {
+    const appId = appRecords[code];
+    for (const field of aiAgentConfigFields) {
+      await upsertApplicationConfig(appId, field);
+    }
+  }
+  console.log(
+    `  ai-agent config seeded for ${Object.keys(appRecords).length} applications.\n`,
   );
+
+  // 6. System Permissions (platform)
+  console.log("System permissions:");
+  const systemPermIds = await upsertPermissions(systemPermissions);
   console.log(`  ${systemPermissions.length} system permissions ready.\n`);
 
   // 7. Organization App Permissions
   console.log("Organization app permissions:");
-  const orgPermIds = await upsertPermissions(
-    appRecords[ORGANIZATION_APP_CODE],
-    organizationPermissions,
-  );
+  const orgPermIds = await upsertPermissions(organizationPermissions);
   console.log(
     `  ${organizationPermissions.length} organization permissions ready.\n`,
   );
 
   // 8. Admin Menus + Permissions
   console.log("Admin menus:");
-  const allAdminPermIds = { ...systemPermIds };
   for (const menu of adminMenus) {
     await upsertMenu(appRecords[ADMIN_APP_CODE], menu);
-    await linkMenuPermissions(menu.id, menu.permissions, allAdminPermIds);
+    await linkMenuPermissions(menu.id, menu.permissions, systemPermIds);
   }
   console.log(`  ${adminMenus.length} admin menus ready.\n`);
 
@@ -1448,45 +1480,27 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${organizationMenus.length} organization menus ready.\n`);
 
-  // 10. Admin Roles
-  console.log("Admin roles:");
+  // 10. Platform Roles (system-scoped)
+  console.log("Platform roles:");
   const adminRoleRecords: Record<string, string> = {};
   for (const role of adminRoles) {
-    const record = await upsertRole(appRecords[ADMIN_APP_CODE], role);
+    const record = await upsertRole(role);
     adminRoleRecords[role.code] = record.id;
   }
-  console.log(`  ${adminRoles.length} admin roles ready.\n`);
+  console.log(`  ${adminRoles.length} platform roles ready.\n`);
 
-  // 11. Organization Roles
-  console.log("Organization roles:");
-  const orgRoleRecords: Record<string, string> = {};
-  for (const role of organizationRoles) {
-    const record = await upsertRole(appRecords[ORGANIZATION_APP_CODE], role);
-    orgRoleRecords[role.code] = record.id;
-  }
-  console.log(`  ${organizationRoles.length} organization roles ready.\n`);
+  // NOTE: Organization roles (owner/member) are per-org-instance and are
+  // provisioned when an organization is created (see provisionOrgRoles and
+  // step 16 below), not as global templates.
 
-  // 12. Admin Role -> Permission assignments
-  console.log("Admin role permissions:");
+  // 12. Platform Role -> Permission assignments
+  console.log("Platform role permissions:");
   for (const [roleCode, permCodes] of Object.entries(adminRolePermissions)) {
     const roleId = adminRoleRecords[roleCode];
     if (!roleId) continue;
     const permIds = permCodes
-      .map((code) => allAdminPermIds[code])
+      .map((code) => systemPermIds[code])
       .filter(Boolean);
-    await upsertRolePermissions(roleId, permIds);
-    console.log(`  ${roleCode}: ${permIds.length} permissions`);
-  }
-  console.log();
-
-  // 13. Organization Role -> Permission assignments
-  console.log("Organization role permissions:");
-  for (const [roleCode, permCodes] of Object.entries(
-    organizationRolePermissions,
-  )) {
-    const roleId = orgRoleRecords[roleCode];
-    if (!roleId) continue;
-    const permIds = permCodes.map((code) => orgPermIds[code]).filter(Boolean);
     await upsertRolePermissions(roleId, permIds);
     console.log(`  ${roleCode}: ${permIds.length} permissions`);
   }
@@ -1504,11 +1518,10 @@ export async function seed(client: PrismaClient) {
   // 15. Built-in User Role Assignments
   console.log("Built-in user role assignments:");
   for (const user of builtInUsers) {
-    if (user.roleCode && user.appCode) {
+    if (user.roleCode) {
       await upsertRoleAssignment({
         userId: builtInUserRecords[user.id],
         roleCode: user.roleCode,
-        appId: appRecords[user.appCode],
       });
       console.log(`  ${user.email} → ${user.roleCode}`);
     }
@@ -1545,34 +1558,20 @@ export async function seed(client: PrismaClient) {
             createdAt: new Date(),
           },
         });
-        const ownerRole = await tx.role.findUnique({
+        const { ownerRoleId } = await provisionOrgRoles(tx, org.id);
+        await tx.roleAssignment.upsert({
           where: {
-            appId_scope_code: {
-              appId: ORGANIZATION_APP_CODE,
-              scope: ADMIN_SCOPE,
-              code: ORG_OWNER_ROLE_CODE,
+            userId_roleId: {
+              userId: hapaulUserId,
+              roleId: ownerRoleId,
             },
           },
-          select: { id: true },
+          update: {},
+          create: {
+            userId: hapaulUserId,
+            roleId: ownerRoleId,
+          },
         });
-        if (ownerRole) {
-          const ownerScope = orgScope(org.id);
-          await tx.roleAssignment.upsert({
-            where: {
-              userId_roleId_scope: {
-                userId: hapaulUserId,
-                roleId: ownerRole.id,
-                scope: ownerScope,
-              },
-            },
-            update: {},
-            create: {
-              userId: hapaulUserId,
-              roleId: ownerRole.id,
-              scope: ownerScope,
-            },
-          });
-        }
       });
       console.log(`  Hapaul organization created for hapaul user`);
     } else {

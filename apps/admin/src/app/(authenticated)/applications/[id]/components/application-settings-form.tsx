@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import { useTranslations } from "next-intl";
+import { ApplicationAiAgentForm } from "./application-ai-agent-form";
 import { ApplicationBasicInfoForm } from "./application-basic-info-form";
 import { ApplicationFaviconForm } from "./application-favicon-form";
 import { ApplicationFooterForm } from "./application-footer-form";
@@ -72,6 +73,8 @@ export function ApplicationSettingsForm({
             />
           </CardContent>
         </Card>
+
+        <ApplicationAiAgentForm appId={app.id} />
 
         <Card className="w-full">
           <CardHeader>

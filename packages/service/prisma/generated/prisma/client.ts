@@ -122,6 +122,11 @@ export type Attachment = Prisma.AttachmentModel
  */
 export type Application = Prisma.ApplicationModel
 /**
+ * Model ApplicationConfig
+ * 
+ */
+export type ApplicationConfig = Prisma.ApplicationConfigModel
+/**
  * Model Menu
  * 
  */

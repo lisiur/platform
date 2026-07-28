@@ -31,6 +31,10 @@ export type {
   UseEventStreamOptions,
 } from "./hooks/use-event-stream";
 export { useEventStream } from "./hooks/use-event-stream";
+export {
+  createUseHasPermission,
+  hasPermission,
+} from "./hooks/use-has-permission";
 export { usePaginatedQuery } from "./hooks/use-paginated-query";
 export { useRegistrationEnabled } from "./hooks/use-registration-enabled";
 export { useWebAuthnEnabled } from "./hooks/use-webauthn-enabled";

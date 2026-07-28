@@ -5,6 +5,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { listMembers } from "#services/member.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
@@ -34,10 +35,11 @@ export const listOrganizationMembers = defineOpenAPIRoute({
     const { orgId } = c.req.valid("param");
     const query = c.req.valid("query");
 
-    await assertAccess(principal, "organization-member::list", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(
+      principal,
+      "org/organization-member:list",
+      orgScope(orgId),
+    );
 
     const result = await listMembers(orgId, {
       limit: query.limit,

@@ -38,7 +38,7 @@ export const releaseRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "rate-limit::manage");
+    await assertAccess(principal, "system/rate-limit:manage");
     const body = c.req.valid("json");
 
     const result = releaseRateLimit({

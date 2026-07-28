@@ -18,6 +18,7 @@ export type AuthSession = {
 export type SessionData = {
   user: AuthUser;
   session: AuthSession;
+  permissions: string[];
 } | null;
 
 export type LinkType = "GROUP" | "INTERNAL" | "EXTERNAL";

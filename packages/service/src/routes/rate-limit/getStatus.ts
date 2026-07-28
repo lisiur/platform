@@ -28,7 +28,7 @@ export const getStatusRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "rate-limit::manage");
+    await assertAccess(principal, "system/rate-limit:manage");
     const query = c.req.valid("query");
     const status = getRateLimitStatus({
       limiter: query.limiter,

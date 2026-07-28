@@ -22,13 +22,20 @@ import { z } from "zod";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 
+const SYSTEM_SCOPE_PREFIX = "system/";
+
+function stripSystemPrefix(code: string): string {
+  return code.startsWith(SYSTEM_SCOPE_PREFIX)
+    ? code.slice(SYSTEM_SCOPE_PREFIX.length)
+    : code;
+}
+
 type RoleInput = {
   name: string;
   code: string;
 };
 
 interface RoleDialogProps {
-  appId: string;
   role?: { id: string; name: string; code: string };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,7 +43,6 @@ interface RoleDialogProps {
 }
 
 export function RoleDialog({
-  appId,
   role,
   open,
   onOpenChange,
@@ -58,7 +64,7 @@ export function RoleDialog({
     resolver: zodResolver(roleSchema) as Resolver<RoleInput>,
     defaultValues: {
       name: role?.name ?? "",
-      code: role?.code ?? "",
+      code: role?.code ? stripSystemPrefix(role.code) : "",
     },
   });
 
@@ -71,15 +77,17 @@ export function RoleDialog({
 
   async function onSubmit(data: RoleInput) {
     try {
+      const json = {
+        name: data.name,
+        code: `${SYSTEM_SCOPE_PREFIX}${data.code}`,
+      };
       if (isEdit && role) {
         await withApiFeedback(appClient.api.roles[":id"].$put)({
           param: { id: role.id },
-          json: { name: data.name, code: data.code },
+          json,
         });
       } else {
-        await withApiFeedback(appClient.api.roles.$post)({
-          json: { appId, name: data.name, code: data.code },
-        });
+        await withApiFeedback(appClient.api.roles.$post)({ json });
       }
       reset();
       onSuccess();

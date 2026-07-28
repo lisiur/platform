@@ -28,7 +28,7 @@ export const listKeysRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "cache::view");
+    await assertAccess(principal, "system/cache:view");
     const query = c.req.valid("query");
     const keys = listKeys(query.search);
     return c.json(keys, 200);

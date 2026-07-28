@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import { permissionScopeForAppCode, permissionWhereByScope } from "#lib/scope";
 import type { LinkType } from "../../prisma/generated/prisma/enums";
 
 type ReorderItem = {
@@ -79,15 +80,15 @@ export async function fillAncestorGroups(
   return unique;
 }
 
-async function assertPermissionsInApp(appId: string, permissionIds: string[]) {
+async function assertPermissionsExist(permissionIds: string[], scope: string) {
   if (permissionIds.length === 0) return;
   const valid = await prisma.permission.findMany({
-    where: { id: { in: permissionIds }, appId },
+    where: { id: { in: permissionIds }, ...permissionWhereByScope(scope) },
     select: { id: true },
   });
   if (valid.length !== new Set(permissionIds).size) {
     throw new HTTPException(400, {
-      message: "One or more permissions do not belong to the application",
+      message: "One or more permissions not found",
     });
   }
 }
@@ -190,7 +191,10 @@ export async function createMenu(data: {
   const sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
 
   const permissionIds = [...new Set(data.permissionIds)];
-  await assertPermissionsInApp(data.appId, permissionIds);
+  await assertPermissionsExist(
+    permissionIds,
+    permissionScopeForAppCode(app.code),
+  );
 
   return serializeMenu(
     await prisma.menu.create({
@@ -226,7 +230,7 @@ export async function updateMenu(
 ) {
   const existing = await prisma.menu.findUnique({
     where: { id },
-    include: { children: true },
+    include: { children: true, app: { select: { code: true } } },
   });
   if (!existing) {
     throw new HTTPException(404, { message: "Menu not found" });
@@ -254,7 +258,10 @@ export async function updateMenu(
   let permissionIds: string[] | undefined;
   if (data.permissionIds !== undefined) {
     permissionIds = [...new Set(data.permissionIds)];
-    await assertPermissionsInApp(existing.appId, permissionIds);
+    await assertPermissionsExist(
+      permissionIds,
+      permissionScopeForAppCode(existing.app.code),
+    );
   }
 
   return serializeMenu(

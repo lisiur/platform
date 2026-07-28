@@ -446,6 +446,7 @@
     "cropFavicon": "裁剪网站图标",
     "cropFaviconDescription": "调整网站图标区域，保存为 48×48 PNG。",
     "basicInfoTitle": "基本信息",
+    "aiAgentTitle": "AI 助手",
     "footerTitle": "站点页脚",
     "copyright": "版权信息",
     "copyrightPlaceholder": "© 2024 公司名称。保留所有权利。",

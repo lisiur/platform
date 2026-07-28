@@ -400,6 +400,7 @@ export const ModelName = {
   Upload: 'Upload',
   Attachment: 'Attachment',
   Application: 'Application',
+  ApplicationConfig: 'ApplicationConfig',
   Menu: 'Menu',
   MenuPermission: 'MenuPermission',
   Permission: 'Permission',
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "agentSession" | "agentMessage"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "agentSession" | "agentMessage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1615,6 +1616,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ApplicationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ApplicationCountAggregateOutputType> | number
+        }
+      }
+    }
+    ApplicationConfig: {
+      payload: Prisma.$ApplicationConfigPayload<ExtArgs>
+      fields: Prisma.ApplicationConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApplicationConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApplicationConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.ApplicationConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApplicationConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        findMany: {
+          args: Prisma.ApplicationConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>[]
+        }
+        create: {
+          args: Prisma.ApplicationConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        createMany: {
+          args: Prisma.ApplicationConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApplicationConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.ApplicationConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        update: {
+          args: Prisma.ApplicationConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApplicationConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApplicationConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApplicationConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApplicationConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApplicationConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.ApplicationConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApplicationConfig>
+        }
+        groupBy: {
+          args: Prisma.ApplicationConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApplicationConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApplicationConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApplicationConfigCountAggregateOutputType> | number
         }
       }
     }
@@ -3014,6 +3089,26 @@ export const ApplicationScalarFieldEnum = {
 export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
 
 
+export const ApplicationConfigScalarFieldEnum = {
+  id: 'id',
+  appId: 'appId',
+  group: 'group',
+  key: 'key',
+  value: 'value',
+  type: 'type',
+  schema: 'schema',
+  label: 'label',
+  description: 'description',
+  isSecret: 'isSecret',
+  mask: 'mask',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApplicationConfigScalarFieldEnum = (typeof ApplicationConfigScalarFieldEnum)[keyof typeof ApplicationConfigScalarFieldEnum]
+
+
 export const MenuScalarFieldEnum = {
   id: 'id',
   appId: 'appId',
@@ -3043,7 +3138,6 @@ export type MenuPermissionScalarFieldEnum = (typeof MenuPermissionScalarFieldEnu
 
 export const PermissionScalarFieldEnum = {
   id: 'id',
-  appId: 'appId',
   name: 'name',
   code: 'code',
   group: 'group',
@@ -3069,7 +3163,6 @@ export const RoleAssignmentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   roleId: 'roleId',
-  scope: 'scope',
   createdAt: 'createdAt'
 } as const
 
@@ -3078,8 +3171,6 @@ export type RoleAssignmentScalarFieldEnum = (typeof RoleAssignmentScalarFieldEnu
 
 export const RoleScalarFieldEnum = {
   id: 'id',
-  appId: 'appId',
-  scope: 'scope',
   name: 'name',
   code: 'code',
   flags: 'flags',
@@ -3229,8 +3320,7 @@ export const ApiTokenScalarFieldEnum = {
   name: 'name',
   ownerId: 'ownerId',
   scopes: 'scopes',
-  organizationId: 'organizationId',
-  appId: 'appId',
+  scope: 'scope',
   enabled: 'enabled',
   expiresAt: 'expiresAt',
   lastUsedAt: 'lastUsedAt',
@@ -3589,6 +3679,7 @@ export type GlobalOmitConfig = {
   upload?: Prisma.UploadOmit
   attachment?: Prisma.AttachmentOmit
   application?: Prisma.ApplicationOmit
+  applicationConfig?: Prisma.ApplicationConfigOmit
   menu?: Prisma.MenuOmit
   menuPermission?: Prisma.MenuPermissionOmit
   permission?: Prisma.PermissionOmit

@@ -6,7 +6,7 @@ vi.mock("#lib/db", () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
-    permission: {
+    roleAssignment: {
       findMany: vi.fn(),
     },
     auditLog: {
@@ -24,7 +24,7 @@ const mockPrisma = prisma as unknown as {
     findUnique: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
-  permission: {
+  roleAssignment: {
     findMany: ReturnType<typeof vi.fn>;
   };
   auditLog: {
@@ -45,9 +45,8 @@ const validTokenRow = {
   tokenSuffix: "tEsT",
   name: "CI",
   ownerId: "user_1",
-  scopes: ["member::read"],
-  organizationId: null,
-  appId: null,
+  scopes: ["system/member:read"],
+  scope: null,
   enabled: true,
   expiresAt: null,
   lastUsedAt: null,
@@ -99,7 +98,7 @@ describe("getApiTokenByBearer", () => {
     const result = await getApiTokenByBearer("plat_x");
     expect(result).not.toBeNull();
     expect(result?.ownerId).toBe("user_1");
-    expect(result?.scopes).toEqual(["member::read"]);
+    expect(result?.scopes).toEqual(["system/member:read"]);
   });
 });
 
@@ -109,46 +108,48 @@ describe("assertAccess (token principal)", () => {
   const tokenPrincipal = {
     kind: "token" as const,
     token: validTokenRow,
-    scopes: ["member::read"],
+    scopes: ["system/member:read"],
     ownerId: "user_1",
     ownerName: "User One",
   };
 
   it("passes when scope matches and owner holds the permission", async () => {
-    mockPrisma.permission.findMany.mockResolvedValue([
-      { code: "member::read" },
+    mockPrisma.roleAssignment.findMany.mockResolvedValue([
+      {
+        role: {
+          code: "system/admin",
+          rolePermissions: [{ permission: { code: "system/member:read" } }],
+        },
+      },
     ]);
 
     await expect(
-      assertAccess(tokenPrincipal, "member::read"),
+      assertAccess(tokenPrincipal, "system/member:read"),
     ).resolves.toBeUndefined();
   });
 
   it("throws 403 when scope does not match", async () => {
     await expect(
-      assertAccess(tokenPrincipal, "user::delete"),
+      assertAccess(tokenPrincipal, "system/user:delete"),
     ).rejects.toMatchObject({ status: 403 });
   });
 
   it("throws 403 when owner no longer holds the permission", async () => {
-    mockPrisma.permission.findMany.mockResolvedValue([]);
+    mockPrisma.roleAssignment.findMany.mockResolvedValue([]);
 
     await expect(
-      assertAccess(tokenPrincipal, "member::read"),
+      assertAccess(tokenPrincipal, "system/member:read"),
     ).rejects.toMatchObject({ status: 403 });
   });
 
   it("throws 403 on binding mismatch", async () => {
     const bound = {
       ...tokenPrincipal,
-      token: { ...validTokenRow, organizationId: "org_a" },
+      token: { ...validTokenRow, scope: "org:a" },
     };
-    mockPrisma.permission.findMany.mockResolvedValue([
-      { code: "member::read" },
-    ]);
 
     await expect(
-      assertAccess(bound, "member::read", { organizationId: "org_b" }),
+      assertAccess(bound, "org/member:read", "org:b"),
     ).rejects.toMatchObject({ status: 403 });
   });
 });

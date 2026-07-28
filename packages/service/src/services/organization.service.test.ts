@@ -67,10 +67,10 @@ describe("deleteOrganization", () => {
     const result = await deleteOrganization("org_1");
 
     expect(mockPrisma.roleAssignment.deleteMany).toHaveBeenCalledWith({
-      where: { scope: "org:org_1" },
+      where: { role: { code: { startsWith: "org:org_1/" } } },
     });
     expect(mockPrisma.role.deleteMany).toHaveBeenCalledWith({
-      where: { scope: "org:org_1" },
+      where: { code: { startsWith: "org:org_1/" } },
     });
     expect(mockPrisma.organization.delete).toHaveBeenCalledWith({
       where: { id: "org_1" },

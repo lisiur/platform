@@ -29,7 +29,7 @@ export const getOrganization = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "organization::view");
+    await assertAccess(principal, "system/organization:view");
     const { id } = c.req.valid("param");
     const org = await getOrganizationById(id);
     return c.json(org, 200);

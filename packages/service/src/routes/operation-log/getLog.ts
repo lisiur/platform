@@ -29,7 +29,7 @@ export const getLog = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "operation-log::view");
+    await assertAccess(principal, "system/operation-log:view");
     const { id } = c.req.valid("param");
     const log = await getLogById(id);
     return c.json(log, 200);

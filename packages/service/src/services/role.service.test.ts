@@ -12,7 +12,7 @@ vi.mock("#lib/db", () => ({
 vi.mock("#repositories/role.repository", () => ({
   roleRepository: {
     findById: vi.fn(),
-    findByAppAndCode: vi.fn(),
+    findByCode: vi.fn(),
     findByAppId: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -26,7 +26,7 @@ import { deleteRole, updateRole } from "./role.service";
 
 const mockRepo = roleRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
-  findByAppAndCode: ReturnType<typeof vi.fn>;
+  findByCode: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
 
@@ -52,7 +52,7 @@ const customRole = {
   appId: "app-admin",
   scope: "admin",
   name: "Editor",
-  code: "editor",
+  code: "system/editor",
   flags: [],
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -97,15 +97,27 @@ describe("updateRole", () => {
     expect(updated.name).toBe("Admin");
   });
 
-  it("allows code/flags changes on a non-built-in role", async () => {
+  it("allows code/flags changes on a non-built-in role within the same scope", async () => {
     mockRepo.findById.mockResolvedValue(customRole);
-    mockRepo.findByAppAndCode.mockResolvedValue(null);
-    mockRepo.update.mockResolvedValue({ ...customRole, code: "editor-v2" });
-    await updateRole("r-custom", { code: "editor-v2", flags: ["x"] });
+    mockRepo.findByCode.mockResolvedValue(null);
+    mockRepo.update.mockResolvedValue({
+      ...customRole,
+      code: "system/editor-v2",
+    });
+    await updateRole("r-custom", { code: "system/editor-v2", flags: ["x"] });
     expect(mockRepo.update).toHaveBeenCalledWith("r-custom", {
-      code: "editor-v2",
+      code: "system/editor-v2",
       flags: ["x"],
     });
+  });
+
+  it("rejects a scope change on a non-built-in role (400)", async () => {
+    mockRepo.findById.mockResolvedValue(customRole);
+    await expectStatus(
+      () => updateRole("r-custom", { code: "org:org-1/editor" }),
+      400,
+    );
+    expect(mockRepo.update).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the role does not exist", async () => {

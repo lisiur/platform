@@ -1,6 +1,10 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import {
+  getPrincipalUserId,
+  principalScope,
+  requirePrincipal,
+} from "#extractors/session";
 import {
   deleteSuccessSchema,
   forbiddenResponse,
@@ -32,7 +36,12 @@ export const deleteSessionRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "agent::manage");
+    const scope = principalScope(principal);
+    await assertAccess(
+      principal,
+      scope === "system" ? "system/agent:chat" : "org/agent:chat",
+      scope,
+    );
     const userId = getPrincipalUserId(principal);
     const { id } = c.req.valid("param");
 

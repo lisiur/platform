@@ -30,7 +30,7 @@ export const getAuditLog = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "audit-log::view");
+    await assertAccess(principal, "system/audit-log:view");
     const { id } = c.req.valid("param");
     const log = await getAuditLogById(id);
     return c.json(log, 200);

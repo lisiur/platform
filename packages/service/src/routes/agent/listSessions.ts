@@ -1,5 +1,9 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import {
+  getPrincipalUserId,
+  principalScope,
+  requirePrincipal,
+} from "#extractors/session";
 import {
   forbiddenResponse,
   okResponseFn,
@@ -27,7 +31,12 @@ export const listSessionsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "agent::manage");
+    const scope = principalScope(principal);
+    await assertAccess(
+      principal,
+      scope === "system" ? "system/agent:chat" : "org/agent:chat",
+      scope,
+    );
     const userId = getPrincipalUserId(principal);
     const { limit, offset } = c.req.valid("query");
     const result = await agentSessionManager.listByUser(userId, {

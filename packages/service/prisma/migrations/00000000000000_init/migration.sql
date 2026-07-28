@@ -264,6 +264,26 @@ CREATE TABLE "application" (
 );
 
 -- CreateTable
+CREATE TABLE "application_config" (
+    "id" TEXT NOT NULL,
+    "appId" TEXT NOT NULL,
+    "group" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'string',
+    "schema" JSONB,
+    "label" TEXT NOT NULL,
+    "description" TEXT,
+    "isSecret" BOOLEAN NOT NULL DEFAULT false,
+    "mask" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "application_config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "menu" (
     "id" TEXT NOT NULL,
     "appId" TEXT NOT NULL,
@@ -293,7 +313,6 @@ CREATE TABLE "menu_permission" (
 -- CreateTable
 CREATE TABLE "permission" (
     "id" TEXT NOT NULL,
-    "appId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "group" TEXT NOT NULL,
@@ -319,7 +338,6 @@ CREATE TABLE "role_assignment" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
-    "scope" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "role_assignment_pkey" PRIMARY KEY ("id")
@@ -328,8 +346,6 @@ CREATE TABLE "role_assignment" (
 -- CreateTable
 CREATE TABLE "role" (
     "id" TEXT NOT NULL,
-    "appId" TEXT NOT NULL,
-    "scope" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
@@ -479,8 +495,7 @@ CREATE TABLE "api_token" (
     "name" TEXT NOT NULL,
     "ownerId" TEXT NOT NULL,
     "scopes" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "organizationId" TEXT,
-    "appId" TEXT,
+    "scope" TEXT,
     "enabled" BOOLEAN NOT NULL DEFAULT true,
     "expiresAt" TIMESTAMP(3),
     "lastUsedAt" TIMESTAMP(3),
@@ -633,6 +648,12 @@ CREATE INDEX "attachment_createdBy_idx" ON "attachment"("createdBy");
 CREATE UNIQUE INDEX "application_code_key" ON "application"("code");
 
 -- CreateIndex
+CREATE INDEX "application_config_appId_group_idx" ON "application_config"("appId", "group");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "application_config_appId_group_key_key" ON "application_config"("appId", "group", "key");
+
+-- CreateIndex
 CREATE INDEX "menu_appId_idx" ON "menu"("appId");
 
 -- CreateIndex
@@ -651,10 +672,7 @@ CREATE UNIQUE INDEX "menu_permission_menuId_permissionId_key" ON "menu_permissio
 CREATE INDEX "permission_group_idx" ON "permission"("group");
 
 -- CreateIndex
-CREATE INDEX "permission_appId_idx" ON "permission"("appId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "permission_appId_code_key" ON "permission"("appId", "code");
+CREATE UNIQUE INDEX "permission_code_key" ON "permission"("code");
 
 -- CreateIndex
 CREATE INDEX "role_permission_roleId_idx" ON "role_permission"("roleId");
@@ -672,19 +690,10 @@ CREATE INDEX "role_assignment_userId_idx" ON "role_assignment"("userId");
 CREATE INDEX "role_assignment_roleId_idx" ON "role_assignment"("roleId");
 
 -- CreateIndex
-CREATE INDEX "role_assignment_scope_idx" ON "role_assignment"("scope");
+CREATE UNIQUE INDEX "role_assignment_userId_roleId_key" ON "role_assignment"("userId", "roleId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "role_assignment_userId_roleId_scope_key" ON "role_assignment"("userId", "roleId", "scope");
-
--- CreateIndex
-CREATE INDEX "role_appId_idx" ON "role"("appId");
-
--- CreateIndex
-CREATE INDEX "role_scope_idx" ON "role"("scope");
-
--- CreateIndex
-CREATE UNIQUE INDEX "role_appId_scope_code_key" ON "role"("appId", "scope", "code");
+CREATE UNIQUE INDEX "role_code_key" ON "role"("code");
 
 -- CreateIndex
 CREATE INDEX "operation_log_traceId_idx" ON "operation_log"("traceId");
@@ -795,7 +804,7 @@ CREATE UNIQUE INDEX "api_token_tokenHash_key" ON "api_token"("tokenHash");
 CREATE INDEX "api_token_ownerId_idx" ON "api_token"("ownerId");
 
 -- CreateIndex
-CREATE INDEX "api_token_organizationId_idx" ON "api_token"("organizationId");
+CREATE INDEX "api_token_scope_idx" ON "api_token"("scope");
 
 -- CreateIndex
 CREATE INDEX "agent_session_userId_createdAt_idx" ON "agent_session"("userId", "createdAt");
@@ -852,6 +861,9 @@ ALTER TABLE "attachment" ADD CONSTRAINT "attachment_uploadId_fkey" FOREIGN KEY (
 ALTER TABLE "attachment" ADD CONSTRAINT "attachment_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "application_config" ADD CONSTRAINT "application_config_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "menu" ADD CONSTRAINT "menu_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -864,9 +876,6 @@ ALTER TABLE "menu_permission" ADD CONSTRAINT "menu_permission_menuId_fkey" FOREI
 ALTER TABLE "menu_permission" ADD CONSTRAINT "menu_permission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "permission" ADD CONSTRAINT "permission_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "role_permission" ADD CONSTRAINT "role_permission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -877,9 +886,6 @@ ALTER TABLE "role_assignment" ADD CONSTRAINT "role_assignment_roleId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "role_assignment" ADD CONSTRAINT "role_assignment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "role" ADD CONSTRAINT "role_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notification_template" ADD CONSTRAINT "notification_template_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "notification_channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -901,12 +907,6 @@ ALTER TABLE "notification" ADD CONSTRAINT "notification_creatorId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "api_token" ADD CONSTRAINT "api_token_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "api_token" ADD CONSTRAINT "api_token_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "api_token" ADD CONSTRAINT "api_token_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "agent_session" ADD CONSTRAINT "agent_session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

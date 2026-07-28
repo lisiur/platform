@@ -165,7 +165,6 @@ model Organization {
   invitations Invitation[]
   departments Department[]
   positions   Position[]
-  apiTokens   ApiToken[]
 
   @@unique([slug])
   @@map("organization")
@@ -337,13 +336,33 @@ model Application {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   menus        Menu[]
-  roles        Role[]
-  permissions  Permission[]
   notifications Notification[]
-  apiTokens    ApiToken[]
+  applicationConfigs ApplicationConfig[]
 
   @@unique([code])
   @@map("application")
+}
+
+model ApplicationConfig {
+  id          String   @id @default(cuid())
+  appId       String
+  app         Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+  group       String
+  key         String
+  value       String
+  type        String   @default("string")
+  schema      Json?
+  label       String
+  description String?
+  isSecret    Boolean  @default(false)
+  mask        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([appId, group, key])
+  @@index([appId, group])
+  @@map("application_config")
 }
 
 model Menu {
@@ -384,8 +403,6 @@ model MenuPermission {
 
 model Permission {
   id              String           @id @default(cuid())
-  appId           String
-  app             Application      @relation(fields: [appId], references: [id], onDelete: Cascade)
   name            String
   code            String
   group           String
@@ -395,9 +412,8 @@ model Permission {
   rolePermissions RolePermission[]
   menuPermissions MenuPermission[]
 
-  @@unique([appId, code])
+  @@unique([code])
   @@index([group])
-  @@index([appId])
   @@map("permission")
 }
 
@@ -421,21 +437,16 @@ model RoleAssignment {
   roleId    String
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope     String
   createdAt DateTime @default(now())
 
-  @@unique([userId, roleId, scope])
+  @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
-  @@index([scope])
   @@map("role_assignment")
 }
 
 model Role {
   id              String           @id @default(cuid())
-  appId           String
-  app             Application      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  scope           String
   name            String
   code            String
   flags           String[]         @default([])
@@ -445,9 +456,7 @@ model Role {
   roleAssignments RoleAssignment[]
   position        Position?
 
-  @@unique([appId, scope, code])
-  @@index([appId])
-  @@index([scope])
+  @@unique([code])
   @@map("role")
 }
 
@@ -629,10 +638,7 @@ model ApiToken {
   ownerId   String
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   scopes    String[] @default([])
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appId      String?
-  app        Application? @relation(fields: [appId], references: [id], onDelete: Cascade)
+  scope     String?
   enabled    Boolean  @default(true)
   expiresAt  DateTime?
   lastUsedAt DateTime?
@@ -641,7 +647,7 @@ model ApiToken {
   updatedAt  DateTime @updatedAt
 
   @@index([ownerId])
-  @@index([organizationId])
+  @@index([scope])
   @@map("api_token")
 }
 

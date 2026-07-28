@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { serializeHTTPException } from "#lib/http-error";
 
 vi.mock("../../../services/attachment.service", () => ({
   getFileAccess: vi.fn(),
@@ -27,7 +28,7 @@ async function testRoute(options: {
   const app = new OpenAPIHono();
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json({ code: err.status, message: err.message }, err.status);
+      return c.json(serializeHTTPException(err), err.status);
     }
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });

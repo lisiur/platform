@@ -174,7 +174,7 @@ export const getSystemInfo = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-info::view");
+    await assertAccess(principal, "system/system-info:view");
     const cpuUsage = await getCpuUsage();
     const cpus = os.cpus();
     const memory = getMemoryInfo();

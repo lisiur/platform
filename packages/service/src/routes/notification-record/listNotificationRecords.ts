@@ -32,7 +32,7 @@ export const listNotificationRecordsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-record::list");
+    await assertAccess(principal, "system/notification-record:list");
     const query = c.req.valid("query");
     const result = await listNotificationRecords(query);
     return c.json(result, 200);

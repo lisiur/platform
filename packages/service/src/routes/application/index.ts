@@ -1,4 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { batchUpsertApplicationConfigsRoute } from "../application-config/batchUpsertConfigs";
+import { listApplicationConfigsByGroupRoute } from "../application-config/listConfigsByGroup";
 import { getApplication } from "./getApplication";
 import { getCurrentApplication } from "./getCurrentApplication";
 import { listApplications } from "./listApplications";
@@ -15,6 +17,8 @@ const routes = applicationRoutes.openapiRoutes([
   updateApplication,
   uploadApplicationLogoRoute,
   uploadApplicationFaviconRoute,
+  listApplicationConfigsByGroupRoute,
+  batchUpsertApplicationConfigsRoute,
 ] as const);
 
 export { routes as applicationRoutes };

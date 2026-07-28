@@ -13,6 +13,7 @@ import {
   RATE_LIMIT_GLOBAL_DEFAULT_WINDOW_MS,
 } from "#lib/constants";
 import { prisma } from "#lib/db";
+import { serializeHTTPException } from "#lib/http-error";
 import { bodyLimit } from "#middleware/body-limit";
 import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
@@ -52,7 +53,7 @@ const openAPIApp = new OpenAPIHono().basePath("/api");
 
 openAPIApp.onError((err, c) => {
   if (err instanceof HTTPException) {
-    return c.json({ code: err.status, message: err.message }, err.status);
+    return c.json(serializeHTTPException(err), err.status);
   }
   console.error("Unhandled error:", err);
   const traceId = c.get("traceId") as string | undefined;

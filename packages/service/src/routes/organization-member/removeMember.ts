@@ -8,6 +8,7 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { removeMember } from "#services/member.service";
 import { assertAccess } from "#services/role-permission.service";
 
@@ -41,10 +42,11 @@ export const removeOrganizationMember = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { orgId, memberId } = c.req.valid("param");
 
-    await assertAccess(principal, "organization-member::remove", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(
+      principal,
+      "org/organization-member:remove",
+      orgScope(orgId),
+    );
 
     await removeMember(orgId, memberId);
 

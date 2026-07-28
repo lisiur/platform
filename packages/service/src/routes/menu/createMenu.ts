@@ -38,7 +38,7 @@ export const createMenu = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::create");
+    await assertAccess(principal, "system/menu:create");
     const body = c.req.valid("json");
 
     const menu = await createMenuService(body);

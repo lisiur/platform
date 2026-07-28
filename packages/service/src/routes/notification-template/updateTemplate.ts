@@ -43,7 +43,7 @@ export const updateNotificationTemplateRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-template::update");
+    await assertAccess(principal, "system/notification-template:update");
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
     const template = await updateNotificationTemplate(id, body);

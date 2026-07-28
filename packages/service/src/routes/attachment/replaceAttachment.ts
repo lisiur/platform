@@ -54,11 +54,11 @@ export const replaceAttachmentRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "attachment::replace");
+    await assertAccess(principal, "system/attachment:replace");
     const userId = getPrincipalUserId(principal);
     const canManageAll = await checkPermission(
       userId,
-      "attachment::manage-all",
+      "system/attachment:manage-all",
     );
 
     const { id } = c.req.valid("param");

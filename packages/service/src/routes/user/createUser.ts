@@ -37,7 +37,7 @@ export const createUser = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user::create");
+    await assertAccess(principal, "system/user:create");
     const { name, email, password, roleIds } = c.req.valid("json");
     const user = await createUserSvc({ name, email, password, roleIds });
     return c.json(user, 200);

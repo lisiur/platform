@@ -50,8 +50,7 @@ const baseRecord = {
   name: "CI",
   ownerId: "user_1",
   scopes: ["member::read"],
-  organizationId: null,
-  appId: null,
+  scope: null,
   enabled: true,
   expiresAt: null,
   lastUsedAt: null,
@@ -141,10 +140,7 @@ describe("updateApiTokenForUser", () => {
       scopes: ["member::read"],
     });
 
-    expect(getAllUserPermissionCodes).toHaveBeenCalledWith("user_1", {
-      organizationId: null,
-      appId: null,
-    });
+    expect(getAllUserPermissionCodes).toHaveBeenCalledWith("user_1", "system");
   });
 
   it("rejects out-of-scope update", async () => {

@@ -41,7 +41,7 @@ export const createOrganization = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "organization::create");
+    await assertAccess(principal, "system/organization:create");
 
     const contentType = c.req.raw.headers.get("content-type") ?? "";
     if (!contentType.includes("multipart/form-data")) {

@@ -7,10 +7,7 @@ import {
   tokenSuffixOf,
 } from "#lib/api-token";
 import { prisma } from "#lib/db";
-import {
-  getAllUserPermissionCodes,
-  type PermissionScope,
-} from "./role-permission.service";
+import { getAllUserPermissionCodes } from "./role-permission.service";
 
 export type ApiTokenPublic = Omit<ApiToken, "tokenHash">;
 
@@ -23,15 +20,14 @@ export type CreateApiTokenInput = {
   ownerId: string;
   name: string;
   scopes: string[];
-  organizationId?: string | null;
-  appId?: string | null;
+  scope?: string | null;
   expiresAt?: string | null;
 };
 
 async function assertScopesWithinOwner(
   ownerId: string,
   scopes: string[],
-  scope: PermissionScope,
+  scope: string,
 ): Promise<void> {
   const ownerPerms = await getAllUserPermissionCodes(ownerId, scope);
   const invalid = scopes.filter((s) => !ownerPerms.includes(s));
@@ -45,10 +41,11 @@ async function assertScopesWithinOwner(
 export async function createApiTokenForUser(
   input: CreateApiTokenInput,
 ): Promise<{ token: string; record: ApiTokenPublic }> {
-  await assertScopesWithinOwner(input.ownerId, input.scopes, {
-    organizationId: input.organizationId ?? null,
-    appId: input.appId ?? null,
-  });
+  await assertScopesWithinOwner(
+    input.ownerId,
+    input.scopes,
+    input.scope ?? "system",
+  );
 
   const tokenString = generateApiTokenString();
   let expiresAt: Date | null = null;
@@ -69,8 +66,7 @@ export async function createApiTokenForUser(
       name: input.name,
       ownerId: input.ownerId,
       scopes: input.scopes,
-      organizationId: input.organizationId ?? null,
-      appId: input.appId ?? null,
+      scope: input.scope ?? null,
       expiresAt,
     },
   });
@@ -118,10 +114,11 @@ export async function updateApiTokenForUser(
   }
 
   if (data.scopes) {
-    await assertScopesWithinOwner(ownerId, data.scopes, {
-      organizationId: existing.organizationId,
-      appId: existing.appId,
-    });
+    await assertScopesWithinOwner(
+      ownerId,
+      data.scopes,
+      existing.scope ?? "system",
+    );
   }
 
   const updated = await prisma.apiToken.update({

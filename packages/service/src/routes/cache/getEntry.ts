@@ -30,7 +30,7 @@ export const getEntryRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "cache::view");
+    await assertAccess(principal, "system/cache:view");
     const { key } = c.req.valid("query");
     const entry = getEntry(key);
     if (!entry) {

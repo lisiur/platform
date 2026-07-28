@@ -36,7 +36,7 @@ export const getRolePermissions = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::list");
+    await assertAccess(principal, "system/role:list");
     const { roleId } = c.req.valid("param");
 
     const role = await prisma.role.findUnique({ where: { id: roleId } });

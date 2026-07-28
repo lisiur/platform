@@ -30,7 +30,7 @@ export const listNotificationTemplatesRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-template::list");
+    await assertAccess(principal, "system/notification-template:list");
     const query = c.req.valid("query");
     const templates = await listNotificationTemplates(query);
     return c.json({ templates }, 200);

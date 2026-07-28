@@ -31,7 +31,7 @@ export const listAllConfigsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-config::list");
+    await assertAccess(principal, "system/system-config:list");
     const { group } = c.req.valid("query");
     const configs = await listAllConfigs(group);
     return c.json(configs, 200);

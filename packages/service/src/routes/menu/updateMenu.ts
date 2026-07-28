@@ -39,7 +39,7 @@ export const updateMenu = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::update");
+    await assertAccess(principal, "system/menu:update");
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
 

@@ -56,7 +56,7 @@ export const uploadApplicationLogoRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { id } = c.req.valid("param");
 
-    await assertAccess(principal, "application::update");
+    await assertAccess(principal, "system/application:update");
 
     const contentType = c.req.raw.headers.get("content-type") ?? "";
     if (!contentType.includes("multipart/form-data")) {

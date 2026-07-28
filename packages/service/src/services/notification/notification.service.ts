@@ -73,26 +73,23 @@ export async function createNotificationsFromTemplate(params: {
 
   // Disabled template/channel: record the attempt as a failed row, skip delivery.
   if (disabledReason) {
-    const notificationIds = await prisma.$transaction(async (tx) => {
-      const created: string[] = [];
-      for (const recipientUserId of recipientUserIds) {
-        const notification = await tx.notification.create({
-          data: {
-            ...baseData,
-            recipientUserId,
-            renderedSubject: null,
-            renderedTitle: null,
-            renderedBody: "",
-            status: NotificationStatus.FAILED,
-            failedAt: now,
-            errorMessage: disabledReason,
-          },
-          select: { id: true },
-        });
-        created.push(notification.id);
-      }
-      return created;
-    });
+    const notificationIds: string[] = [];
+    for (const recipientUserId of recipientUserIds) {
+      const notification = await prisma.notification.create({
+        data: {
+          ...baseData,
+          recipientUserId,
+          renderedSubject: null,
+          renderedTitle: null,
+          renderedBody: "",
+          status: NotificationStatus.FAILED,
+          failedAt: now,
+          errorMessage: disabledReason,
+        },
+        select: { id: true },
+      });
+      notificationIds.push(notification.id);
+    }
 
     return {
       correlationId,

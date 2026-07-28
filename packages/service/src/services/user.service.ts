@@ -4,17 +4,16 @@ import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { hashPassword } from "#lib/password";
 import { assertUserIsNotBuiltin } from "#lib/protected-user";
-import { ADMIN_SCOPE } from "#lib/scope";
+import { roleAssignmentWhereByRoleScope, SYSTEM_SCOPE } from "#lib/scope";
 import { createUser as createAuthUser } from "#services/auth.service";
 
 const userWithRolesInclude = {
   roleAssignments: {
-    where: { scope: ADMIN_SCOPE },
+    where: roleAssignmentWhereByRoleScope(SYSTEM_SCOPE),
     include: {
       role: {
         select: {
           id: true,
-          appId: true,
           name: true,
           code: true,
         },
@@ -83,17 +82,15 @@ export async function createUser(data: {
       for (const roleId of roleIds) {
         await tx.roleAssignment.upsert({
           where: {
-            userId_roleId_scope: {
+            userId_roleId: {
               userId,
               roleId,
-              scope: ADMIN_SCOPE,
             },
           },
           update: {},
           create: {
             userId,
             roleId,
-            scope: ADMIN_SCOPE,
           },
         });
       }
@@ -167,24 +164,22 @@ export async function updateUser(
       await tx.roleAssignment.deleteMany({
         where: {
           userId: id,
-          scope: ADMIN_SCOPE,
+          ...roleAssignmentWhereByRoleScope(SYSTEM_SCOPE),
         },
       });
 
       for (const roleId of roleIds) {
         await tx.roleAssignment.upsert({
           where: {
-            userId_roleId_scope: {
+            userId_roleId: {
               userId: id,
               roleId,
-              scope: ADMIN_SCOPE,
             },
           },
           update: {},
           create: {
             userId: id,
             roleId,
-            scope: ADMIN_SCOPE,
           },
         });
       }

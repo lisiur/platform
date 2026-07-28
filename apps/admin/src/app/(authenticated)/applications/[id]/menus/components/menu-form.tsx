@@ -78,23 +78,19 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
       setValue,
     } = form;
 
-    const fetchPage = useCallback(
-      async (params: FetchPageParams) => {
-        const res = await appClient.api.permissions.$get({
-          query: {
-            appId: appId ?? "",
-            search: params.search || undefined,
-            sort: params.sort ?? undefined,
-            sortDir: params.sortDir,
-            limit: params.limit,
-            offset: params.offset,
-          },
-        });
-        const data = await res.json();
-        return { permissions: data.permissions, total: data.total };
-      },
-      [appId],
-    );
+    const fetchPage = useCallback(async (params: FetchPageParams) => {
+      const res = await appClient.api.permissions.$get({
+        query: {
+          search: params.search || undefined,
+          sort: params.sort ?? undefined,
+          sortDir: params.sortDir,
+          limit: params.limit,
+          offset: params.offset,
+        },
+      });
+      const data = await res.json();
+      return { permissions: data.permissions, total: data.total };
+    }, []);
 
     const currentPermissionIds = watch("permissionIds");
 

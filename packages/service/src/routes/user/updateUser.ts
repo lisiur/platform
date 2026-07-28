@@ -40,7 +40,7 @@ export const updateUser = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user::update");
+    await assertAccess(principal, "system/user:update");
     const { id } = c.req.valid("param");
     const { name, email, roleIds } = c.req.valid("json");
     const user = await updateUserSvc(id, { name, email, roleIds });

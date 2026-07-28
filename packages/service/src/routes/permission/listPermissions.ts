@@ -5,21 +5,20 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { listPermissionsForApp } from "#services/permission.service";
+import { listPermissions } from "#services/permission.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
   listPermissionsQuerySchema,
   listPermissionsResponseSchema,
 } from "./schema";
 
-export const listPermissions = defineOpenAPIRoute({
+export const listPermissionsRoute = defineOpenAPIRoute({
   route: createRoute({
     method: "get",
     path: "/",
     tags: ["Permission"],
     summary: "List permissions",
-    description:
-      "Returns all permissions available to an application (app-scoped and platform-wide).",
+    description: "Returns all permissions.",
     request: {
       query: listPermissionsQuerySchema,
     },
@@ -34,15 +33,15 @@ export const listPermissions = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "permission::list");
-    const { appId, search, sort, sortDir, limit, offset } =
-      c.req.valid("query");
-    const result = await listPermissionsForApp(appId, {
+    await assertAccess(principal, "system/permission:list");
+    const { search, sort, sortDir, limit, offset } = c.req.valid("query");
+    const result = await listPermissions({
       search,
       sort,
       sortDir,
       limit,
       offset,
+      scopePrefix: "system",
     });
     return c.json(result, 200);
   },

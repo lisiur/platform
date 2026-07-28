@@ -8,6 +8,7 @@ import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireSession } from "#extractors/session";
+import { serializeHTTPException } from "#lib/http-error";
 import { assertPermission } from "#services/role-permission.service";
 import { prepend } from "#utils/list";
 import { forbiddenResponse, unauthorizedResponse } from "./openapi";
@@ -85,7 +86,7 @@ function createTestApp() {
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json({ code: err.status, message: err.message }, err.status);
+      return c.json(serializeHTTPException(err), err.status);
     }
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });

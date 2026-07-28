@@ -26,7 +26,7 @@ export const listUsers = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user::list");
+    await assertAccess(principal, "system/user:list");
     const { limit, offset } = c.req.valid("query");
     const result = await listUsersSvc(limit, offset);
     return c.json(result, 200);

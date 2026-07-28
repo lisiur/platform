@@ -40,7 +40,7 @@ export const reorderMenus = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::reorder");
+    await assertAccess(principal, "system/menu:reorder");
     const body = c.req.valid("json");
 
     const result = await reorderMenusService(body.items);

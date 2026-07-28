@@ -42,7 +42,7 @@ export const updateRole = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::update");
+    await assertAccess(principal, "system/role:update");
     const { id } = c.req.valid("param");
     const data = c.req.valid("json");
     const updated = await updateRoleService(id, data);

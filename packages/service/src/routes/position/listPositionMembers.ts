@@ -1,6 +1,7 @@
 import { createRoute, defineOpenAPIRoute, z } from "@hono/zod-openapi";
 import { requirePrincipal } from "#extractors/session";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { listPositionMembers } from "#services/position.service";
 import { assertAccess } from "#services/role-permission.service";
 import { orgIdParamSchema, positionIdParamSchema } from "./schema";
@@ -50,10 +51,7 @@ export const listPositionMembersRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { orgId, id } = c.req.valid("param");
 
-    await assertAccess(principal, "position::list", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(principal, "org/position:list", orgScope(orgId));
 
     const members = await listPositionMembers(orgId, id);
 

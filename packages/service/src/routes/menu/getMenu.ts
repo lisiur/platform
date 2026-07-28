@@ -29,7 +29,7 @@ export const getMenu = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::view");
+    await assertAccess(principal, "system/menu:view");
     const { id } = c.req.valid("param");
 
     const menu = await getMenuById(id);

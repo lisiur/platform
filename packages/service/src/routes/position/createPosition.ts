@@ -7,6 +7,7 @@ import {
   forbiddenResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { createPosition } from "#services/position.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
@@ -52,10 +53,7 @@ export const createPositionRoute = defineOpenAPIRoute({
     const { orgId } = c.req.valid("param");
     const body = c.req.valid("json");
 
-    await assertAccess(principal, "position::create", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(principal, "org/position:create", orgScope(orgId));
 
     const position = await createPosition(orgId, body);
 

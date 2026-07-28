@@ -110,7 +110,7 @@ export default function ApplicationDetailPage({
           value="roles"
           className="flex min-h-0 flex-1 overflow-hidden"
         >
-          <ApplicationRoleManagement appId={id} />
+          <ApplicationRoleManagement />
         </TabsContent>
 
         <TabsContent

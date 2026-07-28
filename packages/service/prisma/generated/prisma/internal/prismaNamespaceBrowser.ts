@@ -67,6 +67,7 @@ export const ModelName = {
   Upload: 'Upload',
   Attachment: 'Attachment',
   Application: 'Application',
+  ApplicationConfig: 'ApplicationConfig',
   Menu: 'Menu',
   MenuPermission: 'MenuPermission',
   Permission: 'Permission',
@@ -347,6 +348,26 @@ export const ApplicationScalarFieldEnum = {
 export type ApplicationScalarFieldEnum = (typeof ApplicationScalarFieldEnum)[keyof typeof ApplicationScalarFieldEnum]
 
 
+export const ApplicationConfigScalarFieldEnum = {
+  id: 'id',
+  appId: 'appId',
+  group: 'group',
+  key: 'key',
+  value: 'value',
+  type: 'type',
+  schema: 'schema',
+  label: 'label',
+  description: 'description',
+  isSecret: 'isSecret',
+  mask: 'mask',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApplicationConfigScalarFieldEnum = (typeof ApplicationConfigScalarFieldEnum)[keyof typeof ApplicationConfigScalarFieldEnum]
+
+
 export const MenuScalarFieldEnum = {
   id: 'id',
   appId: 'appId',
@@ -376,7 +397,6 @@ export type MenuPermissionScalarFieldEnum = (typeof MenuPermissionScalarFieldEnu
 
 export const PermissionScalarFieldEnum = {
   id: 'id',
-  appId: 'appId',
   name: 'name',
   code: 'code',
   group: 'group',
@@ -402,7 +422,6 @@ export const RoleAssignmentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   roleId: 'roleId',
-  scope: 'scope',
   createdAt: 'createdAt'
 } as const
 
@@ -411,8 +430,6 @@ export type RoleAssignmentScalarFieldEnum = (typeof RoleAssignmentScalarFieldEnu
 
 export const RoleScalarFieldEnum = {
   id: 'id',
-  appId: 'appId',
-  scope: 'scope',
   name: 'name',
   code: 'code',
   flags: 'flags',
@@ -562,8 +579,7 @@ export const ApiTokenScalarFieldEnum = {
   name: 'name',
   ownerId: 'ownerId',
   scopes: 'scopes',
-  organizationId: 'organizationId',
-  appId: 'appId',
+  scope: 'scope',
   enabled: 'enabled',
   expiresAt: 'expiresAt',
   lastUsedAt: 'lastUsedAt',

@@ -6,6 +6,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { getAssignedPositionPermissions } from "#services/position.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
@@ -38,10 +39,11 @@ export const getPositionPermissionsRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { orgId, id } = c.req.valid("param");
 
-    await assertAccess(principal, "position-permission::manage", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(
+      principal,
+      "org/position-permission:manage",
+      orgScope(orgId),
+    );
 
     const assigned = await getAssignedPositionPermissions(orgId, id);
     return c.json({ assigned }, 200);

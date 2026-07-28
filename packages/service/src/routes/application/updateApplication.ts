@@ -50,7 +50,7 @@ export const updateApplication = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "application::update");
+    await assertAccess(principal, "system/application:update");
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
     const app = await updateApplicationService(id, body);

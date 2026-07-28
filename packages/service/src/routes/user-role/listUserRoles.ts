@@ -26,9 +26,9 @@ export const listRoleAssignments = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user-role::list");
-    const { organizationId, userId } = c.req.valid("query");
-    const roleAssignments = await listUserRolesSvc(userId, { organizationId });
+    await assertAccess(principal, "system/user-role:list");
+    const { userId } = c.req.valid("query");
+    const roleAssignments = await listUserRolesSvc(userId);
     return c.json(roleAssignments, 200);
   },
 });

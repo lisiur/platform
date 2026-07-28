@@ -1,6 +1,11 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import { requireAppId } from "#extractors/current-app";
+import {
+  getPrincipalUserId,
+  principalScope,
+  requirePrincipal,
+} from "#extractors/session";
 import {
   forbiddenResponse,
   okResponseFn,
@@ -22,7 +27,7 @@ export const createSessionRoute = defineOpenAPIRoute({
     summary: "Create an agent session",
     description:
       "Creates a new AI Agent session for the caller. " +
-      "Requires the provider API key to be configured under Settings → AI Agent.",
+      "Requires the provider API key to be configured under the application's General tab → AI Agent.",
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
@@ -32,11 +37,17 @@ export const createSessionRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "agent::manage");
+    const scope = principalScope(principal);
+    await assertAccess(
+      principal,
+      scope === "system" ? "system/agent:chat" : "org/agent:chat",
+      scope,
+    );
     const userId = getPrincipalUserId(principal);
+    const appId = await requireAppId(c);
 
     try {
-      const sessionId = await agentSessionManager.createSession(userId);
+      const sessionId = await agentSessionManager.createSession(userId, appId);
       return c.json({ sessionId }, 200);
     } catch (err) {
       if (err instanceof AgentConfigError) {

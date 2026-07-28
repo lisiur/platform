@@ -33,7 +33,7 @@ export const listOrganizations = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "organization::list");
+    await assertAccess(principal, "system/organization:list");
     const { limit, offset } = c.req.valid("query");
     const result = await listOrganizationsService({ limit, offset });
     return c.json(result, 200);

@@ -40,7 +40,7 @@ export const resetPassword = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user::update");
+    await assertAccess(principal, "system/user:update");
     const { id } = c.req.valid("param");
     const { password } = c.req.valid("json");
     await resetPasswordSvc(id, password, {

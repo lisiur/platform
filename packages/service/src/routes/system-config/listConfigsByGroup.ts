@@ -30,7 +30,7 @@ export const listConfigsByGroupRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-config::listByGroup");
+    await assertAccess(principal, "system/system-config:listByGroup");
     const { group } = c.req.valid("param");
     const configs = await listConfigsByGroup(group);
     return c.json(configs, 200);

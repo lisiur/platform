@@ -43,6 +43,7 @@ export const sessionResponseSchema = z
   .object({
     user: authUserSchema.nullable(),
     session: authSessionSchema.nullable(),
+    permissions: z.array(z.string()),
   })
   .nullable()
   .openapi("AuthSessionResponse");

@@ -35,7 +35,6 @@ type UserInput = {
 
 interface Role {
   id: string;
-  appId: string;
   name: string;
   code: string;
 }
@@ -43,7 +42,6 @@ interface Role {
 interface RoleAssignment {
   id: string;
   roleId: string;
-  scope?: string;
   role: Role;
 }
 
@@ -89,7 +87,7 @@ export function UserDialog({
     setLoadingRoles(true);
     try {
       const res = await withApiFeedback(appClient.api.roles.$get)({
-        query: { appId: "admin" },
+        query: { scopePrefix: "system" },
       });
       const data = await res.json();
       setRoles(data);

@@ -6,6 +6,7 @@ import {
   withApiFeedback,
 } from "@repo/frontend";
 import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
+import { useHasPermission } from "@/lib/api/use-has-permission";
 
 const sessionsApi: AgentSessionsApi = {
   list: async (query) => {
@@ -26,6 +27,9 @@ const sessionsApi: AgentSessionsApi = {
 };
 
 export function AgentLauncherConnected() {
+  const canChat = useHasPermission("system/agent:chat");
+  if (!canChat) return null;
+
   return (
     <AgentLauncher
       apiOrigin={API_ORIGIN}

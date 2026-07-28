@@ -26,7 +26,7 @@ export const listNotificationProvidersRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-channel::list");
+    await assertAccess(principal, "system/notification-channel:list");
     return c.json({ providers: listNotificationChannelProviders() }, 200);
   },
 });

@@ -14,7 +14,7 @@ export const listRoles = defineOpenAPIRoute({
     method: "get",
     path: "/",
     tags: ["Role"],
-    summary: "List roles for an application",
+    summary: "List roles for a scope",
     request: {
       query: listRolesQuerySchema,
     },
@@ -26,9 +26,9 @@ export const listRoles = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::list");
-    const { appId, organizationId } = c.req.valid("query");
-    const roles = await listRolesService(appId, { organizationId });
+    await assertAccess(principal, "system/role:list");
+    const { scopePrefix } = c.req.valid("query");
+    const roles = await listRolesService(scopePrefix);
     return c.json(roles, 200);
   },
 });

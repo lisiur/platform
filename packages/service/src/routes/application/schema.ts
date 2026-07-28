@@ -47,6 +47,8 @@ export const updateApplicationBodySchema = z.object({
   name: z.string().min(1).optional(),
   code: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
+  logo: z.string().nullable().optional(),
+  favicon: z.string().nullable().optional(),
   copyright: z.string().nullable().optional(),
   icp: z.string().nullable().optional(),
   psif: z.string().nullable().optional(),

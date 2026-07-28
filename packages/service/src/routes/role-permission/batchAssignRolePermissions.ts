@@ -46,7 +46,7 @@ export const batchAssignRolePermissions = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::update");
+    await assertAccess(principal, "system/role:update");
     const { roleId, permissionIds } = c.req.valid("json");
 
     await assignPermissions(roleId, permissionIds);

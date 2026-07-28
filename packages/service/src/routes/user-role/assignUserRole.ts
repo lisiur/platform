@@ -34,16 +34,14 @@ export const assignRoleAssignment = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "user-role::assign");
-    const { roleId, organizationId, userId } = c.req.valid("json");
-    const roleAssignment = await assignUserRoleSvc(userId, roleId, {
-      organizationId,
-    });
+    await assertAccess(principal, "system/user-role:assign");
+    const { roleId, userId } = c.req.valid("json");
+    const roleAssignment = await assignUserRoleSvc(userId, roleId);
 
     logAudit({
       event: "role_assignment.assigned",
       category: "role_assignment",
-      metadata: { userId, roleId, organizationId },
+      metadata: { userId, roleId },
       c,
     });
 

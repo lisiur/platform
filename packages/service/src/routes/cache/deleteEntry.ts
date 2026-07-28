@@ -32,7 +32,7 @@ export const deleteEntryRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "cache::manage");
+    await assertAccess(principal, "system/cache:manage");
     const { key } = c.req.valid("query");
 
     const ok = deleteEntry(key);

@@ -2,10 +2,13 @@ import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { getOrgOwnerUserIds } from "#lib/org-role";
-import { orgScope } from "#lib/scope";
+import {
+  ORG_PERMISSION_SCOPE,
+  orgScope,
+  permissionWhereByScope,
+  roleCodeAtScope,
+} from "#lib/scope";
 import { getPermissionsForRole } from "#services/role-permission.service";
-
-const ORGANIZATION_APP_ID = "organization";
 
 export async function listPositions(organizationId: string) {
   const positions = await prisma.position.findMany({
@@ -161,7 +164,12 @@ export async function updatePosition(
           where: { id: position.roleId },
           data: {
             ...(data.name !== undefined && { name: data.name }),
-            ...(data.code !== undefined && { code: `position-${data.code}` }),
+            ...(data.code !== undefined && {
+              code: roleCodeAtScope(
+                orgScope(organizationId),
+                `position-${data.code}`,
+              ),
+            }),
           },
         });
       } catch (err) {
@@ -172,7 +180,7 @@ export async function updatePosition(
           err.code === "P2002"
         ) {
           throw new HTTPException(409, {
-            message: "A role with this code already exists in this scope",
+            message: "A role with this code already exists",
           });
         }
         throw err;
@@ -265,25 +273,21 @@ export async function setMemberPositions(
         where: {
           userId: member.userId,
           roleId,
-          scope: orgScope(organizationId),
         },
       });
     }
     for (const roleId of addedRoleIds) {
-      const scope = orgScope(organizationId);
       await tx.roleAssignment.upsert({
         where: {
-          userId_roleId_scope: {
+          userId_roleId: {
             userId: member.userId,
             roleId,
-            scope,
           },
         },
         update: {},
         create: {
           userId: member.userId,
           roleId,
-          scope,
         },
       });
     }
@@ -331,7 +335,9 @@ export async function listAvailablePositionPermissions(
 
   const { search, sort, sortDir, limit, offset } = params;
 
-  const where: Prisma.PermissionWhereInput = { appId: ORGANIZATION_APP_ID };
+  const where: Prisma.PermissionWhereInput = {
+    ...permissionWhereByScope(ORG_PERMISSION_SCOPE),
+  };
   if (search) {
     where.AND = [
       {
@@ -372,7 +378,7 @@ export async function setPositionPermissions(
     const validPerms = await prisma.permission.findMany({
       where: {
         id: { in: permissionIds },
-        appId: ORGANIZATION_APP_ID,
+        ...permissionWhereByScope(ORG_PERMISSION_SCOPE),
       },
       select: { id: true },
     });
@@ -387,16 +393,12 @@ export async function setPositionPermissions(
 
   return prisma.$transaction(async (tx) => {
     if (!roleId) {
-      const roleCode = `position-${position.code}`;
-      const scope = orgScope(organizationId);
+      const roleCode = roleCodeAtScope(
+        orgScope(organizationId),
+        `position-${position.code}`,
+      );
       const existing = await tx.role.findUnique({
-        where: {
-          appId_scope_code: {
-            appId: ORGANIZATION_APP_ID,
-            scope,
-            code: roleCode,
-          },
-        },
+        where: { code: roleCode },
       });
       if (existing) {
         throw new HTTPException(409, {
@@ -406,8 +408,6 @@ export async function setPositionPermissions(
 
       const role = await tx.role.create({
         data: {
-          appId: ORGANIZATION_APP_ID,
-          scope,
           name: position.name,
           code: roleCode,
         },

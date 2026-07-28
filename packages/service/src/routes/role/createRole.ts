@@ -34,9 +34,9 @@ export const createRole = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::create");
-    const { appId, organizationId, name, code } = c.req.valid("json");
-    const role = await createRoleService({ appId, organizationId, name, code });
+    await assertAccess(principal, "system/role:create");
+    const { name, code } = c.req.valid("json");
+    const role = await createRoleService({ name, code });
 
     logAudit({
       event: "role.created",

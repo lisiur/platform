@@ -53,8 +53,7 @@ export const createApiToken = defineOpenAPIRoute({
       ownerId: getPrincipalUserId(principal),
       name: body.name,
       scopes: body.scopes,
-      organizationId: body.organizationId ?? null,
-      appId: body.appId ?? null,
+      scope: body.scope ?? null,
       expiresAt: body.expiresAt ?? null,
     });
 

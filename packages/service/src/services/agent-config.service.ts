@@ -1,4 +1,4 @@
-import { getMergedConfigRows } from "./system-config-env.service";
+import { getMergedAppConfigRows } from "./application-config.service";
 
 /**
  * AI SDK portable reasoning levels. `off` is sent as `'none'` to disable
@@ -35,15 +35,18 @@ const VALID_REASONING: AiAgentReasoning[] = [
 ];
 
 /**
- * Resolves AI Agent config. DB values take precedence over env vars; env vars
- * serve as a deployment-time fallback when the DB value is unset/empty. The
- * Settings UI is authoritative. Empty/whitespace-only values are treated as
- * unset. Env-fallback is applied by `getMergedConfigRows` via the shared
- * `AI_AGENT_*` convention.
+ * Resolves the AI Agent config scoped to a specific application. DB values take
+ * precedence over env vars; env vars serve as a deployment-time fallback shared
+ * across all apps when the DB value is unset/empty. Empty/whitespace-only
+ * values are treated as unset. Env-fallback is applied by `getMergedAppConfigRows`
+ * via the shared `AI_AGENT_*` convention.
  */
-export async function loadAiAgentConfig(): Promise<AiAgentConfig> {
+export async function loadAiAgentConfig(appId: string): Promise<AiAgentConfig> {
   const map = new Map(
-    (await getMergedConfigRows("ai-agent")).map((r) => [r.key, r.value]),
+    (await getMergedAppConfigRows(appId, "ai-agent")).map((r) => [
+      r.key,
+      r.value,
+    ]),
   );
 
   const rawReasoning = (map.get("reasoning") ?? "").toLowerCase();

@@ -31,7 +31,7 @@ export const deleteOrganization = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "organization::delete");
+    await assertAccess(principal, "system/organization:delete");
     const { id } = c.req.valid("param");
     await deleteOrganizationService(id);
 

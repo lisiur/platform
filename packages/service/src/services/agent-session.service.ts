@@ -36,11 +36,11 @@ export interface AgentSessionListParams {
 }
 
 class AgentSessionManager {
-  async createSession(userId: string): Promise<string> {
-    const config = await loadAiAgentConfig();
+  async createSession(userId: string, appId: string): Promise<string> {
+    const config = await loadAiAgentConfig(appId);
     if (!isAgentConfigured(config)) {
       throw new AgentConfigError(
-        "AI Agent is not configured. Set the base URL, API key, and model under Settings → AI Agent.",
+        "AI Agent is not configured. Set the base URL, API key, and model under the application's General tab → AI Agent.",
       );
     }
 

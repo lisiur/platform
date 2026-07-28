@@ -42,23 +42,14 @@ export function AgentMarkdown({
           streaming={streaming && thinkingOpen}
         />
       )}
-      {answer && (
-        <>
-          {streaming ? (
-            <ComarkClient streaming caret={false}>
-              {answer}
-            </ComarkClient>
-          ) : (
-            <StaticAnswer answer={answer} />
-          )}
-          {streaming && (
-            <span
-              aria-hidden
-              className="ml-1 inline-block h-[1.1em] w-[2px] animate-pulse bg-current align-text-bottom"
-            />
-          )}
-        </>
-      )}
+      {answer &&
+        (streaming ? (
+          <ComarkClient streaming caret={false}>
+            {answer}
+          </ComarkClient>
+        ) : (
+          <StaticAnswer answer={answer} />
+        ))}
     </div>
   );
 }

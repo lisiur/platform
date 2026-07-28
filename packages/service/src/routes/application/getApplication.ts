@@ -30,7 +30,7 @@ export const getApplication = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "application::view");
+    await assertAccess(principal, "system/application:view");
     const { id } = c.req.valid("param");
     const app = await getApplicationById(id);
     return c.json(app, 200);

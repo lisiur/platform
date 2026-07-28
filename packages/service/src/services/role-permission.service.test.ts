@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("#lib/db", () => ({
   prisma: {
-    permission: {
+    roleAssignment: {
       findMany: vi.fn(),
     },
     menu: {
@@ -12,6 +12,7 @@ vi.mock("#lib/db", () => ({
 }));
 
 import { prisma } from "#lib/db";
+import { menuPermissionsInclude } from "./menu.service";
 import {
   getMenusForUser,
   getUserPermissions,
@@ -19,7 +20,7 @@ import {
 } from "./role-permission.service";
 
 const mockPrisma = prisma as unknown as {
-  permission: {
+  roleAssignment: {
     findMany: ReturnType<typeof vi.fn>;
   };
   menu: {
@@ -32,32 +33,37 @@ describe("getUserPermissions", () => {
     vi.resetAllMocks();
   });
 
-  it("loads only global API permissions", async () => {
-    mockPrisma.permission.findMany.mockResolvedValue([
-      { code: "organization::create" },
-      { code: "attachment::sign" },
+  it("returns permission codes from the user's role assignments", async () => {
+    mockPrisma.roleAssignment.findMany.mockResolvedValue([
+      {
+        role: {
+          code: "system/admin",
+          rolePermissions: [
+            { permission: { code: "system/role:create" } },
+            { permission: { code: "system/user:read" } },
+          ],
+        },
+      },
     ]);
 
     await expect(getUserPermissions("user1")).resolves.toEqual([
-      "organization::create",
-      "attachment::sign",
+      "system/role:create",
+      "system/user:read",
     ]);
-    expect(mockPrisma.permission.findMany).toHaveBeenCalledWith({
+    expect(mockPrisma.roleAssignment.findMany).toHaveBeenCalledWith({
       where: {
-        rolePermissions: {
-          some: {
-            role: {
-              roleAssignments: {
-                some: {
-                  OR: [{ scope: "admin" }],
-                  userId: "user1",
-                },
-              },
+        userId: "user1",
+        role: { code: { startsWith: "system/" } },
+      },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: { select: { code: true } } },
             },
           },
         },
       },
-      select: { code: true },
     });
   });
 });
@@ -65,6 +71,17 @@ describe("getUserPermissions", () => {
 describe("getMenusForUser", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockPrisma.roleAssignment.findMany.mockResolvedValue([
+      {
+        role: {
+          code: "org:org1/owner",
+          rolePermissions: [
+            { permission: { code: "organization-member::list" } },
+            { permission: { code: "organization-settings::view" } },
+          ],
+        },
+      },
+    ]);
   });
 
   it("returns org-app menus whose required permissions the user holds", async () => {
@@ -105,10 +122,7 @@ describe("getMenusForUser", () => {
     mockPrisma.menu.findMany.mockResolvedValue(menus);
 
     await expect(
-      getMenusForUser("user1", "organization", {
-        appId: "organization",
-        organizationId: "org1",
-      }),
+      getMenusForUser("user1", "organization", "org:org1"),
     ).resolves.toEqual([
       {
         id: "organization-members",
@@ -148,17 +162,11 @@ describe("getMenusForUser", () => {
             menuPermissions: {
               some: {
                 permission: {
-                  rolePermissions: {
-                    some: {
-                      role: {
-                        roleAssignments: {
-                          some: {
-                            userId: "user1",
-                            OR: [{ scope: "org:org1" }],
-                          },
-                        },
-                      },
-                    },
+                  code: {
+                    in: [
+                      "organization-member::list",
+                      "organization-settings::view",
+                    ],
                   },
                 },
               },
@@ -173,15 +181,7 @@ describe("getMenusForUser", () => {
         ],
       },
       orderBy: { sortOrder: "asc" },
-      include: {
-        menuPermissions: {
-          include: {
-            permission: {
-              select: { id: true, code: true, name: true, group: true },
-            },
-          },
-        },
-      },
+      include: menuPermissionsInclude,
     });
   });
 
@@ -250,10 +250,7 @@ describe("getMenusForUser", () => {
       },
     );
 
-    const result = await getMenusForUser("user1", "organization", {
-      appId: "organization",
-      organizationId: "org1",
-    });
+    const result = await getMenusForUser("user1", "organization", "org:org1");
 
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe("parent-folder");
@@ -342,10 +339,7 @@ describe("getMenusForUser", () => {
       },
     );
 
-    const result = await getMenusForUser("user1", "organization", {
-      appId: "organization",
-      organizationId: "org1",
-    });
+    const result = await getMenusForUser("user1", "organization", "org:org1");
 
     expect(result).toHaveLength(3);
     const ids = result.map((m: { id: string }) => m.id);
@@ -381,10 +375,7 @@ describe("getMenusForUser", () => {
       },
     );
 
-    const result = await getMenusForUser("user1", "organization", {
-      appId: "organization",
-      organizationId: "org1",
-    });
+    const result = await getMenusForUser("user1", "organization", "org:org1");
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("public-page");

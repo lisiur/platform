@@ -18,6 +18,8 @@ export async function updateApplication(
     name?: string;
     code?: string;
     description?: string | null;
+    logo?: string | null;
+    favicon?: string | null;
     copyright?: string | null;
     icp?: string | null;
     psif?: string | null;

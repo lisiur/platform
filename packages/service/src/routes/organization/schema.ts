@@ -32,7 +32,11 @@ export const createOrganizationBodySchema = z.object({
     .min(1)
     .regex(/^[a-z0-9-]+$/)
     .openapi({ example: "acme-corp" }),
-  logo: z.any().optional().openapi({ description: "Logo image file" }),
+  logo: z
+    .union([z.instanceof(File), z.string().regex(/^\/api\//)])
+    .nullable()
+    .optional()
+    .openapi({ description: "Logo image file" }),
 });
 
 export const registerOrganizationBodySchema = createOrganizationBodySchema;
@@ -44,7 +48,11 @@ export const updateOrganizationBodySchema = z.object({
     .min(1)
     .regex(/^[a-z0-9-]+$/)
     .optional(),
-  logo: z.any().optional().openapi({ description: "Logo image file" }),
+  logo: z
+    .union([z.instanceof(File), z.string().regex(/^\/api\//)])
+    .nullable()
+    .optional()
+    .openapi({ description: "Logo image file" }),
 });
 
 export const updateOrganizationSettingsBodySchema = z.object({

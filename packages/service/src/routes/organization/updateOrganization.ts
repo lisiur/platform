@@ -51,7 +51,7 @@ export const updateOrganization = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "organization::update");
+    await assertAccess(principal, "system/organization:update");
     const { id } = c.req.valid("param");
 
     const contentType = c.req.raw.headers.get("content-type") ?? "";

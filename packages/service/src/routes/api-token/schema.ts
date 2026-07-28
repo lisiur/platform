@@ -10,9 +10,8 @@ export const apiTokenSchema = z
     tokenSuffix: z.string().openapi({ example: "wXyZ" }),
     name: z.string().openapi({ example: "Production server" }),
     ownerId: z.string().openapi({ example: "clx1234567890" }),
-    scopes: z.array(z.string()).openapi({ example: ["member::read"] }),
-    organizationId: z.string().nullable().optional(),
-    appId: z.string().nullable().optional(),
+    scopes: z.array(z.string()).openapi({ example: ["system/member:read"] }),
+    scope: z.string().nullable().optional(),
     enabled: z.boolean().openapi({ example: true }),
     expiresAt: z.date().nullable().optional(),
     lastUsedAt: z.date().nullable().optional(),
@@ -26,9 +25,8 @@ export const createApiTokenBodySchema = z.object({
   name: z.string().min(1).openapi({ example: "Production server" }),
   scopes: z
     .array(z.string().min(1))
-    .openapi({ example: ["member::read", "department::read"] }),
-  organizationId: z.string().optional(),
-  appId: z.string().optional(),
+    .openapi({ example: ["system/member:read", "system/department:read"] }),
+  scope: z.string().optional(),
   expiresAt: z.string().datetime().optional().openapi({
     example: "2026-08-01T00:00:00.000Z",
     description: "ISO 8601 expiry date. Omit for a token that never expires.",
@@ -59,7 +57,7 @@ export const listApiTokensResponseSchema = z
 
 export const availableScopeSchema = z.object({
   id: z.string(),
-  code: z.string().openapi({ example: "member::read" }),
+  code: z.string().openapi({ example: "system/member:read" }),
   name: z.string().openapi({ example: "List Members" }),
   group: z.string().openapi({ example: "member" }),
   description: z.string().nullable().optional(),

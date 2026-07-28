@@ -1,7 +1,11 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { requireAppId } from "#extractors/current-app";
-import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import {
+  getPrincipalUserId,
+  principalScope,
+  requirePrincipal,
+} from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { getMenusForUser } from "#services/role-permission.service";
 import { mineMenusResponseSchema } from "./schema";
@@ -30,13 +34,12 @@ export const getMine = defineOpenAPIRoute({
     }
 
     const appId = await requireAppId(c);
-    const menus = await getMenusForUser(getPrincipalUserId(principal), appId, {
+    const scope = principalScope(principal);
+    const menus = await getMenusForUser(
+      getPrincipalUserId(principal),
       appId,
-      organizationId:
-        principal.kind === "user"
-          ? principal.session.activeOrganizationId
-          : undefined,
-    });
+      scope,
+    );
     return c.json({ menus }, 200);
   },
 });

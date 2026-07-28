@@ -43,7 +43,7 @@ export const upsertConfigRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-config::upsert");
+    await assertAccess(principal, "system/system-config:upsert");
     const { group, key } = c.req.valid("param");
     const body = c.req.valid("json");
 

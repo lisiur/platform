@@ -40,11 +40,11 @@ export const deleteAttachmentsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "attachment::delete");
+    await assertAccess(principal, "system/attachment:delete");
     const userId = getPrincipalUserId(principal);
     const canManageAll = await checkPermission(
       userId,
-      "attachment::manage-all",
+      "system/attachment:manage-all",
     );
     const { ids } = c.req.valid("json");
 

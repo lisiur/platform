@@ -5,7 +5,7 @@ export const linkTypeSchema = z.enum(["GROUP", "INTERNAL", "EXTERNAL"]);
 const permissionRefSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
-    code: z.string().openapi({ example: "user::list" }),
+    code: z.string().openapi({ example: "system/user:list" }),
     name: z.string().openapi({ example: "List Users" }),
     group: z.string().openapi({ example: "user" }),
   })

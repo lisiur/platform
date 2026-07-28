@@ -33,7 +33,7 @@ export const deleteOverrideRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "rate-limit::manage");
+    await assertAccess(principal, "system/rate-limit:manage");
     const { subject } = c.req.valid("param");
 
     const ok = await deleteOverride(subject);

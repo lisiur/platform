@@ -43,7 +43,7 @@ export const batchUpsertConfigsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-config::batchUpsert");
+    await assertAccess(principal, "system/system-config:batchUpsert");
     const { items } = c.req.valid("json");
 
     const configs = await batchUpsertConfigs(items);

@@ -10,13 +10,11 @@ import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 
 interface RolePermissionAssignmentProps {
-  appId: string;
   roleId: string;
   onSaved?: () => void;
 }
 
 export function RolePermissionAssignment({
-  appId,
   roleId,
   onSaved,
 }: RolePermissionAssignmentProps) {
@@ -53,23 +51,19 @@ export function RolePermissionAssignment({
     fetchAssignment();
   }, [fetchAssignment]);
 
-  const fetchPage = useCallback(
-    async (params: FetchPageParams) => {
-      const res = await appClient.api.permissions.$get({
-        query: {
-          appId,
-          search: params.search || undefined,
-          sort: params.sort ?? undefined,
-          sortDir: params.sortDir,
-          limit: params.limit,
-          offset: params.offset,
-        },
-      });
-      const data = await res.json();
-      return { permissions: data.permissions, total: data.total };
-    },
-    [appId],
-  );
+  const fetchPage = useCallback(async (params: FetchPageParams) => {
+    const res = await appClient.api.permissions.$get({
+      query: {
+        search: params.search || undefined,
+        sort: params.sort ?? undefined,
+        sortDir: params.sortDir,
+        limit: params.limit,
+        offset: params.offset,
+      },
+    });
+    const data = await res.json();
+    return { permissions: data.permissions, total: data.total };
+  }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);

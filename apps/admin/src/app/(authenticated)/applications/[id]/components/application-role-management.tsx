@@ -35,7 +35,6 @@ import { RolePermissionAssignment } from "./role-permission-assignment";
 
 interface Role {
   id: string;
-  appId: string;
   name: string;
   code: string;
   flags: string[];
@@ -44,12 +43,10 @@ interface Role {
 }
 
 interface ApplicationRoleManagementProps {
-  appId: string;
   className?: string;
 }
 
 export function ApplicationRoleManagement({
-  appId,
   className,
 }: ApplicationRoleManagementProps) {
   const t = useTranslations("Roles");
@@ -66,7 +63,7 @@ export function ApplicationRoleManagement({
     setLoading(true);
     try {
       const res = await withApiFeedback(appClient.api.roles.$get)({
-        query: { appId },
+        query: { scopePrefix: "system" },
       });
       const data = await res.json();
       setRoles(data);
@@ -82,7 +79,7 @@ export function ApplicationRoleManagement({
     } finally {
       setLoading(false);
     }
-  }, [appId]);
+  }, []);
 
   useEffect(() => {
     fetchRoles();
@@ -259,7 +256,6 @@ export function ApplicationRoleManagement({
 
       {showCreate && (
         <RoleDialog
-          appId={appId}
           open={showCreate}
           onOpenChange={(open) => !open && setShowCreate(false)}
           onSuccess={handleCreateSuccess}
@@ -268,7 +264,6 @@ export function ApplicationRoleManagement({
 
       {editRole && (
         <RoleDialog
-          appId={appId}
           role={editRole}
           open={!!editRole}
           onOpenChange={(open) => !open && setEditRole(null)}
@@ -294,7 +289,6 @@ export function ApplicationRoleManagement({
           <SheetBody>
             {selectedRole && (
               <RolePermissionAssignment
-                appId={appId}
                 roleId={selectedRole.id}
                 onSaved={() => setPermissionDrawerOpen(false)}
               />

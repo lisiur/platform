@@ -52,7 +52,9 @@ function isEmpty(v: string | null | undefined): boolean {
  * endpoints (so the Settings UI shows the effective value as a placeholder)
  * and runtime loaders (after which they apply typed coercion).
  */
-export function mergeEnvFallback(rows: ConfigRow[]): ConfigRow[] {
+export function mergeEnvFallback<
+  T extends { group: string; key: string; value: string },
+>(rows: T[]): T[] {
   return rows.map((row) => {
     if (!isEmpty(row.value)) return row;
     const envFb = envValueFor(row.group, row.key);

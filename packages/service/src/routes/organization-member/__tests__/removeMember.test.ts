@@ -42,8 +42,7 @@ describe("removeMember", () => {
     expect(db.roleAssignment.count).toHaveBeenCalledWith({
       where: {
         userId: "user1",
-        role: { code: "owner", appId: "organization" },
-        scope: "org:org1",
+        role: { code: "org:org1/owner" },
       },
     });
     expect(db.member.delete).toHaveBeenCalledWith({

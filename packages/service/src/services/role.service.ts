@@ -1,7 +1,7 @@
 import { isBuiltinRole } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
-import { type ScopeContext, scopeFromContext } from "#lib/scope";
+import { scopeOfRoleCode } from "#lib/scope";
 import { roleRepository } from "#repositories/role.repository";
 
 export async function getRoleById(id: string) {
@@ -13,26 +13,17 @@ export async function getRoleById(id: string) {
 }
 
 export async function createRole(data: {
-  appId: string;
-  organizationId?: string | null;
   name: string;
   code: string;
   flags?: string[];
 }) {
-  const scope = scopeFromContext({ organizationId: data.organizationId });
-  const existing = await roleRepository.findByAppAndCode(
-    data.appId,
-    data.code,
-    scope,
-  );
+  const existing = await roleRepository.findByCode(data.code);
   if (existing) {
     throw new HTTPException(409, {
-      message: "Role code already exists in this scope",
+      message: "Role code already exists",
     });
   }
   return roleRepository.create({
-    appId: data.appId,
-    scope,
     name: data.name,
     code: data.code,
     flags: data.flags,
@@ -60,14 +51,15 @@ export async function updateRole(
     });
   }
   if (data.code && data.code !== role.code) {
-    const codeTaken = await roleRepository.findByAppAndCode(
-      role.appId,
-      data.code,
-      role.scope,
-    );
+    if (scopeOfRoleCode(data.code) !== scopeOfRoleCode(role.code)) {
+      throw new HTTPException(400, {
+        message: "Cannot change the scope of an existing role",
+      });
+    }
+    const codeTaken = await roleRepository.findByCode(data.code);
     if (codeTaken) {
       throw new HTTPException(409, {
-        message: "Role code already exists in this scope",
+        message: "Role code already exists",
       });
     }
   }
@@ -89,6 +81,6 @@ export async function deleteRole(id: string) {
   return { name: role.name };
 }
 
-export async function listRoles(appId: string, ctx: ScopeContext = {}) {
-  return roleRepository.findByAppId(appId, ctx);
+export async function listRoles(scopePrefix: string) {
+  return roleRepository.findByScopePrefix(scopePrefix);
 }

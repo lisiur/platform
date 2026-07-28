@@ -34,7 +34,7 @@ export const listAttachmentsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "attachment::list");
+    await assertAccess(principal, "system/attachment:list");
     const query = c.req.valid("query");
     const result = await listAttachments(query);
     return c.json(result, 200);

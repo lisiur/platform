@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { serializeHTTPException } from "#lib/http-error";
 
 // Mock prisma
 vi.mock("../../../lib/db", () => ({
@@ -80,10 +81,7 @@ async function testRoute(
   // JSON error handler (matches production behavior)
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json(
-        { code: err.status, message: err.message },
-        err.status as any,
-      );
+      return c.json(serializeHTTPException(err), err.status as any);
     }
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });

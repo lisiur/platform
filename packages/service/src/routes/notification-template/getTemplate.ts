@@ -29,7 +29,7 @@ export const getNotificationTemplateRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "notification-template::view");
+    await assertAccess(principal, "system/notification-template:view");
     const { id } = c.req.valid("param");
     const template = await getNotificationTemplate(id);
     return c.json(template, 200);

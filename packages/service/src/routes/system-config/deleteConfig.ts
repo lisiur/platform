@@ -40,7 +40,7 @@ export const deleteConfigRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "system-config::delete");
+    await assertAccess(principal, "system/system-config:delete");
     const { group, key } = c.req.valid("param");
 
     await deleteConfig(group, key);

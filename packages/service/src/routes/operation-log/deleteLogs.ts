@@ -35,7 +35,7 @@ export const deleteLogsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "operation-log::delete");
+    await assertAccess(principal, "system/operation-log:delete");
     const { ids } = c.req.valid("json");
 
     await deleteLogs(ids);

@@ -25,7 +25,7 @@ export const getSettingsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "rate-limit::manage");
+    await assertAccess(principal, "system/rate-limit:manage");
     const settings = getRateLimitSettings();
     return c.json(settings, 200);
   },

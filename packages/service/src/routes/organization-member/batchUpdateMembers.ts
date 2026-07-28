@@ -9,6 +9,7 @@ import {
   unauthorizedResponse,
 } from "#lib/openapi";
 import { getOrgOwnerUserIds } from "#lib/org-role";
+import { orgScope } from "#lib/scope";
 import { batchUpdateMembers } from "#services/member.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
@@ -49,10 +50,11 @@ export const batchUpdateOrganizationMembers = defineOpenAPIRoute({
     const { orgId } = c.req.valid("param");
     const { memberIds, departmentId } = c.req.valid("json");
 
-    await assertAccess(principal, "organization-member::update", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(
+      principal,
+      "org/organization-member:update",
+      orgScope(orgId),
+    );
 
     await batchUpdateMembers(orgId, memberIds, { departmentId });
 

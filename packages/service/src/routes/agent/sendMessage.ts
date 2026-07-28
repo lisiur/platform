@@ -4,7 +4,12 @@ import { convertToModelMessages, generateText, type UIMessage } from "ai";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
+import { requireAppId } from "#extractors/current-app";
+import {
+  getPrincipalUserId,
+  principalScope,
+  requirePrincipal,
+} from "#extractors/session";
 import type { Prisma } from "#generated/prisma/client";
 import { streamAgent } from "#lib/agent-tools/stream";
 import { prisma } from "#lib/db";
@@ -76,8 +81,14 @@ async function generateAndSaveTitle(
 
 export async function sendMessageHandler(c: Context) {
   const principal = await requirePrincipal(c);
-  await assertAccess(principal, "agent::manage");
+  const scope = principalScope(principal);
+  await assertAccess(
+    principal,
+    scope === "system" ? "system/agent:chat" : "org/agent:chat",
+    scope,
+  );
   const userId = getPrincipalUserId(principal);
+  const appId = await requireAppId(c);
   const id = c.req.param("id") ?? "";
 
   try {
@@ -99,7 +110,7 @@ export async function sendMessageHandler(c: Context) {
   }
   const userText = parsed.data.prompt;
 
-  const config = await loadAiAgentConfig();
+  const config = await loadAiAgentConfig(appId);
   if (!isAgentConfigured(config)) {
     throw new HTTPException(503, { message: "AI Agent is not configured." });
   }

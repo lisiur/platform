@@ -8,6 +8,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { updateDepartment } from "#services/department.service";
 import { assertAccess } from "#services/role-permission.service";
 import {
@@ -50,10 +51,7 @@ export const updateDepartmentRoute = defineOpenAPIRoute({
     const { orgId, id } = c.req.valid("param");
     const body = c.req.valid("json");
 
-    await assertAccess(principal, "department::update", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(principal, "org/department:update", orgScope(orgId));
 
     const department = await updateDepartment(orgId, id, body);
 

@@ -31,7 +31,7 @@ export const deleteRole = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "role::delete");
+    await assertAccess(principal, "system/role:delete");
     const { id } = c.req.valid("param");
     await deleteRoleService(id);
 

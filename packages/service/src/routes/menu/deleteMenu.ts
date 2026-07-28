@@ -31,7 +31,7 @@ export const deleteMenu = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "menu::delete");
+    await assertAccess(principal, "system/menu:delete");
     const { id } = c.req.valid("param");
 
     await deleteMenuService(id);

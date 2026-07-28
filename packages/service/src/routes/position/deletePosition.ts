@@ -7,6 +7,7 @@ import {
   notFoundResponse,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { deletePosition } from "#services/position.service";
 import { assertAccess } from "#services/role-permission.service";
 import { orgIdParamSchema, positionIdParamSchema } from "./schema";
@@ -35,10 +36,7 @@ export const deletePositionRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { orgId, id } = c.req.valid("param");
 
-    await assertAccess(principal, "position::delete", {
-      appId: "organization",
-      organizationId: orgId,
-    });
+    await assertAccess(principal, "org/position:delete", orgScope(orgId));
 
     const _position = await deletePosition(orgId, id);
 

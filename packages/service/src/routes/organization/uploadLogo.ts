@@ -8,6 +8,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { orgScope } from "#lib/scope";
 import { uploadOrganizationLogo } from "#services/organization.service";
 import { assertAccess } from "#services/role-permission.service";
 import { organizationIdParamSchema } from "./schema";
@@ -56,10 +57,11 @@ export const uploadOrganizationLogoRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const { id } = c.req.valid("param");
 
-    await assertAccess(principal, "organization-settings::update", {
-      appId: "organization",
-      organizationId: id,
-    });
+    await assertAccess(
+      principal,
+      "org/organization-settings:update",
+      orgScope(id),
+    );
 
     const contentType = c.req.raw.headers.get("content-type") ?? "";
     if (!contentType.includes("multipart/form-data")) {

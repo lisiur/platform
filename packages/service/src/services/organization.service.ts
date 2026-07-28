@@ -1,8 +1,11 @@
-import { ORG_OWNER_ROLE_CODE, ORGANIZATION_APP_CODE } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
-import { getOrgOwners } from "#lib/org-role";
-import { ADMIN_SCOPE, orgScope } from "#lib/scope";
+import { getOrgOwners, provisionOrgRoles } from "#lib/org-role";
+import {
+  orgScope,
+  roleAssignmentWhereByRoleScope,
+  roleWhereByScope,
+} from "#lib/scope";
 
 export async function getOrganizationById(id: string) {
   const org = await prisma.organization.findUnique({ where: { id } });
@@ -110,35 +113,14 @@ export async function registerOrganizationForUser(
       },
     });
 
-    const ownerRole = await tx.role.findUnique({
+    const { ownerRoleId } = await provisionOrgRoles(tx, organization.id);
+    await tx.roleAssignment.upsert({
       where: {
-        appId_scope_code: {
-          appId: ORGANIZATION_APP_CODE,
-          scope: ADMIN_SCOPE,
-          code: ORG_OWNER_ROLE_CODE,
-        },
+        userId_roleId: { userId, roleId: ownerRoleId },
       },
-      select: { id: true },
+      update: {},
+      create: { userId, roleId: ownerRoleId },
     });
-
-    if (ownerRole) {
-      const ownerScope = orgScope(organization.id);
-      await tx.roleAssignment.upsert({
-        where: {
-          userId_roleId_scope: {
-            userId,
-            roleId: ownerRole.id,
-            scope: ownerScope,
-          },
-        },
-        update: {},
-        create: {
-          userId,
-          roleId: ownerRole.id,
-          scope: ownerScope,
-        },
-      });
-    }
 
     if (logoFile) {
       await deleteAttachmentsByBiz("organization:logo", organization.id, tx);
@@ -277,10 +259,10 @@ export async function deleteOrganization(id: string) {
   }
   const result = await prisma.$transaction([
     prisma.roleAssignment.deleteMany({
-      where: { scope: orgScope(id) },
+      where: roleAssignmentWhereByRoleScope(orgScope(id)),
     }),
     prisma.role.deleteMany({
-      where: { scope: orgScope(id) },
+      where: roleWhereByScope(orgScope(id)),
     }),
     prisma.organization.delete({ where: { id } }),
   ]);

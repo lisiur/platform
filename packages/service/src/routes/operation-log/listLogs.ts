@@ -28,7 +28,7 @@ export const listLogsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    await assertAccess(principal, "operation-log::list");
+    await assertAccess(principal, "system/operation-log:list");
     const query = c.req.valid("query");
     const result = await listLogs(query);
     return c.json(result, 200);

@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { serializeHTTPException } from "#lib/http-error";
 
 vi.mock("../../../lib/db", () => ({
   prisma: {
@@ -42,37 +43,50 @@ const tx = {
     upsert: vi.fn(),
   },
   role: {
-    findUnique: vi.fn(),
+    upsert: vi.fn(),
   },
   roleAssignment: {
     upsert: vi.fn(),
   },
+  permission: {
+    findMany: vi.fn(),
+  },
+  rolePermission: {
+    deleteMany: vi.fn(),
+    createMany: vi.fn(),
+  },
 };
 
-async function testRoute(options: { body?: unknown; headers?: HeadersInit }) {
+async function testRoute(options: {
+  fields?: Record<string, string>;
+  headers?: HeadersInit;
+}) {
   const app = new OpenAPIHono();
 
   app.onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json(
-        { code: err.status, message: err.message },
-        err.status as never,
-      );
+      return c.json(serializeHTTPException(err), err.status as never);
     }
     return c.json({ code: 500, message: "Internal Server Error" }, 500);
   });
 
   app.openapi(registerOrganization.route, registerOrganization.handler);
 
+  const form = new FormData();
+  if (options.fields) {
+    for (const [key, value] of Object.entries(options.fields)) {
+      form.append(key, value);
+    }
+  }
+
   return app.request(
     new Request("http://localhost/register", {
       method: "POST",
       headers: {
-        "content-type": "application/json",
         cookie: "session=test-session",
         ...options.headers,
       },
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: form,
     }),
   );
 }
@@ -89,7 +103,7 @@ describe("POST /register - Register Organization", () => {
     mockPrisma.session.update.mockResolvedValue({});
   });
 
-  it("creates an organization and owner member for the current user", async () => {
+  it("creates an organization and provisions owner/member roles for the current user", async () => {
     const now = new Date();
     tx.organization.findUnique.mockResolvedValue(null);
     tx.organization.create.mockResolvedValue({
@@ -100,11 +114,18 @@ describe("POST /register - Register Organization", () => {
       createdAt: now,
     });
     tx.member.upsert.mockResolvedValue({});
-    tx.role.findUnique.mockResolvedValue({ id: "owner-role-id" });
+    tx.role.upsert
+      .mockResolvedValueOnce({ id: "owner-role-id" })
+      .mockResolvedValueOnce({ id: "member-role-id" });
+    tx.permission.findMany
+      .mockResolvedValueOnce([{ id: "org-perm-1" }])
+      .mockResolvedValueOnce([{ id: "member-perm-1" }]);
+    tx.rolePermission.deleteMany.mockResolvedValue({});
+    tx.rolePermission.createMany.mockResolvedValue({});
     tx.roleAssignment.upsert.mockResolvedValue({});
 
     const res = await testRoute({
-      body: { name: "Acme Corp", slug: "acme-corp" },
+      fields: { name: "Acme Corp", slug: "acme-corp" },
     });
 
     expect(res.status).toBe(201);
@@ -132,29 +153,23 @@ describe("POST /register - Register Organization", () => {
         createdAt: expect.any(Date),
       },
     });
-    expect(tx.role.findUnique).toHaveBeenCalledWith({
-      where: {
-        appId_scope_code: {
-          appId: "organization",
-          scope: "admin",
-          code: "owner",
-        },
-      },
-      select: { id: true },
-    });
+    // provisionOrgRoles upserts an owner and a member role, then syncs permissions
+    expect(tx.role.upsert).toHaveBeenCalledTimes(2);
+    expect(tx.permission.findMany).toHaveBeenCalledTimes(2);
+    expect(tx.rolePermission.deleteMany).toHaveBeenCalledTimes(2);
+    expect(tx.rolePermission.createMany).toHaveBeenCalledTimes(2);
+    // creator is assigned the owner role
     expect(tx.roleAssignment.upsert).toHaveBeenCalledWith({
       where: {
-        userId_roleId_scope: {
+        userId_roleId: {
           userId: "user1",
           roleId: "owner-role-id",
-          scope: "org:org1",
         },
       },
       update: {},
       create: {
         userId: "user1",
         roleId: "owner-role-id",
-        scope: "org:org1",
       },
     });
     expect(mockPrisma.session.update).toHaveBeenCalledWith({
@@ -172,7 +187,7 @@ describe("POST /register - Register Organization", () => {
     tx.organization.findUnique.mockResolvedValue({ id: "existing" });
 
     const res = await testRoute({
-      body: { name: "Acme Corp", slug: "acme-corp" },
+      fields: { name: "Acme Corp", slug: "acme-corp" },
     });
 
     expect(res.status).toBe(409);
@@ -186,7 +201,7 @@ describe("POST /register - Register Organization", () => {
     mockGetSession.mockResolvedValue(null);
 
     const res = await testRoute({
-      body: { name: "Acme Corp", slug: "acme-corp" },
+      fields: { name: "Acme Corp", slug: "acme-corp" },
       headers: { cookie: "" },
     });
 
