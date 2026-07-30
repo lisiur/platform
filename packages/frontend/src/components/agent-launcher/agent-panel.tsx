@@ -108,12 +108,16 @@ export function AgentPanel({
     void fetchPage(0, false);
   }, [fetchPage]);
 
-  // Auto-select the most recent session once on initial load.
+  // Auto-select the most recent session once on initial load, or start a
+  // new chat if no sessions exist yet.
   useEffect(() => {
-    if (!activeId && sessions.length > 0) {
+    if (activeId) return;
+    if (sessions.length > 0) {
       setActiveId(sessions[0].sessionId);
+    } else if (!loading) {
+      setActiveId(NEW_CHAT_ID);
     }
-  }, [sessions, activeId]);
+  }, [sessions, activeId, loading]);
 
   // IntersectionObserver for scroll-to-bottom lazy loading.
   useEffect(() => {
