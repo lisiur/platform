@@ -5,6 +5,7 @@ import { registrationStatusSchema } from "./schema";
 
 export const getRegistrationStatus = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getRegistrationStatus",
     method: "get",
     path: "/registration-status",
     tags: ["Auth"],

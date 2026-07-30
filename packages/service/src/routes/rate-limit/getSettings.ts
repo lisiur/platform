@@ -11,6 +11,7 @@ import { rateLimitSettingsSchema } from "./schema";
 
 export const getSettingsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getSettings",
     method: "get",
     path: "/settings",
     tags: ["RateLimit"],

@@ -21,6 +21,7 @@ const uploadAvatarBodySchema = z.object({
 
 export const uploadAvatar = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "uploadAvatar",
     method: "post",
     path: "/upload-avatar",
     tags: ["User"],

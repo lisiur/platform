@@ -12,6 +12,7 @@ import { reorderMenusBodySchema, reorderMenusResponseSchema } from "./schema";
 
 export const reorderMenus = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "reorderMenus",
     method: "post",
     path: "/reorder",
     tags: ["Menu"],

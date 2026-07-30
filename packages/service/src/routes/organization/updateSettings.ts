@@ -19,6 +19,7 @@ import {
 
 export const updateOrganizationSettings = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateOrganizationSettings",
     method: "put",
     path: "/{id}/settings",
     tags: ["Organization"],

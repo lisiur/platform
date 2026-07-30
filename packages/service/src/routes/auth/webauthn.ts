@@ -38,6 +38,7 @@ import {
 
 export const webAuthnStatus = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnStatus",
     method: "get",
     path: "/webauthn/status",
     tags: ["Auth"],
@@ -54,6 +55,7 @@ export const webAuthnStatus = defineOpenAPIRoute({
 
 export const webAuthnRegisterOptions = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnRegisterOptions",
     method: "post",
     path: "/webauthn/register-options",
     tags: ["Auth"],
@@ -77,6 +79,7 @@ export const webAuthnRegisterOptions = defineOpenAPIRoute({
 
 export const webAuthnRegisterVerify = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnRegisterVerify",
     method: "post",
     path: "/webauthn/register-verify",
     tags: ["Auth"],
@@ -112,6 +115,7 @@ export const webAuthnRegisterVerify = defineOpenAPIRoute({
 
 export const webAuthnLoginOptions = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnLoginOptions",
     method: "post",
     path: "/webauthn/login-options",
     tags: ["Auth"],
@@ -142,6 +146,7 @@ export const webAuthnLoginOptions = defineOpenAPIRoute({
 
 export const webAuthnLoginVerify = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnLoginVerify",
     method: "post",
     path: "/webauthn/login-verify",
     tags: ["Auth"],
@@ -178,6 +183,7 @@ export const webAuthnLoginVerify = defineOpenAPIRoute({
 
 export const webAuthnCredentials = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnCredentials",
     method: "get",
     path: "/webauthn/credentials",
     tags: ["Auth"],
@@ -201,6 +207,7 @@ export const webAuthnCredentials = defineOpenAPIRoute({
 
 export const webAuthnRemoveCredential = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "webAuthnRemoveCredential",
     method: "delete",
     path: "/webauthn/credentials",
     tags: ["Auth"],

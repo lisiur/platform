@@ -12,6 +12,7 @@ import { menuIdParamSchema, menuSchema } from "./schema";
 
 export const getMenu = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getMenu",
     method: "get",
     path: "/{id}",
     tags: ["Menu"],

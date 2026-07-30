@@ -479,7 +479,6 @@ model OperationLog {
   stack        String?
   metadata     Json?
   ip           String?
-  isSsr        Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   @@index([traceId])
@@ -489,7 +488,6 @@ model OperationLog {
   @@index([module])
   @@index([event])
   @@index([statusCode])
-  @@index([isSsr])
   @@index([createdAt])
   @@map("operation_log")
 }

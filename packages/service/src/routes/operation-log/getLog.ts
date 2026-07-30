@@ -12,6 +12,7 @@ import { logIdParamSchema, operationLogSchema } from "./schema";
 
 export const getLog = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getLog",
     method: "get",
     path: "/{id}",
     tags: ["Log"],

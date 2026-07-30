@@ -13,6 +13,7 @@ import { deleteSuccessSchema, menuIdParamSchema } from "./schema";
 
 export const deleteMenu = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteMenu",
     method: "delete",
     path: "/{id}",
     tags: ["Menu"],

@@ -12,6 +12,7 @@ import { auditLogIdParamSchema, auditLogSchema } from "./schema";
 
 export const getAuditLog = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getAuditLog",
     method: "get",
     path: "/{id}",
     tags: ["AuditLog"],

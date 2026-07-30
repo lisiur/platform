@@ -19,6 +19,7 @@ const memberParamsSchema = z.object({
 
 export const removeOrganizationMember = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "removeOrganizationMember",
     method: "delete",
     path: "/{orgId}/members/{memberId}",
     tags: ["Organization"],

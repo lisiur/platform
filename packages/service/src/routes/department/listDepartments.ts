@@ -12,6 +12,7 @@ import { listDepartmentsResponseSchema, orgIdParamSchema } from "./schema";
 
 export const listDepartmentsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listDepartments",
     method: "get",
     path: "/{orgId}/departments",
     tags: ["Department"],

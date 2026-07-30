@@ -14,6 +14,7 @@ import { applicationConfigItemSchema, batchUpsertBodySchema } from "./schema";
 
 export const batchUpsertApplicationConfigsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "batchUpsertApplicationConfigs",
     method: "put",
     path: "/{id}/config",
     tags: ["ApplicationConfig"],

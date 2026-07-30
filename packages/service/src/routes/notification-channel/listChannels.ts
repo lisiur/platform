@@ -11,6 +11,7 @@ import { listNotificationChannelsResponseSchema } from "./schema";
 
 export const listNotificationChannelsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listNotificationChannels",
     method: "get",
     path: "/",
     tags: ["NotificationChannel"],

@@ -8,8 +8,8 @@ import { ChatMessageList } from "./chat-message-list";
 export interface AgentChatProps {
   /** Messages from `useAgentChat().messages`. */
   messages: import("ai").UIMessage[];
-  /** Send a prompt from `useAgentChat().sendMessage`. */
-  sendMessage: (text: string) => void;
+  /** Send a prompt with optional staged files (uploaded lazily by the caller). */
+  sendMessage: (text: string, files?: File[]) => void | Promise<void>;
   status: "submitted" | "streaming" | "ready" | "error";
   /** True while session history is being rehydrated. */
   isLoadingHistory?: boolean;

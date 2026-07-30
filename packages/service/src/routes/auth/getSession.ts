@@ -7,6 +7,7 @@ import { sessionResponseSchema } from "./schema";
 
 export const getSession = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getSession",
     method: "get",
     path: "/get-session",
     tags: ["Auth"],

@@ -11,6 +11,7 @@ import { getConfigsByGroupParamSchema, systemConfigItemSchema } from "./schema";
 
 export const listConfigsByGroupRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listConfigsByGroup",
     method: "get",
     path: "/{group}",
     tags: ["SystemConfig"],

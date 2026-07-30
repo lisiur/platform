@@ -4,6 +4,7 @@ import { deleteSessionRoute } from "./deleteSession";
 import { getSessionRoute } from "./getSession";
 import { listSessionsRoute } from "./listSessions";
 import { sendMessageHandler } from "./sendMessage";
+import { uploadFileRoute } from "./uploadFile";
 
 const agentRoutesHono = new OpenAPIHono();
 
@@ -16,6 +17,7 @@ const routes = agentRoutesHono.openapiRoutes([
   listSessionsRoute,
   getSessionRoute,
   deleteSessionRoute,
+  uploadFileRoute,
 ] as const);
 
 export { routes as agentRoutes };

@@ -16,6 +16,7 @@ import { deleteAttachmentsBodySchema } from "./schema";
 
 export const deleteAttachmentsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteAttachments",
     method: "delete",
     path: "/",
     tags: ["Attachment"],

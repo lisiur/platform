@@ -12,6 +12,7 @@ import { clearNamespaceBodySchema, clearResultSchema } from "./schema";
 
 export const clearNamespaceRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "clearNamespace",
     method: "delete",
     path: "/namespace",
     tags: ["Cache"],

@@ -11,6 +11,7 @@ import { listRoleAssignmentsQuerySchema, roleAssignmentSchema } from "./schema";
 
 export const listRoleAssignments = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listRoleAssignments",
     method: "get",
     path: "/",
     tags: ["RoleAssignment"],

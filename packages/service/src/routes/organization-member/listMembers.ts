@@ -16,6 +16,7 @@ import {
 
 export const listOrganizationMembers = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listOrganizationMembers",
     method: "get",
     path: "/{orgId}/members",
     tags: ["Organization Member"],

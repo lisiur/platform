@@ -410,6 +410,7 @@
     "actions": "Actions",
     "search": "Search applications...",
     "noApps": "No applications found",
+    "noResults": "No matching results",
     "addApp": "Add Application",
     "addAppDescription": "Create a new application",
     "editApp": "Edit Application",
@@ -423,6 +424,7 @@
     "edit": "Edit",
     "settings": "Settings",
     "deleting": "Deleting...",
+    "saveSuccess": "Saved successfully",
     "updateSuccess": "Application updated successfully",
     "createSuccess": "Application created successfully",
     "deleteSuccess": "Application deleted successfully",
@@ -434,7 +436,8 @@
     "tabs": {
       "general": "General",
       "roles": "Role Management",
-      "menus": "Menus Management"
+      "menus": "Menus Management",
+      "aiAgent": "AI Agent"
     },
     "logoTitle": "Logo",
     "logoHint": "PNG, JPG, GIF, WebP or SVG. Max 2MB.",
@@ -447,6 +450,17 @@
     "cropFaviconDescription": "Adjust the favicon area. It will be saved as 48×48 PNG.",
     "basicInfoTitle": "Basic Information",
     "aiAgentTitle": "AI Agent",
+    "noAiAgentConfigurableSettings": "No configurable AI Agent settings for this application.",
+    "allowedApisTitle": "Allowed APIs",
+    "allowedApisDescription": "Select REST API endpoints the AI Agent may invoke via its call_api tool when chatting with the platform. Each call runs under the user's permissions.",
+    "allowedApisSearchPlaceholder": "Search operations...",
+    "allowedApisSelectAll": "Select All",
+    "allowedApisDeselectAll": "Deselect None",
+    "allowedApisAvailable": "Available APIs",
+    "allowedApisSelected": "Selected APIs",
+    "allowedApisNoSelection": "No APIs selected yet",
+    "allowedApisRemove": "Remove",
+    "allowedApisLoadError": "Failed to load API operations. Please try again later.",
     "footerTitle": "Site Footer",
     "copyright": "Copyright",
     "copyrightPlaceholder": "© 2024 Company Name. All rights reserved.",
@@ -796,7 +810,7 @@
       "allOutcomes": "All Outcomes",
       "allAuthTypes": "All Auth Types",
       "allSources": "All Sources",
-      "isSsr": "Source",
+      "agent": "Agent",
       "ssr": "SSR",
       "browser": "Browser"
     }

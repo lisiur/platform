@@ -17,6 +17,7 @@ import {
 
 export const updateNotificationTemplateRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateNotificationTemplate",
     method: "put",
     path: "/{id}",
     tags: ["NotificationTemplate"],

@@ -21,6 +21,7 @@ import { createSessionResponseSchema } from "./schema";
 
 export const createSessionRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createSession",
     method: "post",
     path: "/sessions",
     tags: ["Agent"],

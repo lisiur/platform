@@ -19,6 +19,7 @@ import {
 
 export const batchAssignRolePermissions = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "batchAssignRolePermissions",
     method: "put",
     path: "/batch",
     tags: ["RolePermissions"],

@@ -12,6 +12,7 @@ import { clearResultSchema } from "./schema";
 
 export const clearAllRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "clearAll",
     method: "delete",
     path: "/all",
     tags: ["Cache"],

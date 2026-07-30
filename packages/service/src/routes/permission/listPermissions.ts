@@ -14,6 +14,7 @@ import {
 
 export const listPermissionsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listPermissions",
     method: "get",
     path: "/",
     tags: ["Permission"],

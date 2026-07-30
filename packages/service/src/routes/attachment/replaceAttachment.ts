@@ -25,6 +25,7 @@ const replaceAttachmentBodySchema = z.object({
 
 export const replaceAttachmentRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "replaceAttachment",
     method: "put",
     path: "/{id}/replace",
     tags: ["Attachment"],

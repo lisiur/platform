@@ -19,6 +19,7 @@ import {
 
 export const createPositionRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createPosition",
     method: "post",
     path: "/{orgId}/positions",
     tags: ["Position"],

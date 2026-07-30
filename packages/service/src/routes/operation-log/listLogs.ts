@@ -11,6 +11,7 @@ import { listLogsQuerySchema, listLogsResponseSchema } from "./schema";
 
 export const listLogsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listLogs",
     method: "get",
     path: "/",
     tags: ["Log"],

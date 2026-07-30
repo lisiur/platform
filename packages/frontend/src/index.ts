@@ -42,6 +42,7 @@ export { withApiFeedback } from "./lib/api-utils";
 export { createAppClient } from "./lib/create-app-client";
 export { formatDate, formatDateTime, formatTimeUntil } from "./lib/date";
 export { detectDevicePlatform, isWebAuthnCancellation } from "./lib/device";
+export { formatBytes } from "./lib/format";
 export { Loader, loading } from "./lib/loading";
 export { toast } from "./lib/toast";
 export { type WithFeedbackConfig, withFeedback } from "./lib/with-feedback";

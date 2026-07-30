@@ -14,6 +14,7 @@ import {
 
 export const listApplications = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listApplications",
     method: "get",
     path: "/",
     tags: ["Application"],

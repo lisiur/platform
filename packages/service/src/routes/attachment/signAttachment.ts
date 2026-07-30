@@ -12,6 +12,7 @@ import { signAttachmentParamSchema, signedUrlResponseSchema } from "./schema";
 
 export const signAttachment = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "signAttachment",
     method: "post",
     path: "/{id}/sign",
     tags: ["Attachment"],

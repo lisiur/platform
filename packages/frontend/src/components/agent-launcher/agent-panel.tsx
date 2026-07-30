@@ -4,8 +4,13 @@ import { Button, cn, Spinner } from "@repo/ui";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAgentChat } from "../../hooks/use-agent-chat";
+import {
+  augmentTextWithFiles,
+  uploadAgentFile,
+  useAgentChat,
+} from "../../hooks/use-agent-chat";
 import { useEventStream } from "../../hooks/use-event-stream";
+import { toast } from "../../lib/toast";
 import { AgentChat } from "../agent-chat/agent-chat";
 
 export interface AgentSessionSummary {
@@ -155,15 +160,25 @@ export function AgentPanel({
     setPendingPrompt(null);
   }
 
-  async function handleCreateSession(prompt: string) {
-    try {
-      const data = await sessionsApi.create();
+  const createSession = useCallback(async (): Promise<string> => {
+    const data = await sessionsApi.create();
+    return data.sessionId;
+  }, [sessionsApi]);
+
+  const deleteSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      await sessionsApi.delete(sessionId);
+    },
+    [sessionsApi],
+  );
+
+  const activateSession = useCallback(
+    (sessionId: string, prompt: string | null) => {
       setPendingPrompt(prompt);
-      setActiveId(data.sessionId);
-    } catch {
-      // Error surfaced by the consuming app's `withApiFeedback` wrapper.
-    }
-  }
+      setActiveId(sessionId);
+    },
+    [],
+  );
 
   const onFirstMessage = useCallback((sessionId: string) => {
     setSessions((prev) => {
@@ -273,7 +288,9 @@ export function AgentPanel({
             placeholder={t("placeholder")}
             onFirstMessage={onFirstMessage}
             pendingPrompt={pendingPrompt}
-            onCreateSession={handleCreateSession}
+            createSession={createSession}
+            activateSession={activateSession}
+            deleteSession={deleteSession}
             onPendingPromptConsumed={() => setPendingPrompt(null)}
           />
         ) : (
@@ -294,7 +311,9 @@ function ActiveChat({
   placeholder,
   onFirstMessage,
   pendingPrompt,
-  onCreateSession,
+  createSession,
+  activateSession,
+  deleteSession,
   onPendingPromptConsumed,
 }: {
   sessionId: string;
@@ -304,7 +323,9 @@ function ActiveChat({
   placeholder: string;
   onFirstMessage: (sessionId: string) => void;
   pendingPrompt: string | null;
-  onCreateSession: (prompt: string) => void;
+  createSession: () => Promise<string>;
+  activateSession: (sessionId: string, prompt: string | null) => void;
+  deleteSession: (sessionId: string) => Promise<void>;
   onPendingPromptConsumed: () => void;
 }) {
   const isNew = sessionId === NEW_CHAT_ID;
@@ -335,12 +356,42 @@ function ActiveChat({
     }
   }, [isNew, pendingPrompt, chat, onPendingPromptConsumed]);
 
-  function handleSend(text: string) {
+  async function handleSend(text: string, files: File[] = []) {
     if (isNew) {
-      onCreateSession(text);
+      const newSessionId = await createSession();
+      if (files.length > 0) {
+        try {
+          const metas = await Promise.all(
+            files.map((f) =>
+              uploadAgentFile(apiOrigin, newSessionId, appCode, f),
+            ),
+          );
+          activateSession(newSessionId, augmentTextWithFiles(text, metas));
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : String(err));
+          await deleteSession(newSessionId).catch(() => {});
+          throw err;
+        }
+        return;
+      }
+      activateSession(newSessionId, text);
       return;
     }
-    chat.sendMessage(text);
+
+    let fullText = text;
+    if (files.length > 0) {
+      try {
+        const metas = await Promise.all(
+          files.map((f) => uploadAgentFile(apiOrigin, sessionId, appCode, f)),
+        );
+        fullText = augmentTextWithFiles(text, metas);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+        throw err;
+      }
+    }
+
+    chat.sendMessage(fullText);
   }
 
   return (

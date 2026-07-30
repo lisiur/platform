@@ -6,6 +6,7 @@ import { mineOrganizationsResponseSchema } from "./schema";
 
 export const listMyOrganizations = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listMyOrganizations",
     method: "get",
     path: "/mine",
     tags: ["Organization"],

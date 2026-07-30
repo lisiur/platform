@@ -5,6 +5,7 @@ import { jobExecutorStatsSchema } from "./schema";
 
 export const getJobStats = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getJobStats",
     method: "get",
     path: "/stats",
     tags: ["Job"],

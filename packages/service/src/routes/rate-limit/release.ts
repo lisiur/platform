@@ -13,6 +13,7 @@ import { releaseBodySchema, releaseResultSchema } from "./schema";
 
 export const releaseRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "release",
     method: "post",
     path: "/release",
     tags: ["RateLimit"],

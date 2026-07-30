@@ -13,6 +13,7 @@ import { cacheEntrySchema, entryQuerySchema } from "./schema";
 
 export const getEntryRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getEntry",
     method: "get",
     path: "/entry",
     tags: ["Cache"],

@@ -12,6 +12,7 @@ import { applicationIdParamSchema, applicationSchema } from "./schema";
 
 export const getApplication = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getApplication",
     method: "get",
     path: "/{id}",
     tags: ["Application"],

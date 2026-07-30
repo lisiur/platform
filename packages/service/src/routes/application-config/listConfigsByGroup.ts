@@ -12,6 +12,7 @@ import { applicationConfigItemSchema } from "./schema";
 
 export const listApplicationConfigsByGroupRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listApplicationConfigsByGroup",
     method: "get",
     path: "/{id}/config/{group}",
     tags: ["ApplicationConfig"],

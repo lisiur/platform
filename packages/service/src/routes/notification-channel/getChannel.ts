@@ -15,6 +15,7 @@ import {
 
 export const getNotificationChannelRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getNotificationChannel",
     method: "get",
     path: "/{id}",
     tags: ["NotificationChannel"],

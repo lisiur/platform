@@ -12,6 +12,7 @@ import { apiTokenIdParamSchema } from "./schema";
 
 export const deleteApiToken = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteApiToken",
     method: "delete",
     path: "/{id}",
     tags: ["API Token"],

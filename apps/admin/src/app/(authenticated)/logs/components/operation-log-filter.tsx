@@ -23,6 +23,7 @@ import type { DateRange } from "react-day-picker";
 
 const LEVEL_OPTIONS = ["debug", "info", "warn", "error"] as const;
 const AUTH_TYPE_OPTIONS = ["session", "api_token"] as const;
+const SOURCE_OPTIONS = ["agent", "ssr", "browser"] as const;
 
 export interface OperationLogFilters {
   traceId?: string;
@@ -33,7 +34,7 @@ export interface OperationLogFilters {
   event?: string;
   path?: string;
   statusCode?: string;
-  isSsr?: string;
+  source?: string;
   startDate?: Date;
   endDate?: Date;
 }
@@ -53,8 +54,8 @@ interface OperationLogFilterProps {
     event: string;
     path: string;
     statusCode: string;
-    isSsr: string;
     allSources: string;
+    agent: string;
     ssr: string;
     browser: string;
     allLevels: string;
@@ -81,6 +82,11 @@ function OperationLogFilterFields({
   labels,
   resetKey,
 }: OperationLogFilterFieldsProps) {
+  const sourceLabels: Record<string, string> = {
+    agent: labels.agent,
+    ssr: labels.ssr,
+    browser: labels.browser,
+  };
   return (
     <>
       <Input
@@ -156,22 +162,23 @@ function OperationLogFilterFields({
         onChange={(event) => setFilter("statusCode", event.target.value)}
       />
       <Select
-        value={filters.isSsr ?? "all"}
+        value={filters.source ?? "all"}
         onValueChange={(value) =>
-          setFilter("isSsr", !value || value === "all" ? "" : value)
+          setFilter("source", !value || value === "all" ? "" : value)
         }
       >
         <SelectTrigger className="h-9 w-full md:w-32">
-          {filters.isSsr === "true"
-            ? labels.ssr
-            : filters.isSsr === "false"
-              ? labels.browser
-              : labels.allSources}
+          {filters.source
+            ? (sourceLabels[filters.source] ?? filters.source)
+            : labels.allSources}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{labels.allSources}</SelectItem>
-          <SelectItem value="true">{labels.ssr}</SelectItem>
-          <SelectItem value="false">{labels.browser}</SelectItem>
+          {SOURCE_OPTIONS.map((source) => (
+            <SelectItem key={source} value={source}>
+              {sourceLabels[source] ?? source}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <DateRangePicker

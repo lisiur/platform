@@ -12,6 +12,7 @@ import { mineMenusResponseSchema } from "./schema";
 
 export const getMine = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getMine",
     method: "get",
     path: "/mine",
     tags: ["Menu"],

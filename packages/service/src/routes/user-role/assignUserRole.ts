@@ -13,6 +13,7 @@ import { assignRoleAssignmentBodySchema, roleAssignmentSchema } from "./schema";
 
 export const assignRoleAssignment = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "assignRoleAssignment",
     method: "post",
     path: "/",
     tags: ["RoleAssignment"],

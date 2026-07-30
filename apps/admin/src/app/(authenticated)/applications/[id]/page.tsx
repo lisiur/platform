@@ -9,6 +9,8 @@ import { use, useCallback, useEffect, useState } from "react";
 import { ManagementPageShell } from "@/components/management-page-shell";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
+import { AllowedApiSelector } from "./components/allowed-api-selector";
+import { ApplicationAiAgentForm } from "./components/application-ai-agent-form";
 import { ApplicationMenuManagement } from "./components/application-menu-management";
 import { ApplicationRoleManagement } from "./components/application-role-management";
 import { ApplicationSettingsForm } from "./components/application-settings-form";
@@ -97,6 +99,7 @@ export default function ApplicationDetailPage({
           <TabsTrigger value="general">{t("tabs.general")}</TabsTrigger>
           <TabsTrigger value="roles">{t("tabs.roles")}</TabsTrigger>
           <TabsTrigger value="menus">{t("tabs.menus")}</TabsTrigger>
+          <TabsTrigger value="aiAgent">{t("tabs.aiAgent")}</TabsTrigger>
         </TabsList>
 
         <TabsContent
@@ -118,6 +121,19 @@ export default function ApplicationDetailPage({
           className="flex min-h-0 flex-1 overflow-hidden"
         >
           <ApplicationMenuManagement appId={id} />
+        </TabsContent>
+
+        <TabsContent
+          value="aiAgent"
+          className="flex min-h-0 flex-1 overflow-hidden"
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
+              <ApplicationAiAgentForm appId={app.id} />
+              <AllowedApiSelector
+                appId={app.id}
+                className="max-h-full overflow-hidden mt-6"
+              />
+          </div>
         </TabsContent>
       </Tabs>
     </ManagementPageShell>

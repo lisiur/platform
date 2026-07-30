@@ -13,6 +13,7 @@ import { createMenuBodySchema, menuSchema } from "./schema";
 
 export const createMenu = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createMenu",
     method: "post",
     path: "/",
     tags: ["Menu"],

@@ -1,4 +1,13 @@
-import { getMergedAppConfigRows } from "./application-config.service";
+import { HTTPException } from "hono/http-exception";
+import {
+  getMergedAppConfigRows,
+  upsertAppConfig,
+} from "./application-config.service";
+import {
+  findOperation,
+  listAvailableOperations,
+  type OperationDescriptor,
+} from "./openapi.service";
 
 /**
  * AI SDK portable reasoning levels. `off` is sent as `'none'` to disable
@@ -23,6 +32,9 @@ export interface AiAgentConfig {
   systemPrompt: string;
   /** Reasoning effort. Set to "off" to disable; omit to let the provider decide. */
   reasoning?: AiAgentReasoning;
+  /** Allowed API operationIds the agent's `call_api` tool may invoke.
+      Null means not configured; empty array means explicitly configured as empty. */
+  allowedApis: string[] | null;
 }
 
 const VALID_REASONING: AiAgentReasoning[] = [
@@ -54,12 +66,26 @@ export async function loadAiAgentConfig(appId: string): Promise<AiAgentConfig> {
     ? (rawReasoning as AiAgentReasoning)
     : undefined;
 
+  const rawAllowedApis = map.get("allowedApis") ?? "";
+  let allowedApis: string[] | null = null;
+  if (rawAllowedApis) {
+    try {
+      const parsed: unknown = JSON.parse(rawAllowedApis);
+      allowedApis = Array.isArray(parsed)
+        ? parsed.filter((v): v is string => typeof v === "string")
+        : [];
+    } catch {
+      allowedApis = [];
+    }
+  }
+
   return {
     baseURL: map.get("baseURL") ?? "",
     apiKey: map.get("apiKey") ?? "",
     model: map.get("model") ?? "",
     systemPrompt: map.get("systemPrompt") ?? "",
     reasoning,
+    allowedApis,
   };
 }
 
@@ -70,4 +96,52 @@ export function isAgentConfigured(config: AiAgentConfig): boolean {
     config.apiKey.length > 0 &&
     config.model.length > 0
   );
+}
+
+/** Reads an app's allowed API operationIds from its ai-agent config.
+    Returns null when not configured. */
+export async function getAllowedApis(appId: string): Promise<string[] | null> {
+  return (await loadAiAgentConfig(appId)).allowedApis;
+}
+
+/** All operations in the platform spec, for the admin picker. */
+export async function listAvailableApis(): Promise<OperationDescriptor[]> {
+  return listAvailableOperations().catch((err) => {
+    throw new HTTPException(502, {
+      message: `Failed to load OpenAPI spec: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  });
+}
+
+/**
+ * Validate and persist an app's allowed API operationIds. Each operationId must
+ * exist in the live platform spec; unknown ids are rejected with a 400. Stored
+ * as a single JSON-array config row under the ai-agent group.
+ */
+export async function replaceAllowedApis(
+  appId: string,
+  operationIds: string[],
+): Promise<string[]> {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const id of operationIds) {
+    if (!(await findOperation(id))) {
+      throw new HTTPException(400, { message: `Unknown operationId: ${id}` });
+    }
+    if (seen.has(id)) {
+      throw new HTTPException(400, { message: `Duplicate operationId: ${id}` });
+    }
+    seen.add(id);
+    normalized.push(id);
+  }
+
+  await upsertAppConfig(appId, "ai-agent", "allowedApis", {
+    value: JSON.stringify(normalized),
+    type: "json",
+    label: "Allowed APIs",
+    description: "API operationIds the AI Agent may invoke via call_api.",
+    sortOrder: 5,
+  });
+
+  return normalized;
 }

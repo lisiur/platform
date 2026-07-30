@@ -23,6 +23,13 @@ export interface UseAgentChatOptions {
   skipInitialHistory?: boolean;
 }
 
+export interface AgentFileMeta {
+  fileId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface AgentChatApi {
   messages: UIMessage[];
   sendMessage: (text: string) => void;
@@ -31,6 +38,53 @@ export interface AgentChatApi {
   isLoadingHistory: boolean;
   stop: () => void;
   error: Error | null;
+}
+
+export async function uploadAgentFile(
+  apiOrigin: string,
+  sessionId: string,
+  appCode: string,
+  file: File,
+): Promise<AgentFileMeta> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(
+    `${apiOrigin}/api/agent/sessions/${sessionId}/files`,
+    {
+      method: "POST",
+      body: fd,
+      credentials: "include",
+      headers: { "X-App-Code": appCode },
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as AgentFileMeta;
+}
+
+const FILE_ATTR_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+};
+
+function escapeFileAttr(value: string): string {
+  return value.replace(/[&<>"]/g, (ch) => FILE_ATTR_ESCAPES[ch]);
+}
+
+export function augmentTextWithFiles(
+  text: string,
+  metas: AgentFileMeta[],
+): string {
+  const tags = metas
+    .map(
+      (m) =>
+        `<uploaded-file fileId="${escapeFileAttr(m.fileId)}" filename="${escapeFileAttr(m.filename)}" mimeType="${escapeFileAttr(m.mimeType)}" size="${m.size}" />`,
+    )
+    .join("\n");
+  return text ? `${text}\n${tags}` : tags;
 }
 
 function extractText(message: UIMessage | undefined): string {

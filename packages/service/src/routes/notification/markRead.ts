@@ -10,6 +10,7 @@ import { idParamSchema } from "./schema";
 
 export const markReadRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "markRead",
     method: "patch",
     path: "/{id}/read",
     tags: ["Notification"],

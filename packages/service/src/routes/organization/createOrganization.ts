@@ -14,6 +14,7 @@ import { createOrganizationBodySchema, organizationSchema } from "./schema";
 
 export const createOrganization = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createOrganization",
     method: "post",
     path: "/",
     tags: ["Organization"],

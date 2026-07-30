@@ -10,6 +10,7 @@ import { apiTokenIdParamSchema, apiTokenSchema } from "./schema";
 
 export const getApiToken = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getApiToken",
     method: "get",
     path: "/{id}",
     tags: ["API Token"],

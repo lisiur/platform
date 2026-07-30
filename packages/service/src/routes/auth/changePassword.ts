@@ -12,6 +12,7 @@ import { changePasswordBodySchema, userMutationResponseSchema } from "./schema";
 
 export const changePassword = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "changePassword",
     method: "post",
     path: "/change-password",
     tags: ["Auth"],

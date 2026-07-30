@@ -12,6 +12,7 @@ import { signInResponseSchema, signUpEmailBodySchema } from "./schema";
 
 export const signUpEmail = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "signUpEmail",
     method: "post",
     path: "/sign-up/email",
     tags: ["Auth"],

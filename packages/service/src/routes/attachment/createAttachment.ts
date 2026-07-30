@@ -11,6 +11,7 @@ import { createAttachmentResponseSchema } from "./schema";
 
 export const createAttachment = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createAttachment",
     method: "post",
     path: "/",
     tags: ["Attachment"],

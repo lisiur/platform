@@ -10,6 +10,7 @@ import { jobIdParamSchema } from "./schema";
 
 export const triggerJob = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "triggerJob",
     method: "post",
     path: "/{id}/trigger",
     tags: ["Job"],

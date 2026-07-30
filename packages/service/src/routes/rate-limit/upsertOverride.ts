@@ -17,6 +17,7 @@ import {
 
 export const upsertOverrideRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "upsertOverride",
     method: "put",
     path: "/overrides/{subject}",
     tags: ["RateLimit"],

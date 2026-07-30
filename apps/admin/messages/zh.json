@@ -410,6 +410,7 @@
     "actions": "操作",
     "search": "搜索应用...",
     "noApps": "暂无应用",
+    "noResults": "无匹配结果",
     "addApp": "新增应用",
     "addAppDescription": "创建新的应用",
     "editApp": "编辑应用",
@@ -423,6 +424,7 @@
     "edit": "编辑",
     "settings": "设置",
     "deleting": "删除中...",
+    "saveSuccess": "保存成功",
     "updateSuccess": "应用更新成功",
     "createSuccess": "应用创建成功",
     "deleteSuccess": "应用删除成功",
@@ -434,7 +436,8 @@
     "tabs": {
       "general": "通用",
       "roles": "角色管理",
-      "menus": "菜单管理"
+      "menus": "菜单管理",
+      "aiAgent": "AI 助手"
     },
     "logoTitle": "Logo",
     "logoHint": "支持 PNG、JPG、GIF、WebP 或 SVG，最大 2MB。",
@@ -447,6 +450,17 @@
     "cropFaviconDescription": "调整网站图标区域，保存为 48×48 PNG。",
     "basicInfoTitle": "基本信息",
     "aiAgentTitle": "AI 助手",
+    "noAiAgentConfigurableSettings": "该应用没有可配置的 AI 助手设置。",
+    "allowedApisTitle": "允许的 API",
+    "allowedApisDescription": "选择 AI 助手在对话中可调用的 REST API 端点。每次调用将在用户权限范围内执行。",
+    "allowedApisSearchPlaceholder": "搜索操作...",
+    "allowedApisSelectAll": "全选",
+    "allowedApisDeselectAll": "取消全选",
+    "allowedApisAvailable": "可用 API",
+    "allowedApisSelected": "已选 API",
+    "allowedApisNoSelection": "暂未选择 API",
+    "allowedApisRemove": "移除",
+    "allowedApisLoadError": "加载 API 操作失败，请稍后重试。",
     "footerTitle": "站点页脚",
     "copyright": "版权信息",
     "copyrightPlaceholder": "© 2024 公司名称。保留所有权利。",
@@ -796,7 +810,7 @@
       "allOutcomes": "全部结果",
       "allAuthTypes": "全部认证方式",
       "allSources": "全部来源",
-      "isSsr": "来源",
+      "agent": "Agent",
       "ssr": "SSR",
       "browser": "浏览器"
     }

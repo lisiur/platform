@@ -16,8 +16,8 @@ export function createAppClient<AppType extends Hono<any, any, any>>(
   }
 
   const headers: Record<string, string> = { "X-App-Code": appCode };
-  if (isServer && process.env.INTERNAL_API_TOKEN) {
-    headers["X-Internal-Token"] = process.env.INTERNAL_API_TOKEN;
+  if (isServer && process.env.SSR_API_TOKEN) {
+    headers["X-Internal-Token"] = process.env.SSR_API_TOKEN;
   }
 
   const appClient = hc<AppType>(API_ORIGIN, { headers });

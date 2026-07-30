@@ -14,6 +14,7 @@ import { orgIdParamSchema, positionIdParamSchema } from "./schema";
 
 export const deletePositionRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deletePosition",
     method: "delete",
     path: "/{orgId}/positions/{id}",
     tags: ["Position"],

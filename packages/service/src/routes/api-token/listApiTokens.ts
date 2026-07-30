@@ -6,6 +6,7 @@ import { listApiTokensResponseSchema } from "./schema";
 
 export const listApiTokens = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listApiTokens",
     method: "get",
     path: "/",
     tags: ["API Token"],

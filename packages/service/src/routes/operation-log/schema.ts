@@ -22,7 +22,6 @@ export const operationLogSchema = z
     stack: z.string().nullable().optional(),
     metadata: z.unknown().nullable().optional(),
     ip: z.string().nullable().optional(),
-    isSsr: z.boolean().optional(),
     createdAt: z.date(),
   })
   .openapi("OperationLog");
@@ -40,10 +39,6 @@ export const listLogsQuerySchema = z.object({
   method: z.string().optional(),
   path: z.string().optional(),
   statusCode: z.coerce.number().int().optional(),
-  isSsr: z
-    .string()
-    .optional()
-    .transform((v) => (v === undefined ? undefined : v === "true")),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
 });

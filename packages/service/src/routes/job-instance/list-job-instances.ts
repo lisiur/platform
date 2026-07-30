@@ -8,6 +8,7 @@ import {
 
 export const listJobInstances = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listJobInstances",
     method: "get",
     path: "/",
     tags: ["Job Instance"],

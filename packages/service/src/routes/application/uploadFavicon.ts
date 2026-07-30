@@ -25,6 +25,7 @@ const uploadFaviconBodySchema = z.object({
 
 export const uploadApplicationFaviconRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "uploadApplicationFavicon",
     method: "post",
     path: "/{id}/favicon",
     tags: ["Application"],

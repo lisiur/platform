@@ -17,6 +17,7 @@ import {
 
 export const updateUser = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateUser",
     method: "put",
     path: "/{id}",
     tags: ["AdminUser"],

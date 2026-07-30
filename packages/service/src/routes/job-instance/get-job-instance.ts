@@ -9,6 +9,7 @@ import { jobInstanceIdParamSchema, jobInstanceSchema } from "./schema";
 
 export const getJobInstance = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getJobInstance",
     method: "get",
     path: "/{id}",
     tags: ["Job Instance"],

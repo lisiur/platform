@@ -15,6 +15,7 @@ import { listSessionsQuerySchema, sessionListResponseSchema } from "./schema";
 
 export const listSessionsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listSessions",
     method: "get",
     path: "/sessions",
     tags: ["Agent"],

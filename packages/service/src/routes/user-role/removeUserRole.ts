@@ -15,6 +15,7 @@ import {
 
 export const removeRoleAssignment = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "removeRoleAssignment",
     method: "post",
     path: "/remove",
     tags: ["RoleAssignment"],

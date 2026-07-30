@@ -19,6 +19,7 @@ import {
 
 export const setMemberPositionsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "setMemberPositions",
     method: "put",
     path: "/{orgId}/members/{memberId}/positions",
     tags: ["Organization Member"],

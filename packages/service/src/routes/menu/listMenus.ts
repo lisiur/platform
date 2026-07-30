@@ -11,6 +11,7 @@ import { listMenusQuerySchema, listMenusResponseSchema } from "./schema";
 
 export const listMenus = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listMenus",
     method: "get",
     path: "/",
     tags: ["Menu"],

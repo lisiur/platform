@@ -5,6 +5,7 @@ import { apiTokenSchema } from "./schema";
 
 export const verifyApiToken = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "verifyApiToken",
     method: "get",
     path: "/verify",
     tags: ["API Token"],

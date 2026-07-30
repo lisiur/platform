@@ -147,14 +147,16 @@ const app = openAPIApp
     }),
   );
 
-openAPIApp.doc("/openapi.json", {
-  openapi: "3.0.0",
+const openApiDocConfig = {
+  openapi: "3.0.0" as const,
   info: {
     title: "Platform API",
     version: "1.0.0",
     description: "Hono REST API with OpenAPI support",
   },
   servers: [{ url: "/" }],
-});
+};
+
+openAPIApp.doc("/openapi.json", openApiDocConfig);
 
 export { app };

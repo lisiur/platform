@@ -14,6 +14,7 @@ import {
 
 export const listNotificationRecordsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listNotificationRecords",
     method: "get",
     path: "/",
     tags: ["NotificationRecord"],

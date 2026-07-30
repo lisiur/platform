@@ -5,6 +5,7 @@ import { getAttachmentParamSchema, getAttachmentQuerySchema } from "./schema";
 
 export const getAttachment = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getAttachment",
     method: "get",
     path: "/{id}",
     tags: ["Attachment"],

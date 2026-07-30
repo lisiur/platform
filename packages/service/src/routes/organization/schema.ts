@@ -33,10 +33,16 @@ export const createOrganizationBodySchema = z.object({
     .regex(/^[a-z0-9-]+$/)
     .openapi({ example: "acme-corp" }),
   logo: z
-    .union([z.instanceof(File), z.string().regex(/^\/api\//)])
+    .union([
+      z.instanceof(File).openapi({ type: "string", format: "binary" }),
+      z
+        .string()
+        .regex(/^\/api\//)
+        .openapi({ example: "/api/attachment/abc123" }),
+    ])
     .nullable()
     .optional()
-    .openapi({ description: "Logo image file" }),
+    .openapi({ description: "Logo image file or attachment URL" }),
 });
 
 export const registerOrganizationBodySchema = createOrganizationBodySchema;
@@ -49,10 +55,16 @@ export const updateOrganizationBodySchema = z.object({
     .regex(/^[a-z0-9-]+$/)
     .optional(),
   logo: z
-    .union([z.instanceof(File), z.string().regex(/^\/api\//)])
+    .union([
+      z.instanceof(File).openapi({ type: "string", format: "binary" }),
+      z
+        .string()
+        .regex(/^\/api\//)
+        .openapi({ example: "/api/attachment/abc123" }),
+    ])
     .nullable()
     .optional()
-    .openapi({ description: "Logo image file" }),
+    .openapi({ description: "Logo image file or attachment URL" }),
 });
 
 export const updateOrganizationSettingsBodySchema = z.object({

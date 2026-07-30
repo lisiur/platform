@@ -16,6 +16,7 @@ import {
 
 export const deleteConfigRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteConfig",
     method: "delete",
     path: "/{group}/{key}",
     tags: ["SystemConfig"],

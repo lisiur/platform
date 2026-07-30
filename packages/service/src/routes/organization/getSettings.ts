@@ -13,6 +13,7 @@ import { organizationIdParamSchema, organizationSchema } from "./schema";
 
 export const getOrganizationSettings = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getOrganizationSettings",
     method: "get",
     path: "/{id}/settings",
     tags: ["Organization"],

@@ -11,6 +11,7 @@ import { cacheKeyInfoSchema, listKeysQuerySchema } from "./schema";
 
 export const listKeysRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listKeys",
     method: "get",
     path: "/keys",
     tags: ["Cache"],

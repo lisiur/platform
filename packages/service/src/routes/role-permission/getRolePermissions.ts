@@ -16,6 +16,7 @@ import { roleIdParamSchema, rolePermissionsResponseSchema } from "./schema";
 
 export const getRolePermissions = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getRolePermissions",
     method: "get",
     path: "/{roleId}",
     tags: ["RolePermissions"],

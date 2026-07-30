@@ -6,6 +6,7 @@ import { signOut as signOutService } from "#services/auth.service";
 
 export const signOut = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "signOut",
     method: "post",
     path: "/sign-out",
     tags: ["Auth"],

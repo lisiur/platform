@@ -12,6 +12,7 @@ import { errorSchema, roleIdParamSchema, successSchema } from "./schema";
 
 export const deleteRole = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteRole",
     method: "delete",
     path: "/{id}",
     tags: ["Role"],

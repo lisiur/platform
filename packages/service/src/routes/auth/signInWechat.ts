@@ -7,6 +7,7 @@ import { signInResponseSchema, signInWechatBodySchema } from "./schema";
 
 export const signInWechat = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "signInWechat",
     method: "post",
     path: "/sign-in/wechat",
     tags: ["Auth"],

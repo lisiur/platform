@@ -10,6 +10,7 @@ import { jobIdParamSchema, jobSchema, updateJobBodySchema } from "./schema";
 
 export const updateJob = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateJob",
     method: "patch",
     path: "/{id}",
     tags: ["Job"],

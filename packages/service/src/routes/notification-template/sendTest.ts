@@ -19,6 +19,7 @@ import {
 
 export const sendTestNotificationRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "sendTestNotification",
     method: "post",
     path: "/{id}/send-test",
     tags: ["NotificationTemplate"],

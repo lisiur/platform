@@ -12,6 +12,7 @@ import { adminUserSchema, createUserBodySchema, errorSchema } from "./schema";
 
 export const createUser = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createUser",
     method: "post",
     path: "/",
     tags: ["AdminUser"],

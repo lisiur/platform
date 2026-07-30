@@ -5,6 +5,7 @@ import { currentApplicationSchema, errorSchema } from "./schema";
 
 export const getCurrentApplication = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getCurrentApplication",
     method: "get",
     path: "/current",
     tags: ["Application"],

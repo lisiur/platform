@@ -10,6 +10,7 @@ import { markAllNotificationsRead } from "#services/notification/notification-qu
 
 export const markAllReadRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "markAllRead",
     method: "patch",
     path: "/read-all",
     tags: ["Notification"],

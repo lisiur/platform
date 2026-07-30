@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { convertToModelMessages, generateText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  generateText,
+  toUIMessageStream,
+  type UIMessage,
+} from "ai";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -11,7 +17,7 @@ import {
   requirePrincipal,
 } from "#extractors/session";
 import type { Prisma } from "#generated/prisma/client";
-import { streamAgent } from "#lib/agent-tools/stream";
+import { streamAgent } from "#lib/ai-agent/agent";
 import { prisma } from "#lib/db";
 import {
   isAgentConfigured,
@@ -34,7 +40,7 @@ type PersistedMessage = {
   parts: UIMessage["parts"];
 };
 
-/** Prisma's JSON column requires InputJsonValue; UIMessage.parts is one. */
+/** The Prisma JSON column expects InputJsonValue; UIMessage.parts qualifies as one. */
 function asJson(parts: UIMessage["parts"]): Prisma.InputJsonValue {
   return parts as unknown as Prisma.InputJsonValue;
 }
@@ -56,7 +62,7 @@ async function generateAndSaveTitle(
     system:
       "Generate a short title (5-6 words max) summarizing the user's first message below. Return only the title, no quotes or punctuation.",
     prompt: userPrompt,
-    // Reasoning models (DeepSeek-R1, QwQ, etc.) ignore `reasoning: "none"` and
+    // Reasoning models (e.g., DeepSeek-R1, QwQ) ignore `reasoning: "none"` and
     // spend output tokens on <think> blocks. A tight cap starves the actual
     // text output, so leave enough headroom for reasoning + the short title.
     maxOutputTokens: 1000,
@@ -156,54 +162,66 @@ export async function sendMessageHandler(c: Context) {
 
   const modelMessages = await convertToModelMessages(priorMessages);
 
-  const result = streamAgent({
+  const apiOrigin = new URL(c.req.url).origin;
+  const forwardedHeaders: Record<string, string> = {};
+  c.req.raw.headers.forEach((value, key) => {
+    forwardedHeaders[key.toLowerCase()] = value;
+  });
+
+  const result = await streamAgent({
     config,
     messages: modelMessages,
     abortSignal: c.req.raw.signal,
+    apiOrigin,
+    sessionId: id,
+    forwardedHeaders,
   });
 
   const knownIds = new Set(priorMessages.map((m) => m.id));
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: priorMessages,
-    generateMessageId: randomUUID,
-    onError: (error) => {
-      console.error("[agent] stream error:", error);
-      return process.env.NODE_ENV === "production"
-        ? "An error occurred."
-        : error instanceof Error
-          ? error.message
-          : String(error);
-    },
-    onFinish: async ({ messages, isAborted }) => {
-      if (isAborted) return;
-      try {
-        const newRows: PersistedMessage[] = messages
-          .filter((m) => !knownIds.has(m.id))
-          .map((m) => ({
-            id: m.id,
-            role: m.role === "user" ? "user" : "assistant",
-            parts: m.parts,
-          }));
-        if (newRows.length === 0) return;
-        await prisma.agentMessage.createMany({
-          data: newRows.map((row) => ({
-            id: row.id,
-            sessionId: id,
-            role: row.role,
-            parts: asJson(row.parts),
-          })),
-        });
-      } catch (err) {
-        const code =
-          err && typeof err === "object" && "code" in err
-            ? String(err.code)
-            : "unknown";
-        console.error(
-          `[agent] failed to persist assistant messages [${code}]:`,
-          err,
-        );
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: priorMessages,
+      generateMessageId: randomUUID,
+      onError: (error) => {
+        console.error("[agent] stream error:", error);
+        return process.env.NODE_ENV === "production"
+          ? "An error occurred."
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      },
+      onFinish: async ({ messages, isAborted }) => {
+        if (isAborted) return;
+        try {
+          const newRows: PersistedMessage[] = messages
+            .filter((m) => !knownIds.has(m.id))
+            .map((m) => ({
+              id: m.id,
+              role: m.role === "user" ? "user" : "assistant",
+              parts: m.parts,
+            }));
+          if (newRows.length === 0) return;
+          await prisma.agentMessage.createMany({
+            data: newRows.map((row) => ({
+              id: row.id,
+              sessionId: id,
+              role: row.role,
+              parts: asJson(row.parts),
+            })),
+          });
+        } catch (err) {
+          const code =
+            err && typeof err === "object" && "code" in err
+              ? String(err.code)
+              : "unknown";
+          console.error(
+            `[agent] failed to persist assistant messages [${code}]:`,
+            err,
+          );
+        }
+      },
+    }),
   });
 }

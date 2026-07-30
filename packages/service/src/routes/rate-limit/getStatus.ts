@@ -11,6 +11,7 @@ import { rateLimitStatusSchema, statusQuerySchema } from "./schema";
 
 export const getStatusRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getStatus",
     method: "get",
     path: "/status",
     tags: ["RateLimit"],

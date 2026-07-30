@@ -42,3 +42,14 @@ export const sessionListResponseSchema = z
 export const sessionHistoryResponseSchema = z
   .array(z.any())
   .openapi("AgentSessionHistory");
+
+export const uploadFileResponseSchema = z
+  .object({
+    fileId: z
+      .string()
+      .openapi({ example: "00000000-0000-4000-8000-000000000000" }),
+    filename: z.string().openapi({ example: "logo.png" }),
+    mimeType: z.string().openapi({ example: "image/png" }),
+    size: z.number().int().openapi({ example: 45678 }),
+  })
+  .openapi("AgentUploadFileResult");

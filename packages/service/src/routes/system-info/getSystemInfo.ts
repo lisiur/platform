@@ -161,6 +161,7 @@ function getProcessCpuUsage(): number {
 
 export const getSystemInfo = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getSystemInfo",
     method: "get",
     path: "/",
     tags: ["SystemInfo"],

@@ -24,6 +24,7 @@ const batchUpdateMembersResponseSchema = memberSchema
 
 export const batchUpdateOrganizationMembers = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "batchUpdateOrganizationMembers",
     method: "patch",
     path: "/{orgId}/members/batch",
     tags: ["Organization Member"],

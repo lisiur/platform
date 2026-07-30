@@ -17,6 +17,7 @@ import {
 
 export const getPositionPermissionsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getPositionPermissions",
     method: "get",
     path: "/{orgId}/positions/{id}/permissions",
     tags: ["Position"],

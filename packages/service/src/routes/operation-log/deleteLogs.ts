@@ -12,6 +12,7 @@ import { deleteLogsBodySchema, deleteSuccessSchema } from "./schema";
 
 export const deleteLogsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteLogs",
     method: "delete",
     path: "/",
     tags: ["Log"],

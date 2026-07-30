@@ -15,6 +15,7 @@ import { entryQuerySchema } from "./schema";
 
 export const deleteEntryRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteEntry",
     method: "delete",
     path: "/entry",
     tags: ["Cache"],

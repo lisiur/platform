@@ -17,6 +17,7 @@ import {
 
 export const resetPassword = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "resetPassword",
     method: "post",
     path: "/{id}/reset-password",
     tags: ["AdminUser"],

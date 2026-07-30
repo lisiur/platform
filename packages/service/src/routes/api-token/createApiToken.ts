@@ -16,6 +16,7 @@ import {
 
 export const createApiToken = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createApiToken",
     method: "post",
     path: "/",
     tags: ["API Token"],

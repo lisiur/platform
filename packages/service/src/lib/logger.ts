@@ -4,7 +4,6 @@ import type { Principal } from "#extractors/session";
 import { trySession } from "#extractors/session";
 import { prisma } from "#lib/db";
 import { getClientIpFromContextOrNull } from "#lib/get-client-ip";
-import { isSsrRequest } from "#lib/ssr";
 
 type OperationLogLevel = "debug" | "info" | "warn" | "error";
 type AuditSeverity = "info" | "warning" | "critical";
@@ -26,7 +25,6 @@ interface LogOperationParams {
   durationMs?: number;
   error?: unknown;
   metadata?: unknown;
-  isSsr?: boolean;
   c?: Context;
 }
 
@@ -77,7 +75,6 @@ export async function logOperation(params: LogOperationParams) {
         stack: error.stack,
         metadata: toJsonValue(params.metadata),
         ip: c ? getClientIpFromContextOrNull(c) : null,
-        isSsr: params.isSsr ?? (c ? isSsrRequest(c) : false),
       },
     });
   } catch (e) {

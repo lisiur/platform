@@ -18,6 +18,7 @@ import {
 
 export const upsertConfigRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "upsertConfig",
     method: "put",
     path: "/{group}/{key}",
     tags: ["SystemConfig"],

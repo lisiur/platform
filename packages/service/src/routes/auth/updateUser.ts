@@ -7,6 +7,7 @@ import { updateUserBodySchema, userMutationResponseSchema } from "./schema";
 
 export const updateUser = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateCurrentUser",
     method: "post",
     path: "/update-user",
     tags: ["Auth"],

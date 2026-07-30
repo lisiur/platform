@@ -23,7 +23,6 @@ export async function listLogs(params: {
   method?: string;
   path?: string;
   statusCode?: number;
-  isSsr?: boolean;
   startDate?: Date;
   endDate?: Date;
 }) {
@@ -40,7 +39,6 @@ export async function listLogs(params: {
     method,
     path,
     statusCode,
-    isSsr,
     startDate,
     endDate,
   } = params;
@@ -56,7 +54,6 @@ export async function listLogs(params: {
   if (method) where.method = method;
   if (path) where.path = { contains: path, mode: "insensitive" };
   if (statusCode) where.statusCode = statusCode;
-  if (isSsr !== undefined) where.isSsr = isSsr;
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) (where.createdAt as Prisma.DateTimeFilter).gte = startDate;

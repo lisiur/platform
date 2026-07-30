@@ -14,6 +14,7 @@ import {
 
 export const listNotificationTemplatesRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listNotificationTemplates",
     method: "get",
     path: "/",
     tags: ["NotificationTemplate"],

@@ -198,7 +198,7 @@ describe("createRateLimiter middleware", () => {
   });
 
   it("skips limiting for SSR requests carrying the internal token", async () => {
-    vi.stubEnv("INTERNAL_API_TOKEN", "test-secret");
+    vi.stubEnv("SSR_API_TOKEN", "test-secret");
     const app = createApp({ max: 1 });
 
     for (let i = 0; i < 5; i++) {

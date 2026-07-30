@@ -11,6 +11,7 @@ import { rateLimitOverrideItemSchema } from "./schema";
 
 export const listOverridesRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listOverrides",
     method: "get",
     path: "/overrides",
     tags: ["RateLimit"],

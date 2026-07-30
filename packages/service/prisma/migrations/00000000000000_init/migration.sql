@@ -375,7 +375,6 @@ CREATE TABLE "operation_log" (
     "stack" TEXT,
     "metadata" JSONB,
     "ip" TEXT,
-    "isSsr" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "operation_log_pkey" PRIMARY KEY ("id")
@@ -715,9 +714,6 @@ CREATE INDEX "operation_log_event_idx" ON "operation_log"("event");
 
 -- CreateIndex
 CREATE INDEX "operation_log_statusCode_idx" ON "operation_log"("statusCode");
-
--- CreateIndex
-CREATE INDEX "operation_log_isSsr_idx" ON "operation_log"("isSsr");
 
 -- CreateIndex
 CREATE INDEX "operation_log_createdAt_idx" ON "operation_log"("createdAt");

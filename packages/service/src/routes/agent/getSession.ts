@@ -21,6 +21,7 @@ import { sessionHistoryResponseSchema, sessionIdParamSchema } from "./schema";
 
 export const getSessionRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getAgentSession",
     method: "get",
     path: "/sessions/{id}",
     tags: ["Agent"],

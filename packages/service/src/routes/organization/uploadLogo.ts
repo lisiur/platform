@@ -26,6 +26,7 @@ const uploadLogoBodySchema = z.object({
 
 export const uploadOrganizationLogoRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "uploadOrganizationLogo",
     method: "post",
     path: "/{id}/logo",
     tags: ["Organization"],

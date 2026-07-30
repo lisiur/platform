@@ -1,9 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import { getClientIpFromContext } from "#lib/get-client-ip";
+import { isInternalRequest } from "#lib/internal-request";
 import { rateLimitRegistry } from "#lib/rate-limit-registry";
 import { RateLimitStore } from "#lib/rate-limit-store";
 import { getSessionFromHeaders } from "#lib/session";
-import { isSsrRequest } from "#lib/ssr";
 import { eventBus } from "#states/event-bus";
 
 export type RateLimiterOptions = {
@@ -27,7 +27,7 @@ export function createRateLimiter(options: RateLimiterOptions) {
       return next();
     }
 
-    if (isSsrRequest(c)) {
+    if (isInternalRequest(c)) {
       return next();
     }
 

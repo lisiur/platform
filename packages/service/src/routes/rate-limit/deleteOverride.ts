@@ -15,6 +15,7 @@ import { upsertOverrideParamSchema } from "./schema";
 
 export const deleteOverrideRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteOverride",
     method: "delete",
     path: "/overrides/{subject}",
     tags: ["RateLimit"],

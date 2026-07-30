@@ -51,7 +51,6 @@ interface OperationLogEntry {
   stack?: string | null;
   metadata?: unknown;
   ip?: string | null;
-  isSsr?: boolean;
   createdAt: string;
 }
 
@@ -63,6 +62,12 @@ const LEVEL_VARIANT: Record<
   info: "secondary",
   warn: "default",
   error: "destructive",
+};
+
+const SOURCE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+  agent: "default",
+  ssr: "secondary",
+  browser: "outline",
 };
 
 interface OperationLogTableProps {
@@ -79,6 +84,11 @@ export function OperationLogTable({
   onFiltersChange,
 }: OperationLogTableProps) {
   const t = useTranslations("Logs");
+  const sourceLabels: Record<string, string> = {
+    agent: t("filters.agent"),
+    ssr: t("filters.ssr"),
+    browser: t("filters.browser"),
+  };
   const [logs, setLogs] = useState<OperationLogEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -105,7 +115,7 @@ export function OperationLogTable({
       if (filters.event) query.event = filters.event;
       if (filters.path) query.path = filters.path;
       if (filters.statusCode) query.statusCode = Number(filters.statusCode);
-      if (filters.isSsr) query.isSsr = filters.isSsr;
+      if (filters.source) query.source = filters.source;
       if (filters.startDate) query.startDate = filters.startDate.toISOString();
       if (filters.endDate) query.endDate = filters.endDate.toISOString();
 
@@ -190,8 +200,8 @@ export function OperationLogTable({
             event: t("filters.event"),
             path: t("filters.path"),
             statusCode: t("filters.statusCode"),
-            isSsr: t("filters.isSsr"),
             allSources: t("filters.allSources"),
+            agent: t("filters.agent"),
             ssr: t("filters.ssr"),
             browser: t("filters.browser"),
             allLevels: t("filters.allLevels"),
@@ -274,8 +284,10 @@ export function OperationLogTable({
                   </TableCell>
                   <TableCell>{log.statusCode ?? "-"}</TableCell>
                   <TableCell>
-                    <Badge variant={log.isSsr ? "default" : "outline"}>
-                      {log.isSsr ? t("filters.ssr") : t("filters.browser")}
+                    <Badge
+                      variant={SOURCE_VARIANT[log.source ?? ""] ?? "outline"}
+                    >
+                      {sourceLabels[log.source ?? ""] ?? log.source ?? "-"}
                     </Badge>
                   </TableCell>
                   <TableCell>{log.durationMs ?? "-"}</TableCell>

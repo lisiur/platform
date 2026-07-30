@@ -13,6 +13,7 @@ import { createRoleBodySchema, roleSchema } from "./schema";
 
 export const createRole = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "createRole",
     method: "post",
     path: "/",
     tags: ["Role"],

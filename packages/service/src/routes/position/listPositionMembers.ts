@@ -8,6 +8,7 @@ import { orgIdParamSchema, positionIdParamSchema } from "./schema";
 
 export const listPositionMembersRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listPositionMembers",
     method: "get",
     path: "/{orgId}/positions/{id}/members",
     tags: ["Position"],

@@ -13,6 +13,7 @@ import { organizationSchema, registerOrganizationBodySchema } from "./schema";
 
 export const registerOrganization = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "registerOrganization",
     method: "post",
     path: "/register",
     tags: ["Organization"],

@@ -15,6 +15,7 @@ import { batchUpsertBodySchema, systemConfigItemSchema } from "./schema";
 
 export const batchUpsertConfigsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "batchUpsertConfigs",
     method: "put",
     path: "/batch",
     tags: ["SystemConfig"],

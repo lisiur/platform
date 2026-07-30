@@ -7,6 +7,7 @@ import { unreadCountResponseSchema } from "./schema";
 
 export const getUnreadCountRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getUnreadCount",
     method: "get",
     path: "/unread-count",
     tags: ["Notification"],

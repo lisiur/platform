@@ -14,6 +14,7 @@ import { successSchema, userIdParamSchema } from "./schema";
 
 export const deleteUser = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteUser",
     method: "delete",
     path: "/{id}",
     tags: ["AdminUser"],

@@ -20,6 +20,7 @@ import {
 
 export const updateOrganizationMember = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "updateOrganizationMember",
     method: "patch",
     path: "/{orgId}/members/{memberId}",
     tags: ["Organization Member"],

@@ -10,6 +10,7 @@ import { jobIdParamSchema } from "./schema";
 
 export const deleteJob = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteJob",
     method: "delete",
     path: "/{id}",
     tags: ["Job"],

@@ -11,6 +11,7 @@ import { getConfigsQuerySchema, systemConfigItemSchema } from "./schema";
 
 export const listAllConfigsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listAllConfigs",
     method: "get",
     path: "/",
     tags: ["SystemConfig"],

@@ -5,6 +5,7 @@ import {
   principalScope,
   requirePrincipal,
 } from "#extractors/session";
+import { cleanupSessionFiles } from "#lib/ai-agent/agent-file-store";
 import {
   deleteSuccessSchema,
   forbiddenResponse,
@@ -18,6 +19,7 @@ import { sessionIdParamSchema } from "./schema";
 
 export const deleteSessionRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "deleteSession",
     method: "delete",
     path: "/sessions/{id}",
     tags: ["Agent"],
@@ -49,6 +51,7 @@ export const deleteSessionRoute = defineOpenAPIRoute({
     if (!deleted) {
       throw new HTTPException(404, { message: "Agent session not found" });
     }
+    await cleanupSessionFiles(id);
     return c.json({ success: true as const }, 200);
   },
 });

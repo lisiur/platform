@@ -14,6 +14,7 @@ import {
 
 export const listAttachmentsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listAttachments",
     method: "get",
     path: "/",
     tags: ["Attachment"],

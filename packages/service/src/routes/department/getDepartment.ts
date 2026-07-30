@@ -17,6 +17,7 @@ import {
 
 export const getDepartmentRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getDepartment",
     method: "get",
     path: "/{orgId}/departments/{id}",
     tags: ["Department"],

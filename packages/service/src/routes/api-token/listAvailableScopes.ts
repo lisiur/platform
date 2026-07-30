@@ -6,6 +6,7 @@ import { listAvailableScopesResponseSchema } from "./schema";
 
 export const listAvailableScopes = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listAvailableScopes",
     method: "get",
     path: "/available-scopes",
     tags: ["API Token"],

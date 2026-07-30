@@ -12,6 +12,7 @@ import { idParamSchema, notificationRecordSchema } from "./schema";
 
 export const getNotificationRecordRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getNotificationRecord",
     method: "get",
     path: "/{id}",
     tags: ["NotificationRecord"],

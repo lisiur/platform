@@ -11,6 +11,7 @@ import { listRolesQuerySchema, roleSchema } from "./schema";
 
 export const listRoles = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listRoles",
     method: "get",
     path: "/",
     tags: ["Role"],

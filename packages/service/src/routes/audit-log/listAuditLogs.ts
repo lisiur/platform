@@ -14,6 +14,7 @@ import {
 
 export const listAuditLogsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listAuditLogs",
     method: "get",
     path: "/",
     tags: ["AuditLog"],

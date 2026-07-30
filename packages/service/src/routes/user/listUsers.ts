@@ -11,6 +11,7 @@ import { listUsersQuerySchema, listUsersResponseSchema } from "./schema";
 
 export const listUsers = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listUsers",
     method: "get",
     path: "/",
     tags: ["AdminUser"],

@@ -10,6 +10,7 @@ import { jobInstanceIdParamSchema } from "./schema";
 
 export const cancelJobInstance = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "cancelJobInstance",
     method: "delete",
     path: "/{id}",
     tags: ["Job Instance"],

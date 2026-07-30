@@ -5,6 +5,7 @@ import { listJobsQuerySchema, listJobsResponseSchema } from "./schema";
 
 export const listJobs = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "listJobs",
     method: "get",
     path: "/",
     tags: ["Job"],

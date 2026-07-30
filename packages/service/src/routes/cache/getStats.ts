@@ -11,6 +11,7 @@ import { cacheStatsSchema } from "./schema";
 
 export const getStatsRoute = defineOpenAPIRoute({
   route: createRoute({
+    operationId: "getStats",
     method: "get",
     path: "/stats",
     tags: ["Cache"],

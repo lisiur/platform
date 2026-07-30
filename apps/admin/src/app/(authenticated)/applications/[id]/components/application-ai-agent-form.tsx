@@ -9,6 +9,7 @@ import {
   CardTitle,
   FieldGroup,
 } from "@repo/ui";
+import { Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -54,7 +55,10 @@ export function ApplicationAiAgentForm({ appId }: ApplicationAiAgentFormProps) {
           param: { id: appId, group: "ai-agent" },
         });
         const data = await res.json();
-        setItems(data);
+        // `allowedApis` is managed by the dedicated AllowedApiSelector below.
+        setItems(
+          (data as ConfigItem[]).filter((item) => item.key !== "allowedApis"),
+        );
       } catch {
         setItems([]);
       } finally {
@@ -119,13 +123,19 @@ export function ApplicationAiAgentForm({ appId }: ApplicationAiAgentFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
+          {items.length === 0 ? (
+            <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+              <Info className="h-4 w-4" />
+              <span>{ta("noAiAgentConfigurableSettings")}</span>
+            </div>
+          ) : null}
           <FieldGroup>
             {items.map((item) => (
               <ConfigField key={item.key} item={item} control={form.control} />
             ))}
           </FieldGroup>
           <div className="flex justify-end">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || items.length === 0}>
               {saving ? t("saving") : t("save")}
             </Button>
           </div>
