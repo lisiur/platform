@@ -231,7 +231,7 @@ export function ChatMessageList({
                   )}
                 >
                   {hasFiles ? (
-                    <div className="flex w-full max-w-[85%] flex-col items-end gap-1">
+                    <div className="flex w-full max-w-[85%] flex-col items-end gap-2">
                       <div className="flex flex-col gap-1">
                         {fileSegments.map((seg) => (
                           <UploadedFileCard
@@ -243,7 +243,7 @@ export function ChatMessageList({
                         ))}
                       </div>
                       {textContent ? (
-                        <div className="min-w-0 space-y-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">
+                        <div className="min-w-0 space-y-2 rounded-xl bg-muted px-4 py-3 text-sm">
                           {message.parts.map((part, index) => {
                             if (part.type === "text") {
                               const text = stripFileTags(part.text);
@@ -264,10 +264,10 @@ export function ChatMessageList({
                   ) : (
                     <div
                       className={cn(
-                        "min-w-0 space-y-2 rounded-lg px-4 py-2 text-sm",
+                        "min-w-0 space-y-2 rounded-xl px-4 py-3 text-sm",
                         message.role === "user"
-                          ? "max-w-[85%] bg-primary text-primary-foreground"
-                          : "bg-muted",
+                          ? "max-w-[85%] bg-muted"
+                          : "",
                       )}
                     >
                       {message.parts.map((part, index) => {

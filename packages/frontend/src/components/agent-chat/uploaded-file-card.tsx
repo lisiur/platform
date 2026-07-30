@@ -27,7 +27,7 @@ export function UploadedFileCard({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2.5 rounded-lg border border-border bg-background/60 px-4 py-3 text-sm",
+        "inline-flex items-center gap-2.5 rounded-lg border border-border bg-muted px-4 py-3 text-sm",
         className,
       )}
     >
