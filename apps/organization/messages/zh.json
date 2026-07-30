@@ -409,7 +409,7 @@
     "newChat": "新对话",
     "sessions": "会话",
     "empty": "暂无对话。开始新对话以使用。",
-    "placeholder": "询问任务、缓存、限流或系统健康状态…",
+    "placeholder": "给 AI 发送消息",
     "loading": "正在加载会话…",
     "deleteChat": "删除对话",
     "untitled": "新对话"

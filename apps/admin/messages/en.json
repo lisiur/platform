@@ -1138,7 +1138,7 @@
     "newChat": "New Chat",
     "sessions": "Sessions",
     "empty": "No conversations yet. Start a new chat to begin.",
-    "placeholder": "Ask about jobs, cache, rate limits, or system health…",
+    "placeholder": "Message AI",
     "loading": "Loading sessions…",
     "deleteChat": "Delete conversation",
     "untitled": "New conversation"
