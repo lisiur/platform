@@ -28,8 +28,6 @@ export interface AiAgentConfig {
   apiKey: string;
   /** Model identifier as understood by the configured endpoint. */
   model: string;
-  /** Optional override for the agent's system prompt. Empty uses the default. */
-  systemPrompt: string;
   /** Reasoning effort. Set to "off" to disable; omit to let the provider decide. */
   reasoning?: AiAgentReasoning;
   /** Allowed API operationIds the agent's `call_api` tool may invoke.
@@ -83,7 +81,6 @@ export async function loadAiAgentConfig(appId: string): Promise<AiAgentConfig> {
     baseURL: map.get("baseURL") ?? "",
     apiKey: map.get("apiKey") ?? "",
     model: map.get("model") ?? "",
-    systemPrompt: map.get("systemPrompt") ?? "",
     reasoning,
     allowedApis,
   };

@@ -5,12 +5,7 @@ import type { AiAgentConfig } from "#services/agent-config.service";
 import { findOperation } from "#services/openapi.service";
 import { buildTools, type ForwardedHeaders } from "./tools";
 
-export function buildSystemPrompt(
-  config: Pick<AiAgentConfig, "systemPrompt">,
-  openApiCatalogue: string[] = [],
-): string {
-  const override = config.systemPrompt.trim();
-  if (override) return override;
+export function buildSystemPrompt(openApiCatalogue: string[] = []): string {
   const lines = [
     "You are the platform AI Agent — an assistant that can invoke the platform's REST API.",
     "",
@@ -86,7 +81,7 @@ export async function streamAgent({
 
   return streamText({
     model: openai(config.model),
-    system: buildSystemPrompt(config, catalogue),
+    system: buildSystemPrompt(catalogue),
     messages,
     tools,
     stopWhen: stepCountIs(maxSteps),

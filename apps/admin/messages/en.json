@@ -642,8 +642,7 @@
         "aiAgentBaseURL": "Base URL",
         "aiAgentApiKey": "API Key",
         "aiAgentModel": "Model",
-        "aiAgentReasoning": "Reasoning",
-        "aiAgentSystemPrompt": "System Prompt Override"
+        "aiAgentReasoning": "Reasoning"
       },
       "fieldsDesc": {
         "enableRegistration": "Allow new users to register",
@@ -664,8 +663,7 @@
         "aiAgentBaseURL": "OpenAI-compatible endpoint (e.g. https://api.openai.com/v1 or an OpenRouter URL).",
         "aiAgentApiKey": "API key for the configured endpoint. Stored as a secret.",
         "aiAgentModel": "Model identifier understood by the endpoint (e.g. gpt-4o).",
-        "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc.",
-        "aiAgentSystemPrompt": "Optional override for the agent system prompt. Leave empty to use the default."
+        "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc."
       },
       "aiAgentReasoningOptions": {
         "off": "Off",

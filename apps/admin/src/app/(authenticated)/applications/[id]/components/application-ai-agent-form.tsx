@@ -57,7 +57,9 @@ export function ApplicationAiAgentForm({ appId }: ApplicationAiAgentFormProps) {
         const data = await res.json();
         // `allowedApis` is managed by the dedicated AllowedApiSelector below.
         setItems(
-          (data as ConfigItem[]).filter((item) => item.key !== "allowedApis"),
+          (data as ConfigItem[]).filter(
+            (item) => item.key !== "allowedApis" && item.key !== "systemPrompt",
+          ),
         );
       } catch {
         setItems([]);

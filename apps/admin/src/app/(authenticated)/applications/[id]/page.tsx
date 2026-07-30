@@ -128,11 +128,11 @@ export default function ApplicationDetailPage({
           className="flex min-h-0 flex-1 overflow-hidden"
         >
           <div className="min-h-0 flex-1 overflow-y-auto">
-              <ApplicationAiAgentForm appId={app.id} />
-              <AllowedApiSelector
-                appId={app.id}
-                className="max-h-full overflow-hidden mt-6"
-              />
+            <ApplicationAiAgentForm appId={app.id} />
+            <AllowedApiSelector
+              appId={app.id}
+              className="max-h-full overflow-hidden mt-6"
+            />
           </div>
         </TabsContent>
       </Tabs>

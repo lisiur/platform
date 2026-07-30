@@ -228,7 +228,7 @@ const systemConfigs = [
 
 /**
  * AI Agent config field definitions. Seeded per-application (each app gets its
- * own baseURL/apiKey/model/reasoning/systemPrompt) under the application_config
+ * own baseURL/apiKey/model/reasoning) under the application_config
  * table. Labels/descriptions reuse the shared `settings.*` i18n keys.
  */
 const aiAgentConfigFields = [
@@ -282,16 +282,6 @@ const aiAgentConfigFields = [
     },
     isSecret: false,
     sortOrder: 3,
-  },
-  {
-    group: "ai-agent",
-    key: "systemPrompt",
-    value: "",
-    type: "string",
-    label: "settings.fields.aiAgentSystemPrompt",
-    description: "settings.fieldsDesc.aiAgentSystemPrompt",
-    isSecret: false,
-    sortOrder: 4,
   },
 ];
 
