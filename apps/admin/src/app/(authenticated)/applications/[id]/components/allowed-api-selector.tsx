@@ -176,9 +176,9 @@ export function AllowedApiSelector({
         </p>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid min-h-0 flex-1 overflow-hidden grid-cols-1 gap-4 md:grid-cols-2">
           {/* Left panel: Available APIs */}
-          <div className="flex flex-col rounded-md border">
+          <div className="flex flex-col rounded-md border h-full overflow-hidden">
             <div className="space-y-3 border-b p-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">
@@ -262,7 +262,7 @@ export function AllowedApiSelector({
           </div>
 
           {/* Right panel: Selected APIs */}
-          <div className="flex flex-col rounded-md border">
+          <div className="flex flex-col rounded-md border h-full overflow-hidden">
             <div className="border-b p-3">
               <span className="text-sm font-medium">
                 {t("allowedApisSelected")} ({selectedList.length})
