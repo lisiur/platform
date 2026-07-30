@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn } from "@repo/ui";
-import { FileIcon, Paperclip, Send, Square, X } from "lucide-react";
+import { ArrowUp, FileIcon, Paperclip, Square, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatBytes } from "../../lib/format";
 
@@ -77,7 +77,7 @@ export function ChatComposer({
     // biome-ignore lint/a11y/noStaticElementInteractions: drag-drop zone has no corresponding ARIA role
     <div
       className={cn(
-        "shrink-0 border-t border-border p-3",
+        "shrink-0 mx-auto my-2 w-full max-w-2xl flex flex-col gap-3 overflow-hidden rounded-[28px] border border-border bg-background p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
         dragging && "bg-accent/50",
       )}
       onDragOver={(e) => {
@@ -93,7 +93,7 @@ export function ChatComposer({
       }}
     >
       {stagedFiles.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {stagedFiles.map((s) => (
             <span
               key={s.id}
@@ -116,7 +116,26 @@ export function ChatComposer({
         </div>
       )}
 
-      <div className="flex items-end gap-2">
+      <textarea
+        ref={inputRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        rows={rows}
+        placeholder={
+          placeholder ??
+          "Message the agent…  (Enter to send, Shift+Enter for newline)"
+        }
+        disabled={disabled}
+        className="max-h-40 min-h-[40px] w-full resize-none border-none bg-transparent p-0 text-sm outline-none focus-visible:ring-0 disabled:opacity-50"
+      />
+
+      <div className="flex items-center justify-between">
         <input
           ref={fileInputRef}
           type="file"
@@ -129,34 +148,15 @@ export function ChatComposer({
         />
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
           title="Attach file"
-          className="shrink-0"
+          className="size-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-5"
         >
-          <Paperclip className="h-4 w-4" />
+          <Paperclip className="h-5 w-5" />
         </Button>
-
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          rows={rows}
-          placeholder={
-            placeholder ??
-            "Message the agent…  (Enter to send, Shift+Enter for newline)"
-          }
-          disabled={disabled}
-          className="max-h-40 min-h-[40px] flex-1 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-        />
 
         {busy ? (
           <Button
@@ -165,20 +165,21 @@ export function ChatComposer({
             size="icon"
             onClick={onStop}
             title="Stop"
-            className="shrink-0"
+            className="size-10 rounded-full"
           >
-            <Square className="h-4 w-4" />
+            <Square className="size-5" />
           </Button>
         ) : (
           <Button
             type="button"
-            size="icon"
+            size="icon-lg"
+            variant="secondary"
             onClick={submit}
             disabled={!canSend}
             title="Send"
-            className="shrink-0"
+            className="rounded-full"
           >
-            <Send className="h-4 w-4" />
+            <ArrowUp className="size-5" />
           </Button>
         )}
       </div>
