@@ -265,9 +265,7 @@ export function ChatMessageList({
                     <div
                       className={cn(
                         "min-w-0 space-y-2 rounded-xl px-4 py-3 text-sm",
-                        message.role === "user"
-                          ? "max-w-[85%] bg-muted"
-                          : "",
+                        message.role === "user" ? "max-w-[85%] bg-muted" : "",
                       )}
                     >
                       {message.parts.map((part, index) => {

@@ -162,7 +162,7 @@ export async function sendMessageHandler(c: Context) {
 
   const modelMessages = await convertToModelMessages(priorMessages);
 
-  const apiOrigin = new URL(c.req.url).origin;
+  const apiOrigin = process.env.API_ORIGIN ?? new URL(c.req.url).origin;
   const forwardedHeaders: Record<string, string> = {};
   c.req.raw.headers.forEach((value, key) => {
     forwardedHeaders[key.toLowerCase()] = value;
