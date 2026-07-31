@@ -1,9 +1,15 @@
 "use client";
 
-import { Button, cn, Spinner } from "@repo/ui";
-import { MessagesSquare, Plus, Trash2 } from "lucide-react";
+import { Button, cn, Spinner, useIsMobile } from "@repo/ui";
+import { MessagesSquare, Plus, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   augmentTextWithFiles,
   uploadAgentFile,
@@ -75,7 +81,10 @@ export function AgentPanel({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [_total, setTotal] = useState(0);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const desktopSentinelRef = useRef<HTMLDivElement>(null);
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
 
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {
@@ -121,7 +130,10 @@ export function AgentPanel({
 
   // IntersectionObserver for scroll-to-bottom lazy loading.
   useEffect(() => {
-    const sentinel = sentinelRef.current;
+    const sentinel =
+      isMobile && mobileSessionsOpen
+        ? mobileSentinelRef.current
+        : desktopSentinelRef.current;
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
@@ -135,7 +147,15 @@ export function AgentPanel({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadingMore, sessions.length, fetchPage]);
+  }, [
+    hasMore,
+    loading,
+    loadingMore,
+    sessions.length,
+    fetchPage,
+    isMobile,
+    mobileSessionsOpen,
+  ]);
 
   useEventStream({
     origin: apiOrigin,
@@ -157,11 +177,13 @@ export function AgentPanel({
   function handleNewChat() {
     setActiveId(NEW_CHAT_ID);
     setPendingPrompt(null);
+    setMobileSessionsOpen(false);
   }
 
   function handleSelectSession(sessionId: string) {
     setActiveId(sessionId);
     setPendingPrompt(null);
+    setMobileSessionsOpen(false);
   }
 
   const createSession = useCallback(async (): Promise<string> => {
@@ -204,81 +226,42 @@ export function AgentPanel({
   }
 
   return (
-    <div className={cn("flex min-h-0 w-full", className)}>
+    <div className={cn("relative flex min-h-0 w-full", className)}>
       {/* Session sidebar — app-owned session lifecycle */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-border">
-        <div className="flex items-center justify-between gap-2 border-b border-border pl-4 pr-2 py-2">
-          <span className="flex items-center gap-1.5 font-medium">
-            <MessagesSquare className="size-3.5" />
-            {t("sessions")}
-          </span>
-          <Button
-            size="icon-xs"
-            variant="outline"
-            onClick={handleNewChat}
-            aria-label={t("newChat")}
-          >
-            <Plus />
-          </Button>
+      <SessionSidebar
+        activeId={activeId}
+        className="hidden w-64 shrink-0 border-r border-border md:flex"
+        loading={loading}
+        loadingMore={loadingMore}
+        onDelete={handleDelete}
+        onNewChat={handleNewChat}
+        onSelectSession={handleSelectSession}
+        sentinelRef={desktopSentinelRef}
+        sessions={sessions}
+      />
+
+      {mobileSessionsOpen ? (
+        <div className="absolute inset-0 z-20 md:hidden">
+          <button
+            type="button"
+            aria-label="Close sessions"
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            onClick={() => setMobileSessionsOpen(false)}
+          />
+          <SessionSidebar
+            activeId={activeId}
+            className="absolute inset-y-0 left-0 z-10 flex w-[min(18rem,85vw)] border-r border-border bg-background shadow-xl"
+            loading={loading}
+            loadingMore={loadingMore}
+            onClose={() => setMobileSessionsOpen(false)}
+            onDelete={handleDelete}
+            onNewChat={handleNewChat}
+            onSelectSession={handleSelectSession}
+            sentinelRef={mobileSentinelRef}
+            sessions={sessions}
+          />
         </div>
-        <div className="flex-1 overflow-y-auto px-2 py-4">
-          {loading ? (
-            <div className="flex justify-center py-4">
-              <Spinner />
-            </div>
-          ) : sessions.length === 0 ? (
-            <p className="px-2 py-4 text-center text-muted-foreground text-xs">
-              {t("empty")}
-            </p>
-          ) : (
-            <ul className="space-y-1">
-              {sessions.map((s) => (
-                <li key={s.sessionId}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectSession(s.sessionId)}
-                    className={`group flex w-full items-center gap-1 rounded-md px-3 py-2 text-left transition-colors ${
-                      s.sessionId === activeId
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
-                    }`}
-                  >
-                    <span className="flex-1 truncate">
-                      {s.name ?? t("untitled")}
-                    </span>
-                    <Trash2
-                      role="button"
-                      tabIndex={0}
-                      aria-label={t("deleteChat")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(s.sessionId);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDelete(s.sessionId);
-                        }
-                      }}
-                      className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                    />
-                  </button>
-                </li>
-              ))}
-              {/* Sentinel for IntersectionObserver */}
-              <li>
-                <div ref={sentinelRef} className="h-1" />
-              </li>
-              {loadingMore && (
-                <li className="flex justify-center py-2">
-                  <Spinner />
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-      </aside>
+      ) : null}
 
       {/* Chat panel — shared presentational component */}
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -292,21 +275,153 @@ export function AgentPanel({
               sessions.find((s) => s.sessionId === activeId)?.name ??
               t("untitled")
             }
+            sessionsLabel={t("sessions")}
             placeholder={t("placeholder")}
             onFirstMessage={onFirstMessage}
             pendingPrompt={pendingPrompt}
             createSession={createSession}
             activateSession={activateSession}
             deleteSession={deleteSession}
+            onOpenSessions={() => setMobileSessionsOpen(true)}
             onPendingPromptConsumed={() => setPendingPrompt(null)}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center p-6 text-center text-muted-foreground text-xs">
-            {t("empty")}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-center border-b border-border px-3 py-2.5 md:hidden">
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => setMobileSessionsOpen(true)}
+                aria-label={t("sessions")}
+                className="mr-2"
+              >
+                <MessagesSquare className="size-4" />
+              </Button>
+              <span className="truncate text-sm font-medium">
+                {t("sessions")}
+              </span>
+            </div>
+            <div className="flex flex-1 items-center justify-center p-6 text-center text-muted-foreground text-xs">
+              {t("empty")}
+            </div>
           </div>
         )}
       </section>
     </div>
+  );
+}
+
+function SessionSidebar({
+  activeId,
+  className,
+  loading,
+  loadingMore,
+  onClose,
+  onDelete,
+  onNewChat,
+  onSelectSession,
+  sentinelRef,
+  sessions,
+}: {
+  activeId: string | null;
+  className?: string;
+  loading: boolean;
+  loadingMore: boolean;
+  onClose?: () => void;
+  onDelete: (sessionId: string) => void;
+  onNewChat: () => void;
+  onSelectSession: (sessionId: string) => void;
+  sentinelRef: RefObject<HTMLDivElement | null>;
+  sessions: AgentSessionSummary[];
+}) {
+  const t = useTranslations("Agent");
+
+  return (
+    <aside className={cn("flex flex-col bg-background", className)}>
+      <div className="flex items-center justify-between gap-2 border-b border-border py-2 pl-4 pr-2">
+        <span className="flex items-center gap-1.5 font-medium">
+          <MessagesSquare className="size-3.5" />
+          {t("sessions")}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon-xs"
+            variant="outline"
+            onClick={onNewChat}
+            aria-label={t("newChat")}
+          >
+            <Plus />
+          </Button>
+          {onClose ? (
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              onClick={onClose}
+              aria-label="Close sessions"
+            >
+              <X />
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 py-4">
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <Spinner />
+          </div>
+        ) : sessions.length === 0 ? (
+          <p className="px-2 py-4 text-center text-muted-foreground text-xs">
+            {t("empty")}
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {sessions.map((s) => (
+              <li key={s.sessionId}>
+                <button
+                  type="button"
+                  onClick={() => onSelectSession(s.sessionId)}
+                  className={`group flex w-full items-center gap-1 rounded-md px-3 py-2 text-left transition-colors ${
+                    s.sessionId === activeId
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-accent/50"
+                  }`}
+                >
+                  <span className="flex-1 truncate">
+                    {s.name ?? t("untitled")}
+                  </span>
+                  <Trash2
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t("deleteChat")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(s.sessionId);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onDelete(s.sessionId);
+                      }
+                    }}
+                    className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                  />
+                </button>
+              </li>
+            ))}
+            <li>
+              <div ref={sentinelRef} className="h-1" />
+            </li>
+            {loadingMore ? (
+              <li className="flex justify-center py-2">
+                <Spinner />
+              </li>
+            ) : null}
+          </ul>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -315,24 +430,28 @@ function ActiveChat({
   apiOrigin,
   appCode,
   title,
+  sessionsLabel,
   placeholder,
   onFirstMessage,
   pendingPrompt,
   createSession,
   activateSession,
   deleteSession,
+  onOpenSessions,
   onPendingPromptConsumed,
 }: {
   sessionId: string;
   apiOrigin: string;
   appCode: string;
   title: string;
+  sessionsLabel: string;
   placeholder: string;
   onFirstMessage: (sessionId: string) => void;
   pendingPrompt: string | null;
   createSession: () => Promise<string>;
   activateSession: (sessionId: string, prompt: string | null) => void;
   deleteSession: (sessionId: string) => Promise<void>;
+  onOpenSessions: () => void;
   onPendingPromptConsumed: () => void;
 }) {
   const isNew = sessionId === NEW_CHAT_ID;
@@ -413,6 +532,16 @@ function ActiveChat({
       placeholder={placeholder}
       header={
         <div className="flex shrink-0 items-center border-b border-border px-3 py-2.5 pr-12">
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
+            onClick={onOpenSessions}
+            aria-label={sessionsLabel}
+            className="mr-2 md:hidden"
+          >
+            <MessagesSquare className="size-4" />
+          </Button>
           <span className="truncate text-sm font-medium">{title}</span>
         </div>
       }
