@@ -1,7 +1,11 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type UIMessage,
+} from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface UseAgentChatOptions {
@@ -33,12 +37,38 @@ export interface AgentFileMeta {
 export interface AgentChatApi {
   messages: UIMessage[];
   sendMessage: (text: string) => void;
+  submitToolResult: (
+    toolCallId: string,
+    output: unknown,
+    toolName?: string,
+  ) => void;
   status: "submitted" | "streaming" | "ready" | "error";
   /** True while session history is being rehydrated (e.g. on session switch). */
   isLoadingHistory: boolean;
   stop: () => void;
   error: Error | null;
 }
+
+type AgentToolResultPayload =
+  | {
+      toolCallId: string;
+      output: unknown;
+    }
+  | {
+      toolCallId: string;
+      errorText: string;
+    };
+
+type ToolPart = {
+  type: string;
+  toolCallId?: string;
+  toolName?: string;
+  state?: string;
+  output?: unknown;
+  errorText?: string;
+};
+
+const INTERACTION_TOOL_NAMES = new Set(["choose_option", "render_form"]);
 
 export async function uploadAgentFile(
   apiOrigin: string,
@@ -95,6 +125,39 @@ function extractText(message: UIMessage | undefined): string {
     .join("");
 }
 
+function isToolPart(part: unknown): part is ToolPart {
+  if (typeof part !== "object" || part === null) return false;
+  const type = (part as { type?: string }).type ?? "";
+  return type.startsWith("tool-") || type === "dynamic-tool";
+}
+
+function getToolName(part: ToolPart): string {
+  return (
+    part.toolName ??
+    (part.type.startsWith("tool-") ? part.type.slice("tool-".length) : "")
+  );
+}
+
+function extractInteractionToolResults(
+  message: UIMessage | undefined,
+): AgentToolResultPayload[] {
+  if (message?.role !== "assistant") return [];
+  const results: AgentToolResultPayload[] = [];
+
+  for (const part of message.parts) {
+    if (!isToolPart(part)) continue;
+    if (!part.toolCallId) continue;
+    if (!INTERACTION_TOOL_NAMES.has(getToolName(part))) continue;
+    if (part.state === "output-available") {
+      results.push({ toolCallId: part.toolCallId, output: part.output });
+    } else if (part.state === "output-error" && part.errorText) {
+      results.push({ toolCallId: part.toolCallId, errorText: part.errorText });
+    }
+  }
+
+  return results;
+}
+
 /**
  * Streaming wiring for a single pi.dev agent session. Encapsulates the AI SDK
  * `useChat` transport and history rehydration. Session lifecycle (create/list/
@@ -132,9 +195,16 @@ export function useAgentChat({
         api: messagesApi,
         credentials: "include",
         headers: { "X-App-Code": appCode },
-        // pi owns history; send only the new prompt text.
+        // pi owns history; send only the new prompt text, except when AI SDK
+        // auto-submits a completed client-side interaction tool result.
         prepareSendMessagesRequest: ({ messages }) => {
-          const prompt = extractText(messages[messages.length - 1]);
+          const lastMessage = messages[messages.length - 1];
+          const toolResults = extractInteractionToolResults(lastMessage);
+          if (toolResults.length > 0) {
+            return { body: { toolResults } };
+          }
+
+          const prompt = extractText(lastMessage);
           return { body: { prompt } };
         },
       }),
@@ -143,6 +213,7 @@ export function useAgentChat({
 
   const chat = useChat({
     transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     onError: (error) => {
       onErrorRef.current?.(error);
     },
@@ -198,6 +269,12 @@ export function useAgentChat({
   return {
     messages: chat.messages,
     sendMessage: (text) => chat.sendMessage({ text }),
+    submitToolResult: (toolCallId, output, toolName = "choose_option") =>
+      chat.addToolOutput({
+        tool: toolName,
+        toolCallId,
+        output,
+      }),
     status: chat.status,
     isLoadingHistory,
     stop: chat.stop,

@@ -1141,6 +1141,17 @@
     "placeholder": "给 AI 发送消息",
     "loading": "正在加载会话…",
     "deleteChat": "删除对话",
-    "untitled": "新对话"
+    "untitled": "新对话",
+    "preparingChoices": "正在准备选项...",
+    "invalidChoiceRequest": "无效的选项请求。",
+    "preparingForm": "正在准备表单...",
+    "invalidFormRequest": "无效的表单请求。",
+    "formSubmissionFailed": "表单提交失败。",
+    "requiredField": "此字段为必填项。",
+    "invalidNumber": "请输入有效数字。",
+    "selectPlaceholder": "请选择一个选项",
+    "continue": "继续",
+    "submitted": "已提交",
+    "unavailable": "不可用"
   }
 }

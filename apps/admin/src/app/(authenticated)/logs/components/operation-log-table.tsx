@@ -284,9 +284,7 @@ export function OperationLogTable({
                   <TableCell className="font-mono text-xs">
                     <span className="inline-flex items-center gap-1.5">
                       {log.statusCode != null && (
-                        <Badge
-                          className={getStatusBadgeStyle(log.statusCode)}
-                        >
+                        <Badge className={getStatusBadgeStyle(log.statusCode)}>
                           {log.statusCode}
                         </Badge>
                       )}

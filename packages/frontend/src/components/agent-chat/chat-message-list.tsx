@@ -10,8 +10,10 @@ import {
   useRef,
 } from "react";
 import { AgentMarkdown } from "./agent-comark";
+import { ChoiceCard } from "./interactive-components/choice-card";
+import { FormCard } from "./interactive-components/form-card";
 import { isReasoningPart, ReasoningPartItem } from "./reasoning-part-item";
-import { isToolPart, ToolCard } from "./tool-card";
+import { getToolPartName, isToolPart, ToolCard } from "./tool-card";
 import { UploadedFileCard } from "./uploaded-file-card";
 
 interface ChatMessageListProps {
@@ -19,6 +21,11 @@ interface ChatMessageListProps {
   status: "submitted" | "streaming" | "ready" | "error";
   isLoadingHistory?: boolean;
   emptyState?: ReactNode;
+  submitToolResult?: (
+    toolCallId: string,
+    output: unknown,
+    toolName?: string,
+  ) => void;
 }
 
 /** Stable key for a message part. Uses `toolCallId` when available; otherwise
@@ -48,10 +55,49 @@ function isLastAssistantText(
   if (message.role !== "assistant" || part.type !== "text") return false;
   const isLastMessage = messages[messages.length - 1]?.id === message.id;
   if (!isLastMessage) return false;
-  const laterNonText = message.parts
-    .slice(partIndex + 1)
-    .some((p) => p.type === "text");
-  return !laterNonText;
+  return partIndex === message.parts.length - 1;
+}
+
+function isCompletedToolPart(part: UIMessage["parts"][number]): boolean {
+  return (
+    isToolPart(part) &&
+    (part.state === "output-available" ||
+      part.state === "output-error" ||
+      part.output !== undefined ||
+      part.errorText !== undefined)
+  );
+}
+
+function hasVisiblePart(part: UIMessage["parts"][number]): boolean {
+  if (part.type === "text") {
+    return ((part as { text?: string }).text ?? "").trim().length > 0;
+  }
+  return isReasoningPart(part) || isToolPart(part);
+}
+
+function isAwaitingAssistantAfterTool(message: UIMessage | undefined): boolean {
+  if (message?.role !== "assistant") return false;
+
+  for (let index = message.parts.length - 1; index >= 0; index--) {
+    if (!isCompletedToolPart(message.parts[index])) continue;
+    return !message.parts.slice(index + 1).some(hasVisiblePart);
+  }
+
+  return false;
+}
+
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 py-1" aria-hidden="true">
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="size-1.5 rounded-full bg-muted-foreground/70 animate-bounce"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 const FILE_TAG_RE =
@@ -133,6 +179,7 @@ export function ChatMessageList({
   status,
   isLoadingHistory,
   emptyState,
+  submitToolResult,
 }: ChatMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -184,13 +231,15 @@ export function ChatMessageList({
   const lastMessage = messages[messages.length - 1];
   const hasAssistantContent =
     lastMessage?.role === "assistant" && lastMessage.parts.length > 0;
-  const showSpinner = pending && !hasAssistantContent;
+  const showSpinner =
+    pending &&
+    (!hasAssistantContent || isAwaitingAssistantAfterTool(lastMessage));
 
   return (
     <div
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto p-4"
+      className="flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]"
     >
       {empty ? (
         <div
@@ -265,7 +314,9 @@ export function ChatMessageList({
                     <div
                       className={cn(
                         "min-w-0 space-y-2 rounded-xl px-4 py-3 text-sm",
-                        message.role === "user" ? "max-w-[85%] bg-muted" : "",
+                        message.role === "user"
+                          ? "max-w-[85%] bg-muted"
+                          : "w-full",
                       )}
                     >
                       {message.parts.map((part, index) => {
@@ -310,6 +361,27 @@ export function ChatMessageList({
                         }
 
                         if (isToolPart(part)) {
+                          const toolName = getToolPartName(part);
+                          if (toolName === "choose_option") {
+                            return (
+                              <ChoiceCard
+                                key={part.type + (part.toolCallId ?? index)}
+                                part={part}
+                                submitToolResult={submitToolResult}
+                              />
+                            );
+                          }
+
+                          if (toolName === "render_form") {
+                            return (
+                              <FormCard
+                                key={part.type + (part.toolCallId ?? index)}
+                                part={part}
+                                submitToolResult={submitToolResult}
+                              />
+                            );
+                          }
+
                           return (
                             <ToolCard
                               key={part.type + (part.toolCallId ?? index)}
@@ -326,9 +398,9 @@ export function ChatMessageList({
               );
             })}
           {showSpinner && (
-            <div className="flex justify-start">
+            <div className="flex justify-start pl-4">
               <div className="rounded-lg bg-muted px-4 py-2">
-                <Spinner />
+                <TypingDots />
               </div>
             </div>
           )}

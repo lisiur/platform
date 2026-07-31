@@ -412,6 +412,17 @@
     "placeholder": "Message AI",
     "loading": "Loading sessions…",
     "deleteChat": "Delete conversation",
-    "untitled": "New conversation"
+    "untitled": "New conversation",
+    "preparingChoices": "Preparing choices...",
+    "invalidChoiceRequest": "Invalid choice request.",
+    "preparingForm": "Preparing form...",
+    "invalidFormRequest": "Invalid form request.",
+    "formSubmissionFailed": "Form submission failed.",
+    "requiredField": "This field is required.",
+    "invalidNumber": "Enter a valid number.",
+    "selectPlaceholder": "Select an option",
+    "continue": "Continue",
+    "submitted": "submitted",
+    "unavailable": "unavailable"
   }
 }

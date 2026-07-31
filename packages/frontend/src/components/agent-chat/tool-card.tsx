@@ -30,6 +30,13 @@ function isToolPart(part: unknown): part is ToolPart {
   return type.startsWith("tool-") || type === "dynamic-tool";
 }
 
+function getToolPartName(part: ToolPart): string {
+  return (
+    part.toolName ??
+    (part.type?.startsWith("tool-") ? part.type.slice("tool-".length) : "tool")
+  );
+}
+
 function stringify(value: unknown): string {
   if (typeof value === "string") return value;
   try {
@@ -47,9 +54,7 @@ export function ToolCard({ part }: ToolCardProps) {
   const [open, setOpen] = useState(false);
   // Static tool parts encode their name in `type` as `tool-${NAME}` and carry no
   // `toolName` field; only dynamic tools (`type: "dynamic-tool"`) set `toolName`.
-  const name =
-    part.toolName ??
-    (part.type?.startsWith("tool-") ? part.type.slice("tool-".length) : "tool");
+  const name = getToolPartName(part);
   const running =
     part.state === "input-streaming" || part.state === "input-available";
   const hasOutput = part.output !== undefined || part.errorText !== undefined;
@@ -111,4 +116,4 @@ export function ToolCard({ part }: ToolCardProps) {
 }
 
 export type { ToolPart };
-export { isToolPart };
+export { getToolPartName, isToolPart };

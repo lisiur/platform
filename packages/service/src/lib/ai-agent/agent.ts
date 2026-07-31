@@ -3,7 +3,11 @@ import type { Context, ToolSet } from "@ai-sdk/provider-utils";
 import { type ModelMessage, stepCountIs, streamText } from "ai";
 import type { AiAgentConfig } from "#services/agent-config.service";
 import { findOperation } from "#services/openapi.service";
-import { buildTools, type ForwardedHeaders } from "./tools";
+import {
+  buildInteractionTools,
+  buildTools,
+  type ForwardedHeaders,
+} from "./tools";
 
 export function buildSystemPrompt(openApiCatalogue: string[] = []): string {
   const lines = [
@@ -12,6 +16,8 @@ export function buildSystemPrompt(openApiCatalogue: string[] = []): string {
     "Guidelines:",
     "- Only call endpoints listed in your available operations catalogue.",
     "- Use `get_api_schema` to inspect an endpoint's parameters before calling `call_api`.",
+    "- Use `choose_option` when the next step depends on the user's choice between clear options; keep labels short and use stable ids.",
+    "- Use `render_form` after `get_api_schema` when an API call needs structured user input; map the submitted values into `call_api` arguments.",
     "- When reporting figures, round sensibly and include units. Do not invent data.",
   ];
   if (openApiCatalogue.length > 0) {
@@ -43,7 +49,7 @@ export async function streamAgent({
   ReturnType<typeof streamText<ToolSet, Context>>
 > {
   let catalogue: string[] = [];
-  let tools: ToolSet = {};
+  let tools: ToolSet = buildInteractionTools();
 
   if (apiOrigin && config.allowedApis && config.allowedApis.length > 0) {
     const resolved: Array<{
@@ -56,12 +62,15 @@ export async function streamAgent({
     }
 
     if (resolved.length > 0) {
-      tools = buildTools({
-        apiOrigin,
-        sessionId: sessionId ?? "",
-        forwardedHeaders: forwardedHeaders ?? {},
-        allowedOperationIds: new Set(resolved.map((r) => r.operationId)),
-      });
+      tools = {
+        ...tools,
+        ...buildTools({
+          apiOrigin,
+          sessionId: sessionId ?? "",
+          forwardedHeaders: forwardedHeaders ?? {},
+          allowedOperationIds: new Set(resolved.map((r) => r.operationId)),
+        }),
+      };
       catalogue = [
         "| Operation ID | Method | Path | Description |",
         "|-------------|--------|------|-------------|",

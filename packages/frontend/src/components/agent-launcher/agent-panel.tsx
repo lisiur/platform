@@ -405,6 +405,7 @@ function ActiveChat({
     <AgentChat
       messages={chat.messages}
       sendMessage={handleSend}
+      submitToolResult={chat.submitToolResult}
       status={chat.status}
       isLoadingHistory={chat.isLoadingHistory}
       stop={chat.stop}
