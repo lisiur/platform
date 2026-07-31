@@ -45,10 +45,13 @@ export function AgentLauncher(props: AgentLauncherProps) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:w-4/5 data-[side=right]:sm:max-w-4xl"
+          className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:w-full data-[side=right]:sm:max-w-[90vw]"
         >
           <SheetHeader className="border-b border-border">
-            <SheetTitle>{t("title")}</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">
+              <Bot className="size-5" />
+              {t("title")}
+            </SheetTitle>
           </SheetHeader>
           <AgentPanel {...props} className="flex-1" />
         </SheetContent>

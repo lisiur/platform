@@ -77,7 +77,7 @@ export function ChatComposer({
     // biome-ignore lint/a11y/noStaticElementInteractions: drag-drop zone has no corresponding ARIA role
     <div
       className={cn(
-        "shrink-0 mx-auto my-2 w-full max-w-2xl flex flex-col gap-3 overflow-hidden rounded-[28px] border border-border bg-background p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
+        "shrink-0 mx-auto my-2 w-[calc(100%-2rem)] max-w-4xl flex flex-col gap-3 overflow-hidden rounded-[28px] border border-border bg-background p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
         dragging && "bg-accent/50",
       )}
       onDragOver={(e) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Spinner } from "@repo/ui";
-import { Plus, Trash2 } from "lucide-react";
+import { MessagesSquare, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -208,7 +208,10 @@ export function AgentPanel({
       {/* Session sidebar — app-owned session lifecycle */}
       <aside className="flex w-64 shrink-0 flex-col border-r border-border">
         <div className="flex items-center justify-between gap-2 border-b border-border p-2">
-          <span className="text-xs font-medium">{t("sessions")}</span>
+          <span className="flex items-center gap-1.5 font-medium">
+            <MessagesSquare className="size-3.5" />
+            {t("sessions")}
+          </span>
           <Button
             size="icon-xs"
             variant="outline"
@@ -218,7 +221,7 @@ export function AgentPanel({
             <Plus />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto px-2 py-4">
           {loading ? (
             <div className="flex justify-center py-4">
               <Spinner />
@@ -228,7 +231,7 @@ export function AgentPanel({
               {t("empty")}
             </p>
           ) : (
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {sessions.map((s) => (
                 <li key={s.sessionId}>
                   <button
