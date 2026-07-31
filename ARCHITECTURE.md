@@ -1,3 +1,15 @@
+# Architecture
+
+> Last updated: 2026-07-31
+
+This document describes the internal architecture of the platform's major
+subsystems: background jobs, caching, rate limiting, SSE events, audit &
+operation logging, system configuration, file uploads, the AI agent,
+permissions (RBAC), notifications, and API tokens. Each section covers the
+data model, core components, configuration, and caveats for one subsystem.
+
+---
+
 # Architecture: Job System
 
 The platform ships an in-process background job queue built on top of Postgres
@@ -117,6 +129,8 @@ Processes one instance. This is the heart of the execution model:
      where `backoff = min(5 000ms · 2^(attempts-1), 5min)` (exponential, capped).
 
 There is **no archiving** — the instance row simply retains its terminal status.
+The `job-instance-sweep` handler (see §6) prunes `COMPLETED` and `FAILED`
+instances older than 30 days on a daily schedule.
 
 ### JobHandlerRegistry — `lib/queues/job-handler-registry.ts`
 A `Record<type, JobHandler>` lookup. Handlers are registered at startup (see
@@ -261,7 +275,7 @@ rejects the instance (subject to retry/backoff); returning a value stores it as
 
 ## 6. Built-in Handlers
 
-Two handlers ship today (`handlers/index.ts`):
+Six handlers ship today (`handlers/index.ts`):
 
 - **`send-notification`** — when notifications are created from a template
   (`createNotificationsFromTemplate`), a single `send-notification` instance
@@ -269,8 +283,19 @@ Two handlers ship today (`handlers/index.ts`):
   notification rows (`jobId = null`, ad-hoc). The handler calls
   `deliverNotifications`, dispatching per provider (`in-app`, `smtp-email`, …).
 - **`session-sweep`** — deletes rows where `revokedAt IS NOT NULL` or
-  `expiresAt < now()`. Seeded as a recurring template (`cron "0 * * * *"`,
-  hourly) in `prisma/seed.ts` (`builtInJobTemplates`). Resolves issue #1.
+  `expiresAt < now()`. Seeded as a recurring template (cron `"0 * * * *"`,
+  hourly) in `prisma/seed.ts` (`builtInJobTemplates`).
+- **`job-instance-sweep`** — deletes `COMPLETED` and `FAILED` instances older
+  than 30 days. Seeded with cron `"0 3 * * *"` (daily at 3:00 AM).
+- **`verification-sweep`** — deletes expired verification tokens. Seeded with
+  cron `"30 * * * *"` (hourly at :30).
+- **`operation-log-sweep`** — deletes operation logs older than 30 days.
+  Seeded with cron `"15 3 * * *"` (daily at 3:15 AM).
+- **`audit-log-sweep`** — deletes audit logs older than 180 days. Seeded with
+  cron `"30 3 * * *"` (daily at 3:30 AM).
+
+All five recurring templates are seeded via `builtInJobTemplates` in
+`prisma/seed.ts`.
 
 ---
 
@@ -315,10 +340,10 @@ templates).
   duplicate instances from the same due template — but the duplicate-execution
   risk remains at the instance-processing level.
 
-- **Unbounded instance growth.** Terminal instances (`COMPLETED`/`FAILED`) are
-  kept in place rather than archived. The table grows forever; there is no
-  retention/pruning job yet. Query history via status filters. (See ISSUES.md
-  #18 for the analogous retention concern.)
+- **Retention via sweep handlers.** The `job-instance-sweep` handler deletes
+  terminal instances (`COMPLETED`/`FAILED`) older than 30 days on a daily
+  schedule. Other sweep handlers prune operation logs (30 days), verification
+  tokens, and audit logs (180 days) — see §6 for the full list.
 
 - **Priority is informational.** `priority` is stored and surfaced in the API but
   does not influence execution order — `p-queue` runs in FIFO insertion order.
@@ -625,3 +650,617 @@ All endpoints require the `rate-limit::manage` permission:
 - **Direct DB override writes need a restart.** Overrides loaded at boot are kept
   in sync only when mutated *through the API* (which calls `setOverride` live).
   A row added directly to `RateLimitOverride` won't take effect until restart.
+
+---
+
+# Architecture: SSE Event Bus
+
+The platform includes a generic, topic-based pub/sub event bus for real-time
+Server-Sent Events (SSE) push to connected clients. It is used by the job
+executor, rate limiter, and sign-out flows to broadcast state changes to admin
+dashboards and in-app notification inboxes.
+
+> Event bus code lives in `packages/service/src/lib/event-bus.ts`. SSE
+> connections are served by `routes/events/streamEvents.ts` at `GET /api/events`.
+
+---
+
+## 1. Topic Routing
+
+The event bus routes messages by **target** strings — colon-delimited paths
+with single-segment `*` wildcards. Both publishers and subscribers specify
+targets; matching is symmetric.
+
+| Pattern | Matches |
+|---|---|
+| `sse:admin:*:*` | Any admin connection (all users, all tokens) |
+| `sse:<appCode>:<userId>:*` | All of a user's connections within one app |
+| `sse:*:<userId>:*` | All of a user's connections across all apps |
+| `sse:<appCode>:<userId>:<token>` | One specific connection |
+
+**Publishers** use wildcards to fan out:
+- `sse:admin:*:*` — admin dashboard events (`job.stats.updated`, `rate_limit.updated`)
+- `sse:<appCode>:<userId>:*` — in-app notifications for a specific user
+- `sse:*:<userId>:*` — app-agnostic notifications (e.g. sign-out)
+
+**Subscribers** (SSE connections) register under their exact identity:
+`sse:<appCode>:<userId>:<token>`.
+
+---
+
+## 2. Internal Design
+
+The bus indexes subscribers by app-code segment for O(1+app_count) fan-out
+instead of O(subscribers). `publish(target, data, event?)` walks the index,
+and `close(target)` removes subscribers (used by `signOut` to disconnect a
+specific user's SSE connection).
+
+---
+
+## 3. Consumers
+
+| Producer | Event | Target |
+|---|---|---|
+| Job Executor (§7) | `job.stats.updated` | `sse:admin:*:*` |
+| Rate Limiter (§4) | `rate_limit.updated` | `sse:admin:*:*` |
+| Sign-out | (close) | `sse:<appCode>:<userId>:<token>` |
+
+Admin clients receive these events via the `useEventStream` hook from
+`@repo/frontend`, which manages the `EventSource` connection per app, and the
+organization portal uses it for in-app notification delivery.
+
+---
+
+# Architecture: Audit Log System
+
+The platform records structured audit entries for security-relevant mutations
+across the API. Every audited action captures the actor, target resource,
+before/after state, and outcome.
+
+> Audit log code: `routes/audit-log/`, `services/audit-log.service.ts`,
+> `prisma/schema.prisma` (`AuditLog` model).
+
+---
+
+## 1. Data Model
+
+The `AuditLog` table stores:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `traceId` | Correlates related operations (from trace context middleware) |
+| `userId` | Actor who performed the action |
+| `event` | Action identifier (e.g. `user.created`, `role.assigned`) |
+| `category` | Grouping (e.g. `user`, `role`, `organization`) |
+| `severity` | `info` / `warning` / `error` |
+| `outcome` | `success` / `failure` |
+| `resourceType` / `resourceId` | Target entity |
+| `before` / `after` | JSON diff of state change |
+| `metadata` | Additional context (IP, user agent, etc.) |
+| `createdAt` | Timestamp |
+
+---
+
+## 2. How Audits Are Written
+
+Audits are written via `AuditLogService.createEntry()` called from route
+handlers or service methods. The method accepts structured fields and
+serialises the `before`/`after` diffs as JSON.
+
+---
+
+## 3. Retention
+
+The `audit-log-sweep` job handler deletes entries older than 180 days (seeded
+as a recurring template with cron `"30 3 * * *"`, daily at 3:30 AM).
+
+---
+
+## 4. API & UI
+
+- `GET /api/audit-logs` — paginated listing, filterable by event/category/severity/userId/date range.
+- Admin UI page at `/audit-logs` with filters and detail view.
+
+---
+
+# Architecture: Operation Log System
+
+Operation logs provide an automatic, per-request trace of every HTTP call to
+the API — complementing the explicit, action-scoped audit logs.
+
+> Operation log code: `routes/operation-log/`, `services/operation-log.service.ts`,
+> `middleware/operation-logger.ts`, `middleware/trace-context.ts`.
+
+---
+
+## 1. Automatic Logging Middleware
+
+The `operationLogger` middleware wraps every API route. For each request it
+records:
+
+| Field | Source |
+|---|---|
+| `traceId` | Per-request UUID from `traceContext` middleware |
+| `method` / `path` | HTTP method and route path |
+| `statusCode` | Response status |
+| `durationMs` | Wall-clock request time |
+| `ip` | Client IP (from `x-forwarded-for` / `x-real-ip`) |
+| `authType` / `authTokenId` | Session or API token used, if any |
+| `errorName` / `errorMessage` / `stack` | When the response status is ≥ 400 |
+| `level` | `info` / `warn` / `error` based on status code |
+| `source` / `module` | Calling app code and route module |
+
+The middleware uses Hono's response streaming hooks to capture the final
+status code and duration even for streaming/SSE responses.
+
+---
+
+## 2. Retention
+
+The `operation-log-sweep` job handler deletes entries older than 30 days
+(seeded with cron `"15 3 * * *"`, daily at 3:15 AM).
+
+---
+
+## 3. API & UI
+
+- `GET /api/operation-logs` — paginated, filterable by level/source/module/method/path/statusCode/date range.
+- Admin UI page at `/operation-logs` with filters, detail view, and trace ID linking to related audit logs.
+
+---
+
+# Architecture: System Config System
+
+System configuration is stored in the database with JSON Schema validation,
+surfaced through an admin UI, and layered over environment variables via a
+mechanical fallback mechanism.
+
+> Config code: `routes/system-config/`, `services/system-config.service.ts`,
+> `services/system-config-env.service.ts`, `prisma/schema.prisma` (`SystemConfig` model).
+
+---
+
+## 1. Data Model
+
+The `SystemConfig` table stores key-value configs grouped by category:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `group` | Config category (e.g. `auth`, `rate-limit`, `upload`, `webauthn`) |
+| `key` | Config key within the group |
+| `value` | JSON-encoded value |
+| `type` | JSON Schema type constraint |
+| `schema` | JSON Schema for validation and admin UI rendering |
+| `label` / `description` | Human-readable metadata |
+| `isSecret` | Masks value display in the admin UI |
+| `sortOrder` | Ordering hint for UI tabs |
+
+---
+
+## 2. Env Fallback Mechanism
+
+`system-config-env.service.ts` provides `mergeEnvFallback(group, key)` which
+mechanically derives an env var name from `group` + `key` (e.g. `auth` +
+`enabled` → `AUTH_ENABLED`). If the DB row has no value, the env var is used
+as a fallback. This powers runtime-configurable subsystems like rate limiting
+and WebAuthn.
+
+---
+
+## 3. Config Groups
+
+| Group | Purpose |
+|---|---|
+| `auth` | Registration enabled, password policies |
+| `webauthn` | RP ID, origin overrides |
+| `upload` | Sign secret, file size limits, hotlink domains |
+| `rate-limit` | Global and auth limiter defaults (see Rate Limit §3) |
+
+---
+
+## 4. Admin UI
+
+System configs are managed through the admin UI under the Settings page as a
+tabbed form. Each group renders dynamic inputs driven by the JSON Schema,
+with secret masking for sensitive values. Changes are applied live without
+a restart for runtime subsystems that subscribe to config updates.
+
+---
+
+# Architecture: File Upload & Attachment System
+
+The platform provides a full file upload pipeline with hash-based
+deduplication, signed URL access control, hotlink protection, and polymorphic
+attachment associations.
+
+> Upload/attachment code: `routes/attachment/`, `services/attachment.service.ts`,
+> `middleware/body-limit.ts`, `prisma/schema.prisma` (`Upload`, `Attachment` models).
+
+---
+
+## 1. Data Model
+
+Two models form the pipeline:
+
+**`Upload`** — the physical file record:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `path` | Sharded storage path (`hash[0:2]/hash[2:4]/hash.ext`) |
+| `mimeType` | Validated MIME type |
+| `size` | File size in bytes |
+| `hash` | SHA-256 hash for deduplication |
+| `createdAt` | Timestamp |
+
+**`Attachment`** — the logical reference:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `bizType` / `bizId` | Polymorphic business entity reference |
+| `uploadId` | FK to `Upload` |
+| `visibility` | `public` / `private` |
+| `createdBy` | FK to `User` |
+
+---
+
+## 2. Upload Pipeline
+
+1. **Create attachment** — `POST /api/attachments` returns a signed upload URL
+   and an `uploadId`/`attachmentId` pair.
+2. **Upload** — the client PUTs the file to the signed URL. The server:
+   - Validates MIME type (magic byte check, not just Content-Type header).
+   - Computes SHA-256 hash.
+   - If the hash already exists in `Upload`, reuses the existing file record
+     (deduplication) — the new `Attachment` points to the existing `Upload`.
+   - Otherwise, writes the file to the sharded storage path and creates a new
+     `Upload` record.
+3. **Serve** — files are served through `GET /api/attachments/:id` with
+   optional `?token=&expires=` for signed private access.
+
+---
+
+## 3. Signed URLs & Hotlink Protection
+
+Private attachments require a signed token (`?token=` + `?expires=`) generated
+via HMAC-SHA256 with `UPLOAD_SIGN_SECRET`. Public attachments can be
+hotlink-protected by domain:
+
+- `UPLOAD_HOTLINK_ENABLED` — toggle (default false).
+- `UPLOAD_HOTLINK_ALLOWED_DOMAINS` — comma-separated domains.
+- `UPLOAD_HOTLINK_ALLOW_EMPTY_REFERER` — allow direct access (browser URL bar).
+
+Requests with a disallowed `Referer` header receive a 403.
+
+---
+
+## 4. Size Limits
+
+`body-limit.ts` middleware distinguishes multipart uploads from JSON requests:
+- `MAX_UPLOAD_FILE_SIZE` — individual file cap (default 5 MB).
+- `MAX_UPLOAD_BODY_SIZE` — total multipart body cap.
+
+---
+
+## 5. Admin Management
+
+- `GET /api/attachments` — paginated listing, filterable by visibility, MIME type, uploader, date range.
+- `PUT /api/attachments/:id/replace` — replace an attachment's file in-place (creates a new `Upload`, updates the `Attachment.uploadId`).
+- `DELETE /api/attachments` — batch delete by IDs.
+- Admin UI at `/attachments` with file previews and filters.
+
+---
+
+# Architecture: AI Agent System
+
+The platform includes an in-app AI chat assistant with tool-calling capabilities.
+It can execute platform API operations and read files, gated by per-application
+configuration and admin-controlled API allowlists.
+
+> Agent code: `routes/agent/`, `services/agent-config.service.ts`,
+> `services/agent-session.service.ts`, `lib/ai-agent/`,
+> `prisma/schema.prisma` (`AgentSession`, `AgentMessage` models).
+> Frontend: `packages/frontend/src/components/agent-launcher/`,
+> `packages/frontend/src/components/agent-chat/`,
+> `packages/frontend/src/hooks/use-agent-chat.ts`.
+
+---
+
+## 1. Data Model
+
+**`AgentSession`** — a chat conversation:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `userId` | FK to `User` — session owner |
+| `appId` | FK to `Application` — scoping |
+| `name` | Auto-generated title from first message (updated via SSE) |
+| `createdAt` | Timestamp |
+
+**`AgentMessage`** — a message within a session:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `sessionId` | FK to `AgentSession` |
+| `role` | `user` / `assistant` |
+| `parts` | JSON — AI SDK `UIMessagePart[]` |
+| `createdAt` | Timestamp |
+
+---
+
+## 2. API Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/agent/sessions` | List sessions (paginated) |
+| `POST /api/agent/sessions` | Create a new session |
+| `GET /api/agent/sessions/:id` | Get session with full message history |
+| `DELETE /api/agent/sessions/:id` | Delete a session |
+| `POST /api/agent/sessions/:id/messages` | Send a message (streaming response via AI SDK) |
+| `POST /api/agent/sessions/:id/files` | Upload a file for context |
+
+---
+
+## 3. Tool System
+
+The agent is equipped with tools registered in `lib/ai-agent/tools/`:
+
+| Tool | Purpose |
+|---|---|
+| `call_api` | Execute arbitrary platform API endpoints (read operations). Gated by the application's allowed API list (see §4). |
+| `get_api_schema` | Retrieve the OpenAPI spec to discover available operations. |
+| `read_file` | Read uploaded files associated with the session. |
+
+Tools are defined as AI SDK tool objects and run server-side within the
+streaming handler.
+
+---
+
+## 4. Configuration & Access Control
+
+**AI provider config** is per-application via `ApplicationConfig` (group
+`ai-agent`): `baseURL`, `apiKey`, `model`, `reasoning`. Falls back to env
+vars: `AI_AGENT_BASE_URL`, `AI_AGENT_API_KEY`, `AI_AGENT_MODEL`.
+
+**Permission gating**: the agent launcher in the admin sidebar is shown only
+when the user holds `system/agent:chat`.
+
+**Allowed API selector**: admins configure which API operations the agent's
+`call_api` tool may invoke via `POST /api/applications/:id/allowed-apis`.
+The `openapi.service.ts` parses the OpenAPI spec to list available operations;
+selected operations are stored per application. At runtime, `call_api`
+validates the target operation against this allowlist.
+
+---
+
+## 5. Frontend Integration
+
+The agent launcher lives in the admin sidebar as a floating chat button. It
+opens a resizable panel with:
+- Session list (create, select, delete, lazy-load, infinite scroll)
+- Streaming chat with markdown rendering
+- File upload with drag-and-drop
+- Tool call cards (rendered inline in the message stream)
+
+The chat uses the AI SDK's `useChat` hook with `DefaultChatTransport`,
+streaming responses from `POST /api/agent/sessions/:id/messages`. Session
+titles are updated live via SSE (`agent.session.title.updated`).
+
+The `AgentPanel` component (`@repo/frontend`) is display-mode agnostic and can
+be embedded in a Sheet, a full page, or any flex container.
+
+---
+
+# Architecture: Permission & RBAC System
+
+The platform implements a scoped, hierarchical Role-Based Access Control
+(RBAC) system with `group::action` permission codes, menu-to-permission
+gating, position-based role assignment, and API token scoping.
+
+> Permission code: `packages/shared/src/permissions.ts`.
+> Service code: `routes/permission/`, `routes/role/`, `routes/menu/`,
+> `services/permission.service.ts`, `services/role.service.ts`.
+
+---
+
+## 1. Permission Codes
+
+Permissions follow the `group::action` format:
+
+| Example | Meaning |
+|---|---|
+| `user::read` | View user lists and details |
+| `user::write` | Create/update/delete users |
+| `role::assign` | Assign roles to users |
+| `system/agent:chat` | Access the AI agent chat |
+| `cache::manage` | Manage the runtime cache |
+| `rate-limit::manage` | Manage rate limit overrides |
+
+Permissions are defined in `packages/shared/src/permissions.ts` and seeded
+into the database. Each permission belongs to an application scope.
+
+---
+
+## 2. Role Assignment
+
+Roles are collections of permissions, scoped per application:
+
+- `Role` — has a `name`, `appId`, and a set of `RolePermission` rows.
+- `RoleAssignment` — links a `Role` to a `User` within an organization context.
+- A user's effective permissions are the union of all roles assigned to them
+  across all organizations and apps.
+
+Additionally, roles can be assigned to `Position` records (`Position.roleId`).
+Members holding a position inherit the position's role permissions — enabling
+department-level permission management without per-user role assignment.
+
+---
+
+## 3. Menu Permission Gating
+
+Admin menus (`Menu` model) are associated with permissions via
+`MenuPermission`. A menu item is only visible to a user if they hold at least
+one of the menu's associated permissions. This drives the sidebar navigation
+in the admin UI.
+
+---
+
+## 4. API Token Scopes
+
+API tokens (`ApiToken`) can be restricted to a subset of permissions via
+the `scopes` field. When a request is authenticated with an API token, the
+token's scopes are intersected with the user's effective permissions.
+
+---
+
+## 5. Enforcement
+
+Route handlers call `requirePermission(permission)` / `requirePermissions([])`
+(from `middleware/permission.ts`), which resolves the current user's effective
+permissions (accounting for all role assignments + token scopes) and throws
+`403` if the required permission is absent.
+
+---
+
+# Architecture: Notification System
+
+The platform dispatches notifications through configurable channels with
+template-based message rendering, delivery tracking, and background job
+integration.
+
+> Notification code: `routes/notification/`, `services/notification.service.ts`,
+> `services/notification-channel.service.ts`, `services/notification-template.service.ts`,
+> jobs via `send-notification` handler.
+
+---
+
+## 1. Data Model
+
+**`NotificationChannel`** — a delivery method:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `type` | `in-app` / `smtp-email` / `sms` |
+| `name` | Human-readable label |
+| `config` | JSON — channel-specific settings (SMTP server, SMS provider) |
+| `enabled` | Toggle |
+| `appId` | FK to `Application` |
+
+**`NotificationTemplate`** — a reusable message template:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `name` / `description` | Human-readable metadata |
+| `subject` | Template subject with `{{variable}}` placeholders |
+| `body` | Template body with `{{variable}}` placeholders |
+| `channels` | Array of channel IDs to deliver through |
+
+**`Notification`** — a concrete message instance:
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `userId` | Recipient |
+| `templateId` | Source template (nullable for ad-hoc) |
+| `subject` / `body` | Rendered message |
+| `status` | `pending` / `sent` / `failed` |
+| `channel` | Delivery channel used |
+| `deliveredAt` | When successfully sent |
+
+---
+
+## 2. Dispatch Flow
+
+1. **Create** — `createNotificationsFromTemplate` inserts `Notification` rows
+   (rendering template variables) and creates a `JobInstance` (type
+   `send-notification`, `notificationIds`) in the **same transaction**.
+2. **Enqueue** — `jobExecutor.enqueue()` is called **after** the transaction
+   commits, ensuring the worker never sees notification rows before they're
+   visible.
+3. **Deliver** — the `send-notification` job handler calls
+   `deliverNotifications`, which iterates over each notification and dispatches
+   via the matching channel provider (`in-app`, `smtp-email`, …).
+4. **Track** — each `Notification` row is updated with `status` and `deliveredAt`.
+
+---
+
+## 3. Channel Providers
+
+| Channel | Implementation |
+|---|---|
+| `in-app` | Stored in DB, surfaced in the notification inbox UI |
+| `smtp-email` | Nodemailer with configurable SMTP settings |
+| `sms` | Outbox pattern — stored for external SMS provider pickup |
+
+---
+
+## 4. Caching
+
+Notification channels and templates are cached in the LRU cache (see Cache
+System). Cache-aside reads in `channel.service.ts` and
+`template.service.ts` avoid repeated DB lookups during dispatch. Disabled
+templates/channels are never cached, so enabling them is always seen fresh.
+Mutations clear the entire namespace (coarse-grained invalidation).
+
+---
+
+## 5. Admin UI
+
+- Channel management with test-send workflow (`POST /api/notification/channels/:id/test`).
+- Template editor with variable rendering preview.
+- Notification record history with status/date filtering.
+
+---
+
+# Architecture: API Token System
+
+Users can create personal API tokens for programmatic access to the API, with
+scoped permissions, expiration, and usage tracking.
+
+> Token code: `routes/token/`, `services/api-token.service.ts`,
+> `prisma/schema.prisma` (`ApiToken` model).
+
+---
+
+## 1. Data Model
+
+| Field | Purpose |
+|---|---|
+| `id` | cuid |
+| `userId` | FK to `User` — token owner |
+| `name` | Human-readable label |
+| `tokenHash` | SHA-256 of the full token (the full token is shown only once at creation) |
+| `tokenPrefix` / `tokenSuffix` | First/last 8 chars for identification in listings |
+| `scopes` | JSON array of `group::action` permission codes |
+| `expiresAt` | Optional expiry |
+| `lastUsedAt` | Auto-updated on each authenticated request |
+| `createdAt` | Timestamp |
+
+---
+
+## 2. Authentication Flow
+
+Requests can authenticate via `Authorization: Bearer <token>`. The bearer
+auth middleware:
+1. Extracts the token string.
+2. Hashes it with SHA-256.
+3. Looks up `ApiToken` by `tokenHash`.
+4. Validates expiry.
+5. Resolves the user and scopes — effective permissions are the intersection
+   of the user's role permissions and the token's scopes.
+
+---
+
+## 3. Token Management
+
+- `POST /api/tokens` — create a token (returns the full token once).
+- `GET /api/tokens` — list tokens (prefix/suffix only, never the full token).
+- `DELETE /api/tokens/:id` — revoke a token.
+- Admin and organization apps both have token management UIs.

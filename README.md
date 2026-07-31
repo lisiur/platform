@@ -1,5 +1,7 @@
 # platform
 
+> Last updated: 2026-07-31
+
 A multi-tenant admin and organization platform built as a pnpm monorepo: a typed Hono REST API, three Next.js apps (an admin UI, an organization portal, and a gateway entry point), and shared packages for UI, frontend utilities, and permissions.
 
 ## Monorepo structure
@@ -21,15 +23,19 @@ packages/
 **Multi-tenancy & applications**
 
 - Organization portal with departments, positions, and member management.
-- Multi-app support: each application gets its own menus, roles, branding (logo, favicon, watermark, footer), and permission scope.
+- Multi-app support: each application gets its own menus, roles, branding (logo, favicon, watermark, footer with copyright/ICP/PSIF), and permission scope.
+- Watermark overlay with user name and email variable substitution, toggleable per application.
 - Application registration and self-service organization onboarding.
+- Organization-level settings (branding, logo) and a member dashboard.
 
 **Authentication & authorization**
 
 - Email/password sign-in and sign-up with argon2 hashing.
-- Passkey (WebAuthn) registration and login, plus WeChat OAuth login.
+- Passkey (WebAuthn) registration and login, plus WeChat Mini Program login.
 - Session-based auth with secure cookies; API tokens for programmatic access.
+- User banning with configurable ban reason and expiration.
 - Granular RBAC with `group::action` permission codes, role assignment, and per-menu permission gating — scoped per app and organization.
+- Position-based permission assignment: roles flow through positions, allowing departmental permission management.
 
 **Notifications**
 
@@ -46,9 +52,29 @@ packages/
 - Global and auth-specific (sign-in/sign-up) limiters with configurable windows and caps via env vars.
 - Database-backed per-key overrides with an admin management UI, plus a live rate-limit status view.
 
+**AI agent**
+
+- In-app AI chat assistant with tool-calling capability (call API endpoints, read files).
+- Per-application AI configuration (base URL, API key, model, reasoning) via app config or env vars.
+- Streaming chat with session history, file upload, and permission-gated access (`system/agent:chat`).
+- Admin-controlled "allowed APIs" selector gates which API operations the agent may invoke.
+
+**File upload & attachments**
+
+- Signed URL access with HMAC signatures and expiry for secure file serving.
+- SHA-256 hash-based deduplication with sharded storage paths.
+- Hotlink protection with allowed domain whitelisting and MIME type validation (magic bytes).
+- Polymorphic attachment associations (`bizType`/`bizId`) with public/private visibility.
+- Admin file management UI with search, filtering, replace-in-place, and batch delete.
+
+**System monitoring**
+
+- Real-time resource dashboard showing CPU, memory (per-OS), storage, and process uptime.
+- Auto-refreshing admin UI with progress indicators, gated by `system/system-info:view`.
+
 **Observability & operations**
 
-- Audit logs and operation logs with full traceability and per-request trace IDs.
+- Audit logs (with before/after diffs, trace IDs, severity levels) and operation logs (auto-logging every request with method, path, status, duration).
 - System config with JSON-schema-driven admin UI; runtime cache inspector/editor (LRU).
 
 **Developer experience**
@@ -85,6 +111,8 @@ In dev, `pnpm dev` starts all three apps. The gateway (port 3000) is the single 
 - `http://localhost:3000/organization` → proxied to the organization app (3002)
 - `http://localhost:3000/api/...` → the Hono API, mounted via the gateway's catch-all route (`apps/gateway/src/app/api/[[...route]]/route.ts`)
 - `http://localhost:3000/api/docs` → Scalar OpenAPI docs (JSON at `/api/openapi.json`)
+- `http://localhost:3000/api/events` → SSE event stream (admin dashboard, rate-limit, job status updates)
+- `http://localhost:3000/api/agent/...` → AI agent chat (streaming via AI SDK, file upload)
 
 The gateway's dev rewrites (`apps/gateway/next.config.ts`) forward `/admin` and `/organization` — including their `/admin-static` and `/organization-static` assets — to the respective apps. In production these rewrites are disabled; each app is built with `output: "standalone"` and served behind a reverse proxy.
 
