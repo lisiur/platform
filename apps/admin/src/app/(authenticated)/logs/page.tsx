@@ -8,6 +8,7 @@ import {
   type AuditLogFilters,
   AuditLogTable,
 } from "./components/audit-log-table";
+import { DEFAULT_OPERATION_FILTERS } from "./components/operation-log-filter";
 import {
   type OperationLogFilters,
   OperationLogTable,
@@ -17,7 +18,7 @@ export default function LogsPage() {
   const t = useTranslations("Logs");
   const [activeTab, setActiveTab] = useState("operation");
   const [operationFilters, setOperationFilters] = useState<OperationLogFilters>(
-    {},
+    DEFAULT_OPERATION_FILTERS,
   );
   const [auditFilters, setAuditFilters] = useState<AuditLogFilters>({});
 

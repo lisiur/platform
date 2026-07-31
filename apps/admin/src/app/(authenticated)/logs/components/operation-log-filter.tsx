@@ -25,6 +25,10 @@ const LEVEL_OPTIONS = ["debug", "info", "warn", "error"] as const;
 const AUTH_TYPE_OPTIONS = ["session", "api_token"] as const;
 const SOURCE_OPTIONS = ["agent", "ssr", "browser"] as const;
 
+export const DEFAULT_OPERATION_FILTERS: OperationLogFilters = {
+  source: "browser",
+};
+
 export interface OperationLogFilters {
   traceId?: string;
   authType?: string;
@@ -220,7 +224,7 @@ export function OperationLogFilter({
 
   function handleClear() {
     setResetKey((key) => key + 1);
-    onFiltersChange({});
+    onFiltersChange(DEFAULT_OPERATION_FILTERS);
   }
 
   if (isMobile) {

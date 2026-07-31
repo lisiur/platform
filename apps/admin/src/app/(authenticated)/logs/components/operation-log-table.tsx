@@ -70,6 +70,16 @@ const SOURCE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   browser: "outline",
 };
 
+function getStatusBadgeStyle(statusCode: number): string {
+  if (statusCode >= 500)
+    return "bg-transparent text-red-800 border-red-300 dark:text-red-200 dark:border-red-700";
+  if (statusCode >= 400)
+    return "bg-transparent text-orange-800 border-orange-300 dark:text-orange-200 dark:border-orange-700";
+  if (statusCode >= 300)
+    return "bg-transparent text-blue-800 border-blue-300 dark:text-blue-200 dark:border-blue-700";
+  return "bg-transparent text-green-800 border-green-300 dark:text-green-200 dark:border-green-700";
+}
+
 interface OperationLogTableProps {
   filters: OperationLogFilters;
   onFiltersChange: (
@@ -230,7 +240,7 @@ export function OperationLogTable({
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1970px] min-w-[1970px]"
+            className="w-[1810px] min-w-[1810px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
@@ -240,11 +250,9 @@ export function OperationLogTable({
                 </TableHead>
                 <TableHead className="w-44">{t("columns.createdAt")}</TableHead>
                 <TableHead className="w-24">{t("columns.level")}</TableHead>
-                <TableHead className="w-40">{t("columns.event")}</TableHead>
                 <TableHead className="w-36">{t("columns.module")}</TableHead>
                 <TableHead className="w-96">{t("columns.request")}</TableHead>
                 <TableHead className="w-32">{t("columns.ip")}</TableHead>
-                <TableHead>{t("columns.statusCode")}</TableHead>
                 <TableHead className="w-24">{t("columns.source")}</TableHead>
                 <TableHead>{t("columns.durationMs")}</TableHead>
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
@@ -272,17 +280,22 @@ export function OperationLogTable({
                       {log.level.toUpperCase()}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {log.event}
-                  </TableCell>
                   <TableCell>{log.module || "-"}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {[log.method, log.path].filter(Boolean).join(" ") || "-"}
+                    <span className="inline-flex items-center gap-1.5">
+                      {log.statusCode != null && (
+                        <Badge
+                          className={getStatusBadgeStyle(log.statusCode)}
+                        >
+                          {log.statusCode}
+                        </Badge>
+                      )}
+                      {[log.method, log.path].filter(Boolean).join(" ") || "-"}
+                    </span>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {log.ip || "-"}
                   </TableCell>
-                  <TableCell>{log.statusCode ?? "-"}</TableCell>
                   <TableCell>
                     <Badge
                       variant={SOURCE_VARIANT[log.source ?? ""] ?? "outline"}
