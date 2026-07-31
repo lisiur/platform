@@ -59,6 +59,7 @@ export function AllowedApiSelector({
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [initialIds, setInitialIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -79,7 +80,9 @@ export function AllowedApiSelector({
           selRes.json(),
         ]);
         setAvailable(availData as AvailableApiOperation[]);
-        setSelectedIds(new Set(selData as string[]));
+        const loaded = new Set(selData as string[]);
+        setSelectedIds(loaded);
+        setInitialIds(loaded);
       } catch {
         setLoadError(true);
         toast.error(t("allowedApisLoadError"));
@@ -117,6 +120,14 @@ export function AllowedApiSelector({
     [available, selectedIds],
   );
 
+  const isDirty = useMemo(() => {
+    if (selectedIds.size !== initialIds.size) return true;
+    for (const id of selectedIds) {
+      if (!initialIds.has(id)) return true;
+    }
+    return false;
+  }, [selectedIds, initialIds]);
+
   function toggle(operationId: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -143,6 +154,7 @@ export function AllowedApiSelector({
         param: { id: appId },
         json: { operationIds: [...selectedIds] },
       });
+      setInitialIds(new Set(selectedIds));
       toast.success(t("saveSuccess"));
     } catch {
       // Error handled by API feedback utils.
@@ -304,7 +316,7 @@ export function AllowedApiSelector({
         <div className="mt-4 flex justify-end">
           <Button
             type="button"
-            disabled={saving || loadError}
+            disabled={saving || loadError || !isDirty}
             onClick={handleSave}
           >
             {saving ? t("saving") : t("save")}

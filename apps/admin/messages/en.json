@@ -180,7 +180,7 @@
       "rate-limit": "Rate Limit",
       "ai-agent": "AI Agent"
     },
-    "save": "Save Changes",
+    "save": "Save",
     "saving": "Saving...",
     "saveSuccess": "Settings saved successfully",
     "saveFailed": "Failed to save settings",

@@ -103,6 +103,7 @@ export function ApplicationAiAgentForm({ appId }: ApplicationAiAgentFormProps) {
         json: { items: payload },
       });
       toast.success(t("saveSuccess"));
+      form.reset(form.getValues());
     } catch {
       // Error handled by API feedback.
     } finally {
@@ -137,7 +138,10 @@ export function ApplicationAiAgentForm({ appId }: ApplicationAiAgentFormProps) {
             ))}
           </FieldGroup>
           <div className="flex justify-end">
-            <Button type="submit" disabled={saving || items.length === 0}>
+            <Button
+              type="submit"
+              disabled={saving || items.length === 0 || !form.formState.isDirty}
+            >
               {saving ? t("saving") : t("save")}
             </Button>
           </div>
