@@ -59,17 +59,6 @@ type AgentToolResultPayload =
       errorText: string;
     };
 
-type ToolPart = {
-  type: string;
-  toolCallId?: string;
-  toolName?: string;
-  state?: string;
-  output?: unknown;
-  errorText?: string;
-};
-
-const INTERACTION_TOOL_NAMES = new Set(["choose_option", "render_form"]);
-
 export async function uploadAgentFile(
   apiOrigin: string,
   sessionId: string,
@@ -125,39 +114,6 @@ function extractText(message: UIMessage | undefined): string {
     .join("");
 }
 
-function isToolPart(part: unknown): part is ToolPart {
-  if (typeof part !== "object" || part === null) return false;
-  const type = (part as { type?: string }).type ?? "";
-  return type.startsWith("tool-") || type === "dynamic-tool";
-}
-
-function getToolName(part: ToolPart): string {
-  return (
-    part.toolName ??
-    (part.type.startsWith("tool-") ? part.type.slice("tool-".length) : "")
-  );
-}
-
-function extractInteractionToolResults(
-  message: UIMessage | undefined,
-): AgentToolResultPayload[] {
-  if (message?.role !== "assistant") return [];
-  const results: AgentToolResultPayload[] = [];
-
-  for (const part of message.parts) {
-    if (!isToolPart(part)) continue;
-    if (!part.toolCallId) continue;
-    if (!INTERACTION_TOOL_NAMES.has(getToolName(part))) continue;
-    if (part.state === "output-available") {
-      results.push({ toolCallId: part.toolCallId, output: part.output });
-    } else if (part.state === "output-error" && part.errorText) {
-      results.push({ toolCallId: part.toolCallId, errorText: part.errorText });
-    }
-  }
-
-  return results;
-}
-
 /**
  * Streaming wiring for a single pi.dev agent session. Encapsulates the AI SDK
  * `useChat` transport and history rehydration. Session lifecycle (create/list/
@@ -180,6 +136,7 @@ export function useAgentChat({
   // effect double-invokes and the second invoke would fetch empty history and
   // wipe an in-flight optimistic send.
   const skipHistoryRef = useRef(skipInitialHistory);
+  const pendingToolResultRef = useRef<AgentToolResultPayload | null>(null);
 
   const messagesApi = useMemo(
     () =>
@@ -198,12 +155,13 @@ export function useAgentChat({
         // pi owns history; send only the new prompt text, except when AI SDK
         // auto-submits a completed client-side interaction tool result.
         prepareSendMessagesRequest: ({ messages }) => {
-          const lastMessage = messages[messages.length - 1];
-          const toolResults = extractInteractionToolResults(lastMessage);
-          if (toolResults.length > 0) {
-            return { body: { toolResults } };
+          const pendingToolResult = pendingToolResultRef.current;
+          if (pendingToolResult) {
+            pendingToolResultRef.current = null;
+            return { body: { toolResults: [pendingToolResult] } };
           }
 
+          const lastMessage = messages[messages.length - 1];
           const prompt = extractText(lastMessage);
           return { body: { prompt } };
         },
@@ -269,12 +227,14 @@ export function useAgentChat({
   return {
     messages: chat.messages,
     sendMessage: (text) => chat.sendMessage({ text }),
-    submitToolResult: (toolCallId, output, toolName = "choose_option") =>
+    submitToolResult: (toolCallId, output, toolName = "choose_option") => {
+      pendingToolResultRef.current = { toolCallId, output };
       chat.addToolOutput({
         tool: toolName,
         toolCallId,
         output,
-      }),
+      });
+    },
     status: chat.status,
     isLoadingHistory,
     stop: chat.stop,
