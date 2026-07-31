@@ -207,7 +207,7 @@ export function AgentPanel({
     <div className={cn("flex min-h-0 w-full", className)}>
       {/* Session sidebar — app-owned session lifecycle */}
       <aside className="flex w-64 shrink-0 flex-col border-r border-border">
-        <div className="flex items-center justify-between gap-2 border-b border-border p-2">
+        <div className="flex items-center justify-between gap-2 border-b border-border pl-4 pr-2 py-2">
           <span className="flex items-center gap-1.5 font-medium">
             <MessagesSquare className="size-3.5" />
             {t("sessions")}
