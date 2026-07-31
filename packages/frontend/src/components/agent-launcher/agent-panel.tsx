@@ -85,10 +85,16 @@ export function AgentPanel({
   const isMobile = useIsMobile();
   const desktopSentinelRef = useRef<HTMLDivElement>(null);
   const mobileSentinelRef = useRef<HTMLDivElement>(null);
+  // Synchronous re-entrancy guard for paginated fetches. `loadingMore`
+  // (state) is async and lags the IntersectionObserver callback, so a second
+  // fetch with the same offset can slip through before the flag flips.
+  const fetchingRef = useRef(false);
 
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {
       if (append) {
+        if (fetchingRef.current) return;
+        fetchingRef.current = true;
         setLoadingMore(true);
       } else {
         setLoading(true);
@@ -96,7 +102,16 @@ export function AgentPanel({
       try {
         const data = await sessionsApi.list({ limit: PAGE_SIZE, offset });
         if (append) {
-          setSessions((prev) => [...prev, ...data.sessions]);
+          // Dedupe by sessionId: concurrent insertions on the server can shift
+          // older rows into an offset we already fetched, causing the same
+          // session to come back twice and produce duplicate React keys.
+          setSessions((prev) => {
+            const seen = new Set(prev.map((s) => s.sessionId));
+            return [
+              ...prev,
+              ...data.sessions.filter((s) => !seen.has(s.sessionId)),
+            ];
+          });
         } else {
           setSessions(data.sessions);
         }
@@ -105,6 +120,7 @@ export function AgentPanel({
       } catch {
         if (!append) setSessions([]);
       } finally {
+        fetchingRef.current = false;
         setLoading(false);
         setLoadingMore(false);
       }
@@ -138,7 +154,13 @@ export function AgentPanel({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          !loadingMore &&
+          !fetchingRef.current
+        ) {
           void fetchPage(sessions.length, true);
         }
       },
