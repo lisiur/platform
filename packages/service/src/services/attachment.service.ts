@@ -12,6 +12,7 @@ import {
   extensionForMime,
   verifyMagicBytes,
 } from "#lib/mime";
+import { getConfigRow } from "./system-config.service";
 
 const UPLOADS_ROOT = join(process.cwd(), "uploads");
 const DEFAULT_HOTLINK_CONFIG = {
@@ -232,9 +233,7 @@ function getRequestHostname(headers?: Headers): string | null {
 }
 
 async function getUploadHotlinkConfig() {
-  const config = await prisma.systemConfig.findUnique({
-    where: { group_key: { group: "upload", key: "hotlink" } },
-  });
+  const config = await getConfigRow("upload", "hotlink");
   if (!config) return DEFAULT_HOTLINK_CONFIG;
 
   try {

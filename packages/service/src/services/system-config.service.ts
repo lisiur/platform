@@ -139,3 +139,19 @@ export async function listConfigsByGroup(group: string) {
   const rows = await systemConfigRepository.findByGroup(group);
   return maskSecrets(mergeEnvFallback(rows));
 }
+
+/**
+ * Reads a single config row through the repository + env-fallback pipeline.
+ * Returns the merged row or `undefined` when the row does not exist.
+ * Supports any type including `"json"` — consumers should cast/parse the
+ * string value as needed.
+ */
+export async function getConfigRow(
+  group: string,
+  key: string,
+): Promise<(SystemConfigRow & { schema?: unknown }) | undefined> {
+  const row = await systemConfigRepository.findByGroupAndKey(group, key);
+  if (!row) return undefined;
+  const [merged] = mergeEnvFallback([row as SystemConfigRow]);
+  return merged;
+}
