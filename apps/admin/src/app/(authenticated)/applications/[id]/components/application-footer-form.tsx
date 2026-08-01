@@ -45,6 +45,7 @@ export function ApplicationFooterForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<FooterInput>({
     resolver: zodResolver(footerSchema),
@@ -66,6 +67,7 @@ export function ApplicationFooterForm({
         },
       });
       toast.success(t("updateSuccess"));
+      reset(data);
       onSuccess();
     } catch {
       // Error handled by client

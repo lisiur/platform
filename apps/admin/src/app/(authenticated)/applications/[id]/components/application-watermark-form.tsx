@@ -60,6 +60,7 @@ export function ApplicationWatermarkForm({
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<WatermarkInput>({
     resolver: zodResolver(watermarkSchema),
@@ -82,6 +83,7 @@ export function ApplicationWatermarkForm({
         },
       });
       toast.success(t("updateSuccess"));
+      reset(data);
       onSuccess();
     } catch {
       // Error handled by client

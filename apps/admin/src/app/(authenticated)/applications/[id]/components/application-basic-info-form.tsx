@@ -45,6 +45,7 @@ export function ApplicationBasicInfoForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<BasicInfoInput>({
     resolver: zodResolver(basicInfoSchema),
@@ -66,6 +67,7 @@ export function ApplicationBasicInfoForm({
         },
       });
       toast.success(t("updateSuccess"));
+      reset(data);
       onSuccess();
     } catch {
       // Error handled by client

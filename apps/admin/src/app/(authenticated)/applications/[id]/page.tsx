@@ -28,21 +28,24 @@ export default function ApplicationDetailPage({
   const [app, setApp] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchApp = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await withApiFeedback(appClient.api.applications[":id"].$get)(
-        {
+  const fetchApp = useCallback(
+    async (refresh = false) => {
+      if (!refresh) setLoading(true);
+      try {
+        const res = await withApiFeedback(
+          appClient.api.applications[":id"].$get,
+        )({
           param: { id },
-        },
-      );
-      setApp(await res.json());
-    } catch {
-      setApp(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+        });
+        setApp(await res.json());
+      } catch {
+        if (!refresh) setApp(null);
+      } finally {
+        if (!refresh) setLoading(false);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
     fetchApp();
@@ -107,7 +110,7 @@ export default function ApplicationDetailPage({
           value="general"
           className="flex min-h-0 flex-1 overflow-hidden"
         >
-          <ApplicationSettingsForm app={app} onSuccess={fetchApp} />
+          <ApplicationSettingsForm app={app} onSuccess={() => fetchApp(true)} />
         </TabsContent>
 
         <TabsContent
