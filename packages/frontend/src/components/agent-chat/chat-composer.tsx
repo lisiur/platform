@@ -2,41 +2,27 @@
 
 import { Button, cn } from "@repo/ui";
 import { ArrowUp, FileIcon, Paperclip, Square, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatBytes } from "../../lib/format";
 
-interface ChatComposerProps {
-  status: "submitted" | "streaming" | "ready" | "error";
-  onSend: (text: string, files: File[]) => void | Promise<void>;
-  onStop: () => void;
-  placeholder?: string;
-  disabled?: boolean;
-}
-
-interface StagedFile {
+export interface StagedFile {
   id: number;
   file: File;
 }
 
-export function ChatComposer({
-  status,
-  onSend,
-  onStop,
-  placeholder,
-  disabled,
-}: ChatComposerProps) {
+/**
+ * Composer state lifted to the parent so the empty-state and conversation
+ * instances share input/staged files and don't reset on the layout swap.
+ */
+export function useComposerState(
+  onSend: (text: string, files: File[]) => void | Promise<void>,
+  busy: boolean,
+  disabled?: boolean,
+) {
   const [input, setInput] = useState("");
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const nextFileId = useRef(0);
   const sendingRef = useRef(false);
-  const busy = status === "submitted" || status === "streaming";
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   const addFiles = useCallback((files: File[]) => {
     setStagedFiles((prev) => [
@@ -49,7 +35,7 @@ export function ChatComposer({
     setStagedFiles((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  async function submit() {
+  const submit = useCallback(async () => {
     if (sendingRef.current) return;
     const text = input.trim();
     if ((!text && stagedFiles.length === 0) || busy || disabled) return;
@@ -67,11 +53,60 @@ export function ChatComposer({
     } finally {
       sendingRef.current = false;
     }
-  }
+  }, [input, stagedFiles, busy, disabled, onSend]);
 
-  const rows = Math.min(Math.max(input.split("\n").length, 1), 6);
   const canSend =
     (input.trim().length > 0 || stagedFiles.length > 0) && !disabled;
+
+  return useMemo(
+    () => ({
+      input,
+      setInput,
+      stagedFiles,
+      addFiles,
+      removeFile,
+      submit,
+      canSend,
+      busy,
+      disabled,
+    }),
+    [input, stagedFiles, addFiles, removeFile, submit, canSend, busy, disabled],
+  );
+}
+
+export type ComposerState = ReturnType<typeof useComposerState>;
+
+interface ChatComposerProps {
+  state: ComposerState;
+  onStop: () => void;
+  placeholder?: string;
+}
+
+export function ChatComposer({
+  state,
+  onStop,
+  placeholder,
+}: ChatComposerProps) {
+  const {
+    input,
+    setInput,
+    stagedFiles,
+    addFiles,
+    removeFile,
+    submit,
+    canSend,
+    busy,
+    disabled,
+  } = state;
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const rows = Math.min(Math.max(input.split("\n").length, 1), 6);
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: drag-drop zone has no corresponding ARIA role
