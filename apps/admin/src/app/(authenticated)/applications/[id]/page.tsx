@@ -135,7 +135,7 @@ export default function ApplicationDetailPage({
             </div>
             <AllowedApiSelector
               appId={app.id}
-              className="max-h-full overflow-hidden mt-6"
+              className="h-full min-h-[30rem] overflow-hidden mt-6"
             />
           </div>
         </TabsContent>
