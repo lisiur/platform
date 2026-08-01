@@ -5,9 +5,11 @@ import type { UIMessage } from "ai";
 import type { ReactNode } from "react";
 import { ChatComposer } from "./chat-composer";
 import { ChatMessageList } from "./chat-message-list";
-import { getToolPartName, isToolPart } from "./tool-card";
-
-const INTERACTION_TOOL_NAMES = new Set(["choose_option", "render_form"]);
+import {
+  getToolPartName,
+  INTERACTION_TOOL_NAMES,
+  isToolPart,
+} from "./tool-card";
 
 function hasPendingInteractionTool(messages: UIMessage[]): boolean {
   const lastMessage = messages[messages.length - 1];
@@ -37,6 +39,11 @@ export interface AgentChatProps {
   isLoadingHistory?: boolean;
   stop: () => void;
   error: Error | null;
+  /** When true, show the reasoning panel (structured parts + `<think>` blocks). */
+  showReasoning?: boolean;
+  /** When true, show the generic fallback tool-call card. Interactive tool
+   *  cards always render regardless. */
+  showToolCalls?: boolean;
   /** Optional UI overrides. */
   placeholder?: string;
   emptyState?: ReactNode;
@@ -63,6 +70,8 @@ export function AgentChat({
   isLoadingHistory,
   stop,
   error,
+  showReasoning,
+  showToolCalls,
   placeholder,
   emptyState,
   header,
@@ -79,6 +88,8 @@ export function AgentChat({
         isLoadingHistory={isLoadingHistory}
         emptyState={emptyState}
         submitToolResult={submitToolResult}
+        showReasoning={showReasoning}
+        showToolCalls={showToolCalls}
       />
       {error ? (
         <div className="shrink-0 border-t border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">

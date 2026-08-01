@@ -26,6 +26,11 @@ export type {
 } from "./hooks/use-agent-chat";
 export { useAgentChat } from "./hooks/use-agent-chat";
 export type {
+  AgentConfigApi,
+  UseAgentConfigOptions,
+} from "./hooks/use-agent-config";
+export { useAgentConfig } from "./hooks/use-agent-config";
+export type {
   EventStreamOptions,
   SseEventHandler,
   UseEventStreamOptions,

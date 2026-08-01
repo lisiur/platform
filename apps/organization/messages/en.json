@@ -409,6 +409,7 @@
     "newChat": "New Chat",
     "sessions": "Sessions",
     "empty": "No conversations yet. Start a new chat to begin.",
+    "chatEmpty": "Ask the agent anything about the platform.",
     "placeholder": "Message AI",
     "loading": "Loading sessions…",
     "deleteChat": "Delete conversation",

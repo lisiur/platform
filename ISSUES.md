@@ -120,6 +120,18 @@
       wrong `T` at the read site compiles but returns garbage; keep
       read/write types aligned or add a typed wrapper.
 
+### AI Agent
+
+- [ ] **`GET /api/agent/config` and `loadAiAgentConfig` hit the DB uncached** —
+      `loadAiAgentConfig` resolves the app's ai-agent config from the DB
+      (`services/agent-config.service.ts:54`); the new `GET /api/agent/config`
+      (`routes/agent/getConfig.ts`) calls it per request. The client caches the
+      result at module scope (`hooks/use-agent-config.ts`), so a single chat
+      session issues one request, but every new mount / app load re-hits the DB
+      and `sendMessage` calls `loadAiAgentConfig` again on every turn. Add a
+      short TTL cache (e.g. via `lib/cache.ts`) keyed by `appId` for the
+      ai-agent config group, with invalidation on config upsert.
+
 ### Jobs / Queue
 
 - [ ] **Job `priority` is informational only** [#17](https://github.com/lisiur/platform/issues/17) — stored and surfaced in the

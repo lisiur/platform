@@ -450,6 +450,7 @@
     "cropFaviconDescription": "调整网站图标区域，保存为 48×48 PNG。",
     "basicInfoTitle": "基本信息",
     "aiAgentTitle": "AI 助手",
+    "aiAgentUiTitle": "AI 助手显示",
     "noAiAgentConfigurableSettings": "该应用没有可配置的 AI 助手设置。",
     "allowedApisTitle": "允许的 API",
     "allowedApisDescription": "选择 AI 助手在对话中可调用的 REST API 端点。每次调用将在用户权限范围内执行。",
@@ -642,7 +643,9 @@
         "aiAgentBaseURL": "接口地址",
         "aiAgentApiKey": "API 密钥",
         "aiAgentModel": "模型",
-        "aiAgentReasoning": "推理强度"
+        "aiAgentReasoning": "推理强度",
+        "aiAgentShowReasoning": "显示推理",
+        "aiAgentShowToolCalls": "显示工具调用"
       },
       "fieldsDesc": {
         "enableRegistration": "允许新用户注册",
@@ -663,7 +666,9 @@
         "aiAgentBaseURL": "OpenAI 兼容接口地址（例如 https://api.openai.com/v1 或 OpenRouter 地址）。",
         "aiAgentApiKey": "所配置接口的 API 密钥，以密文存储。",
         "aiAgentModel": "所配置接口支持的模型标识（如 gpt-4o）。",
-        "aiAgentReasoning": "模型推理强度。思维链会以可折叠面板的形式展示。支持 Anthropic Claude（extended thinking）、OpenAI o1/o3/gpt-5、Google Gemini、DeepSeek 等。"
+        "aiAgentReasoning": "模型推理强度。思维链会以可折叠面板的形式展示。支持 Anthropic Claude（extended thinking）、OpenAI o1/o3/gpt-5、Google Gemini、DeepSeek 等。",
+        "aiAgentShowReasoning": "向用户显示推理面板（模型的思维链）。与上方的功能性推理强度相互独立。",
+        "aiAgentShowToolCalls": "显示通用工具调用卡片（工具名称、输入与输出）。交互式工具卡片始终显示。"
       },
       "aiAgentReasoningOptions": {
         "off": "关闭",
@@ -1138,6 +1143,7 @@
     "newChat": "新对话",
     "sessions": "会话",
     "empty": "暂无对话。开始新对话以使用。",
+    "chatEmpty": "向智能体询问关于平台的任何问题。",
     "placeholder": "给 AI 发送消息",
     "loading": "正在加载会话…",
     "deleteChat": "删除对话",

@@ -15,6 +15,9 @@ import { splitReasoning } from "./split-reasoning";
 interface AgentMarkdownProps {
   content: string;
   streaming?: boolean;
+  /** When true, show the reasoning panel. `splitReasoning` still runs so any
+   *  `<think>` blocks are stripped from the visible answer text regardless. */
+  showReasoning?: boolean;
 }
 
 /**
@@ -29,22 +32,32 @@ interface AgentMarkdownProps {
 export function AgentMarkdown({
   content,
   streaming = false,
+  showReasoning = true,
 }: AgentMarkdownProps) {
   const { thinking, thinkingOpen, answer } = splitReasoning(content);
+
+  // Once a message has streamed through ComarkClient, keep it mounted after
+  // the stream ends instead of swapping to StaticAnswer. StaticAnswer remounts
+  // with tree===null and renders raw text until parse() resolves, so the
+  // streaming→ready transition would flash the formatted answer as plain text.
+  // History messages never enter streaming, so they still use StaticAnswer to
+  // avoid ComarkClient's Suspense fallback on initial load.
+  const [streamed, setStreamed] = useState(streaming);
+  if (streaming && !streamed) setStreamed(true);
 
   if (!thinking && !answer) return null;
 
   return (
     <div className="space-y-2">
-      {thinking && (
+      {showReasoning && thinking && (
         <ReasoningPanel
           thinking={thinking}
           streaming={streaming && thinkingOpen}
         />
       )}
       {answer &&
-        (streaming ? (
-          <ComarkClient streaming caret={false}>
+        (streamed ? (
+          <ComarkClient streaming={streaming} caret={false}>
             {answer}
           </ComarkClient>
         ) : (

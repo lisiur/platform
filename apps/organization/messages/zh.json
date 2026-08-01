@@ -409,6 +409,7 @@
     "newChat": "新对话",
     "sessions": "会话",
     "empty": "暂无对话。开始新对话以使用。",
+    "chatEmpty": "向智能体询问关于平台的任何问题。",
     "placeholder": "给 AI 发送消息",
     "loading": "正在加载会话…",
     "deleteChat": "删除对话",

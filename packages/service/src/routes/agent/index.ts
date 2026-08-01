@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { createSessionRoute } from "./createSession";
 import { deleteSessionRoute } from "./deleteSession";
+import { getConfigRoute } from "./getConfig";
 import { getSessionRoute } from "./getSession";
 import { listSessionsRoute } from "./listSessions";
 import { sendMessageHandler } from "./sendMessage";
@@ -18,6 +19,7 @@ const routes = agentRoutesHono.openapiRoutes([
   getSessionRoute,
   deleteSessionRoute,
   uploadFileRoute,
+  getConfigRoute,
 ] as const);
 
 export { routes as agentRoutes };

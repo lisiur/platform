@@ -15,6 +15,7 @@ import {
   uploadAgentFile,
   useAgentChat,
 } from "../../hooks/use-agent-chat";
+import { useAgentConfig } from "../../hooks/use-agent-config";
 import { useEventStream } from "../../hooks/use-event-stream";
 import { toast } from "../../lib/toast";
 import { AgentChat } from "../agent-chat/agent-chat";
@@ -73,6 +74,7 @@ export function AgentPanel({
   className,
 }: AgentPanelProps) {
   const t = useTranslations("Agent");
+  const { config: agentUi } = useAgentConfig({ apiOrigin, appCode });
 
   const [sessions, setSessions] = useState<AgentSessionSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -293,6 +295,8 @@ export function AgentPanel({
             sessionId={activeId}
             apiOrigin={apiOrigin}
             appCode={appCode}
+            showReasoning={agentUi.showReasoning}
+            showToolCalls={agentUi.showToolCalls}
             title={
               sessions.find((s) => s.sessionId === activeId)?.name ??
               t("untitled")
@@ -451,6 +455,8 @@ function ActiveChat({
   sessionId,
   apiOrigin,
   appCode,
+  showReasoning,
+  showToolCalls,
   title,
   sessionsLabel,
   placeholder,
@@ -465,6 +471,8 @@ function ActiveChat({
   sessionId: string;
   apiOrigin: string;
   appCode: string;
+  showReasoning: boolean;
+  showToolCalls: boolean;
   title: string;
   sessionsLabel: string;
   placeholder: string;
@@ -551,6 +559,8 @@ function ActiveChat({
       isLoadingHistory={chat.isLoadingHistory}
       stop={chat.stop}
       error={chat.error}
+      showReasoning={showReasoning}
+      showToolCalls={showToolCalls}
       placeholder={placeholder}
       header={
         <div className="flex shrink-0 items-center border-b border-border px-3 py-2.5 pr-12">

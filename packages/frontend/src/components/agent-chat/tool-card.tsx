@@ -37,6 +37,9 @@ function getToolPartName(part: ToolPart): string {
   );
 }
 
+/** Tool names that render an interactive card, always shown regardless of `showToolCalls`. */
+const INTERACTION_TOOL_NAMES = new Set(["choose_option", "render_form"]);
+
 function stringify(value: unknown): string {
   if (typeof value === "string") return value;
   try {
@@ -116,4 +119,4 @@ export function ToolCard({ part }: ToolCardProps) {
 }
 
 export type { ToolPart };
-export { getToolPartName, isToolPart };
+export { getToolPartName, INTERACTION_TOOL_NAMES, isToolPart };

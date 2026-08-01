@@ -43,6 +43,18 @@ export const sessionHistoryResponseSchema = z
   .array(z.any())
   .openapi("AgentSessionHistory");
 
+/**
+ * Visual AI Agent config surfaced to the client: which chat UI parts the user
+ * sees. Independent from the functional reasoning level, which is resolved
+ * server-side only. Both flags default to `true`.
+ */
+export const agentConfigResponseSchema = z
+  .object({
+    showReasoning: z.boolean().openapi({ example: true }),
+    showToolCalls: z.boolean().openapi({ example: true }),
+  })
+  .openapi("AgentConfig");
+
 export const uploadFileResponseSchema = z
   .object({
     fileId: z

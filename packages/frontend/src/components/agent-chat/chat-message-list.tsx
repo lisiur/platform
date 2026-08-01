@@ -2,6 +2,7 @@
 
 import { cn, Spinner } from "@repo/ui";
 import type { UIMessage } from "ai";
+import { useTranslations } from "next-intl";
 import {
   Fragment,
   type ReactNode,
@@ -13,7 +14,12 @@ import { AgentMarkdown } from "./agent-comark";
 import { ChoiceCard } from "./interactive-components/choice-card";
 import { FormCard } from "./interactive-components/form-card";
 import { isReasoningPart, ReasoningPartItem } from "./reasoning-part-item";
-import { getToolPartName, isToolPart, ToolCard } from "./tool-card";
+import {
+  getToolPartName,
+  INTERACTION_TOOL_NAMES,
+  isToolPart,
+  ToolCard,
+} from "./tool-card";
 import { UploadedFileCard } from "./uploaded-file-card";
 
 interface ChatMessageListProps {
@@ -26,6 +32,13 @@ interface ChatMessageListProps {
     output: unknown,
     toolName?: string,
   ) => void;
+  /** When true, show the reasoning panel (structured parts + `<think>`
+   *  blocks). Hidden reasoning also stops counting as "visible" for the
+   *  typing indicator after a tool call. */
+  showReasoning?: boolean;
+  /** When true, show the generic fallback tool-call card. Interactive tool
+   *  cards always render regardless of this flag. */
+  showToolCalls?: boolean;
 }
 
 /** Stable key for a message part. Uses `toolCallId` when available; otherwise
@@ -68,19 +81,36 @@ function isCompletedToolPart(part: UIMessage["parts"][number]): boolean {
   );
 }
 
-function hasVisiblePart(part: UIMessage["parts"][number]): boolean {
+function hasVisiblePart(
+  part: UIMessage["parts"][number],
+  showReasoning = true,
+  showToolCalls = true,
+): boolean {
   if (part.type === "text") {
     return ((part as { text?: string }).text ?? "").trim().length > 0;
   }
-  return isReasoningPart(part) || isToolPart(part);
+  if (isReasoningPart(part)) return showReasoning;
+  if (isToolPart(part)) {
+    const name = getToolPartName(part);
+    // Interactive tools always render regardless of showToolCalls.
+    if (name === "choose_option" || name === "render_form") return true;
+    return showToolCalls;
+  }
+  return false;
 }
 
-function isAwaitingAssistantAfterTool(message: UIMessage | undefined): boolean {
+function isAwaitingAssistantAfterTool(
+  message: UIMessage | undefined,
+  showReasoning = true,
+  showToolCalls = true,
+): boolean {
   if (message?.role !== "assistant") return false;
 
   for (let index = message.parts.length - 1; index >= 0; index--) {
     if (!isCompletedToolPart(message.parts[index])) continue;
-    return !message.parts.slice(index + 1).some(hasVisiblePart);
+    return !message.parts
+      .slice(index + 1)
+      .some((p) => hasVisiblePart(p, showReasoning, showToolCalls));
   }
 
   return false;
@@ -180,7 +210,10 @@ export function ChatMessageList({
   isLoadingHistory,
   emptyState,
   submitToolResult,
+  showReasoning = true,
+  showToolCalls = true,
 }: ChatMessageListProps) {
+  const t = useTranslations("Agent");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
@@ -229,11 +262,29 @@ export function ChatMessageList({
   const streaming = status === "streaming";
 
   const lastMessage = messages[messages.length - 1];
-  const hasAssistantContent =
-    lastMessage?.role === "assistant" && lastMessage.parts.length > 0;
+  // Only count parts that actually render. A hidden reasoning/tool-call part
+  // arriving first would otherwise flip this true and hide the typing
+  // indicator before any visible content exists — then a later part trips it
+  // back on, producing a flash.
+  const hasVisibleAssistantContent =
+    lastMessage?.role === "assistant" &&
+    lastMessage.parts.some((p) =>
+      hasVisiblePart(p, showReasoning, showToolCalls),
+    );
+  // When tool cards are hidden, an in-progress tool would otherwise render
+  // nothing — fall back to the typing indicator so the chat doesn't look
+  // frozen while a hidden tool executes.
+  const lastPart = lastMessage?.parts[lastMessage.parts.length - 1];
+  const lastPartIsRunningTool =
+    lastMessage?.role === "assistant" &&
+    isToolPart(lastPart) &&
+    !INTERACTION_TOOL_NAMES.has(getToolPartName(lastPart)) &&
+    !isCompletedToolPart(lastPart);
   const showSpinner =
     pending &&
-    (!hasAssistantContent || isAwaitingAssistantAfterTool(lastMessage));
+    (!hasVisibleAssistantContent ||
+      isAwaitingAssistantAfterTool(lastMessage, showReasoning, showToolCalls) ||
+      (!showToolCalls && lastPartIsRunningTool));
 
   return (
     <div
@@ -250,7 +301,7 @@ export function ChatMessageList({
             <Spinner />
           ) : (
             <p className="text-center text-sm text-muted-foreground">
-              {emptyState ?? "Ask the agent anything about the platform."}
+              {emptyState ?? t("chatEmpty")}
             </p>
           )}
         </div>
@@ -337,6 +388,7 @@ export function ChatMessageList({
                             >
                               <AgentMarkdown
                                 content={part.text}
+                                showReasoning={showReasoning}
                                 streaming={
                                   streaming &&
                                   isLastAssistantText(
@@ -352,6 +404,7 @@ export function ChatMessageList({
                         }
 
                         if (isReasoningPart(part)) {
+                          if (!showReasoning) return null;
                           return (
                             <ReasoningPartItem
                               key={partKey(part, index)}
@@ -382,6 +435,7 @@ export function ChatMessageList({
                             );
                           }
 
+                          if (!showToolCalls) return null;
                           return (
                             <ToolCard
                               key={part.type + (part.toolCallId ?? index)}

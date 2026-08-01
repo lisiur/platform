@@ -450,6 +450,7 @@
     "cropFaviconDescription": "Adjust the favicon area. It will be saved as 48×48 PNG.",
     "basicInfoTitle": "Basic Information",
     "aiAgentTitle": "AI Agent",
+    "aiAgentUiTitle": "AI Agent Display",
     "noAiAgentConfigurableSettings": "No configurable AI Agent settings for this application.",
     "allowedApisTitle": "Allowed APIs",
     "allowedApisDescription": "Select REST API endpoints the AI Agent may invoke via its call_api tool when chatting with the platform. Each call runs under the user's permissions.",
@@ -642,7 +643,9 @@
         "aiAgentBaseURL": "Base URL",
         "aiAgentApiKey": "API Key",
         "aiAgentModel": "Model",
-        "aiAgentReasoning": "Reasoning"
+        "aiAgentReasoning": "Reasoning",
+        "aiAgentShowReasoning": "Show Reasoning",
+        "aiAgentShowToolCalls": "Show Tool Calls"
       },
       "fieldsDesc": {
         "enableRegistration": "Allow new users to register",
@@ -663,7 +666,9 @@
         "aiAgentBaseURL": "OpenAI-compatible endpoint (e.g. https://api.openai.com/v1 or an OpenRouter URL).",
         "aiAgentApiKey": "API key for the configured endpoint. Stored as a secret.",
         "aiAgentModel": "Model identifier understood by the endpoint (e.g. gpt-4o).",
-        "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc."
+        "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc.",
+        "aiAgentShowReasoning": "Show the reasoning panel (the model's chain-of-thought) to the user. Independent from the functional reasoning level above.",
+        "aiAgentShowToolCalls": "Show the generic tool-call card (tool name, input, and output). Interactive tool cards are always shown."
       },
       "aiAgentReasoningOptions": {
         "off": "Off",
@@ -1138,6 +1143,7 @@
     "newChat": "New Chat",
     "sessions": "Sessions",
     "empty": "No conversations yet. Start a new chat to begin.",
+    "chatEmpty": "Ask the agent anything about the platform.",
     "placeholder": "Message AI",
     "loading": "Loading sessions…",
     "deleteChat": "Delete conversation",

@@ -285,6 +285,35 @@ const aiAgentConfigFields = [
   },
 ];
 
+/**
+ * AI Agent *visual* config field definitions — which chat UI parts the user
+ * sees. Independent from the functional `reasoning` level above. Seeded with
+ * `value: "true"` so the boolean checkbox reflects the effective default
+ * (shown); the loader treats anything other than `"false"` as shown.
+ */
+const aiAgentUiConfigFields = [
+  {
+    group: "ai-agent-ui",
+    key: "showReasoning",
+    value: "true",
+    type: "boolean",
+    label: "settings.fields.aiAgentShowReasoning",
+    description: "settings.fieldsDesc.aiAgentShowReasoning",
+    isSecret: false,
+    sortOrder: 0,
+  },
+  {
+    group: "ai-agent-ui",
+    key: "showToolCalls",
+    value: "true",
+    type: "boolean",
+    label: "settings.fields.aiAgentShowToolCalls",
+    description: "settings.fieldsDesc.aiAgentShowToolCalls",
+    isSecret: false,
+    sortOrder: 1,
+  },
+];
+
 // --- System Permissions (appId: null) ---
 const systemPermissions = [
   {
@@ -1440,6 +1469,18 @@ export async function seed(client: PrismaClient) {
   }
   console.log(
     `  ai-agent config seeded for ${Object.keys(appRecords).length} applications.\n`,
+  );
+
+  // 5c. Per-application AI Agent visual config (which UI parts the user sees)
+  console.log("Application configs (ai-agent-ui):");
+  for (const code of Object.keys(appRecords)) {
+    const appId = appRecords[code];
+    for (const field of aiAgentUiConfigFields) {
+      await upsertApplicationConfig(appId, field);
+    }
+  }
+  console.log(
+    `  ai-agent-ui config seeded for ${Object.keys(appRecords).length} applications.\n`,
   );
 
   // 6. System Permissions (platform)
