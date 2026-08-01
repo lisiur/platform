@@ -140,7 +140,7 @@ export async function listApplications(params: {
   const [applications, total] = await Promise.all([
     prisma.application.findMany({
       where,
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       take: limit,
       skip: offset,
     }),
