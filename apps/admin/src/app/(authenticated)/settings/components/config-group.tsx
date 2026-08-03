@@ -1,12 +1,10 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FieldGroup } from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { useSystemConfigStore } from "@/stores/system-config-store";
@@ -28,6 +26,26 @@ interface ConfigItem {
 
 interface ConfigGroupProps {
   group: string;
+}
+
+function getConfigFormValues(items: ConfigItem[]) {
+  const values: Record<string, unknown> = {};
+
+  for (const item of items) {
+    const segments = item.key.split(".");
+    let target = values;
+
+    for (const segment of segments.slice(0, -1)) {
+      if (!target[segment] || typeof target[segment] !== "object") {
+        target[segment] = {};
+      }
+      target = target[segment] as Record<string, unknown>;
+    }
+
+    target[segments.at(-1) ?? item.key] = item.value;
+  }
+
+  return values as Record<string, string>;
 }
 
 export function ConfigGroup({ group }: ConfigGroupProps) {
@@ -59,23 +77,11 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
     load();
   }, [group]);
 
-  const schema = useMemo(
-    () =>
-      z.object(Object.fromEntries(items.map((item) => [item.key, z.string()]))),
-    [items],
-  );
+  const values = useMemo(() => getConfigFormValues(items), [items]);
 
   const form = useForm<Record<string, string>>({
-    resolver: zodResolver(schema),
+    values,
   });
-
-  const { reset } = form;
-
-  useEffect(() => {
-    if (items.length > 0) {
-      reset(Object.fromEntries(items.map((item) => [item.key, item.value])));
-    }
-  }, [items, reset]);
 
   const { isDirty } = form.formState;
 
