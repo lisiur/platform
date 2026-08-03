@@ -834,7 +834,13 @@
     "recentOperations": "近期操作",
     "recentAudit": "近期审计",
     "viewAll": "查看全部",
-    "noRecentActivity": "暂无近期动态"
+    "noRecentActivity": "暂无近期动态",
+    "colLevel": "级别",
+    "colEvent": "事件",
+    "colRequest": "请求",
+    "colTime": "时间",
+    "colSeverity": "严重性",
+    "colOutcome": "结果"
   },
   "Monitor": {
     "title": "系统监控",

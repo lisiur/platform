@@ -834,7 +834,13 @@
     "recentOperations": "Recent Operations",
     "recentAudit": "Recent Audit",
     "viewAll": "View all",
-    "noRecentActivity": "No recent activity"
+    "noRecentActivity": "No recent activity",
+    "colLevel": "Level",
+    "colEvent": "Event",
+    "colRequest": "Request",
+    "colTime": "Time",
+    "colSeverity": "Severity",
+    "colOutcome": "Outcome"
   },
   "Monitor": {
     "title": "System Monitor",

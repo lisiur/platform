@@ -1,6 +1,18 @@
 "use client";
 
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -201,206 +213,252 @@ export function DashboardOverview() {
   const auditLogs = auditLogsQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {canViewUsers && !usersQuery.isError && (
-          <StatCard
-            icon={User}
-            label={t("statUsers")}
-            value={usersQuery.data}
-            href="/users"
-          />
-        )}
-        {canViewOrganizations && !organizationsQuery.isError && (
-          <StatCard
-            icon={Building2}
-            label={t("statOrganizations")}
-            value={organizationsQuery.data}
-            href="/organizations"
-          />
-        )}
-        {canViewRoles && !rolesQuery.isError && (
-          <StatCard
-            icon={RolesIcon}
-            label={t("statRoles")}
-            value={rolesQuery.data}
-            href="/roles"
-          />
-        )}
-        {canViewApplications && !applicationsQuery.isError && (
-          <StatCard
-            icon={Layers}
-            label={t("statApplications")}
-            value={applicationsQuery.data}
-            href="/applications"
-          />
-        )}
-        {canViewNotifications && (
-          <StatCard
-            icon={Bell}
-            label={t("statUnread")}
-            value={unreadCount}
-            href="/notifications"
-          />
-        )}
-      </div>
-
-      {canViewJobs && !jobsQuery.isError && jobsQuery.data && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Activity className="size-5 text-muted-foreground" />
-                <CardTitle>{t("jobsSnapshot")}</CardTitle>
-              </div>
-              <Link
-                href="/jobs"
-                className="text-primary text-sm hover:underline"
-              >
-                {t("viewAll")}
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <JobStatTile
-                icon={Activity}
-                label={t("jobsProcessing")}
-                value={jobsQuery.data.byStatus.PROCESSING}
-                tone="text-blue-500"
-              />
-              <JobStatTile
-                icon={ShieldCheck}
-                label={t("jobsPending")}
-                value={jobsQuery.data.byStatus.PENDING}
-                tone="text-amber-500"
-              />
-              <JobStatTile
-                icon={CheckCircle2}
-                label={t("jobsCompleted")}
-                value={jobsQuery.data.byStatus.COMPLETED}
-                tone="text-emerald-500"
-              />
-              <JobStatTile
-                icon={XCircle}
-                label={t("jobsFailed")}
-                value={jobsQuery.data.byStatus.FAILED}
-                tone="text-red-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {(canViewOperationLogs || canViewAuditLogs) && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {canViewOperationLogs && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle>{t("recentOperations")}</CardTitle>
-                  <Link
-                    href="/logs"
-                    className="text-primary text-sm hover:underline"
-                  >
-                    {t("viewAll")}
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {operationLogs.length === 0 ? (
-                  <p className="py-6 text-center text-muted-foreground text-sm">
-                    {t("noRecentActivity")}
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {operationLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="flex items-start gap-3 py-2.5"
-                      >
-                        <Badge
-                          variant={LEVEL_VARIANT[log.level] ?? "outline"}
-                          className="mt-0.5 shrink-0"
-                        >
-                          {log.level}
-                        </Badge>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {log.event}
-                          </p>
-                          <p className="truncate text-muted-foreground text-xs">
-                            {log.message ?? log.path ?? "\u2014"}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-muted-foreground text-xs whitespace-nowrap">
-                          {formatDateTime(log.createdAt)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {canViewUsers && !usersQuery.isError && (
+            <StatCard
+              icon={User}
+              label={t("statUsers")}
+              value={usersQuery.data}
+              href="/users"
+            />
           )}
-
-          {canViewAuditLogs && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle>{t("recentAudit")}</CardTitle>
-                  <Link
-                    href="/logs"
-                    className="text-primary text-sm hover:underline"
-                  >
-                    {t("viewAll")}
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {auditLogs.length === 0 ? (
-                  <p className="py-6 text-center text-muted-foreground text-sm">
-                    {t("noRecentActivity")}
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {auditLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="flex items-start gap-3 py-2.5"
-                      >
-                        <Badge
-                          variant={SEVERITY_VARIANT[log.severity] ?? "outline"}
-                          className="mt-0.5 shrink-0"
-                        >
-                          {log.severity}
-                        </Badge>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {log.event}
-                          </p>
-                          <p className="truncate text-muted-foreground text-xs">
-                            {log.userName ?? log.category}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={OUTCOME_VARIANT[log.outcome] ?? "outline"}
-                          className="shrink-0"
-                        >
-                          {log.outcome}
-                        </Badge>
-                        <span className="shrink-0 text-muted-foreground text-xs whitespace-nowrap">
-                          {formatDateTime(log.createdAt)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {canViewOrganizations && !organizationsQuery.isError && (
+            <StatCard
+              icon={Building2}
+              label={t("statOrganizations")}
+              value={organizationsQuery.data}
+              href="/organizations"
+            />
+          )}
+          {canViewRoles && !rolesQuery.isError && (
+            <StatCard
+              icon={RolesIcon}
+              label={t("statRoles")}
+              value={rolesQuery.data}
+              href="/roles"
+            />
+          )}
+          {canViewApplications && !applicationsQuery.isError && (
+            <StatCard
+              icon={Layers}
+              label={t("statApplications")}
+              value={applicationsQuery.data}
+              href="/applications"
+            />
+          )}
+          {canViewNotifications && (
+            <StatCard
+              icon={Bell}
+              label={t("statUnread")}
+              value={unreadCount}
+              href="/notifications"
+            />
           )}
         </div>
-      )}
+
+        {canViewJobs && !jobsQuery.isError && jobsQuery.data && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="size-5 text-muted-foreground" />
+                  <CardTitle>{t("jobsSnapshot")}</CardTitle>
+                </div>
+                <Link
+                  href="/jobs"
+                  className="text-primary text-sm hover:underline"
+                >
+                  {t("viewAll")}
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <JobStatTile
+                  icon={Activity}
+                  label={t("jobsProcessing")}
+                  value={jobsQuery.data.byStatus.PROCESSING}
+                  tone="text-blue-500"
+                />
+                <JobStatTile
+                  icon={ShieldCheck}
+                  label={t("jobsPending")}
+                  value={jobsQuery.data.byStatus.PENDING}
+                  tone="text-amber-500"
+                />
+                <JobStatTile
+                  icon={CheckCircle2}
+                  label={t("jobsCompleted")}
+                  value={jobsQuery.data.byStatus.COMPLETED}
+                  tone="text-emerald-500"
+                />
+                <JobStatTile
+                  icon={XCircle}
+                  label={t("jobsFailed")}
+                  value={jobsQuery.data.byStatus.FAILED}
+                  tone="text-red-500"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(canViewOperationLogs || canViewAuditLogs) && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {canViewOperationLogs && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle>{t("recentOperations")}</CardTitle>
+                    <Link
+                      href="/logs"
+                      className="text-primary text-sm hover:underline"
+                    >
+                      {t("viewAll")}
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {operationLogs.length === 0 ? (
+                    <p className="py-6 text-center text-muted-foreground text-sm">
+                      {t("noRecentActivity")}
+                    </p>
+                  ) : (
+                    <Table containerClassName="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[64px]">
+                            {t("colLevel")}
+                          </TableHead>
+                          <TableHead>{t("colRequest")}</TableHead>
+                          <TableHead
+                            align="right"
+                            className="whitespace-nowrap"
+                          >
+                            {t("colTime")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {operationLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <Badge
+                                variant={LEVEL_VARIANT[log.level] ?? "outline"}
+                              >
+                                {log.level}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[220px] align-top">
+                              <p className="truncate font-mono text-xs">
+                                {[log.method, log.path]
+                                  .filter(Boolean)
+                                  .join(" ") || "\u2014"}
+                              </p>
+                              <p className="truncate text-muted-foreground text-xs">
+                                {log.message ?? log.event}
+                              </p>
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              className="text-muted-foreground text-xs whitespace-nowrap"
+                            >
+                              {formatDateTime(log.createdAt)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {canViewAuditLogs && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle>{t("recentAudit")}</CardTitle>
+                    <Link
+                      href="/logs"
+                      className="text-primary text-sm hover:underline"
+                    >
+                      {t("viewAll")}
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {auditLogs.length === 0 ? (
+                    <p className="py-6 text-center text-muted-foreground text-sm">
+                      {t("noRecentActivity")}
+                    </p>
+                  ) : (
+                    <Table containerClassName="mt-2">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">
+                            {t("colSeverity")}
+                          </TableHead>
+                          <TableHead>{t("colEvent")}</TableHead>
+                          <TableHead className="w-[80px]">
+                            {t("colOutcome")}
+                          </TableHead>
+                          <TableHead
+                            align="right"
+                            className="whitespace-nowrap"
+                          >
+                            {t("colTime")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {auditLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  SEVERITY_VARIANT[log.severity] ?? "outline"
+                                }
+                              >
+                                {log.severity}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[220px] align-top">
+                              <p className="truncate font-medium">
+                                {log.event}
+                              </p>
+                              <p className="truncate text-muted-foreground text-xs">
+                                {log.userName ?? log.category}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  OUTCOME_VARIANT[log.outcome] ?? "outline"
+                                }
+                              >
+                                {log.outcome}
+                              </Badge>
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              className="text-muted-foreground text-xs whitespace-nowrap"
+                            >
+                              {formatDateTime(log.createdAt)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
