@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Button,
   Field,
   FieldLabel,
   Input,
@@ -53,6 +54,14 @@ interface ConfigFieldProps {
   item: ConfigItem;
   control: Control<Record<string, string>>;
 }
+
+const SESSION_MAX_AGE_PRESETS = [
+  { labelKey: "oneDay", seconds: 86_400 },
+  { labelKey: "sevenDays", seconds: 604_800 },
+  { labelKey: "thirtyDays", seconds: 2_592_000 },
+  { labelKey: "oneYear", seconds: 31_536_000 },
+  { labelKey: "forever", seconds: 2_147_483_647 },
+];
 
 export function ConfigField({ item, control }: ConfigFieldProps) {
   const t = useTranslations("Settings");
@@ -143,15 +152,40 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
           }
 
           return (
-            <Input
-              id={item.key}
-              type={item.type === "number" ? "number" : "text"}
-              value={field.value ?? ""}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
+            <div className="space-y-2">
+              <Input
+                id={item.key}
+                type={item.type === "number" ? "number" : "text"}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+              {item.group === "auth" && item.key === "session.maxAge" ? (
+                <div className="flex flex-wrap gap-2">
+                  {SESSION_MAX_AGE_PRESETS.map((preset) => {
+                    const isActive = field.value === String(preset.seconds);
+
+                    return (
+                      <Button
+                        key={preset.labelKey}
+                        type="button"
+                        variant={isActive ? "default" : "outline"}
+                        size="sm"
+                        aria-pressed={isActive}
+                        onClick={() => {
+                          field.onChange(String(preset.seconds));
+                          field.onBlur();
+                        }}
+                      >
+                        {t(`sessionMaxAgePresets.${preset.labelKey}`)}
+                      </Button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           );
         }}
       />

@@ -189,7 +189,14 @@
     "jsonPlaceholder": "Enter JSON",
     "addArrayItem": "Add",
     "arrayItemPlaceholder": "Enter item",
-    "selectPlaceholder": "Select an option"
+    "selectPlaceholder": "Select an option",
+    "sessionMaxAgePresets": {
+      "oneDay": "1 day",
+      "sevenDays": "7 days",
+      "thirtyDays": "30 days",
+      "oneYear": "1 year",
+      "forever": "Forever"
+    }
   },
   "Notifications": {
     "title": "Notification Management",

@@ -189,7 +189,14 @@
     "jsonPlaceholder": "请输入 JSON",
     "addArrayItem": "添加",
     "arrayItemPlaceholder": "请输入条目",
-    "selectPlaceholder": "请选择"
+    "selectPlaceholder": "请选择",
+    "sessionMaxAgePresets": {
+      "oneDay": "1 天",
+      "sevenDays": "7 天",
+      "thirtyDays": "30 天",
+      "oneYear": "1 年",
+      "forever": "永久"
+    }
   },
   "Notifications": {
     "title": "通知管理",
