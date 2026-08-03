@@ -29,6 +29,7 @@ import {
   BUILTIN_ROLE_FLAG,
   BUILTIN_USER_FLAG,
   ORGANIZATION_APP_CODE,
+  STUDYBUDDY_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
 import { nextRunFromNow } from "../src/lib/cron";
@@ -645,6 +646,52 @@ const organizationPermissions = [
   },
 ];
 
+// --- StudyBuddy App Permissions (org-scoped: granted to every org owner) ---
+const studybuddyPermissions = [
+  {
+    code: "org/studybuddy-exam:list",
+    group: "studybuddy-exam",
+    name: "List Exams",
+    description: "List exams in an organization",
+  },
+  {
+    code: "org/studybuddy-exam:create",
+    group: "studybuddy-exam",
+    name: "Create Exam",
+    description: "Create an exam in an organization",
+  },
+  {
+    code: "org/studybuddy-exam:update",
+    group: "studybuddy-exam",
+    name: "Update Exam",
+    description: "Update an exam in an organization",
+  },
+  {
+    code: "org/studybuddy-exam:delete",
+    group: "studybuddy-exam",
+    name: "Delete Exam",
+    description: "Delete an exam from an organization",
+  },
+  {
+    code: "org/studybuddy-submission:list",
+    group: "studybuddy-submission",
+    name: "List Submissions",
+    description: "List exam submissions in an organization",
+  },
+  {
+    code: "org/studybuddy-submission:upload",
+    group: "studybuddy-submission",
+    name: "Upload Submission",
+    description: "Upload an exam submission image",
+  },
+  {
+    code: "org/studybuddy-submission:grade",
+    group: "studybuddy-submission",
+    name: "Grade Submission",
+    description: "Grade or review an exam submission",
+  },
+];
+
 // --- Applications ---
 const applications = [
   {
@@ -656,6 +703,11 @@ const applications = [
     code: ORGANIZATION_APP_CODE,
     name: "Organization",
     description: "Organization workspace application",
+  },
+  {
+    code: STUDYBUDDY_APP_CODE,
+    name: "StudyBuddy",
+    description: "Study and exam-grading application",
   },
 ];
 
@@ -901,6 +953,40 @@ const organizationMenus = [
     url: "/organization/settings",
     sortOrder: 4,
     permissions: ["org/organization-settings:view"],
+  },
+];
+
+// --- StudyBuddy App Menus ---
+const studybuddyMenus = [
+  {
+    id: "studybuddy-dashboard",
+    code: "dashboard",
+    name: "Dashboard",
+    icon: "LayoutDashboard",
+    linkType: "INTERNAL" as const,
+    url: "/studybuddy/dashboard",
+    sortOrder: 0,
+    permissions: ["org/dashboard:view"],
+  },
+  {
+    id: "studybuddy-exams",
+    code: "exams",
+    name: "Exams",
+    icon: "FileText",
+    linkType: "INTERNAL" as const,
+    url: "/studybuddy/exams",
+    sortOrder: 1,
+    permissions: ["org/studybuddy-exam:list"],
+  },
+  {
+    id: "studybuddy-submissions",
+    code: "submissions",
+    name: "Submissions",
+    icon: "Upload",
+    linkType: "INTERNAL" as const,
+    url: "/studybuddy/submissions",
+    sortOrder: 2,
+    permissions: ["org/studybuddy-submission:list"],
   },
 ];
 
@@ -1510,6 +1596,13 @@ export async function seed(client: PrismaClient) {
     `  ${organizationPermissions.length} organization permissions ready.\n`,
   );
 
+  // 7b. StudyBuddy App Permissions (org-scoped)
+  console.log("StudyBuddy app permissions:");
+  const studybuddyPermIds = await upsertPermissions(studybuddyPermissions);
+  console.log(
+    `  ${studybuddyPermissions.length} studybuddy permissions ready.\n`,
+  );
+
   // 8. Admin Menus + Permissions
   console.log("Admin menus:");
   for (const menu of adminMenus) {
@@ -1525,6 +1618,17 @@ export async function seed(client: PrismaClient) {
     await linkMenuPermissions(menu.id, menu.permissions, orgPermIds);
   }
   console.log(`  ${organizationMenus.length} organization menus ready.\n`);
+
+  // 9b. StudyBuddy Menus + Permissions
+  // Dashboard reuses the shared "org/dashboard:view" permission (lives in
+  // orgPermIds); exams/submissions use the studybuddy-specific codes.
+  console.log("StudyBuddy menus:");
+  const studybuddyMenuPermIds = { ...orgPermIds, ...studybuddyPermIds };
+  for (const menu of studybuddyMenus) {
+    await upsertMenu(appRecords[STUDYBUDDY_APP_CODE], menu);
+    await linkMenuPermissions(menu.id, menu.permissions, studybuddyMenuPermIds);
+  }
+  console.log(`  ${studybuddyMenus.length} studybuddy menus ready.\n`);
 
   // 10. Platform Roles (system-scoped)
   console.log("Platform roles:");
@@ -1575,54 +1679,55 @@ export async function seed(client: PrismaClient) {
   console.log();
 
   // 16. Built-in Organization (Hapaul owned by hapaul user)
+  // Always re-provisions org roles so newly added org-scoped permissions
+  // (e.g. studybuddy) are synced to the Hapaul owner on every seed run.
   console.log("Built-in organizations:");
   const hapaulUserId = builtInUserRecords.hapaul;
   if (hapaulUserId) {
-    const existingOrg = await prisma.organization.findUnique({
-      where: { slug: "hapaul" },
-    });
-    if (!existingOrg) {
-      await prisma.$transaction(async (tx) => {
-        const org = await tx.organization.create({
+    await prisma.$transaction(async (tx) => {
+      let org = await tx.organization.findUnique({
+        where: { slug: "hapaul" },
+      });
+      if (!org) {
+        org = await tx.organization.create({
           data: {
             name: "Hapaul",
             slug: "hapaul",
             createdAt: new Date(),
           },
         });
-        await tx.member.upsert({
-          where: {
-            organizationId_userId: {
-              organizationId: org.id,
-              userId: hapaulUserId,
-            },
-          },
-          update: {},
-          create: {
-            organizationId: org.id,
+      }
+      const orgId = org.id;
+      await tx.member.upsert({
+        where: {
+          organizationId_userId: {
+            organizationId: orgId,
             userId: hapaulUserId,
-            createdAt: new Date(),
           },
-        });
-        const { ownerRoleId } = await provisionOrgRoles(tx, org.id);
-        await tx.roleAssignment.upsert({
-          where: {
-            userId_roleId: {
-              userId: hapaulUserId,
-              roleId: ownerRoleId,
-            },
-          },
-          update: {},
-          create: {
+        },
+        update: {},
+        create: {
+          organizationId: orgId,
+          userId: hapaulUserId,
+          createdAt: new Date(),
+        },
+      });
+      const { ownerRoleId } = await provisionOrgRoles(tx, orgId);
+      await tx.roleAssignment.upsert({
+        where: {
+          userId_roleId: {
             userId: hapaulUserId,
             roleId: ownerRoleId,
           },
-        });
+        },
+        update: {},
+        create: {
+          userId: hapaulUserId,
+          roleId: ownerRoleId,
+        },
       });
-      console.log(`  Hapaul organization created for hapaul user`);
-    } else {
-      console.log(`  Hapaul organization already exists, skipping`);
-    }
+    });
+    console.log(`  Hapaul organization ready (owner role synced)`);
   }
   console.log();
 

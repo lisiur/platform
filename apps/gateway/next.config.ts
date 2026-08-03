@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001";
     const ORGANIZATION_URL =
       process.env.NEXT_PUBLIC_ORGANIZATION_URL || "http://localhost:3002";
+    const STUDYBUDDY_URL =
+      process.env.NEXT_PUBLIC_STUDYBUDDY_URL || "http://localhost:3003";
     return {
       beforeFiles: [
         {
@@ -33,6 +35,18 @@ const nextConfig: NextConfig = {
         {
           source: "/organization-static/:path*",
           destination: `${ORGANIZATION_URL}/organization-static/:path*`,
+        },
+        {
+          source: "/studybuddy",
+          destination: `${STUDYBUDDY_URL}/studybuddy`,
+        },
+        {
+          source: "/studybuddy/:path*",
+          destination: `${STUDYBUDDY_URL}/studybuddy/:path*`,
+        },
+        {
+          source: "/studybuddy-static/:path*",
+          destination: `${STUDYBUDDY_URL}/studybuddy-static/:path*`,
         },
       ],
     };

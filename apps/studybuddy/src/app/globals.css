@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@repo/ui/styles.css";
+@import "@repo/frontend/styles.css";
+
+@layer base {
+  :root {
+    --header-height: 3.5rem;
+  }
+}
+
+div[data-slot="sidebar-container"] {
+  /* Match admin: keep the fixed sidebar below the app header. */
+  top: var(--header-height);
+  height: calc(100svh - var(--header-height));
+}

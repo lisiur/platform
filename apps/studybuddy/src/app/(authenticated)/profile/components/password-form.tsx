@@ -1,0 +1,125 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { passwordSchema } from "@repo/shared";
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  Input,
+} from "@repo/ui";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { appClient, withApiFeedback } from "@/lib/api";
+
+export function PasswordForm() {
+  const t = useTranslations("Profile");
+  const [saving, setSaving] = useState(false);
+
+  const formSchema = z
+    .object({
+      currentPassword: z
+        .string()
+        .min(1, t("validation.currentPasswordRequired")),
+      newPassword: passwordSchema(t("validation.newPasswordMin")),
+      confirmPassword: z
+        .string()
+        .min(1, t("validation.confirmPasswordRequired")),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t("validation.passwordsMismatch"),
+      path: ["confirmPassword"],
+    });
+
+  type PasswordInput = z.infer<typeof formSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<PasswordInput>({
+    resolver: zodResolver(formSchema),
+  });
+
+  async function onSubmit(data: PasswordInput) {
+    setSaving(true);
+    try {
+      await withApiFeedback(appClient.api.auth["change-password"].$post)({
+        json: {
+          newPassword: data.newPassword,
+          currentPassword: data.currentPassword,
+        },
+      });
+      toast.success(t("passwordChanged"));
+      reset();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("changePasswordFailed"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="currentPassword">
+            {t("currentPassword")}
+          </FieldLabel>
+          <Input
+            id="currentPassword"
+            type="password"
+            {...register("currentPassword")}
+          />
+          <FieldError
+            errors={
+              errors.currentPassword ? [errors.currentPassword] : undefined
+            }
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="newPassword">{t("newPassword")}</FieldLabel>
+          <Input
+            id="newPassword"
+            type="password"
+            {...register("newPassword")}
+          />
+          <FieldError
+            errors={errors.newPassword ? [errors.newPassword] : undefined}
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="confirmPassword">
+            {t("confirmPassword")}
+          </FieldLabel>
+          <Input
+            id="confirmPassword"
+            type="password"
+            {...register("confirmPassword")}
+          />
+          <FieldError
+            errors={
+              errors.confirmPassword ? [errors.confirmPassword] : undefined
+            }
+          />
+        </Field>
+      </FieldGroup>
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={saving}>
+          {saving ? t("changing") : t("changeBtn")}
+        </Button>
+      </div>
+    </form>
+  );
+}

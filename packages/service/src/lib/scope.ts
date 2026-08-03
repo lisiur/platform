@@ -1,4 +1,8 @@
-import { ADMIN_APP_CODE, ORGANIZATION_APP_CODE } from "@repo/shared";
+import {
+  ADMIN_APP_CODE,
+  ORGANIZATION_APP_CODE,
+  STUDYBUDDY_APP_CODE,
+} from "@repo/shared";
 
 export const SYSTEM_SCOPE = "system";
 
@@ -114,5 +118,6 @@ export function permissionScopeForRoleCode(roleCode: string): string {
 export function permissionScopeForAppCode(appCode: string): string {
   if (appCode === ADMIN_APP_CODE) return SYSTEM_SCOPE;
   if (appCode === ORGANIZATION_APP_CODE) return ORG_PERMISSION_SCOPE;
+  if (appCode === STUDYBUDDY_APP_CODE) return ORG_PERMISSION_SCOPE;
   throw new Error(`Unknown application code: ${appCode}`);
 }
