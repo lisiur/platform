@@ -98,7 +98,7 @@ export function AgentChat({
       {header}
       {isEmpty ? (
         <div className="flex min-h-0 flex-1 animate-in fade-in-0 flex-col items-center justify-center py-8 duration-200">
-          <div className="-translate-y-40 flex w-full flex-col items-center gap-6">
+          <div className="-translate-y-20 flex w-full flex-col items-center gap-6">
             <p className="animate-in fade-in-0 slide-in-from-bottom-2 text-center text-sm text-muted-foreground duration-200">
               {emptyState ?? t("chatEmpty")}
             </p>
