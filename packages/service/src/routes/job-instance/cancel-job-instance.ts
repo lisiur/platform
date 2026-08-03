@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
 import {
   deleteSuccessSchema,
   forbiddenResponse,
@@ -6,6 +7,7 @@ import {
   unauthorizedResponse,
 } from "#lib/openapi";
 import { jobInstanceService } from "#services/job-instance.service";
+import { assertAccess } from "#services/role-permission.service";
 import { jobInstanceIdParamSchema } from "./schema";
 
 export const cancelJobInstance = defineOpenAPIRoute({
@@ -34,6 +36,8 @@ export const cancelJobInstance = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/job:cancel");
     const { id } = c.req.valid("param");
     await jobInstanceService.cancelInstance(id);
 

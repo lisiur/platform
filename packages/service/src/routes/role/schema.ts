@@ -22,7 +22,16 @@ export const listRolesQuerySchema = z.object({
       SCOPE_PREFIX_REGEX,
       "scopePrefix must be 'system' or 'org:<organizationId>'",
     ),
+  limit: z.coerce.number().min(1).max(100).optional(),
+  offset: z.coerce.number().min(0).optional(),
 });
+
+export const listRolesResponseSchema = z
+  .object({
+    roles: roleSchema.array(),
+    total: z.number(),
+  })
+  .openapi("ListRolesResponse");
 
 export const createRoleBodySchema = z.object({
   name: z.string().min(1),

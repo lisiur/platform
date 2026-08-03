@@ -90,7 +90,7 @@ export function UserDialog({
         query: { scopePrefix: "system" },
       });
       const data = await res.json();
-      setRoles(data);
+      setRoles(data.roles);
     } catch {
       setRoles([]);
     } finally {

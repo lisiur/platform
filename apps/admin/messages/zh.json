@@ -818,6 +818,24 @@
       "browser": "浏览器"
     }
   },
+  "Dashboard": {
+    "welcome": "欢迎回来，{name}",
+    "welcomeDescription": "以下是平台的整体动态。",
+    "statUsers": "用户",
+    "statOrganizations": "组织",
+    "statRoles": "角色",
+    "statApplications": "应用",
+    "statUnread": "未读通知",
+    "jobsSnapshot": "任务",
+    "jobsProcessing": "处理中",
+    "jobsPending": "等待中",
+    "jobsCompleted": "已完成",
+    "jobsFailed": "失败",
+    "recentOperations": "近期操作",
+    "recentAudit": "近期审计",
+    "viewAll": "查看全部",
+    "noRecentActivity": "暂无近期动态"
+  },
   "Monitor": {
     "title": "系统监控",
     "description": "实时服务器资源与进程指标"

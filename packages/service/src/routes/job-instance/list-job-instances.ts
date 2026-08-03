@@ -1,6 +1,8 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
 import { forbiddenResponse, unauthorizedResponse } from "#lib/openapi";
 import { jobInstanceService } from "#services/job-instance.service";
+import { assertAccess } from "#services/role-permission.service";
 import {
   listJobInstancesQuerySchema,
   listJobInstancesResponseSchema,
@@ -32,6 +34,8 @@ export const listJobInstances = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/job:list");
     const query = c.req.valid("query");
     const result = await jobInstanceService.listInstances({
       status: query.status,

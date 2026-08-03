@@ -2,11 +2,17 @@ import { prisma } from "#lib/db";
 import { roleWhereByScope } from "#lib/scope";
 
 export const roleRepository = {
-  findByScopePrefix(scope: string) {
+  findByScopePrefix(scope: string, limit?: number, offset?: number) {
     return prisma.role.findMany({
       where: roleWhereByScope(scope),
       orderBy: { createdAt: "asc" },
+      take: limit,
+      skip: offset,
     });
+  },
+
+  countByScopePrefix(scope: string) {
+    return prisma.role.count({ where: roleWhereByScope(scope) });
   },
 
   findById(id: string) {

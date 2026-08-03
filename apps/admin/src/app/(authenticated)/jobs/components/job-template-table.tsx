@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
 import { appClient } from "@/lib/api";
+import { useHasPermission } from "@/lib/api/use-has-permission";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import {
@@ -50,6 +51,10 @@ interface JobTemplate {
 export function JobTemplateTable() {
   const t = useTranslations("Jobs");
   const confirm = useConfirm();
+  const canCreateJob = useHasPermission("system/job:create");
+  const canUpdateJob = useHasPermission("system/job:update");
+  const canDeleteJob = useHasPermission("system/job:delete");
+  const canTriggerJob = useHasPermission("system/job:trigger");
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -193,10 +198,12 @@ export function JobTemplateTable() {
             </button>
           )}
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t("addTemplate")}
-        </Button>
+        {canCreateJob && (
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t("addTemplate")}
+          </Button>
+        )}
       </div>
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">
@@ -253,7 +260,7 @@ export function JobTemplateTable() {
                   <TableCell>
                     <Switch
                       checked={tpl.enabled}
-                      disabled={togglingId === tpl.id}
+                      disabled={togglingId === tpl.id || !canUpdateJob}
                       onCheckedChange={() => handleToggleEnabled(tpl)}
                     />
                   </TableCell>
@@ -273,51 +280,57 @@ export function JobTemplateTable() {
                     className="bg-background text-right"
                   >
                     <ButtonGroup className="ml-auto">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("trigger")}
-                              onClick={() => handleTrigger(tpl)}
-                            >
-                              <Play />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("trigger")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("edit")}
-                              onClick={() => handleEdit(tpl)}
-                            >
-                              <Pencil />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("edit")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("remove")}
-                              onClick={() => handleDelete(tpl)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("remove")}</TooltipContent>
-                      </Tooltip>
+                      {canTriggerJob && (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t("trigger")}
+                                onClick={() => handleTrigger(tpl)}
+                              >
+                                <Play />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>{t("trigger")}</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {canUpdateJob && (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t("edit")}
+                                onClick={() => handleEdit(tpl)}
+                              >
+                                <Pencil />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>{t("edit")}</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {canDeleteJob && (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t("remove")}
+                                onClick={() => handleDelete(tpl)}
+                              >
+                                <Trash2 />
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>{t("remove")}</TooltipContent>
+                        </Tooltip>
+                      )}
                     </ButtonGroup>
                   </TableCell>
                 </TableRow>

@@ -6,21 +6,23 @@ import { API_ORIGIN, APP_CODE, useSession } from "@/lib/api";
 import { appClient } from "@/lib/api/app-client";
 import { withApiFeedback } from "@/lib/api/utils";
 
-export function useNotificationCount() {
+export function useNotificationCount(enabled = true) {
   const session = useSession();
   const invalidate = useInvalidateNotificationCount();
+
+  const ready = enabled && !session.isPending && !!session.data;
 
   useEventStream({
     origin: API_ORIGIN,
     appCode: APP_CODE,
     event: "notification.created",
-    enabled: !session.isPending && !!session.data,
+    enabled: ready,
     handler: () => invalidate(),
   });
 
   const query = useQuery({
     queryKey: ["notification-unread-count"],
-    enabled: !session.isPending && !!session.data,
+    enabled: ready,
     queryFn: async () => {
       const res = await withApiFeedback(
         appClient.api.notifications["unread-count"].$get,

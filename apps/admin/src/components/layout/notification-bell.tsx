@@ -18,6 +18,7 @@ import {
   useNotificationCount,
 } from "@/hooks/use-notification-count";
 import { appClient } from "@/lib/api/app-client";
+import { useHasPermission } from "@/lib/api/use-has-permission";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
 
@@ -32,7 +33,8 @@ type NotificationItem = {
 export function NotificationBell() {
   const t = useTranslations("NotificationBell");
   const [open, setOpen] = useState(false);
-  const { count } = useNotificationCount();
+  const canViewNotifications = useHasPermission("system/notification:list");
+  const { count } = useNotificationCount(canViewNotifications);
   const invalidateCount = useInvalidateNotificationCount();
   const queryClient = useQueryClient();
 
@@ -45,8 +47,10 @@ export function NotificationBell() {
       const data = await res.json();
       return data.notifications as NotificationItem[];
     },
-    enabled: open,
+    enabled: open && canViewNotifications,
   });
+
+  if (!canViewNotifications) return null;
 
   const notifications = listQuery.data ?? [];
 

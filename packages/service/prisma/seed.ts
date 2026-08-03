@@ -538,7 +538,11 @@ const systemPermissions = [
   { code: "system/job:list", group: "job", name: "List Jobs" },
   { code: "system/job:create", group: "job", name: "Create Job" },
   { code: "system/job:view", group: "job", name: "View Job" },
+  { code: "system/job:update", group: "job", name: "Update Job" },
+  { code: "system/job:delete", group: "job", name: "Delete Job" },
+  { code: "system/job:trigger", group: "job", name: "Trigger Job" },
   { code: "system/job:cancel", group: "job", name: "Cancel Job" },
+  { code: "system/dashboard:view", group: "dashboard", name: "View Dashboard" },
 ];
 
 // --- Organization App Permissions ---
@@ -657,6 +661,17 @@ const applications = [
 
 // --- Admin App Menus ---
 const adminMenus = [
+  // Dashboard
+  {
+    id: "dashboard",
+    code: "dashboard",
+    name: "Dashboard",
+    icon: "LayoutDashboard",
+    linkType: "INTERNAL" as const,
+    url: "/admin/dashboard",
+    sortOrder: 0,
+    permissions: ["system/dashboard:view"],
+  },
   // Platform Group
   {
     id: "platform",
@@ -665,7 +680,7 @@ const adminMenus = [
     icon: "ShieldCheck",
     linkType: "GROUP" as const,
     url: null,
-    sortOrder: 0,
+    sortOrder: 1,
     permissions: [],
   },
   {

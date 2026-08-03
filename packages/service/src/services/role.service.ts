@@ -81,6 +81,14 @@ export async function deleteRole(id: string) {
   return { name: role.name };
 }
 
-export async function listRoles(scopePrefix: string) {
-  return roleRepository.findByScopePrefix(scopePrefix);
+export async function listRoles(
+  scopePrefix: string,
+  limit?: number,
+  offset?: number,
+) {
+  const [roles, total] = await Promise.all([
+    roleRepository.findByScopePrefix(scopePrefix, limit, offset),
+    roleRepository.countByScopePrefix(scopePrefix),
+  ]);
+  return { roles, total };
 }

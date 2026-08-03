@@ -25,6 +25,7 @@ import { Eye, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appClient } from "@/lib/api";
+import { useHasPermission } from "@/lib/api/use-has-permission";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import { JobDetailSheet } from "./job-detail-sheet";
@@ -65,6 +66,7 @@ function statusVariant(status: string) {
 
 export function JobTable() {
   const t = useTranslations("Jobs");
+  const canCancelJob = useHasPermission("system/job:cancel");
   const [jobs, setJobs] = useState<JobInstance[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -290,7 +292,7 @@ export function JobTable() {
                         />
                         <TooltipContent>{t("view")}</TooltipContent>
                       </Tooltip>
-                      {job.status === "PENDING" && (
+                      {job.status === "PENDING" && canCancelJob && (
                         <Tooltip>
                           <TooltipTrigger
                             render={

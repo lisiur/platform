@@ -66,9 +66,10 @@ export function ApplicationRoleManagement({
         query: { scopePrefix: "system" },
       });
       const data = await res.json();
-      setRoles(data);
+      const roles = data.roles;
+      setRoles(roles);
       setSelectedRole((current) => {
-        if (current && data.some((role: Role) => role.id === current.id)) {
+        if (current && roles.some((role: Role) => role.id === current.id)) {
           return current;
         }
         return null;

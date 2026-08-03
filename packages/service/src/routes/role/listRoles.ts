@@ -7,7 +7,7 @@ import {
 } from "#lib/openapi";
 import { listRoles as listRolesService } from "#services/role.service";
 import { assertAccess } from "#services/role-permission.service";
-import { listRolesQuerySchema, roleSchema } from "./schema";
+import { listRolesQuerySchema, listRolesResponseSchema } from "./schema";
 
 export const listRoles = defineOpenAPIRoute({
   route: createRoute({
@@ -22,14 +22,14 @@ export const listRoles = defineOpenAPIRoute({
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
-      ...okResponseFn(roleSchema.array(), "List of roles"),
+      ...okResponseFn(listRolesResponseSchema, "List of roles"),
     },
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "system/role:list");
-    const { scopePrefix } = c.req.valid("query");
-    const roles = await listRolesService(scopePrefix);
-    return c.json(roles, 200);
+    const { scopePrefix, limit, offset } = c.req.valid("query");
+    const result = await listRolesService(scopePrefix, limit, offset);
+    return c.json(result, 200);
   },
 });

@@ -818,6 +818,24 @@
       "browser": "Browser"
     }
   },
+  "Dashboard": {
+    "welcome": "Welcome back, {name}",
+    "welcomeDescription": "Here's what's happening across the platform.",
+    "statUsers": "Users",
+    "statOrganizations": "Organizations",
+    "statRoles": "Roles",
+    "statApplications": "Applications",
+    "statUnread": "Unread Notifications",
+    "jobsSnapshot": "Jobs",
+    "jobsProcessing": "Processing",
+    "jobsPending": "Pending",
+    "jobsCompleted": "Completed",
+    "jobsFailed": "Failed",
+    "recentOperations": "Recent Operations",
+    "recentAudit": "Recent Audit",
+    "viewAll": "View all",
+    "noRecentActivity": "No recent activity"
+  },
   "Monitor": {
     "title": "System Monitor",
     "description": "Real-time server resource and process metrics"

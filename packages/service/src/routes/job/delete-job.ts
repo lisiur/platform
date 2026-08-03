@@ -1,4 +1,5 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
 import {
   deleteSuccessSchema,
   forbiddenResponse,
@@ -6,6 +7,7 @@ import {
   unauthorizedResponse,
 } from "#lib/openapi";
 import { jobTemplateService } from "#services/job-template.service";
+import { assertAccess } from "#services/role-permission.service";
 import { jobIdParamSchema } from "./schema";
 
 export const deleteJob = defineOpenAPIRoute({
@@ -35,6 +37,8 @@ export const deleteJob = defineOpenAPIRoute({
     },
   }),
   handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/job:delete");
     const { id } = c.req.valid("param");
     await jobTemplateService.deleteTemplate(id);
 

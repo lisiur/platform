@@ -14,19 +14,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
 import { formatTimeUntil } from "@/utils/date";
-
-interface ExecutorStats {
-  queueSize: number;
-  pending: number;
-  concurrency: number;
-  nextScheduledAt: string | null;
-  byStatus: {
-    PENDING: number;
-    PROCESSING: number;
-    COMPLETED: number;
-    FAILED: number;
-  };
-}
+import type { ExecutorStats } from "../types";
 
 function StatCard({
   icon,
