@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FieldGroup } from "@repo/ui";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -59,25 +59,38 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
     load();
   }, [group]);
 
-  const schema = z.object(
-    Object.fromEntries(items.map((item) => [item.key, z.string()])),
+  const schema = useMemo(
+    () =>
+      z.object(Object.fromEntries(items.map((item) => [item.key, z.string()]))),
+    [items],
   );
 
-  const form = useForm({
+  const form = useForm<Record<string, string>>({
     resolver: zodResolver(schema),
-    values: Object.fromEntries(items.map((item) => [item.key, item.value])),
   });
+
+  const { reset } = form;
+
+  useEffect(() => {
+    if (items.length > 0) {
+      reset(Object.fromEntries(items.map((item) => [item.key, item.value])));
+    }
+  }, [items, reset]);
+
+  const { isDirty } = form.formState;
 
   async function handleSave() {
     setSaving(true);
     try {
-      const dirty = form.formState.dirtyFields as Record<string, boolean>;
+      const currentValues = Object.fromEntries(
+        items.map((item) => [item.key, form.getValues(item.key)]),
+      );
       const payload = items
-        .filter((item) => dirty[item.key])
+        .filter((item) => currentValues[item.key] !== item.value)
         .map((item) => ({
           group: item.group,
           key: item.key,
-          value: form.getValues(item.key),
+          value: currentValues[item.key],
           schema:
             (item.schema as Record<string, unknown> | undefined) ?? undefined,
           type: item.type as "string" | "number" | "boolean" | "json",
@@ -87,6 +100,9 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
           mask: item.mask ?? undefined,
           sortOrder: item.sortOrder,
         }));
+      if (payload.length === 0) {
+        return;
+      }
       await withApiFeedback(appClient.api["system-config"].batch.$put)({
         json: {
           items: payload,
@@ -95,6 +111,12 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
       for (const item of payload) {
         updateConfig(item.group, item.key, item.value);
       }
+      setItems((prev) =>
+        prev.map((it) => ({
+          ...it,
+          value: currentValues[it.key] ?? it.value,
+        })),
+      );
       toast.success(t("saveSuccess"));
     } catch {
       // Error handled by API feedback.
@@ -113,13 +135,15 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
 
   return (
     <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
-      <FieldGroup>
-        {items.map((item) => (
-          <ConfigField key={item.key} item={item} control={form.control} />
-        ))}
-      </FieldGroup>
+      <fieldset disabled={saving} className="space-y-6">
+        <FieldGroup>
+          {items.map((item) => (
+            <ConfigField key={item.key} item={item} control={form.control} />
+          ))}
+        </FieldGroup>
+      </fieldset>
       <div className="flex justify-end">
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || !isDirty}>
           {saving ? t("saving") : t("save")}
         </Button>
       </div>
