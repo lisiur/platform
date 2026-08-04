@@ -18,18 +18,18 @@ export interface UseAgentConfigOptions {
 }
 
 export interface AgentConfigApi {
-  /** Resolved visual config; both flags default to `true` while loading. */
+  /** Resolved visual config; both flags default to `false` while loading. */
   config: AgentUiConfig;
   /** True until the first resolve (cached or fetched). */
   loading: boolean;
 }
 
-// Effective default before the first resolve: show everything, matching the
-// server default and the pre-existing behavior (reasoning shown, tool cards
-// shown) so there is no flash of hidden content on cold mount.
+// Effective default before the first resolve: hide everything, matching the
+// server default (reasoning hidden, tool cards hidden) so there is no flash
+// of shown content on cold mount.
 const DEFAULT_CONFIG: AgentUiConfig = {
-  showReasoning: true,
-  showToolCalls: true,
+  showReasoning: false,
+  showToolCalls: false,
 };
 
 // Module-level cache keyed by appCode. The visual config is app-scoped

@@ -97,14 +97,10 @@ export interface AiAgentUiConfig {
 /**
  * Resolves the app's AI Agent *visual* config — which chat UI parts the user
  * sees. Independent from the functional {@link AiAgentConfig.reasoning} level,
- * which only affects model behavior server-side. Both flags default to `true`
- * (any value other than `"false"` is treated as shown) so apps without this
- * group configured behave identically to before.
- *
- * Transitional fallback: when the `showReasoning` row is absent entirely (a
- * deployment that has not yet been re-seeded), the legacy coupling is applied
- * — reasoning is hidden iff the functional level is `"off"` — so existing apps
- * preserve their current UX until an admin sets the flag explicitly.
+ * which only affects model behavior server-side. Both flags default to `false`
+ * (not shown): a panel is shown only when its config value is explicitly
+ * `"true"`. Empty/unset values, missing rows, and `"false"` all resolve to
+ * hidden.
  */
 export async function loadAiAgentUiConfig(
   appId: string,
@@ -115,12 +111,8 @@ export async function loadAiAgentUiConfig(
       r.value,
     ]),
   );
-  const showReasoning = map.has("showReasoning")
-    ? map.get("showReasoning") !== "false"
-    : (await loadAiAgentConfig(appId)).reasoning !== "off";
-  const showToolCalls = map.has("showToolCalls")
-    ? map.get("showToolCalls") !== "false"
-    : true;
+  const showReasoning = map.get("showReasoning") === "true";
+  const showToolCalls = map.get("showToolCalls") === "true";
   return { showReasoning, showToolCalls };
 }
 

@@ -289,14 +289,16 @@ const aiAgentConfigFields = [
 /**
  * AI Agent *visual* config field definitions — which chat UI parts the user
  * sees. Independent from the functional `reasoning` level above. Seeded with
- * `value: "true"` so the boolean checkbox reflects the effective default
- * (shown); the loader treats anything other than `"false"` as shown.
+ * an empty value so the env fallback (`AI_AGENT_UI_SHOW_REASONING` /
+ * `AI_AGENT_UI_SHOW_TOOL_CALLS`) takes precedence; when the env var is also
+ * unset, the loader treats the empty value as "not shown" (a panel is shown
+ * only when its value is explicitly `"true"`).
  */
 const aiAgentUiConfigFields = [
   {
     group: "ai-agent-ui",
     key: "showReasoning",
-    value: "true",
+    value: "",
     type: "boolean",
     label: "settings.fields.aiAgentShowReasoning",
     description: "settings.fieldsDesc.aiAgentShowReasoning",
@@ -306,7 +308,7 @@ const aiAgentUiConfigFields = [
   {
     group: "ai-agent-ui",
     key: "showToolCalls",
-    value: "true",
+    value: "",
     type: "boolean",
     label: "settings.fields.aiAgentShowToolCalls",
     description: "settings.fieldsDesc.aiAgentShowToolCalls",
