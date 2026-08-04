@@ -824,17 +824,6 @@ const adminMenus = [
     permissions: ["system/rate-limit:manage"],
   },
   {
-    id: "attachments",
-    code: "attachments",
-    name: "Attachments",
-    icon: "Upload",
-    linkType: "INTERNAL" as const,
-    url: "/admin/attachments",
-    parentId: "infrastructure",
-    sortOrder: 9,
-    permissions: ["system/attachment:list"],
-  },
-  {
     id: "settings",
     code: "settings",
     name: "Settings",
@@ -857,6 +846,17 @@ const adminMenus = [
     permissions: [],
   },
   {
+    id: "attachments",
+    code: "attachments",
+    name: "Attachments",
+    icon: "Upload",
+    linkType: "INTERNAL" as const,
+    url: "/admin/attachments",
+    parentId: "developer",
+    sortOrder: 12,
+    permissions: ["system/attachment:list"],
+  },
+  {
     id: "monitor",
     code: "monitor",
     name: "Monitor",
@@ -864,7 +864,7 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/monitor",
     parentId: "developer",
-    sortOrder: 12,
+    sortOrder: 13,
     permissions: ["system/system-info:view"],
   },
   {
@@ -875,7 +875,7 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/logs",
     parentId: "developer",
-    sortOrder: 13,
+    sortOrder: 14,
     permissions: ["system/audit-log:list", "system/operation-log:list"],
   },
   {
@@ -886,7 +886,7 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/jobs",
     parentId: "developer",
-    sortOrder: 14,
+    sortOrder: 15,
     permissions: ["system/job:list"],
   },
   {
@@ -897,7 +897,7 @@ const adminMenus = [
     linkType: "INTERNAL" as const,
     url: "/admin/cache",
     parentId: "developer",
-    sortOrder: 15,
+    sortOrder: 16,
     permissions: ["system/cache:view"],
   },
 ];
