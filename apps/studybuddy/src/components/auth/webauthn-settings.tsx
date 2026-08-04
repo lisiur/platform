@@ -14,8 +14,10 @@ import {
   FieldLabel,
   Input,
 } from "@repo/ui";
-import { startRegistration } from "@simplewebauthn/browser";
-import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
+import {
+  type PublicKeyCredentialCreationOptionsJSON,
+  startRegistration,
+} from "@simplewebauthn/browser";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { appClient } from "@/lib/api";

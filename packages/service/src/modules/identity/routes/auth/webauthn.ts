@@ -2,7 +2,7 @@ import { createRoute, defineOpenAPIRoute, z } from "@hono/zod-openapi";
 import type {
   AuthenticationResponseJSON,
   RegistrationResponseJSON,
-} from "@simplewebauthn/types";
+} from "@simplewebauthn/server";
 import { HTTPException } from "hono/http-exception";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { getClientIpFromContextOrNull } from "#lib/get-client-ip";

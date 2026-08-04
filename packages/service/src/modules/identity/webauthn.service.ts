@@ -1,12 +1,10 @@
 import type {
-  VerifiedAuthenticationResponse,
-  VerifiedRegistrationResponse,
-} from "@simplewebauthn/server";
-import type {
   AuthenticationResponseJSON,
   AuthenticatorTransportFuture,
   RegistrationResponseJSON,
-} from "@simplewebauthn/types";
+  VerifiedAuthenticationResponse,
+  VerifiedRegistrationResponse,
+} from "@simplewebauthn/server";
 import { HTTPException } from "hono/http-exception";
 import { getWebAuthnProviderData } from "#lib/account-provider-data";
 import { prisma } from "#lib/db";

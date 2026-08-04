@@ -15,8 +15,10 @@ import {
   Input,
   InputPassword,
 } from "@repo/ui";
-import { startAuthentication } from "@simplewebauthn/browser";
-import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
+import {
+  type PublicKeyCredentialRequestOptionsJSON,
+  startAuthentication,
+} from "@simplewebauthn/browser";
 import { UserKey } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
