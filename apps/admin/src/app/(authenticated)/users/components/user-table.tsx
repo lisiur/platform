@@ -11,9 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Pencil, Plus, RotateCcwKey, Shield, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -194,56 +192,38 @@ export function UserTable() {
                 <TableCell>{formatDate(user.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
                   <ButtonGroup className="ml-auto">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("edit")}
-                            onClick={() => setEditUser(user)}
-                          >
-                            <Pencil />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("edit")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("resetPassword")}
-                            onClick={() => setResetUser(user)}
-                          >
-                            <RotateCcwKey />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("resetPassword")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("edit")}
+                      tooltip={t("edit")}
+                      onClick={() => setEditUser(user)}
+                    >
+                      <Pencil />
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("resetPassword")}
+                      tooltip={t("resetPassword")}
+                      onClick={() => setResetUser(user)}
+                    >
+                      <RotateCcwKey />
+                    </TooltipButton>
                     {builtinUser ? (
                       <Button variant="ghost" size="icon-sm" disabled>
                         <Trash2 />
                       </Button>
                     ) : (
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("delete")}
-                              onClick={() => handleDelete(user)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("delete")}</TooltipContent>
-                      </Tooltip>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("delete")}
+                        tooltip={t("delete")}
+                        onClick={() => handleDelete(user)}
+                      >
+                        <Trash2 />
+                      </TooltipButton>
                     )}
                   </ButtonGroup>
                 </TableCell>

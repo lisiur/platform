@@ -2,7 +2,6 @@
 
 import {
   Badge,
-  Button,
   ButtonGroup,
   Spinner,
   Table,
@@ -11,9 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FlaskConical, Pencil } from "lucide-react";
@@ -133,36 +130,24 @@ export function NotificationTemplateTable() {
                 <TableCell>{formatDate(template.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
                   <ButtonGroup className="ml-auto">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("actions.edit")}
-                            onClick={() => setEditTemplate(template)}
-                          >
-                            <Pencil />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("actions.edit")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("actions.test")}
-                            onClick={() => setTestTemplate(template)}
-                          >
-                            <FlaskConical />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("actions.test")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("actions.edit")}
+                      tooltip={t("actions.edit")}
+                      onClick={() => setEditTemplate(template)}
+                    >
+                      <Pencil />
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("actions.test")}
+                      tooltip={t("actions.test")}
+                      onClick={() => setTestTemplate(template)}
+                    >
+                      <FlaskConical />
+                    </TooltipButton>
                   </ButtonGroup>
                 </TableCell>
               </TableRow>

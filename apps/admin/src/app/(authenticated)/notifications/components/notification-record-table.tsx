@@ -16,9 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Eye } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -240,21 +238,15 @@ export function NotificationRecordTable() {
                       <Eye />
                     </Button>
                   ) : (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("records.view")}
-                            onClick={() => handleViewRecord(record.id)}
-                          >
-                            <Eye />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("records.view")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("records.view")}
+                      tooltip={t("records.view")}
+                      onClick={() => handleViewRecord(record.id)}
+                    >
+                      <Eye />
+                    </TooltipButton>
                   )}
                 </ButtonGroup>
               </TableCell>

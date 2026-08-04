@@ -2,7 +2,6 @@
 
 import {
   Badge,
-  Button,
   ButtonGroup,
   Spinner,
   Table,
@@ -11,9 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
@@ -129,21 +126,15 @@ export function NotificationChannelTable() {
                 <TableCell>{formatDate(channel.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
                   <ButtonGroup className="ml-auto">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("actions.edit")}
-                            onClick={() => setEditChannel(channel)}
-                          >
-                            <Pencil />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("actions.edit")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("actions.edit")}
+                      tooltip={t("actions.edit")}
+                      onClick={() => setEditChannel(channel)}
+                    >
+                      <Pencil />
+                    </TooltipButton>
                   </ButtonGroup>
                 </TableCell>
               </TableRow>

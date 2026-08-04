@@ -32,6 +32,7 @@ export * from "./components/tabs";
 export * from "./components/textarea";
 export * from "./components/tiptap";
 export * from "./components/tooltip";
+export * from "./components/tooltip-button";
 export * from "./components/tree-view";
 export * from "./hooks/use-is-mobile";
 export * from "./utils/cn";

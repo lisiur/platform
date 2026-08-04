@@ -13,9 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Eye, Info, Replace, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -279,66 +277,42 @@ export function AttachmentTable() {
                     className="bg-background text-right"
                   >
                     <ButtonGroup className="ml-auto">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("viewFile")}
-                              onClick={() => handleViewFile(attachment)}
-                            >
-                              <Eye />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("viewFile")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("detail")}
-                              onClick={() => setDetailAttachment(attachment)}
-                            >
-                              <Info />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("detail")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("replace")}
-                              onClick={() => setReplaceAttachment(attachment)}
-                            >
-                              <Replace />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("replace")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("delete")}
-                              onClick={() => handleSingleDelete(attachment)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("delete")}</TooltipContent>
-                      </Tooltip>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("viewFile")}
+                        tooltip={t("viewFile")}
+                        onClick={() => handleViewFile(attachment)}
+                      >
+                        <Eye />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("detail")}
+                        tooltip={t("detail")}
+                        onClick={() => setDetailAttachment(attachment)}
+                      >
+                        <Info />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("replace")}
+                        tooltip={t("replace")}
+                        onClick={() => setReplaceAttachment(attachment)}
+                      >
+                        <Replace />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("delete")}
+                        tooltip={t("delete")}
+                        onClick={() => handleSingleDelete(attachment)}
+                      >
+                        <Trash2 />
+                      </TooltipButton>
                     </ButtonGroup>
                   </TableCell>
                 </TableRow>

@@ -3,7 +3,6 @@
 import { DataTablePagination } from "@repo/frontend";
 import {
   Badge,
-  Button,
   ButtonGroup,
   Spinner,
   Table,
@@ -12,9 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Eye, GitBranch } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -250,37 +247,25 @@ export function AuditLogTable({
                   >
                     <ButtonGroup className="ml-auto">
                       {onTraceChange && (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t("trace")}
-                                onClick={() => onTraceChange(log.traceId)}
-                              >
-                                <GitBranch />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>{t("trace")}</TooltipContent>
-                        </Tooltip>
+                        <TooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("trace")}
+                          tooltip={t("trace")}
+                          onClick={() => onTraceChange(log.traceId)}
+                        >
+                          <GitBranch />
+                        </TooltipButton>
                       )}
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("viewDetail")}
-                              onClick={() => setDetailLog(log)}
-                            >
-                              <Eye />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("viewDetail")}</TooltipContent>
-                      </Tooltip>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("viewDetail")}
+                        tooltip={t("viewDetail")}
+                        onClick={() => setDetailLog(log)}
+                      >
+                        <Eye />
+                      </TooltipButton>
                     </ButtonGroup>
                   </TableCell>
                 </TableRow>

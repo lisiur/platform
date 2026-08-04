@@ -17,9 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Play, PlayOff, Plus, Trash2 } from "lucide-react";
@@ -184,40 +182,24 @@ export function TokenTable() {
                 </TableCell>
                 <TableCell sticky="right" align="right">
                   <ButtonGroup className="ml-auto">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={
-                              token.enabled ? t("disable") : t("enable")
-                            }
-                            onClick={() => handleToggle(token, !token.enabled)}
-                          >
-                            {token.enabled ? <PlayOff /> : <Play />}
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>
-                        {token.enabled ? t("disable") : t("enable")}
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("revoke")}
-                            onClick={() => handleDelete(token)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("revoke")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={token.enabled ? t("disable") : t("enable")}
+                      tooltip={token.enabled ? t("disable") : t("enable")}
+                      onClick={() => handleToggle(token, !token.enabled)}
+                    >
+                      {token.enabled ? <PlayOff /> : <Play />}
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("revoke")}
+                      tooltip={t("revoke")}
+                      onClick={() => handleDelete(token)}
+                    >
+                      <Trash2 />
+                    </TooltipButton>
                   </ButtonGroup>
                 </TableCell>
               </TableRow>

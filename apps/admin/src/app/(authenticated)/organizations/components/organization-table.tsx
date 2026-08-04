@@ -10,9 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -141,36 +139,24 @@ export function OrganizationTable() {
               <TableCell>{formatDate(org.createdAt)}</TableCell>
               <TableCell sticky="right" align="right">
                 <ButtonGroup className="ml-auto">
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("edit")}
-                          onClick={() => setEditOrg(org)}
-                        >
-                          <Pencil />
-                        </Button>
-                      }
-                    />
-                    <TooltipContent>{t("edit")}</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("delete")}
-                          onClick={() => handleDelete(org)}
-                        >
-                          <Trash2 />
-                        </Button>
-                      }
-                    />
-                    <TooltipContent>{t("delete")}</TooltipContent>
-                  </Tooltip>
+                  <TooltipButton
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("edit")}
+                    tooltip={t("edit")}
+                    onClick={() => setEditOrg(org)}
+                  >
+                    <Pencil />
+                  </TooltipButton>
+                  <TooltipButton
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("delete")}
+                    tooltip={t("delete")}
+                    onClick={() => handleDelete(org)}
+                  >
+                    <Trash2 />
+                  </TooltipButton>
                 </ButtonGroup>
               </TableCell>
             </TableRow>

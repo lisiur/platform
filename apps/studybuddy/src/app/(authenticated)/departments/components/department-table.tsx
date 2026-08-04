@@ -11,9 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderTree, Pencil, Plus, Trash2, Users } from "lucide-react";
@@ -161,66 +159,42 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                 <TableCell>{formatDate(dept.createdAt)}</TableCell>
                 <TableCell sticky="right" align="right">
                   <ButtonGroup className="ml-auto">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("manage")}
-                            onClick={() => handleNavigate(dept.id)}
-                          >
-                            <FolderTree />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("manage")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("manageMembers")}
-                            onClick={() => setManageMembersDept(dept)}
-                          >
-                            <Users />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("manageMembers")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("edit")}
-                            onClick={() => setEditDepartment(dept)}
-                          >
-                            <Pencil />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("edit")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("delete")}
-                            onClick={() => handleDelete(dept)}
-                          >
-                            <Trash2 />
-                          </Button>
-                        }
-                      />
-                      <TooltipContent>{t("delete")}</TooltipContent>
-                    </Tooltip>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("manage")}
+                      tooltip={t("manage")}
+                      onClick={() => handleNavigate(dept.id)}
+                    >
+                      <FolderTree />
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("manageMembers")}
+                      tooltip={t("manageMembers")}
+                      onClick={() => setManageMembersDept(dept)}
+                    >
+                      <Users />
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("edit")}
+                      tooltip={t("edit")}
+                      onClick={() => setEditDepartment(dept)}
+                    >
+                      <Pencil />
+                    </TooltipButton>
+                    <TooltipButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t("delete")}
+                      tooltip={t("delete")}
+                      onClick={() => handleDelete(dept)}
+                    >
+                      <Trash2 />
+                    </TooltipButton>
                   </ButtonGroup>
                 </TableCell>
               </TableRow>

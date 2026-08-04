@@ -3,7 +3,6 @@
 import type { Application } from "@repo/frontend";
 import { PaginatedTableFrame } from "@repo/frontend";
 import {
-  Button,
   ButtonGroup,
   Input,
   TableBody,
@@ -11,9 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Search, Settings } from "lucide-react";
 import Image from "next/image";
@@ -138,21 +135,15 @@ export function AppTable() {
             <TableCell>{formatDate(app.createdAt)}</TableCell>
             <TableCell sticky="right" align="right">
               <ButtonGroup className="ml-auto">
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("settings")}
-                        onClick={() => router.push(`/applications/${app.id}`)}
-                      >
-                        <Settings />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>{t("settings")}</TooltipContent>
-                </Tooltip>
+                <TooltipButton
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("settings")}
+                  tooltip={t("settings")}
+                  onClick={() => router.push(`/applications/${app.id}`)}
+                >
+                  <Settings />
+                </TooltipButton>
               </ButtonGroup>
             </TableCell>
           </TableRow>

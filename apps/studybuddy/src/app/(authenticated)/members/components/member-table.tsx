@@ -10,9 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+  TooltipButton,
 } from "@repo/ui";
 import { Crown, FolderTree, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -178,71 +176,47 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
                 <TableCell sticky="right" align="right">
                   {canManage && (
                     <ButtonGroup className="ml-auto">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("editMember")}
-                              onClick={() => setEditMember(member)}
-                            >
-                              <Pencil />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("editMember")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("manageDepartment")}
-                              onClick={() => setManageDepartmentMember(member)}
-                            >
-                              <FolderTree />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("manageDepartment")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("managePositions")}
-                              onClick={() => setManagePositionsMember(member)}
-                            >
-                              <Crown />
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>{t("managePositions")}</TooltipContent>
-                      </Tooltip>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("editMember")}
+                        tooltip={t("editMember")}
+                        onClick={() => setEditMember(member)}
+                      >
+                        <Pencil />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("manageDepartment")}
+                        tooltip={t("manageDepartment")}
+                        onClick={() => setManageDepartmentMember(member)}
+                      >
+                        <FolderTree />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("managePositions")}
+                        tooltip={t("managePositions")}
+                        onClick={() => setManagePositionsMember(member)}
+                      >
+                        <Crown />
+                      </TooltipButton>
                       {isSelf ? (
                         <Button variant="ghost" size="icon-sm" disabled>
                           <Trash2 />
                         </Button>
                       ) : (
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t("removeMember")}
-                                onClick={() => handleRemove(member)}
-                              >
-                                <Trash2 />
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>{t("removeMember")}</TooltipContent>
-                        </Tooltip>
+                        <TooltipButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("removeMember")}
+                          tooltip={t("removeMember")}
+                          onClick={() => handleRemove(member)}
+                        >
+                          <Trash2 />
+                        </TooltipButton>
                       )}
                     </ButtonGroup>
                   )}
