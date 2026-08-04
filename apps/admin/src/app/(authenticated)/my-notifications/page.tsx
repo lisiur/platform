@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { ManagementPageShell } from "@/components/management-page-shell";
 import { NotificationList } from "./components/notification-list";
 
-export default function NotificationsPage() {
+export default function MyNotificationsPage() {
   const t = useTranslations("Frontend.userNotifications");
 
   return (

@@ -1056,6 +1056,26 @@
       "of": "/",
       "previous": "上一页",
       "next": "下一页"
+    },
+    "userNotifications": {
+      "title": "通知",
+      "description": "你的近期动态与消息",
+      "all": "全部",
+      "unread": "未读",
+      "markAllRead": "全部标为已读",
+      "markRead": "标为已读",
+      "viewAll": "查看全部通知",
+      "empty": "已全部读完",
+      "noNotifications": "暂无通知",
+      "markAllReadSuccess": "已将全部通知标为已读",
+      "justNow": "刚刚",
+      "read": "已读",
+      "columns": {
+        "notification": "通知",
+        "status": "状态",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      }
     }
   },
   "RateLimit": {

@@ -5,7 +5,7 @@ import { ManagementPageShell } from "@/components/management-page-shell";
 import { NotificationList } from "./components/notification-list";
 
 export default function NotificationsPage() {
-  const t = useTranslations("Notifications");
+  const t = useTranslations("Frontend.userNotifications");
 
   return (
     <ManagementPageShell title={t("title")} description={t("description")}>

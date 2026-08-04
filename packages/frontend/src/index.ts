@@ -9,6 +9,12 @@ export type {
 } from "./components/agent-launcher/agent-panel";
 export { AgentPanel } from "./components/agent-launcher/agent-panel";
 export { DataTablePagination } from "./components/data-table-pagination";
+export type { NotificationBellProps } from "./components/notification-bell";
+export { NotificationBell } from "./components/notification-bell";
+export type { NotificationItemProps } from "./components/notification-item";
+export { NotificationItem } from "./components/notification-item";
+export type { NotificationListProps } from "./components/notification-list";
+export { NotificationList } from "./components/notification-list";
 export { PaginatedTableFrame } from "./components/paginated-table-frame";
 export type {
   FetchPageParams,
@@ -45,12 +51,25 @@ export { useRegistrationEnabled } from "./hooks/use-registration-enabled";
 export { useWebAuthnEnabled } from "./hooks/use-webauthn-enabled";
 export { withApiFeedback } from "./lib/api-utils";
 export { createAppClient } from "./lib/create-app-client";
-export { formatDate, formatDateTime, formatTimeUntil } from "./lib/date";
+export {
+  formatDate,
+  formatDateTime,
+  formatRelativeTime,
+  formatTimeUntil,
+} from "./lib/date";
 export { detectDevicePlatform, isWebAuthnCancellation } from "./lib/device";
 export { formatBytes } from "./lib/format";
 export { Loader, loading } from "./lib/loading";
 export { toast } from "./lib/toast";
 export { type WithFeedbackConfig, withFeedback } from "./lib/with-feedback";
+export type {
+  ListNotificationsResult,
+  NotificationAppClient,
+  NotificationHooks,
+  NotificationHooksDeps,
+} from "./notifications/create-notification-hooks";
+export { createNotificationHooks } from "./notifications/create-notification-hooks";
+export type { UserNotification } from "./notifications/types";
 export {
   createMenuStore,
   getFirstMenuUrl,

@@ -28,9 +28,9 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ExecutorStats } from "@/app/(authenticated)/jobs/types";
-import { useNotificationCount } from "@/hooks/use-notification-count";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { useHasPermission } from "@/lib/api/use-has-permission";
+import { useUnreadNotificationCount } from "@/lib/notifications";
 import { formatDateTime } from "@/utils/date";
 import { StatCard } from "./stat-card";
 
@@ -117,7 +117,8 @@ export function DashboardOverview() {
   const canViewOperationLogs = useHasPermission("system/operation-log:list");
   const canViewAuditLogs = useHasPermission("system/audit-log:list");
   const canViewJobs = useHasPermission("system/job:view");
-  const { count: unreadCount } = useNotificationCount(canViewNotifications);
+  const { data: unreadCount } =
+    useUnreadNotificationCount(canViewNotifications);
 
   const usersQuery = useQuery({
     queryKey: ["dashboard", "users-count"],
