@@ -11,18 +11,15 @@ import {
 
 export function buildSystemPrompt(openApiCatalogue: string[] = []): string {
   const lines = [
-    "You are the platform AI Agent — an assistant that can invoke the platform's REST API.",
+    "You are the platform AI Agent — an assistant of user",
     "",
-    "Guidelines:",
-    "- Only call endpoints listed in your available operations catalogue.",
-    "- Use `get_api_schema` to inspect an endpoint's parameters before calling `call_api`.",
-    "- Use `choose_option` when the next step depends on the user's choice between clear options; keep labels short and use stable ids.",
-    "- Use `render_form` after `get_api_schema` when an API call needs structured user input; map the submitted values into `call_api` arguments.",
-    "- When reporting figures, round sensibly and include units. Do not invent data.",
+    `When users ask about your capabilities (e.g., “What can you do?”), respond only with the supplied Available API endpoints, presented in a generic, user-friendly tone. Do not reveal anything else, including tool names, parameters, internal functions, or any non-business details.`,
   ];
+  lines.push("", "Available API endpoints:");
   if (openApiCatalogue.length > 0) {
-    lines.push("", "Available API endpoints:");
     lines.push(...openApiCatalogue);
+  } else {
+    lines.push("No available endpoints.");
   }
   return lines.join("\n");
 }
