@@ -11,13 +11,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@repo/ui";
 import { Check, CheckCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { usePaginatedQuery } from "../hooks/use-paginated-query";
 import { withApiFeedback } from "../lib/api-utils";
-import { formatRelativeTime } from "../lib/date";
+import { formatDateTime } from "../lib/date";
 import { toast } from "../lib/toast";
 import type {
   ListNotificationsResult,
@@ -80,7 +83,6 @@ function NotificationItems({
         <TableRow>
           <TableHead>{t("columns.notification")}</TableHead>
           <TableHead className="w-32">{t("columns.status")}</TableHead>
-          <TableHead className="w-36">{t("columns.createdAt")}</TableHead>
           <TableHead sticky="right" align="right" className="w-24">
             {t("columns.actions")}
           </TableHead>
@@ -89,37 +91,25 @@ function NotificationItems({
       <TableBody>
         {items.map((notification) => {
           const unread = notification.readAt === null;
-          const relative = formatRelativeTime(notification.createdAt);
-          const time = relative ?? t("justNow");
+          const time = formatDateTime(notification.createdAt);
 
           return (
             <TableRow key={notification.id}>
               <TableCell className="min-w-80 max-w-0">
-                <div className="flex min-w-0 items-start gap-3">
-                  <span
+                <div className="min-w-0 space-y-1">
+                  <p
                     className={cn(
-                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                      unread ? "bg-primary" : "bg-transparent",
+                      "truncate text-sm",
+                      unread
+                        ? "font-semibold"
+                        : "font-medium text-muted-foreground",
                     )}
-                    aria-hidden
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <p
-                      className={cn(
-                        "truncate text-sm",
-                        unread
-                          ? "font-semibold"
-                          : "font-medium text-muted-foreground",
-                      )}
-                    >
-                      {notification.renderedTitle || notification.renderedBody}
-                    </p>
-                    {notification.renderedTitle && (
-                      <p className="line-clamp-2 text-muted-foreground text-xs">
-                        {notification.renderedBody}
-                      </p>
-                    )}
-                  </div>
+                  >
+                    {notification.renderedTitle || notification.renderedBody}
+                  </p>
+                  <p className="whitespace-nowrap text-muted-foreground text-xs">
+                    {time}
+                  </p>
                 </div>
               </TableCell>
               <TableCell>
@@ -127,22 +117,27 @@ function NotificationItems({
                   {unread ? t("unread") : t("read")}
                 </Badge>
               </TableCell>
-              <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
-                {time}
-              </TableCell>
               <TableCell sticky="right" align="right">
-                {unread ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    disabled={markRead.isPending}
-                    onClick={() => markRead.mutate(notification.id)}
-                  >
-                    <Check />
-                    <span className="sr-only">{t("markRead")}</span>
-                  </Button>
-                ) : null}
+                <ButtonGroup className="ml-auto">
+                  {unread ? (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t("markRead")}
+                            disabled={markRead.isPending}
+                            onClick={() => markRead.mutate(notification.id)}
+                          >
+                            <Check />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>{t("markRead")}</TooltipContent>
+                    </Tooltip>
+                  ) : null}
+                </ButtonGroup>
               </TableCell>
             </TableRow>
           );
