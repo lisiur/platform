@@ -32,9 +32,9 @@ import {
   STUDYBUDDY_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
-import { nextRunFromNow } from "../src/lib/cron";
-import { provisionOrgRoles } from "../src/lib/org-role";
-import { hashPassword } from "../src/lib/password";
+import { nextRunFromNow } from "#lib/cron";
+import { provisionOrgRoles } from "#lib/org-role";
+import { hashPassword } from "#lib/password";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 // ============================================================

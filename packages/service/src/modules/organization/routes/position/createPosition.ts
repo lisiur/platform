@@ -1,0 +1,69 @@
+import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
+import { logAudit } from "#lib/logger";
+import {
+  badRequestResponse,
+  createdResponseFn,
+  forbiddenResponse,
+  unauthorizedResponse,
+} from "#lib/openapi";
+import { orgScope } from "#lib/scope";
+import { assertAccess } from "#modules/access-control/public";
+import { createPosition } from "#modules/organization/position.service";
+import {
+  createPositionBodySchema,
+  errorSchema,
+  orgIdParamSchema,
+  positionSchema,
+} from "./schema";
+
+export const createPositionRoute = defineOpenAPIRoute({
+  route: createRoute({
+    operationId: "createPosition",
+    method: "post",
+    path: "/{orgId}/positions",
+    tags: ["Position"],
+    summary: "Create a position",
+    description: "Create a new position in an organization.",
+    request: {
+      params: orgIdParamSchema,
+      body: {
+        content: {
+          "application/json": {
+            schema: createPositionBodySchema,
+          },
+        },
+        required: true,
+      },
+    },
+    responses: {
+      ...unauthorizedResponse,
+      ...forbiddenResponse,
+      ...badRequestResponse,
+      409: {
+        content: {
+          "application/json": { schema: errorSchema },
+        },
+        description: "Code already taken",
+      },
+      ...createdResponseFn(positionSchema, "The created position"),
+    },
+  }),
+  handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    const { orgId } = c.req.valid("param");
+    const body = c.req.valid("json");
+
+    await assertAccess(principal, "org/position:create", orgScope(orgId));
+
+    const position = await createPosition(orgId, body);
+
+    logAudit({
+      event: "position.created",
+      category: "position",
+      c,
+    });
+
+    return c.json(position, 201);
+  },
+});

@@ -18,14 +18,14 @@ import { bodyLimit } from "#middleware/body-limit";
 import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
 import { traceContext } from "#middleware/trace-context";
-import { loadAuthDefaults } from "#services/auth-config.service";
+import { loadAuthDefaults } from "#modules/identity/auth-config.service";
+import { jobExecutor } from "#modules/jobs/public";
 import {
   initRateLimitDefaults,
   initRateLimitOverrides,
-} from "#services/rate-limit.service";
-import { jobExecutor } from "#states";
+} from "#modules/system/rate-limit.service";
 import { seed } from "../prisma/seed";
-import { routes } from "./routes";
+import { routes } from "./modules";
 
 (async () => {
   const adminApp = await prisma.application.findUnique({

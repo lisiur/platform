@@ -1,0 +1,47 @@
+import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
+import { logAudit } from "#lib/logger";
+import {
+  forbiddenResponse,
+  notFoundResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
+import { assertAccess } from "#modules/access-control/public";
+import { deleteOrganization as deleteOrganizationService } from "#modules/organization/organization.service";
+import { deleteSuccessSchema, organizationIdParamSchema } from "./schema";
+
+export const deleteOrganization = defineOpenAPIRoute({
+  route: createRoute({
+    operationId: "deleteOrganization",
+    method: "delete",
+    path: "/{id}",
+    tags: ["Organization"],
+    summary: "Delete an organization",
+    description:
+      "Delete an organization by ID. Cascades to members and invitations.",
+    request: {
+      params: organizationIdParamSchema,
+    },
+    responses: {
+      ...unauthorizedResponse,
+      ...forbiddenResponse,
+      ...notFoundResponse,
+      ...okResponseFn(deleteSuccessSchema, "Successfully deleted"),
+    },
+  }),
+  handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/organization:delete");
+    const { id } = c.req.valid("param");
+    await deleteOrganizationService(id);
+
+    logAudit({
+      event: "organization.deleted",
+      category: "organization",
+      c,
+    });
+
+    return c.json({ success: true as const }, 200);
+  },
+});

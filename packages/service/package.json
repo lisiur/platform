@@ -5,17 +5,16 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "imports": {
-    "#extractors/*": "./src/extractors/*.ts",
+    "#extractors/*": "./src/shared/extractors/*.ts",
     "#generated/*": "./prisma/generated/*.ts",
-    "#lib/*": "./src/lib/*.ts",
-    "#middleware/*": "./src/middleware/*.ts",
-    "#repositories/*": "./src/repositories/*.ts",
-    "#routes/*": "./src/routes/*.ts",
-    "#services/*": "./src/services/*.ts",
-    "#states": "./src/states/index.ts",
-    "#states/*": "./src/states/*.ts",
-    "#types/*": "./src/types/*.ts",
-    "#utils/*": "./src/utils/*.ts"
+    "#lib/*": "./src/shared/lib/*.ts",
+    "#middleware/*": "./src/shared/middleware/*.ts",
+    "#modules/*": "./src/modules/*.ts",
+    "#shared/*": "./src/shared/*.ts",
+    "#states": "./src/shared/states/index.ts",
+    "#states/*": "./src/shared/states/*.ts",
+    "#types/*": "./src/shared/types/*.ts",
+    "#utils/*": "./src/shared/utils/*.ts"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",

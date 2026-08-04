@@ -1,10 +1,10 @@
 /// <reference path="./types.d.ts" />
 
 export { app } from "./app";
-export { prisma } from "./lib/db";
-export type { AuthType } from "./services/auth.service";
+export type { AuthType } from "./modules/identity/public";
+export { prisma } from "./shared/lib/db";
 export {
   globalCache,
   notificationChannelCache,
   notificationTemplateCache,
-} from "./states/cache";
+} from "./shared/states/cache";

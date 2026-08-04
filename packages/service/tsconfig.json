@@ -18,7 +18,15 @@
     "paths": {
       "@/*": ["./src/*"],
       "#generated/*": ["./prisma/generated/*"],
-      "#utils/*": ["./src/utils/*"]
+      "#extractors/*": ["./src/shared/extractors/*"],
+      "#lib/*": ["./src/shared/lib/*"],
+      "#middleware/*": ["./src/shared/middleware/*"],
+      "#modules/*": ["./src/modules/*"],
+      "#shared/*": ["./src/shared/*"],
+      "#states": ["./src/shared/states/index.ts"],
+      "#states/*": ["./src/shared/states/*"],
+      "#types/*": ["./src/shared/types/*"],
+      "#utils/*": ["./src/shared/utils/*"]
     }
   },
   "include": [

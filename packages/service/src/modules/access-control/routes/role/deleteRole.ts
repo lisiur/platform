@@ -1,0 +1,47 @@
+import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
+import { logAudit } from "#lib/logger";
+import {
+  forbiddenResponse,
+  okResponseFn,
+  unauthorizedResponse,
+} from "#lib/openapi";
+import { assertAccess } from "#modules/access-control/public";
+import { deleteRole as deleteRoleService } from "#modules/access-control/role.service";
+import { errorSchema, roleIdParamSchema, successSchema } from "./schema";
+
+export const deleteRole = defineOpenAPIRoute({
+  route: createRoute({
+    operationId: "deleteRole",
+    method: "delete",
+    path: "/{id}",
+    tags: ["Role"],
+    summary: "Delete a role",
+    request: {
+      params: roleIdParamSchema,
+    },
+    responses: {
+      ...unauthorizedResponse,
+      ...forbiddenResponse,
+      404: {
+        content: { "application/json": { schema: errorSchema } },
+        description: "Not Found",
+      },
+      ...okResponseFn(successSchema, "Deleted"),
+    },
+  }),
+  handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/role:delete");
+    const { id } = c.req.valid("param");
+    await deleteRoleService(id);
+
+    logAudit({
+      event: "role.deleted",
+      category: "role",
+      c,
+    });
+
+    return c.json({ success: true }, 200);
+  },
+});

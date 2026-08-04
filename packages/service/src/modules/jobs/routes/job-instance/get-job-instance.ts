@@ -1,0 +1,45 @@
+import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
+import { requirePrincipal } from "#extractors/session";
+import {
+  forbiddenResponse,
+  notFoundResponse,
+  unauthorizedResponse,
+} from "#lib/openapi";
+import { assertAccess } from "#modules/access-control/public";
+import { jobInstanceService } from "#modules/jobs/job-instance.service";
+import { jobInstanceIdParamSchema, jobInstanceSchema } from "./schema";
+
+export const getJobInstance = defineOpenAPIRoute({
+  route: createRoute({
+    operationId: "getJobInstance",
+    method: "get",
+    path: "/{id}",
+    tags: ["Job Instance"],
+    summary: "Get a job instance",
+    description: "Get job instance details by ID.",
+    request: {
+      params: jobInstanceIdParamSchema,
+    },
+    responses: {
+      ...unauthorizedResponse,
+      ...forbiddenResponse,
+      ...notFoundResponse,
+      200: {
+        content: {
+          "application/json": {
+            schema: jobInstanceSchema,
+          },
+        },
+        description: "Job instance details",
+      },
+    },
+  }),
+  handler: async (c) => {
+    const principal = await requirePrincipal(c);
+    await assertAccess(principal, "system/job:view");
+    const { id } = c.req.valid("param");
+    const instance = await jobInstanceService.getInstance(id);
+
+    return c.json(instance, 200);
+  },
+});
