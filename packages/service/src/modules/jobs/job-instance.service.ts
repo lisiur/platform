@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { JobInstance, JobPriority } from "#generated/prisma/client";
 import { JobStatus } from "#generated/prisma/client";
+import { jobRepository } from "#modules/jobs/job.repository";
 import { jobInstanceRepository } from "#modules/jobs/job-instance.repository";
 import { jobExecutor } from "#modules/jobs/public";
 
@@ -67,14 +68,24 @@ export class JobInstanceService {
 
   async getExecutorStats() {
     const live = jobExecutor.getStats();
-    const [byStatus, nextInstance] = await Promise.all([
+    const [byStatus, nextInstance, nextTemplate] = await Promise.all([
       jobInstanceRepository.countByStatus(),
       jobInstanceRepository.findNextScheduledJob(),
+      jobRepository.findNextScheduledTemplate(),
     ]);
+
+    let nextScheduledAt = nextInstance?.scheduledAt ?? null;
+    if (
+      nextTemplate?.nextRunAt &&
+      (!nextScheduledAt || nextTemplate.nextRunAt < nextScheduledAt)
+    ) {
+      nextScheduledAt = nextTemplate.nextRunAt;
+    }
+
     return {
       ...live,
       byStatus,
-      nextScheduledAt: nextInstance?.scheduledAt ?? null,
+      nextScheduledAt,
     };
   }
 }

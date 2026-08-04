@@ -126,6 +126,17 @@ export class JobRepository {
     });
   }
 
+  async findNextScheduledTemplate(): Promise<Job | null> {
+    return prisma.job.findFirst({
+      where: {
+        enabled: true,
+        cronExpression: { not: null },
+        nextRunAt: { not: null },
+      },
+      orderBy: { nextRunAt: "asc" },
+    });
+  }
+
   async update(
     id: string,
     data: {
