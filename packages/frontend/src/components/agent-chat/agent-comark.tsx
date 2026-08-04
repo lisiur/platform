@@ -1,6 +1,6 @@
 "use client";
 
-import { ComarkClient, ComarkRenderer } from "@comark/react";
+import { ComarkRenderer } from "@comark/react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -9,7 +9,7 @@ import {
 } from "@repo/ui";
 import { parse } from "comark";
 import { Brain, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { splitReasoning } from "./split-reasoning";
 
 interface AgentMarkdownProps {
@@ -21,13 +21,14 @@ interface AgentMarkdownProps {
 }
 
 /**
- * Streaming: delegates to `ComarkClient` which uses `useDeferredValue` to
- * keep showing the previous parsed content while new tokens are being parsed.
+ * Streaming: `ComarkStream` renders the raw text synchronously (closing the
+ * gap where `ComarkClient`'s `<Suspense fallback={null}>` painted nothing on
+ * the first token) and swaps to `ComarkRenderer` once `parse()` resolves,
+ * keeping the previous tree visible during rapid token deltas.
  *
- * Static (history): shows raw text instantly, then calls `parse()` in a
- * `useEffect` and swaps to `ComarkRenderer` once the tree is ready. This
- * avoids the `ComarkClient` Suspense boundary that renders `null` until the
- * async `parse()` resolves — which causes visible content delay on reload.
+ * Static (history): `StaticAnswer` shows raw text instantly, then calls
+ * `parse()` in a `useEffect` and swaps to `ComarkRenderer` once the tree is
+ * ready — avoiding a Suspense fallback on reload.
  */
 export function AgentMarkdown({
   content,
@@ -36,12 +37,11 @@ export function AgentMarkdown({
 }: AgentMarkdownProps) {
   const { thinking, thinkingOpen, answer } = splitReasoning(content);
 
-  // Once a message has streamed through ComarkClient, keep it mounted after
+  // Once a message has streamed through ComarkStream, keep it mounted after
   // the stream ends instead of swapping to StaticAnswer. StaticAnswer remounts
   // with tree===null and renders raw text until parse() resolves, so the
   // streaming→ready transition would flash the formatted answer as plain text.
-  // History messages never enter streaming, so they still use StaticAnswer to
-  // avoid ComarkClient's Suspense fallback on initial load.
+  // History messages never enter streaming, so they still use StaticAnswer.
   const [streamed, setStreamed] = useState(streaming);
   if (streaming && !streamed) setStreamed(true);
 
@@ -57,9 +57,7 @@ export function AgentMarkdown({
       )}
       {answer &&
         (streamed ? (
-          <ComarkClient streaming={streaming} caret={false}>
-            {answer}
-          </ComarkClient>
+          <ComarkStream content={answer} streaming={streaming} />
         ) : (
           <StaticAnswer answer={answer} />
         ))}
@@ -67,26 +65,61 @@ export function AgentMarkdown({
   );
 }
 
-function StaticAnswer({ answer }: { answer: string }) {
+function useParsedTree(text: string) {
   const [tree, setTree] = useState<Awaited<ReturnType<typeof parse>> | null>(
     null,
   );
 
   useEffect(() => {
     let cancelled = false;
-    parse(answer).then((t) => {
-      if (!cancelled) setTree(t);
-    });
+    parse(text)
+      .then((t) => {
+        if (!cancelled) setTree(t);
+      })
+      .catch(() => {
+        // leave tree null; raw-text fallback keeps rendering
+      });
     return () => {
       cancelled = true;
     };
-  }, [answer]);
+  }, [text]);
+
+  return tree;
+}
+
+function StaticAnswer({ answer }: { answer: string }) {
+  const tree = useParsedTree(answer);
 
   if (!tree) {
     return <div className="whitespace-pre-wrap break-words">{answer}</div>;
   }
 
   return <ComarkRenderer tree={tree} />;
+}
+
+/**
+ * Streaming renderer. Keeps ComarkClient's deferred-parse behavior (no flicker
+ * on rapid token deltas) but renders the raw text synchronously until the first
+ * parse resolves. ComarkClient wraps `use(parsePromise)` in
+ * `<Suspense fallback={null}>`, so on the first token it painted nothing —
+ * leaving a blank gap between the typing indicator hiding and the first
+ * character appearing. Showing raw text for that first paint closes the gap.
+ */
+function ComarkStream({
+  content,
+  streaming,
+}: {
+  content: string;
+  streaming: boolean;
+}) {
+  const deferred = useDeferredValue(content);
+  const tree = useParsedTree(deferred);
+
+  if (!tree) {
+    return <div className="whitespace-pre-wrap break-words">{content}</div>;
+  }
+
+  return <ComarkRenderer tree={tree} streaming={streaming} caret={false} />;
 }
 
 interface ReasoningPanelProps {

@@ -14,6 +14,7 @@ import { AgentMarkdown } from "./agent-comark";
 import { ChoiceCard } from "./interactive-components/choice-card";
 import { FormCard } from "./interactive-components/form-card";
 import { isReasoningPart, ReasoningPartItem } from "./reasoning-part-item";
+import { splitReasoning } from "./split-reasoning";
 import {
   getToolPartName,
   INTERACTION_TOOL_NAMES,
@@ -87,13 +88,22 @@ function hasVisiblePart(
   showToolCalls = true,
 ): boolean {
   if (part.type === "text") {
-    return ((part as { text?: string }).text ?? "").trim().length > 0;
+    const text = (part as { text?: string }).text ?? "";
+    if (text.trim().length === 0) return false;
+    // <think> blocks render only when the reasoning UI is on. When it's off,
+    // AgentMarkdown strips them — so a text part whose only content is a
+    // hidden think block must NOT count as visible (otherwise it hides the
+    // typing dots while the bubble renders nothing). Mirrors splitReasoning
+    // so this stays in sync with AgentMarkdown's rendering.
+    return showReasoning || splitReasoning(text).answer.length > 0;
   }
   if (isReasoningPart(part)) return showReasoning;
   if (isToolPart(part)) {
     const name = getToolPartName(part);
     // Interactive tools always render regardless of showToolCalls.
     if (name === "choose_option" || name === "render_form") return true;
+    // Non-interactive tools render only when showToolCalls is on — matches
+    // the `if (!showToolCalls) return null` branch in the render map below.
     return showToolCalls;
   }
   return false;
@@ -308,7 +318,13 @@ export function ChatMessageList({
       ) : (
         <div ref={contentRef} className="space-y-4">
           {messages
-            .filter((m) => m.parts.length > 0)
+            .filter((m) =>
+              m.role === "assistant"
+                ? m.parts.some((p) =>
+                    hasVisiblePart(p, showReasoning, showToolCalls),
+                  )
+                : m.parts.length > 0,
+            )
             .map((message) => {
               const fileSegments =
                 message.role === "user" ? extractFileSegments(message) : [];
@@ -380,6 +396,15 @@ export function ChatMessageList({
                                 </p>
                               </Fragment>
                             );
+                          }
+                          // Skip assistant text parts with no visible
+                          // content (e.g. a <think>-only part while the
+                          // reasoning UI is off) so they don't leave an empty
+                          // wrapper above the typing indicator.
+                          if (
+                            !hasVisiblePart(part, showReasoning, showToolCalls)
+                          ) {
+                            return null;
                           }
                           return (
                             <div
