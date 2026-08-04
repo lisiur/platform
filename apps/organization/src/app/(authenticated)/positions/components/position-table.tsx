@@ -4,8 +4,11 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -115,9 +118,7 @@ export function PositionTable({ orgId }: PositionTableProps) {
               <TableHead>{t("membersCount")}</TableHead>
               <TableHead>{t("permissions")}</TableHead>
               <TableHead>{t("createdAt")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,7 +144,38 @@ export function PositionTable({ orgId }: PositionTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>{formatDate(position.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("actions")}
+                  menu={
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setManageMembersPosition(position)}
+                      >
+                        <Users />
+                        {t("manageMembers")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setManagePermissionsPosition(position)}
+                      >
+                        <Shield />
+                        {t("managePermissions")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setEditPosition(position)}
+                      >
+                        <Pencil />
+                        {t("edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => handleDelete(position)}
+                      >
+                        <Trash2 />
+                        {t("delete")}
+                      </DropdownMenuItem>
+                    </>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -182,7 +214,7 @@ export function PositionTable({ orgId }: PositionTableProps) {
                       <Trash2 />
                     </TooltipButton>
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             ))}
           </TableBody>

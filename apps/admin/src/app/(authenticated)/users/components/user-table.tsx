@@ -6,6 +6,9 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -144,9 +147,7 @@ export function UserTable() {
             <TableHead>{t("roles")}</TableHead>
             <TableHead>{t("status")}</TableHead>
             <TableHead>{t("createdAt")}</TableHead>
-            <TableHead sticky="right" align="right">
-              {t("actions")}
-            </TableHead>
+            <TableActionHead />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -190,7 +191,29 @@ export function UserTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>{formatDate(user.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("actions")}
+                  menu={
+                    <>
+                      <DropdownMenuItem onClick={() => setEditUser(user)}>
+                        <Pencil />
+                        {t("edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setResetUser(user)}>
+                        <RotateCcwKey />
+                        {t("resetPassword")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        disabled={builtinUser}
+                        onClick={() => handleDelete(user)}
+                      >
+                        <Trash2 />
+                        {t("delete")}
+                      </DropdownMenuItem>
+                    </>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -226,7 +249,7 @@ export function UserTable() {
                       </TooltipButton>
                     )}
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             );
           })}

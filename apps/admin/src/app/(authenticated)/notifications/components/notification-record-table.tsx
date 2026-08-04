@@ -5,12 +5,15 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -179,9 +182,7 @@ export function NotificationRecordTable() {
             <TableHead>{t("fields.status")}</TableHead>
             <TableHead>{t("records.columns.readState")}</TableHead>
             <TableHead>{t("fields.createdAt")}</TableHead>
-            <TableHead sticky="right" align="right">
-              {t("fields.actions")}
-            </TableHead>
+            <TableActionHead />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -231,7 +232,18 @@ export function NotificationRecordTable() {
               <TableCell className="whitespace-nowrap">
                 {formatDateTime(record.createdAt)}
               </TableCell>
-              <TableCell sticky="right" align="right">
+              <TableActionCell
+                menuLabel={t("fields.actions")}
+                menu={
+                  <DropdownMenuItem
+                    disabled={loadingDetailId === record.id}
+                    onClick={() => handleViewRecord(record.id)}
+                  >
+                    <Eye />
+                    {t("records.view")}
+                  </DropdownMenuItem>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   {loadingDetailId === record.id ? (
                     <Button variant="ghost" size="icon-sm" disabled>
@@ -249,7 +261,7 @@ export function NotificationRecordTable() {
                     </TooltipButton>
                   )}
                 </ButtonGroup>
-              </TableCell>
+              </TableActionCell>
             </TableRow>
           ))}
         </TableBody>

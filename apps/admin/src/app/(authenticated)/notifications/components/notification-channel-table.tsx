@@ -3,8 +3,11 @@
 import {
   Badge,
   ButtonGroup,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -98,9 +101,7 @@ export function NotificationChannelTable() {
               <TableHead>{t("fields.provider")}</TableHead>
               <TableHead>{t("fields.status")}</TableHead>
               <TableHead>{t("fields.createdAt")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("fields.actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -124,7 +125,15 @@ export function NotificationChannelTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>{formatDate(channel.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("fields.actions")}
+                  menu={
+                    <DropdownMenuItem onClick={() => setEditChannel(channel)}>
+                      <Pencil />
+                      {t("actions.edit")}
+                    </DropdownMenuItem>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -136,7 +145,7 @@ export function NotificationChannelTable() {
                       <Pencil />
                     </TooltipButton>
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             ))}
           </TableBody>

@@ -10,8 +10,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -134,9 +137,7 @@ export function TokenTable() {
               <TableHead>{t("fields.status")}</TableHead>
               <TableHead>{t("fields.expires")}</TableHead>
               <TableHead>{t("fields.lastUsed")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("fields.actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -180,7 +181,26 @@ export function TokenTable() {
                 <TableCell className="text-muted-foreground text-sm">
                   {token.lastUsedAt ? formatDateTime(token.lastUsedAt) : "—"}
                 </TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("fields.actions")}
+                  menu={
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => handleToggle(token, !token.enabled)}
+                      >
+                        {token.enabled ? <PlayOff /> : <Play />}
+                        {token.enabled ? t("disable") : t("enable")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => handleDelete(token)}
+                      >
+                        <Trash2 />
+                        {t("revoke")}
+                      </DropdownMenuItem>
+                    </>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -201,7 +221,7 @@ export function TokenTable() {
                       <Trash2 />
                     </TooltipButton>
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             ))}
           </TableBody>

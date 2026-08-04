@@ -6,6 +6,7 @@ import {
   Button,
   ButtonGroup,
   cn,
+  DropdownMenuItem,
   Sheet,
   SheetBody,
   SheetContent,
@@ -14,6 +15,8 @@ import {
   SheetTitle,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -144,9 +147,7 @@ export function ApplicationRoleManagement({
             <TableRow>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("code")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -172,7 +173,37 @@ export function ApplicationRoleManagement({
                   <TableCell>
                     <Badge variant="secondary">{role.code}</Badge>
                   </TableCell>
-                  <TableCell sticky="right" align="right">
+                  <TableActionCell
+                    menuLabel={t("actions")}
+                    menu={
+                      <>
+                        <DropdownMenuItem
+                          disabled={builtin}
+                          onClick={() => setEditRole(role)}
+                        >
+                          <Pencil />
+                          {t("edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedRole(role);
+                            setPermissionDrawerOpen(true);
+                          }}
+                        >
+                          <ListChecks />
+                          {t("managePermissions")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={builtin}
+                          onClick={() => handleDelete(role)}
+                        >
+                          <Trash2 />
+                          {t("delete")}
+                        </DropdownMenuItem>
+                      </>
+                    }
+                  >
                     <ButtonGroup className="ml-auto">
                       {builtin ? (
                         <Button variant="ghost" size="icon-sm" disabled>
@@ -237,7 +268,7 @@ export function ApplicationRoleManagement({
                         </Tooltip>
                       )}
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               );
             })}

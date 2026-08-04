@@ -3,8 +3,11 @@
 import {
   Badge,
   ButtonGroup,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -97,9 +100,7 @@ export function NotificationTemplateTable() {
               <TableHead>{t("fields.channel")}</TableHead>
               <TableHead>{t("fields.status")}</TableHead>
               <TableHead>{t("fields.createdAt")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("fields.actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,7 +129,25 @@ export function NotificationTemplateTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>{formatDate(template.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("fields.actions")}
+                  menu={
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setEditTemplate(template)}
+                      >
+                        <Pencil />
+                        {t("actions.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setTestTemplate(template)}
+                      >
+                        <FlaskConical />
+                        {t("actions.test")}
+                      </DropdownMenuItem>
+                    </>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -149,7 +168,7 @@ export function NotificationTemplateTable() {
                       <FlaskConical />
                     </TooltipButton>
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             ))}
           </TableBody>

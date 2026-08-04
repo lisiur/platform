@@ -6,9 +6,12 @@ import {
   Button,
   Card,
   CardContent,
+  DropdownMenuItem,
   Skeleton,
   Switch,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -199,9 +202,7 @@ export function RateLimitStatus() {
               <TableHead>{t("remaining")}</TableHead>
               <TableHead>{t("statusLabel")}</TableHead>
               <TableHead>{t("resetAt")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("release")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -243,7 +244,18 @@ export function RateLimitStatus() {
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDateTime(bucket.resetAt)}
                   </TableCell>
-                  <TableCell sticky="right" align="right">
+                  <TableActionCell
+                    menuLabel={t("release")}
+                    menu={
+                      <DropdownMenuItem
+                        disabled={releaseMutation.isPending}
+                        onClick={() => releaseMutation.mutate(bucket)}
+                      >
+                        <TimerReset />
+                        {t("release")}
+                      </DropdownMenuItem>
+                    }
+                  >
                     <Tooltip>
                       <TooltipTrigger
                         render={
@@ -260,7 +272,7 @@ export function RateLimitStatus() {
                       />
                       <TooltipContent>{t("release")}</TooltipContent>
                     </Tooltip>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))
             ) : (

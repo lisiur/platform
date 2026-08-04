@@ -5,6 +5,9 @@ import { PaginatedTableFrame } from "@repo/frontend";
 import {
   Button,
   ButtonGroup,
+  DropdownMenuItem,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -111,9 +114,7 @@ export function OrganizationTable() {
             <TableHead>{t("logo")}</TableHead>
             <TableHead>{t("owner")}</TableHead>
             <TableHead>{t("createdAt")}</TableHead>
-            <TableHead sticky="right" align="right">
-              {t("actions")}
-            </TableHead>
+            <TableActionHead />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -137,7 +138,24 @@ export function OrganizationTable() {
               </TableCell>
               <TableCell>{org.owner?.email ?? "-"}</TableCell>
               <TableCell>{formatDate(org.createdAt)}</TableCell>
-              <TableCell sticky="right" align="right">
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => setEditOrg(org)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => handleDelete(org)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
@@ -158,7 +176,7 @@ export function OrganizationTable() {
                     <Trash2 />
                   </TooltipButton>
                 </ButtonGroup>
-              </TableCell>
+              </TableActionCell>
             </TableRow>
           ))}
         </TableBody>

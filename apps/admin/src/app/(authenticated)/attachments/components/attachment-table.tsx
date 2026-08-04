@@ -6,8 +6,11 @@ import {
   Button,
   ButtonGroup,
   Checkbox,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -225,12 +228,7 @@ export function AttachmentTable() {
                 <TableHead className="w-36">{t("columns.bizType")}</TableHead>
                 <TableHead className="w-36">{t("columns.bizId")}</TableHead>
                 <TableHead className="w-36">{t("columns.createdBy")}</TableHead>
-                <TableHead
-                  sticky="right"
-                  className="w-48 bg-background text-right"
-                >
-                  {t("columns.actions")}
-                </TableHead>
+                <TableActionHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -272,9 +270,37 @@ export function AttachmentTable() {
                   <TableCell className="font-mono text-xs truncate max-w-[100px]">
                     {attachment.createdBy}
                   </TableCell>
-                  <TableCell
-                    sticky="right"
-                    className="bg-background text-right"
+                  <TableActionCell
+                    menuLabel={t("columns.actions")}
+                    menu={
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => handleViewFile(attachment)}
+                        >
+                          <Eye />
+                          {t("viewFile")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDetailAttachment(attachment)}
+                        >
+                          <Info />
+                          {t("detail")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setReplaceAttachment(attachment)}
+                        >
+                          <Replace />
+                          {t("replace")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => handleSingleDelete(attachment)}
+                        >
+                          <Trash2 />
+                          {t("delete")}
+                        </DropdownMenuItem>
+                      </>
+                    }
                   >
                     <ButtonGroup className="ml-auto">
                       <TooltipButton
@@ -314,7 +340,7 @@ export function AttachmentTable() {
                         <Trash2 />
                       </TooltipButton>
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))}
             </TableBody>

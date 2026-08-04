@@ -4,8 +4,11 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -141,9 +144,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
               <TableHead>{t("code")}</TableHead>
               <TableHead>{t("description_label")}</TableHead>
               <TableHead>{t("createdAt")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("actions")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,7 +158,34 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                   {dept.description ?? "—"}
                 </TableCell>
                 <TableCell>{formatDate(dept.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("actions")}
+                  menu={
+                    <>
+                      <DropdownMenuItem onClick={() => handleNavigate(dept.id)}>
+                        <FolderTree />
+                        {t("manage")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setManageMembersDept(dept)}
+                      >
+                        <Users />
+                        {t("manageMembers")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setEditDepartment(dept)}>
+                        <Pencil />
+                        {t("edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => handleDelete(dept)}
+                      >
+                        <Trash2 />
+                        {t("delete")}
+                      </DropdownMenuItem>
+                    </>
+                  }
+                >
                   <ButtonGroup className="ml-auto">
                     <TooltipButton
                       variant="ghost"
@@ -196,7 +224,7 @@ export function DepartmentTable({ orgId }: DepartmentTableProps) {
                       <Trash2 />
                     </TooltipButton>
                   </ButtonGroup>
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             ))}
           </TableBody>

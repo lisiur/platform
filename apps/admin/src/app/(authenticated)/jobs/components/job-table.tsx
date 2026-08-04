@@ -4,6 +4,7 @@ import { DataTablePagination } from "@repo/frontend";
 import {
   Badge,
   ButtonGroup,
+  DropdownMenuItem,
   Input,
   Select,
   SelectContent,
@@ -11,6 +12,8 @@ import {
   SelectTrigger,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -227,12 +230,7 @@ export function JobTable() {
                 <TableHead className="w-44">
                   {t("columns.completedAt")}
                 </TableHead>
-                <TableHead
-                  sticky="right"
-                  className="w-24 bg-background text-right"
-                >
-                  {t("actions")}
-                </TableHead>
+                <TableActionHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -269,9 +267,25 @@ export function JobTable() {
                   <TableCell className="whitespace-nowrap text-sm">
                     {job.completedAt ? formatDateTime(job.completedAt) : "-"}
                   </TableCell>
-                  <TableCell
-                    sticky="right"
-                    className="bg-background text-right"
+                  <TableActionCell
+                    menuLabel={t("actions")}
+                    menu={
+                      <>
+                        <DropdownMenuItem onClick={() => handleView(job)}>
+                          <Eye />
+                          {t("view")}
+                        </DropdownMenuItem>
+                        {job.status === "PENDING" && canCancelJob && (
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => handleCancel(job)}
+                          >
+                            <X />
+                            {t("cancel")}
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    }
                   >
                     <ButtonGroup className="ml-auto">
                       <TooltipButton
@@ -295,7 +309,7 @@ export function JobTable() {
                         </TooltipButton>
                       )}
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))}
             </TableBody>

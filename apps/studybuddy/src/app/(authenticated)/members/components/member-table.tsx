@@ -5,6 +5,9 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -139,9 +142,7 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
             <TableHead>{t("department")}</TableHead>
             <TableHead>{t("positions")}</TableHead>
             <TableHead>{t("joinedAt")}</TableHead>
-            <TableHead sticky="right" align="right">
-              {t("actions")}
-            </TableHead>
+            <TableActionHead />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -173,7 +174,39 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
                   </div>
                 </TableCell>
                 <TableCell>{formatDate(member.createdAt)}</TableCell>
-                <TableCell sticky="right" align="right">
+                <TableActionCell
+                  menuLabel={t("actions")}
+                  menu={
+                    canManage ? (
+                      <>
+                        <DropdownMenuItem onClick={() => setEditMember(member)}>
+                          <Pencil />
+                          {t("editMember")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setManageDepartmentMember(member)}
+                        >
+                          <FolderTree />
+                          {t("manageDepartment")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setManagePositionsMember(member)}
+                        >
+                          <Crown />
+                          {t("managePositions")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={isSelf}
+                          onClick={() => handleRemove(member)}
+                        >
+                          <Trash2 />
+                          {t("removeMember")}
+                        </DropdownMenuItem>
+                      </>
+                    ) : undefined
+                  }
+                >
                   {canManage && (
                     <ButtonGroup className="ml-auto">
                       <TooltipButton
@@ -220,7 +253,7 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
                       )}
                     </ButtonGroup>
                   )}
-                </TableCell>
+                </TableActionCell>
               </TableRow>
             );
           })}

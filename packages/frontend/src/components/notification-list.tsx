@@ -5,7 +5,10 @@ import {
   Button,
   ButtonGroup,
   cn,
+  DropdownMenuItem,
   Spinner,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -83,9 +86,7 @@ function NotificationItems({
         <TableRow>
           <TableHead>{t("columns.notification")}</TableHead>
           <TableHead className="w-32">{t("columns.status")}</TableHead>
-          <TableHead sticky="right" align="right" className="w-24">
-            {t("columns.actions")}
-          </TableHead>
+          <TableActionHead />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -117,7 +118,20 @@ function NotificationItems({
                   {unread ? t("unread") : t("read")}
                 </Badge>
               </TableCell>
-              <TableCell sticky="right" align="right">
+              <TableActionCell
+                menuLabel={t("markRead")}
+                menu={
+                  unread ? (
+                    <DropdownMenuItem
+                      disabled={markRead.isPending}
+                      onClick={() => markRead.mutate(notification.id)}
+                    >
+                      <Check />
+                      {t("markRead")}
+                    </DropdownMenuItem>
+                  ) : undefined
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   {unread ? (
                     <Tooltip>
@@ -138,7 +152,7 @@ function NotificationItems({
                     </Tooltip>
                   ) : null}
                 </ButtonGroup>
-              </TableCell>
+              </TableActionCell>
             </TableRow>
           );
         })}

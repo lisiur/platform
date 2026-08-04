@@ -4,8 +4,11 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
   Skeleton,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -103,9 +106,7 @@ export function RateLimitOverrides() {
               <TableHead>{t("overrides.timeRange")}</TableHead>
               <TableHead>{t("overrides.statusLabel")}</TableHead>
               <TableHead>{t("overrides.note")}</TableHead>
-              <TableHead sticky="right" align="right">
-                {t("overrides.delete")}
-              </TableHead>
+              <TableActionHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -168,7 +169,25 @@ export function RateLimitOverrides() {
                     <TableCell className="text-muted-foreground max-w-48 truncate text-sm">
                       {o.note || "—"}
                     </TableCell>
-                    <TableCell sticky="right" align="right">
+                    <TableActionCell
+                      menuLabel={t("overrides.edit")}
+                      menu={
+                        <>
+                          <DropdownMenuItem onClick={() => setEditing(o)}>
+                            <Pencil />
+                            {t("overrides.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => handleDelete(o)}
+                          >
+                            <Trash2 />
+                            {t("overrides.delete")}
+                          </DropdownMenuItem>
+                        </>
+                      }
+                    >
                       <ButtonGroup className="ml-auto">
                         <Tooltip>
                           <TooltipTrigger
@@ -204,7 +223,7 @@ export function RateLimitOverrides() {
                           </TooltipContent>
                         </Tooltip>
                       </ButtonGroup>
-                    </TableCell>
+                    </TableActionCell>
                   </TableRow>
                 );
               })

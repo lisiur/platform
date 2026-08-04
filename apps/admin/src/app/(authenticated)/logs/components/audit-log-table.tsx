@@ -4,8 +4,11 @@ import { DataTablePagination } from "@repo/frontend";
 import {
   Badge,
   ButtonGroup,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -192,9 +195,7 @@ export function AuditLogTable({
                 <TableHead className="w-72">{t("columns.source")}</TableHead>
                 <TableHead className="w-40">{t("columns.ip")}</TableHead>
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
-                <TableHead sticky="right" className="bg-background text-right">
-                  {t("columns.detail")}
-                </TableHead>
+                <TableActionHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -241,9 +242,24 @@ export function AuditLogTable({
                   <TableCell className="font-mono text-xs">
                     {log.traceId}
                   </TableCell>
-                  <TableCell
-                    sticky="right"
-                    className="bg-background text-right"
+                  <TableActionCell
+                    menuLabel={t("columns.detail")}
+                    menu={
+                      <>
+                        {onTraceChange && (
+                          <DropdownMenuItem
+                            onClick={() => onTraceChange(log.traceId)}
+                          >
+                            <GitBranch />
+                            {t("trace")}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => setDetailLog(log)}>
+                          <Eye />
+                          {t("viewDetail")}
+                        </DropdownMenuItem>
+                      </>
+                    }
                   >
                     <ButtonGroup className="ml-auto">
                       {onTraceChange && (
@@ -267,7 +283,7 @@ export function AuditLogTable({
                         <Eye />
                       </TooltipButton>
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))}
             </TableBody>

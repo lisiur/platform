@@ -6,8 +6,11 @@ import {
   Button,
   ButtonGroup,
   Checkbox,
+  DropdownMenuItem,
   Spinner,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -256,9 +259,7 @@ export function OperationLogTable({
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
                 <TableHead className="w-56">{t("columns.auth")}</TableHead>
                 <TableHead className="w-72">{t("columns.message")}</TableHead>
-                <TableHead sticky="right" className="bg-background text-right">
-                  {t("columns.detail")}
-                </TableHead>
+                <TableActionHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -316,9 +317,14 @@ export function OperationLogTable({
                   <TableCell className="max-w-64 truncate">
                     {log.errorMessage || log.message || "-"}
                   </TableCell>
-                  <TableCell
-                    sticky="right"
-                    className="bg-background text-right"
+                  <TableActionCell
+                    menuLabel={t("viewDetail")}
+                    menu={
+                      <DropdownMenuItem onClick={() => setDetailLog(log)}>
+                        <Eye />
+                        {t("viewDetail")}
+                      </DropdownMenuItem>
+                    }
                   >
                     <ButtonGroup className="ml-auto">
                       <TooltipButton
@@ -331,7 +337,7 @@ export function OperationLogTable({
                         <Eye />
                       </TooltipButton>
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -5,10 +5,13 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DropdownMenuItem,
   Input,
   Spinner,
   Switch,
   Table,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -229,12 +232,7 @@ export function JobTemplateTable() {
                 <TableHead className="w-24">{t("columns.priority")}</TableHead>
                 <TableHead className="w-44">{t("columns.nextRun")}</TableHead>
                 <TableHead className="w-44">{t("columns.lastRun")}</TableHead>
-                <TableHead
-                  sticky="right"
-                  className="w-36 bg-background text-right"
-                >
-                  {t("actions")}
-                </TableHead>
+                <TableActionHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,9 +271,37 @@ export function JobTemplateTable() {
                   <TableCell className="whitespace-nowrap text-sm">
                     {tpl.lastRunAt ? formatDateTime(tpl.lastRunAt) : "-"}
                   </TableCell>
-                  <TableCell
-                    sticky="right"
-                    className="bg-background text-right"
+                  <TableActionCell
+                    menuLabel={t("actions")}
+                    menu={
+                      canTriggerJob || canUpdateJob || canDeleteJob ? (
+                        <>
+                          {canTriggerJob && (
+                            <DropdownMenuItem
+                              onClick={() => handleTrigger(tpl)}
+                            >
+                              <Play />
+                              {t("trigger")}
+                            </DropdownMenuItem>
+                          )}
+                          {canUpdateJob && (
+                            <DropdownMenuItem onClick={() => handleEdit(tpl)}>
+                              <Pencil />
+                              {t("edit")}
+                            </DropdownMenuItem>
+                          )}
+                          {canDeleteJob && (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(tpl)}
+                            >
+                              <Trash2 />
+                              {t("remove")}
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      ) : undefined
+                    }
                   >
                     <ButtonGroup className="ml-auto">
                       {canTriggerJob && (
@@ -312,7 +338,7 @@ export function JobTemplateTable() {
                         </TooltipButton>
                       )}
                     </ButtonGroup>
-                  </TableCell>
+                  </TableActionCell>
                 </TableRow>
               ))}
             </TableBody>

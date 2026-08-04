@@ -4,7 +4,10 @@ import type { Application } from "@repo/frontend";
 import { PaginatedTableFrame } from "@repo/frontend";
 import {
   ButtonGroup,
+  DropdownMenuItem,
   Input,
+  TableActionCell,
+  TableActionHead,
   TableBody,
   TableCell,
   TableHead,
@@ -91,9 +94,7 @@ export function AppTable() {
           <TableHead align="center">{t("logo")}</TableHead>
           <TableHead align="center">{t("favicon")}</TableHead>
           <TableHead>{t("createdAt")}</TableHead>
-          <TableHead sticky="right" align="right">
-            {t("actions")}
-          </TableHead>
+          <TableActionHead />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -133,7 +134,17 @@ export function AppTable() {
               )}
             </TableCell>
             <TableCell>{formatDate(app.createdAt)}</TableCell>
-            <TableCell sticky="right" align="right">
+            <TableActionCell
+              menuLabel={t("settings")}
+              menu={
+                <DropdownMenuItem
+                  onClick={() => router.push(`/applications/${app.id}`)}
+                >
+                  <Settings />
+                  {t("settings")}
+                </DropdownMenuItem>
+              }
+            >
               <ButtonGroup className="ml-auto">
                 <TooltipButton
                   variant="ghost"
@@ -145,7 +156,7 @@ export function AppTable() {
                   <Settings />
                 </TooltipButton>
               </ButtonGroup>
-            </TableCell>
+            </TableActionCell>
           </TableRow>
         ))}
       </TableBody>
