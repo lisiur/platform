@@ -279,6 +279,7 @@ async function getSelfUpdateConfig(): Promise<Map<string, string>> {
     "source",
     "githubRepo",
     "githubToken",
+    "githubProxy",
     "manifestUrl",
     "releaseUrlTemplate",
     "authToken",
@@ -339,25 +340,38 @@ function pickTarball(assets: RawRelease["assets"]): {
   return { url: asset.browser_download_url, size: asset.size };
 }
 
-function fromGithubRelease(data: RawRelease): UpdateRelease {
+function fromGithubRelease(
+  data: RawRelease,
+  githubProxy?: string,
+): UpdateRelease {
   const asset = pickTarball(data.assets);
+  let tarballUrl = asset.url;
+  if (githubProxy) {
+    tarballUrl = `${githubProxy.replace(/\/$/, "")}/${tarballUrl}`;
+  }
   return {
     tag: data.tag_name,
     name: data.name,
     htmlUrl: data.html_url,
     publishedAt: data.published_at,
-    tarballUrl: asset.url,
+    tarballUrl,
     tarballSize: asset.size,
   };
 }
 
 const githubUpdateSource: UpdateSourceProvider = {
   async getLatestRelease(config) {
-    return fromGithubRelease(await fetchRelease("/releases/latest", config));
+    const githubProxy = config?.get("githubProxy");
+    return fromGithubRelease(
+      await fetchRelease("/releases/latest", config),
+      githubProxy,
+    );
   },
   async getReleaseByTag(tag, config) {
+    const githubProxy = config?.get("githubProxy");
     return fromGithubRelease(
       await fetchRelease(`/releases/tags/${encodeURIComponent(tag)}`, config),
+      githubProxy,
     );
   },
 };

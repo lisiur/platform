@@ -660,6 +660,7 @@
         "selfUpdateSource": "更新来源",
         "selfUpdateGithubRepo": "GitHub 仓库",
         "selfUpdateGithubToken": "GitHub 令牌",
+        "selfUpdateGithubProxy": "GitHub 下载代理",
         "selfUpdateManifestUrl": "Manifest URL",
         "selfUpdateReleaseUrlTemplate": "发布 URL 模板",
         "selfUpdateAuthToken": "认证令牌"
@@ -690,6 +691,7 @@
         "selfUpdateSource": "发布来源：\"github\" 使用 GitHub Releases，\"manifest\" 使用自定义 JSON 接口",
         "selfUpdateGithubRepo": "用于检查/下载更新的 GitHub 仓库（例如 lisiur/platform）",
         "selfUpdateGithubToken": "GitHub 个人访问令牌，用于私有仓库或提升 API 频率限制",
+        "selfUpdateGithubProxy": "加速 GitHub 资源下载的反向代理地址（如 https://ghproxy.net）",
         "selfUpdateManifestUrl": "最新发布 JSON manifest 的 URL（选择 manifest 来源时必填）",
         "selfUpdateReleaseUrlTemplate": "指定标签的发布 URL 模板，必须包含 '{'tag'}'（例如 https://example.com/'{'tag'}'.json）",
         "selfUpdateAuthToken": "manifest 接口的 Bearer 认证令牌"

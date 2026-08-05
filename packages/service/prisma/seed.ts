@@ -279,6 +279,17 @@ const systemConfigs = [
   },
   {
     group: "self-update",
+    key: "githubProxy",
+    value: "",
+    type: "string",
+    label: "settings.fields.selfUpdateGithubProxy",
+    description: "settings.fieldsDesc.selfUpdateGithubProxy",
+    isSecret: false,
+    schema: { dependsOn: { field: "source", value: "github" } },
+    sortOrder: 4,
+  },
+  {
+    group: "self-update",
     key: "manifestUrl",
     value: "",
     type: "string",
@@ -286,7 +297,7 @@ const systemConfigs = [
     description: "settings.fieldsDesc.selfUpdateManifestUrl",
     isSecret: false,
     schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 4,
+    sortOrder: 5,
   },
   {
     group: "self-update",
@@ -297,7 +308,7 @@ const systemConfigs = [
     description: "settings.fieldsDesc.selfUpdateReleaseUrlTemplate",
     isSecret: false,
     schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     group: "self-update",
@@ -309,7 +320,7 @@ const systemConfigs = [
     isSecret: true,
     mask: "start{4}.{*}",
     schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 6,
+    sortOrder: 7,
   },
 ];
 

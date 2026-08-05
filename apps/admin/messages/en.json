@@ -660,6 +660,7 @@
         "selfUpdateSource": "Update Source",
         "selfUpdateGithubRepo": "GitHub Repository",
         "selfUpdateGithubToken": "GitHub Token",
+        "selfUpdateGithubProxy": "GitHub Download Proxy",
         "selfUpdateManifestUrl": "Manifest URL",
         "selfUpdateReleaseUrlTemplate": "Release URL Template",
         "selfUpdateAuthToken": "Auth Token"
@@ -690,6 +691,7 @@
         "selfUpdateSource": "Release source: \"github\" for GitHub Releases or \"manifest\" for a custom JSON endpoint",
         "selfUpdateGithubRepo": "GitHub repository to check/download releases from (e.g. lisiur/platform)",
         "selfUpdateGithubToken": "GitHub personal access token for private repos or higher API rate limits",
+        "selfUpdateGithubProxy": "Reverse proxy URL to accelerate GitHub asset downloads (e.g. https://ghproxy.net)",
         "selfUpdateManifestUrl": "URL to the latest release JSON manifest (required when source is manifest)",
         "selfUpdateReleaseUrlTemplate": "URL template for a tagged release, must include '{'tag'}' (e.g. https://example.com/'{'tag'}'.json)",
         "selfUpdateAuthToken": "Bearer token for manifest endpoints"
