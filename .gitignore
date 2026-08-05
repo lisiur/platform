@@ -50,6 +50,9 @@ yarn-error.log*
 # database
 dev.db
 
+# generated app version (from scripts/gen-version.mjs)
+/packages/shared/src/version.ts
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example

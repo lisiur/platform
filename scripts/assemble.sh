@@ -41,6 +41,9 @@ done
 # tarball is self-contained. The real .env.production (with secrets) is never
 # baked in — it stays on the server; the deployer fills it from the template.
 cp "$SRC_ROOT/scripts/ecosystem.config.js" "$OUT/"
+# Ship the OTA self-update runner so the running server can update itself
+# (POST /api/version/update spawns <deploy-root>/self-update.mjs).
+cp "$SRC_ROOT/scripts/self-update.mjs" "$OUT/"
 if [ -f "$SRC_ROOT/.env.production.example" ]; then
   cp "$SRC_ROOT/.env.production.example" "$OUT/"
 fi

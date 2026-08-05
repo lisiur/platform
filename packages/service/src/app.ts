@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { APP_VERSION } from "@repo/shared";
 import { Scalar } from "@scalar/hono-api-reference";
 import { contextStorage } from "hono/context-storage";
 import { cors } from "hono/cors";
@@ -151,7 +152,7 @@ const openApiDocConfig = {
   openapi: "3.0.0" as const,
   info: {
     title: "Platform API",
-    version: "1.0.0",
+    version: APP_VERSION.replace(/^v/, ""),
     description: "Hono REST API with OpenAPI support",
   },
   servers: [{ url: "/" }],

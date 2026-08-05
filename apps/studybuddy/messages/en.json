@@ -380,7 +380,8 @@
     "switchOrganization": "Switch Organization",
     "switchSuccess": "Organization switched",
     "registerOrganization": "Register Organization",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "version": "Version"
   },
   "Frontend": {
     "permissionSelector": {
@@ -423,6 +424,25 @@
         "createdAt": "Created At",
         "actions": "Actions"
       }
+    },
+    "version": {
+      "title": "Version",
+      "description": "Application version and updates",
+      "currentVersion": "Current version",
+      "gitSha": "Git commit",
+      "builtAt": "Built at",
+      "checkUpdates": "Check for updates",
+      "checking": "Checking for updates...",
+      "upToDate": "You are on the latest version",
+      "available": "A new version is available",
+      "latest": "Latest",
+      "viewRelease": "View release notes",
+      "updateNow": "Update now",
+      "updating": "Updating...",
+      "reload": "Reload",
+      "succeeded": "Update applied. Reloading...",
+      "failed": "Update failed",
+      "permissionDenied": "You do not have permission to do this"
     }
   },
   "Agent": {

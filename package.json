@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "gen-version": "node scripts/gen-version.mjs",
+    "prepare": "node scripts/gen-version.mjs",
+    "predev": "node scripts/gen-version.mjs",
+    "prebuild": "node scripts/gen-version.mjs",
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter './apps/*' --stream dev",
     "dev:gateway": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/gateway --stream dev",
     "dev:admin": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/admin --filter ./apps/gateway --stream dev",

@@ -55,6 +55,9 @@ jobs:
           # Optional: bake a specific API origin into the client bundle.
           # Set as a repository variable (Settings → Secrets and variables → Actions).
           NEXT_PUBLIC_API_ORIGIN: ${{ vars.NEXT_PUBLIC_API_ORIGIN }}
+          # Bake the released version (git tag) + sha into the bundles.
+          APP_VERSION: ${{ github.ref_name }}
+          APP_GIT_SHA: ${{ github.sha }}
         run: pnpm build
 
       - name: Assemble and pack deploy tarball

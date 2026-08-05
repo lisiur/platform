@@ -5,3 +5,4 @@ export * from "./notification-flags";
 export * from "./password-policy";
 export * from "./role-flags";
 export * from "./user-flags";
+export * from "./version";

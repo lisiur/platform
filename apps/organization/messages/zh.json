@@ -365,7 +365,8 @@
     "switchOrganization": "切换组织",
     "switchSuccess": "已切换组织",
     "registerOrganization": "创建组织",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "version": "版本"
   },
   "Frontend": {
     "permissionSelector": {
@@ -408,6 +409,25 @@
         "createdAt": "创建时间",
         "actions": "操作"
       }
+    },
+    "version": {
+      "title": "版本",
+      "description": "应用版本与更新",
+      "currentVersion": "当前版本",
+      "gitSha": "Git 提交",
+      "builtAt": "构建时间",
+      "checkUpdates": "检查更新",
+      "checking": "正在检查更新...",
+      "upToDate": "已是最新版本",
+      "available": "发现新版本",
+      "latest": "最新版本",
+      "viewRelease": "查看发布说明",
+      "updateNow": "立即更新",
+      "updating": "更新中...",
+      "reload": "重新加载",
+      "succeeded": "更新已完成，正在重新加载...",
+      "failed": "更新失败",
+      "permissionDenied": "您没有权限执行此操作"
     }
   },
   "Agent": {

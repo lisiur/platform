@@ -24,6 +24,11 @@ export type {
   PermissionSortKey,
 } from "./components/permission-selector";
 export { PermissionSelector } from "./components/permission-selector";
+export type {
+  VersionAppClient,
+  VersionDialogProps,
+} from "./components/version-dialog";
+export { VersionDialog } from "./components/version-dialog";
 export type { WatermarkConfig, WatermarkProps } from "./components/watermark";
 export { Watermark } from "./components/watermark";
 export type {

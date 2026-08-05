@@ -350,6 +350,16 @@ const systemPermissions = [
     name: "View System Info",
   },
   {
+    code: "system/version:view",
+    group: "version",
+    name: "View Version & Check Updates",
+  },
+  {
+    code: "system/version:update",
+    group: "version",
+    name: "Apply Self-Update",
+  },
+  {
     code: "system/rate-limit:manage",
     group: "rate-limit",
     name: "Manage Rate Limits",

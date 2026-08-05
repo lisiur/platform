@@ -24,6 +24,7 @@ import { cacheRoutes } from "./system/routes/cache";
 import { rateLimitRoutes } from "./system/routes/rate-limit";
 import { systemConfigRoutes } from "./system/routes/system-config";
 import { systemInfoRoutes } from "./system/routes/system-info";
+import { versionRoutes } from "./system/routes/version";
 
 const routes = new OpenAPIHono()
   .route("/auth", authRoutes)
@@ -39,6 +40,7 @@ const routes = new OpenAPIHono()
   .route("/roles", roleRoutes)
   .route("/role-permissions", rolePermissionRoutes)
   .route("/system-info", systemInfoRoutes)
+  .route("/version", versionRoutes)
   .route("/attachment", attachmentRoutes)
   .route("/user-roles", userRoleRoutes)
   .route("/operation-logs", operationLogRoutes)
