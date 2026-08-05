@@ -34,7 +34,7 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { Fragment, useMemo, useState } from "react";
-import { appClient, useSession } from "@/lib/api";
+import { API_ORIGIN, APP_CODE, appClient, useSession } from "@/lib/api";
 import { useHasPermission } from "@/lib/api/use-has-permission";
 
 type UserMenuItem =
@@ -290,6 +290,8 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
           open={versionOpen}
           onOpenChange={setVersionOpen}
           appClient={appClient}
+          apiOrigin={API_ORIGIN}
+          appCode={APP_CODE}
           canViewVersion={canViewVersion}
           canManageVersion={canManageVersion}
         />

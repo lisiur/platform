@@ -23,7 +23,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useEventStream } from "../hooks/use-event-stream";
 import { toast } from "../lib/toast";
 
 // biome-ignore lint/suspicious/noExplicitAny: Hono RPC client methods are overloaded and app-generated.
@@ -45,6 +46,8 @@ export interface VersionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appClient: VersionAppClient;
+  apiOrigin: string;
+  appCode: string;
   canViewVersion?: boolean;
   canManageVersion?: boolean;
 }
@@ -109,6 +112,8 @@ export function VersionDialog({
   open,
   onOpenChange,
   appClient,
+  apiOrigin,
+  appCode,
   canViewVersion = false,
   canManageVersion = false,
 }: VersionDialogProps) {
@@ -192,8 +197,8 @@ export function VersionDialog({
     [t],
   );
   const [status, setStatus] = useState<UpdateStatus | null>(null);
-  const [polling, setPolling] = useState(false);
   const [mode, setMode] = useState<UpdateMode>("update");
+  const prevPhaseRef = useRef<string | null>(null);
 
   const latestQuery = useQuery({
     queryKey: ["version", "latest"],
@@ -210,9 +215,6 @@ export function VersionDialog({
       const res = await appClient.api.version.update.$post({ json: { mode } });
       return readJson(res);
     },
-    onSuccess: () => {
-      setPolling(true);
-    },
     onError: (err: unknown) => {
       toast.error(formatErrorMessage(err));
     },
@@ -224,58 +226,51 @@ export function VersionDialog({
       const res = await appClient.api.version.update.status.$get();
       const s = (await readJson(res)) as UpdateStatus;
       setStatus(s);
+      prevPhaseRef.current = s.phase;
       return s;
     } catch {
       return null;
     }
   }, [appClient, canCheckVersion]);
 
-  useEffect(() => {
-    if (!canCheckVersion || !polling) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      const s = await fetchStatus();
-      if (cancelled) return;
-      if (!s || s.phase === "running") {
-        timer = setTimeout(tick, 1500);
-        return;
-      }
-      if (
-        s.phase === "idle" ||
-        s.phase === "succeeded" ||
-        s.phase === "failed"
-      ) {
-        setPolling(false);
-        if (s.phase === "succeeded") {
-          toast.success(t("succeeded"));
-          setTimeout(() => window.location.reload(), 1500);
-        } else if (s.phase === "failed") {
-          toast.error(`${t("failed")}: ${formatStatusMessage(s)}`);
+  useEventStream({
+    origin: apiOrigin,
+    appCode,
+    event: "self_update.status.updated",
+    enabled: open && canCheckVersion,
+    handler: (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as UpdateStatus & {
+          type: string;
+          target: string;
+        };
+        setStatus(data);
+        if (prevPhaseRef.current === "running") {
+          if (data.phase === "succeeded") {
+            toast.success(t("succeeded"));
+            setTimeout(() => window.location.reload(), 1500);
+          } else if (data.phase === "failed") {
+            toast.error(`${t("failed")}: ${formatStatusMessage(data)}`);
+          }
         }
-        return;
+        prevPhaseRef.current = data.phase;
+      } catch {
+        // ignore parse errors
       }
-    };
-    timer = setTimeout(tick, 1500);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [polling, fetchStatus, t, canCheckVersion, formatStatusMessage]);
+    },
+  });
 
   useEffect(() => {
     if (!open) {
-      setPolling(false);
       setStatus(null);
+      prevPhaseRef.current = null;
       return;
     }
-    void fetchStatus().then((s) => {
-      if (s?.phase === "running") setPolling(true);
-    });
+    void fetchStatus();
   }, [open, fetchStatus]);
 
   const latest = latestQuery.data;
-  const checking = latestQuery.isLoading;
+  const checking = latestQuery.isLoading || latestQuery.isFetching;
   const hasNewer = !!latest?.newer;
   const canApply = !!latest && (hasNewer || mode === "redeploy");
   const updating = status?.phase === "running" || applyMutation.isPending;

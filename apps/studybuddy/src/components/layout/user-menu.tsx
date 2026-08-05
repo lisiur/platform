@@ -37,7 +37,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { Fragment, useMemo, useState } from "react";
 import { useSwitchOrganization } from "@/hooks/use-switch-organization";
-import { appClient, withApiFeedback } from "@/lib/api";
+import { API_ORIGIN, APP_CODE, appClient, withApiFeedback } from "@/lib/api";
 import { useSession } from "@/lib/api/use-session";
 
 type UserMenuItem =
@@ -362,6 +362,8 @@ export function UserMenu({ full, items }: UserMenuProps) {
           open={versionOpen}
           onOpenChange={setVersionOpen}
           appClient={appClient}
+          apiOrigin={API_ORIGIN}
+          appCode={APP_CODE}
         />
       )}
     </>
