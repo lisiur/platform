@@ -2,9 +2,16 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { APP_BUILD_TIME, APP_GIT_SHA, APP_VERSION } from "@repo/shared";
+import {
+  APP_BUILD_TIME,
+  APP_GIT_SHA,
+  APP_VERSION,
+  type ApplyUpdateMode,
+  type UpdatePhase,
+} from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { envVarFor, getMergedConfigRows } from "#modules/system/public";
+import { eventBus } from "#states";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -40,9 +47,6 @@ interface UpdateSourceProvider {
     config?: Map<string, string>,
   ): Promise<UpdateRelease>;
 }
-
-export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
-export type ApplyUpdateMode = "update" | "redeploy";
 
 export interface UpdateStatus {
   phase: UpdatePhase;
@@ -184,6 +188,22 @@ function writeUpdateStatus(status: UpdateStatus): void {
     /*turbopackIgnore: true*/ stateFile(),
     `${JSON.stringify(status, null, 2)}\n`,
   );
+}
+
+export function resetStaleUpdateStatus(): void {
+  const status = readUpdateStatus();
+  if (status.phase === "running") {
+    writeUpdateStatus({
+      phase: "failed",
+      step: "stale",
+      message: "Server restarted while update was running — reset to failed.",
+      targetTag: status.targetTag,
+      mode: status.mode,
+      progress: status.progress,
+      startedAt: status.startedAt,
+      updatedAt: new Date().toISOString(),
+    });
+  }
 }
 
 interface SemverParts {
@@ -337,10 +357,7 @@ const githubUpdateSource: UpdateSourceProvider = {
   },
   async getReleaseByTag(tag, config) {
     return fromGithubRelease(
-      await fetchRelease(
-        `/releases/tags/${encodeURIComponent(tag)}`,
-        config,
-      ),
+      await fetchRelease(`/releases/tags/${encodeURIComponent(tag)}`, config),
     );
   },
 };
@@ -435,7 +452,7 @@ async function resolveUpdateSource(
     default:
       throw new HTTPException(503, {
         message:
-          'Missing self-update config: source. Set it under Settings → Self Update.',
+          "Missing self-update config: source. Set it under Settings → Self Update.",
       });
   }
 }
@@ -472,6 +489,39 @@ function resolveRunner(): string {
   return join(/*turbopackIgnore: true*/ deployRoot(), "self-update.mjs");
 }
 
+const STATUS_POLL_MS = 500;
+let statusStreamInterval: ReturnType<typeof setInterval> | null = null;
+
+function startUpdateStatusStream() {
+  let lastJson = "";
+  const interval = setInterval(() => {
+    const status = readUpdateStatus();
+    const json = JSON.stringify(status);
+    if (json !== lastJson) {
+      lastJson = json;
+      eventBus.publish({
+        type: "self_update.status.updated",
+        target: "sse:admin:*:*",
+        phase: status.phase,
+        step: status.step,
+        message: status.message,
+        targetTag: status.targetTag,
+        mode: status.mode,
+        progress: status.progress,
+      });
+    }
+    if (status.phase === "succeeded" || status.phase === "failed") {
+      clearInterval(interval);
+      if (statusStreamInterval === interval) {
+        statusStreamInterval = null;
+      }
+    }
+  }, STATUS_POLL_MS);
+
+  statusStreamInterval = interval;
+  return interval;
+}
+
 export interface ApplyUpdateResult {
   jobId: string;
   targetTag: string;
@@ -496,9 +546,7 @@ export async function applyUpdate(opts?: {
     const mode = opts?.mode ?? "update";
     const target = opts?.tag
       ? await getReleaseByTag(opts.tag, config)
-      : await (
-          await resolveUpdateSource(config)
-        ).getLatestRelease(config);
+      : await (await resolveUpdateSource(config)).getLatestRelease(config);
     const targetTag = target.tag;
     const tarballUrl = target.tarballUrl;
 
@@ -578,6 +626,8 @@ export async function applyUpdate(opts?: {
     });
 
     child.unref();
+
+    startUpdateStatusStream();
 
     return { jobId: randomUUID(), targetTag, tarballUrl, mode };
   } catch (err) {

@@ -25,6 +25,7 @@ import {
   initRateLimitDefaults,
   initRateLimitOverrides,
 } from "#modules/system/rate-limit.service";
+import { resetStaleUpdateStatus } from "#modules/system/version.service";
 import { seed } from "../prisma/seed";
 import { routes } from "./modules";
 
@@ -39,6 +40,7 @@ import { routes } from "./modules";
   }
 
   jobExecutor.start();
+  resetStaleUpdateStatus();
   await loadAuthDefaults().catch((e) =>
     console.error("Failed to load auth defaults:", e),
   );

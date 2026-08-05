@@ -24,8 +24,27 @@ export interface AgentSessionTitleUpdatedEvent {
   name: string;
 }
 
+export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
+export type ApplyUpdateMode = "update" | "redeploy";
+
+export interface SelfUpdateStatusUpdatedEvent {
+  type: "self_update.status.updated";
+  target: string;
+  phase: UpdatePhase;
+  step: string;
+  message: string;
+  targetTag: string | null;
+  mode: ApplyUpdateMode | null;
+  progress: {
+    downloadedBytes: number;
+    totalBytes: number | null;
+    percent: number | null;
+  } | null;
+}
+
 export type ServerEvent =
   | NotificationCreatedEvent
   | JobStatsUpdatedEvent
   | RateLimitUpdatedEvent
-  | AgentSessionTitleUpdatedEvent;
+  | AgentSessionTitleUpdatedEvent
+  | SelfUpdateStatusUpdatedEvent;
