@@ -35,6 +35,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { Fragment, useMemo, useState } from "react";
 import { appClient, useSession } from "@/lib/api";
+import { useHasPermission } from "@/lib/api/use-has-permission";
 
 type UserMenuItem =
   | "userInfo"
@@ -65,6 +66,8 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
   const isDark = theme === "dark";
   const t = useTranslations("Sidebar");
   const th = useTranslations("Header");
+  const canViewVersion = useHasPermission("system/version:view");
+  const canManageVersion = useHasPermission("system/version:update");
 
   const [versionOpen, setVersionOpen] = useState(false);
 
@@ -286,7 +289,8 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
           open={versionOpen}
           onOpenChange={setVersionOpen}
           appClient={appClient}
-          canManageVersion
+          canViewVersion={canViewVersion}
+          canManageVersion={canManageVersion}
         />
       )}
     </>

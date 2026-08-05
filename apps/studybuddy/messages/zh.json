@@ -446,7 +446,42 @@
       "reload": "重新加载",
       "succeeded": "更新已完成，正在重新加载...",
       "failed": "更新失败",
-      "permissionDenied": "您没有权限执行此操作"
+      "permissionDenied": "您没有权限执行此操作",
+      "selfUpdateDisabled": "此服务器未启用自更新。请设置 SELF_UPDATE_ENABLED=true 后再使用。",
+      "deployRootRequired": "运行自更新需要配置 DEPLOY_ROOT。",
+      "statusSteps": {
+        "queued": "已排队",
+        "downloading": "下载中",
+        "verifying": "校验中",
+        "stopping": "停止中",
+        "extracting": "解压中",
+        "installing": "安装中",
+        "migrating": "迁移中",
+        "resetting": "重置中",
+        "reloading": "重载中",
+        "starting": "启动中",
+        "saving": "保存中",
+        "done": "完成",
+        "error": "错误"
+      },
+      "statusMessages": {
+        "queuedUpdate": "正在准备更新到 {target}",
+        "queuedRedeploy": "正在准备重新部署到 {target}",
+        "downloading": "正在下载 {target}",
+        "downloadingBytes": "正在下载 {target}（已下载 {downloaded}）",
+        "downloadingProgress": "正在下载 {target}（{percent}%，{downloaded} / {total}）",
+        "verifying": "正在校验压缩包",
+        "stopping": "正在停止 PM2 应用",
+        "extracting": "正在解压压缩包",
+        "installing": "正在安装依赖",
+        "migrating": "正在运行数据库迁移",
+        "resetting": "正在重置数据库",
+        "reloading": "正在重载 PM2",
+        "starting": "正在启动 PM2",
+        "saving": "正在保存 PM2 进程列表",
+        "doneUpdate": "已更新到 {target}",
+        "doneRedeploy": "已重新部署 {target}"
+      }
     }
   },
   "Agent": {

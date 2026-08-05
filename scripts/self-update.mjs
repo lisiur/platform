@@ -23,7 +23,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 const [tarballUrl, targetTag, modeArg = "update"] = process.argv.slice(2);
@@ -45,7 +45,7 @@ function log(msg) {
   logStream.write(`${line}\n`);
 }
 
-function setStatus(phase, step, message) {
+function setStatus(phase, step, message, progress = null) {
   const prev = readPrev();
   const status = {
     phase,
@@ -53,6 +53,7 @@ function setStatus(phase, step, message) {
     message,
     targetTag: targetTag || prev?.targetTag || null,
     mode: MODE,
+    progress,
     startedAt: prev?.startedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -97,13 +98,46 @@ function runPm2(args, step, label) {
 }
 
 async function download(url, dest) {
-  setStatus("running", "downloading", `Downloading ${targetTag || "latest"}`);
+  const label = `Downloading ${targetTag || "latest"}`;
+  setStatus("running", "downloading", label, {
+    downloadedBytes: 0,
+    totalBytes: null,
+    percent: null,
+  });
   log(`[downloading] ${url}`);
   const res = await fetch(url, { redirect: "follow" });
   if (!res.ok || !res.body) {
     throw new Error(`Download failed: HTTP ${res.status}`);
   }
-  await pipeline(Readable.fromWeb(res.body), createWriteStream(dest));
+  const totalBytes = Number(res.headers.get("content-length"));
+  const total =
+    Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : null;
+  let downloadedBytes = 0;
+  let lastStatusAt = 0;
+  const reportProgress = (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastStatusAt < 500) return;
+    lastStatusAt = now;
+    setStatus("running", "downloading", label, {
+      downloadedBytes,
+      totalBytes: total,
+      percent: total
+        ? Math.min(100, Math.round((downloadedBytes / total) * 100))
+        : null,
+    });
+  };
+  await pipeline(
+    Readable.fromWeb(res.body),
+    new Transform({
+      transform(chunk, _encoding, callback) {
+        downloadedBytes += chunk.length;
+        reportProgress();
+        callback(null, chunk);
+      },
+    }),
+    createWriteStream(dest),
+  );
+  reportProgress(true);
 }
 
 function verifyTarball(file) {

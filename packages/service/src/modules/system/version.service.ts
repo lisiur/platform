@@ -33,6 +33,11 @@ export interface UpdateStatus {
   message: string;
   targetTag: string | null;
   mode: ApplyUpdateMode | null;
+  progress: {
+    downloadedBytes: number;
+    totalBytes: number | null;
+    percent: number | null;
+  } | null;
   startedAt: string | null;
   updatedAt: string | null;
 }
@@ -128,7 +133,8 @@ function releaseLock(): void {
 export function readUpdateStatus(): UpdateStatus {
   try {
     const raw = readFileSync(/*turbopackIgnore: true*/ stateFile(), "utf8");
-    return JSON.parse(raw) as UpdateStatus;
+    const status = JSON.parse(raw) as UpdateStatus;
+    return { ...status, progress: status.progress ?? null };
   } catch {
     return {
       phase: "idle",
@@ -136,6 +142,7 @@ export function readUpdateStatus(): UpdateStatus {
       message: "",
       targetTag: null,
       mode: null,
+      progress: null,
       startedAt: null,
       updatedAt: null,
     };
@@ -322,6 +329,7 @@ export async function applyUpdate(opts?: {
           : `Preparing update to ${targetTag}`,
       targetTag,
       mode,
+      progress: null,
       startedAt: now,
       updatedAt: now,
     });

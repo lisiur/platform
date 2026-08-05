@@ -57,6 +57,16 @@ export const updateStatusSchema = z
     message: z.string().openapi({ example: "Extracting tarball" }),
     targetTag: z.string().nullable().openapi({ example: "v1.3.0" }),
     mode: applyUpdateModeSchema.nullable().openapi({ example: "update" }),
+    progress: z
+      .object({
+        downloadedBytes: z.number().int().nonnegative(),
+        totalBytes: z.number().int().nonnegative().nullable(),
+        percent: z.number().min(0).max(100).nullable(),
+      })
+      .nullable()
+      .openapi({
+        description: "Download progress for the current update step, if known.",
+      }),
     startedAt: z
       .string()
       .nullable()

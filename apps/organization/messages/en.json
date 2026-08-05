@@ -431,7 +431,42 @@
       "reload": "Reload",
       "succeeded": "Update applied. Reloading...",
       "failed": "Update failed",
-      "permissionDenied": "You do not have permission to do this"
+      "permissionDenied": "You do not have permission to do this",
+      "selfUpdateDisabled": "Self-update is disabled on this server. Set SELF_UPDATE_ENABLED=true to enable it.",
+      "deployRootRequired": "DEPLOY_ROOT is required to run self-update.",
+      "statusSteps": {
+        "queued": "Queued",
+        "downloading": "Downloading",
+        "verifying": "Verifying",
+        "stopping": "Stopping",
+        "extracting": "Extracting",
+        "installing": "Installing",
+        "migrating": "Migrating",
+        "resetting": "Resetting",
+        "reloading": "Reloading",
+        "starting": "Starting",
+        "saving": "Saving",
+        "done": "Done",
+        "error": "Error"
+      },
+      "statusMessages": {
+        "queuedUpdate": "Preparing update to {target}",
+        "queuedRedeploy": "Preparing redeploy to {target}",
+        "downloading": "Downloading {target}",
+        "downloadingBytes": "Downloading {target} ({downloaded})",
+        "downloadingProgress": "Downloading {target} ({percent}%, {downloaded} / {total})",
+        "verifying": "Verifying tarball",
+        "stopping": "Stopping PM2 apps",
+        "extracting": "Extracting tarball",
+        "installing": "Installing dependencies",
+        "migrating": "Running database migrations",
+        "resetting": "Resetting database",
+        "reloading": "Reloading PM2",
+        "starting": "Starting PM2",
+        "saving": "Saving PM2 process list",
+        "doneUpdate": "Updated to {target}",
+        "doneRedeploy": "Redeployed {target}"
+      }
     }
   },
   "Agent": {

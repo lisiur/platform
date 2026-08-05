@@ -45,6 +45,7 @@ export interface VersionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appClient: VersionAppClient;
+  canViewVersion?: boolean;
   canManageVersion?: boolean;
 }
 
@@ -64,16 +65,21 @@ export interface UpdateStatus {
   message: string;
   targetTag: string | null;
   mode: UpdateMode | null;
+  progress: {
+    downloadedBytes: number;
+    totalBytes: number | null;
+    percent: number | null;
+  } | null;
 }
 
 type UpdateMode = "update" | "redeploy";
 
 async function readJson(res: ClientResponse<unknown, number, string>) {
-  if (res.status === 401 || res.status === 403) {
-    throw new StatusError(res.status, "permissionDenied");
-  }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
+    if (res.status === 401 || res.status === 403) {
+      throw new StatusError(res.status, "permissionDenied");
+    }
     throw new StatusError(res.status, body.message ?? `HTTP ${res.status}`);
   }
   return res.json();
@@ -87,13 +93,101 @@ class StatusError extends Error {
   }
 }
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
+}
+
 export function VersionDialog({
   open,
   onOpenChange,
   appClient,
+  canViewVersion = false,
   canManageVersion = false,
 }: VersionDialogProps) {
   const t = useTranslations("Frontend.version");
+  const canCheckVersion = canViewVersion || canManageVersion;
+  const formatErrorMessage = (err: unknown) => {
+    if (err instanceof StatusError) {
+      if (err.message === "permissionDenied") return t("permissionDenied");
+      if (err.message.includes("SELF_UPDATE_ENABLED")) {
+        return t("selfUpdateDisabled");
+      }
+      if (err.message.includes("DEPLOY_ROOT")) return t("deployRootRequired");
+    }
+    return err instanceof Error ? err.message : String(err);
+  };
+  const formatStatusStep = useCallback(
+    (step: string) => {
+      switch (step) {
+        case "queued":
+        case "downloading":
+        case "verifying":
+        case "stopping":
+        case "extracting":
+        case "installing":
+        case "migrating":
+        case "resetting":
+        case "reloading":
+        case "starting":
+        case "saving":
+        case "done":
+        case "error":
+          return t(`statusSteps.${step}`);
+        default:
+          return step;
+      }
+    },
+    [t],
+  );
+  const formatStatusMessage = useCallback(
+    (s: UpdateStatus) => {
+      const target = s.targetTag ?? t("latest");
+      switch (s.step) {
+        case "queued":
+          return s.mode === "redeploy"
+            ? t("statusMessages.queuedRedeploy", { target })
+            : t("statusMessages.queuedUpdate", { target });
+        case "downloading": {
+          if (!s.progress) return t("statusMessages.downloading", { target });
+          const downloaded = formatBytes(s.progress.downloadedBytes);
+          if (!s.progress.totalBytes || s.progress.percent === null) {
+            return t("statusMessages.downloadingBytes", {
+              target,
+              downloaded,
+            });
+          }
+          return t("statusMessages.downloadingProgress", {
+            target,
+            downloaded,
+            total: formatBytes(s.progress.totalBytes),
+            percent: s.progress.percent,
+          });
+        }
+        case "verifying":
+        case "stopping":
+        case "extracting":
+        case "installing":
+        case "migrating":
+        case "resetting":
+        case "reloading":
+        case "starting":
+        case "saving":
+          return t(`statusMessages.${s.step}`);
+        case "done":
+          return s.mode === "redeploy"
+            ? t("statusMessages.doneRedeploy", { target })
+            : t("statusMessages.doneUpdate", { target });
+        default:
+          return s.message;
+      }
+    },
+    [t],
+  );
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [polling, setPolling] = useState(false);
   const [mode, setMode] = useState<UpdateMode>("update");
@@ -104,7 +198,7 @@ export function VersionDialog({
       const res = await appClient.api.version.latest.$get();
       return (await readJson(res)) as LatestRelease;
     },
-    enabled: open && canManageVersion,
+    enabled: open && canCheckVersion,
     retry: false,
   });
 
@@ -117,14 +211,12 @@ export function VersionDialog({
       setPolling(true);
     },
     onError: (err: unknown) => {
-      const msg =
-        err instanceof StatusError ? t(err.message) : (err as Error).message;
-      toast.error(msg);
+      toast.error(formatErrorMessage(err));
     },
   });
 
   const fetchStatus = useCallback(async () => {
-    if (!canManageVersion) return null;
+    if (!canCheckVersion) return null;
     try {
       const res = await appClient.api.version.update.status.$get();
       const s = (await readJson(res)) as UpdateStatus;
@@ -133,10 +225,10 @@ export function VersionDialog({
     } catch {
       return null;
     }
-  }, [appClient, canManageVersion]);
+  }, [appClient, canCheckVersion]);
 
   useEffect(() => {
-    if (!canManageVersion || !polling) return;
+    if (!canCheckVersion || !polling) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
@@ -156,7 +248,7 @@ export function VersionDialog({
           toast.success(t("succeeded"));
           setTimeout(() => window.location.reload(), 1500);
         } else if (s.phase === "failed") {
-          toast.error(`${t("failed")}: ${s.message}`);
+          toast.error(`${t("failed")}: ${formatStatusMessage(s)}`);
         }
         return;
       }
@@ -166,7 +258,7 @@ export function VersionDialog({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [polling, fetchStatus, t, canManageVersion]);
+  }, [polling, fetchStatus, t, canCheckVersion, formatStatusMessage]);
 
   useEffect(() => {
     if (!open) {
@@ -220,18 +312,16 @@ export function VersionDialog({
             </div>
           </div>
 
-          {canManageVersion && checking ? (
+          {canCheckVersion && checking ? (
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
               {t("checking")}
             </div>
-          ) : canManageVersion && latestQuery.error ? (
+          ) : canCheckVersion && latestQuery.error ? (
             <p className="text-destructive text-sm">
-              {latestQuery.error instanceof StatusError
-                ? t(latestQuery.error.message)
-                : (latestQuery.error as Error).message}
+              {formatErrorMessage(latestQuery.error)}
             </p>
-          ) : canManageVersion && latest ? (
+          ) : canCheckVersion && latest ? (
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2">
                 {hasNewer ? (
@@ -261,14 +351,14 @@ export function VersionDialog({
             </div>
           ) : null}
 
-          {canManageVersion && updating && status ? (
+          {canCheckVersion && updating && status ? (
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {status.mode === "redeploy" ? t("redeploying") : t("updating")}
               </div>
               <p className="text-muted-foreground text-xs">
-                {status.step}: {status.message}
+                {formatStatusStep(status.step)}: {formatStatusMessage(status)}
               </p>
             </div>
           ) : null}
@@ -293,7 +383,7 @@ export function VersionDialog({
             </label>
           ) : null}
         </DialogBody>
-        {canManageVersion ? (
+        {canCheckVersion ? (
           <DialogFooter>
             <Button
               variant="outline"
@@ -303,7 +393,7 @@ export function VersionDialog({
               <RefreshCw className="h-4 w-4" />
               {t("checkUpdates")}
             </Button>
-            {canApply && !updating ? (
+            {canManageVersion && canApply && !updating ? (
               <Button
                 onClick={() => applyMutation.mutate()}
                 disabled={applyMutation.isPending}
