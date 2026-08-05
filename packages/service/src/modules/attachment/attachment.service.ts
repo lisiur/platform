@@ -14,7 +14,8 @@ import {
 } from "#lib/mime";
 import { getConfigRow } from "#modules/system/public";
 
-const UPLOADS_ROOT = join(process.cwd(), "uploads");
+const UPLOADS_ROOT =
+  process.env.UPLOAD_ROOT_DIR ?? join(process.cwd(), "uploads");
 const DEFAULT_HOTLINK_CONFIG = {
   enabled: false,
   allowedDomains: [],
