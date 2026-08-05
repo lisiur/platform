@@ -20,7 +20,7 @@ export const getLatestRoute = defineOpenAPIRoute({
     tags: ["Version"],
     summary: "Check for the latest release",
     description:
-      "Queries the configured GitHub repo for the latest release and reports whether it is newer than the running build.",
+      "Queries the configured self-update source for the latest release and reports whether it is newer than the running build.",
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,

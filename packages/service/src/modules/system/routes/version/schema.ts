@@ -13,14 +13,18 @@ export const latestReleaseSchema = z
     tag: z.string().openapi({ example: "v1.3.0" }),
     name: z.string().nullable().openapi({ example: "v1.3.0" }),
     htmlUrl: z.string().url().openapi({
-      example: "https://github.com/lisiur/platform/releases/tag/v1.3.0",
+      example: "https://updates.example.com/platform/v1.3.0",
     }),
     publishedAt: z.string().openapi({ example: "2026-08-01T12:00:00Z" }),
     tarballUrl: z.string().url().openapi({
       example:
-        "https://github.com/lisiur/platform/releases/download/v1.3.0/platform-deploy-v1.3.0.tar.gz",
+        "https://updates.example.com/platform/platform-deploy-v1.3.0.tar.gz",
     }),
-    tarballSize: z.number().openapi({ example: 52428800 }),
+    tarballSize: z
+      .number()
+      .finite()
+      .nonnegative()
+      .openapi({ example: 52428800 }),
     newer: z.boolean().openapi({ example: true }),
   })
   .openapi("LatestRelease");

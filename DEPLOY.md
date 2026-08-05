@@ -108,9 +108,44 @@ persists. Only `pm2 save` is needed to record the new process list.
 
 For a non-destructive update (keep the data), follow "Update an existing deploy".
 
-The admin app's Version dialog exposes both flows when `SELF_UPDATE_ENABLED=true`:
-normal update runs the non-destructive migrate/reload path, while "Redeploy from
-scratch" runs the destructive reset/start path above.
+The admin app's Version dialog exposes both flows when `SELF_UPDATE_ENABLED=true`
+and an explicit update source is configured: normal update runs the
+non-destructive migrate/reload path, while "Redeploy from scratch" runs the
+destructive reset/start path above.
+
+Configure one source explicitly; there is no implicit default:
+
+```bash
+# GitHub Releases source
+SELF_UPDATE_ENABLED=true
+SELF_UPDATE_SOURCE=github
+GITHUB_REPO=lisiur/platform              # optional, defaults to lisiur/platform
+GITHUB_TOKEN=                            # optional
+DEPLOY_ROOT=/data/platform
+```
+
+```bash
+# Provider-neutral manifest source
+SELF_UPDATE_ENABLED=true
+SELF_UPDATE_SOURCE=manifest
+SELF_UPDATE_MANIFEST_URL=https://updates.example.com/platform/latest.json
+SELF_UPDATE_RELEASE_URL_TEMPLATE=https://updates.example.com/platform/{tag}.json
+SELF_UPDATE_AUTH_TOKEN=                  # optional bearer token
+DEPLOY_ROOT=/data/platform
+```
+
+Manifest responses must contain the release metadata and deploy tarball URL:
+
+```json
+{
+  "tag": "v1.3.0",
+  "name": "v1.3.0",
+  "htmlUrl": "https://updates.example.com/platform/v1.3.0",
+  "publishedAt": "2026-08-05T00:00:00.000Z",
+  "tarballUrl": "https://updates.example.com/platform/platform-deploy-v1.3.0.tar.gz",
+  "tarballSize": 52428800
+}
+```
 
 ## nginx
 

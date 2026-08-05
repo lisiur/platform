@@ -6,7 +6,7 @@ import { APP_BUILD_TIME, APP_GIT_SHA, APP_VERSION } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 
 const GITHUB_API = "https://api.github.com";
-const DEFAULT_REPO = "lisiur/platform";
+const DEFAULT_GITHUB_REPO = "lisiur/platform";
 
 export interface VersionInfo {
   version: string;
@@ -22,6 +22,20 @@ export interface LatestRelease {
   tarballUrl: string;
   tarballSize: number;
   newer: boolean;
+}
+
+interface UpdateRelease {
+  tag: string;
+  name: string | null;
+  htmlUrl: string;
+  publishedAt: string;
+  tarballUrl: string;
+  tarballSize: number;
+}
+
+interface UpdateSourceProvider {
+  getLatestRelease(): Promise<UpdateRelease>;
+  getReleaseByTag(tag: string): Promise<UpdateRelease>;
 }
 
 export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
@@ -52,6 +66,15 @@ export function getVersionInfo(): VersionInfo {
 
 export function isSelfUpdateEnabled(): boolean {
   return process.env.SELF_UPDATE_ENABLED === "true";
+}
+
+function assertSelfUpdateEnabled(): void {
+  if (!isSelfUpdateEnabled()) {
+    throw new HTTPException(403, {
+      message:
+        "Self-update is disabled on this server (SELF_UPDATE_ENABLED!=true).",
+    });
+  }
 }
 
 export function deployRoot(): string {
@@ -212,8 +235,32 @@ interface RawRelease {
   assets: { name: string; browser_download_url: string; size: number }[];
 }
 
+interface ManifestRelease {
+  tag: string;
+  name?: string | null;
+  htmlUrl: string;
+  publishedAt: string;
+  tarballUrl: string;
+  tarballSize: number;
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new HTTPException(503, {
+      message: `${name} is required to run self-update.`,
+    });
+  }
+  return value;
+}
+
+function authHeaders(): Record<string, string> {
+  const token = process.env.SELF_UPDATE_AUTH_TOKEN?.trim();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function fetchRelease(path: string): Promise<RawRelease> {
-  const repo = process.env.GITHUB_REPO?.trim() || DEFAULT_REPO;
+  const repo = process.env.GITHUB_REPO?.trim() || DEFAULT_GITHUB_REPO;
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "platform-self-update",
@@ -248,8 +295,7 @@ function pickTarball(assets: RawRelease["assets"]): {
   return { url: asset.browser_download_url, size: asset.size };
 }
 
-export async function getLatestRelease(): Promise<LatestRelease> {
-  const data = await fetchRelease("/releases/latest");
+function fromGithubRelease(data: RawRelease): UpdateRelease {
   const asset = pickTarball(data.assets);
   return {
     tag: data.tag_name,
@@ -258,7 +304,107 @@ export async function getLatestRelease(): Promise<LatestRelease> {
     publishedAt: data.published_at,
     tarballUrl: asset.url,
     tarballSize: asset.size,
-    newer: isNewer(data.tag_name, APP_VERSION),
+  };
+}
+
+const githubUpdateSource: UpdateSourceProvider = {
+  async getLatestRelease() {
+    return fromGithubRelease(await fetchRelease("/releases/latest"));
+  },
+  async getReleaseByTag(tag: string) {
+    return fromGithubRelease(
+      await fetchRelease(`/releases/tags/${encodeURIComponent(tag)}`),
+    );
+  },
+};
+
+function normalizeManifestRelease(data: unknown): UpdateRelease {
+  const release = data as Partial<ManifestRelease> | null;
+  const tarballSize = release?.tarballSize;
+  if (
+    !release ||
+    typeof release.tag !== "string" ||
+    typeof release.htmlUrl !== "string" ||
+    typeof release.publishedAt !== "string" ||
+    typeof release.tarballUrl !== "string" ||
+    typeof tarballSize !== "number" ||
+    !Number.isFinite(tarballSize) ||
+    tarballSize < 0
+  ) {
+    throw new HTTPException(502, {
+      message: "Update manifest is missing required release fields.",
+    });
+  }
+  return {
+    tag: release.tag,
+    name: typeof release.name === "string" ? release.name : null,
+    htmlUrl: release.htmlUrl,
+    publishedAt: release.publishedAt,
+    tarballUrl: release.tarballUrl,
+    tarballSize,
+  };
+}
+
+async function fetchManifest(url: string): Promise<UpdateRelease> {
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "platform-self-update",
+      ...authHeaders(),
+    },
+  });
+  if (res.status === 404) {
+    throw new HTTPException(404, { message: "No matching release found." });
+  }
+  if (!res.ok) {
+    throw new HTTPException(502, {
+      message: `Update manifest responded ${res.status}`,
+    });
+  }
+  return normalizeManifestRelease(await res.json());
+}
+
+const manifestUpdateSource: UpdateSourceProvider = {
+  async getLatestRelease() {
+    return fetchManifest(requireEnv("SELF_UPDATE_MANIFEST_URL"));
+  },
+  async getReleaseByTag(tag: string) {
+    const template = requireEnv("SELF_UPDATE_RELEASE_URL_TEMPLATE");
+    if (!template.includes("{tag}")) {
+      throw new HTTPException(503, {
+        message: "SELF_UPDATE_RELEASE_URL_TEMPLATE must include {tag}.",
+      });
+    }
+    return fetchManifest(template.replaceAll("{tag}", encodeURIComponent(tag)));
+  },
+};
+
+function resolveUpdateSource(): UpdateSourceProvider {
+  const source = process.env.SELF_UPDATE_SOURCE?.trim();
+  switch (source) {
+    case "github":
+      return githubUpdateSource;
+    case "manifest":
+      return manifestUpdateSource;
+    default:
+      throw new HTTPException(503, {
+        message:
+          'SELF_UPDATE_SOURCE is required when self-update is enabled. Use "github" or "manifest".',
+      });
+  }
+}
+
+export async function getLatestRelease(): Promise<LatestRelease> {
+  assertSelfUpdateEnabled();
+  const data = await resolveUpdateSource().getLatestRelease();
+  return {
+    tag: data.tag,
+    name: data.name,
+    htmlUrl: data.htmlUrl,
+    publishedAt: data.publishedAt,
+    tarballUrl: data.tarballUrl,
+    tarballSize: data.tarballSize,
+    newer: isNewer(data.tag, APP_VERSION),
   };
 }
 
@@ -266,9 +412,8 @@ async function getReleaseByTag(tag: string): Promise<{
   tag: string;
   tarballUrl: string;
 }> {
-  const data = await fetchRelease(`/releases/tags/${encodeURIComponent(tag)}`);
-  const asset = pickTarball(data.assets);
-  return { tag: data.tag_name, tarballUrl: asset.url };
+  const data = await resolveUpdateSource().getReleaseByTag(tag);
+  return { tag: data.tag, tarballUrl: data.tarballUrl };
 }
 
 function resolveRunner(): string {
@@ -286,12 +431,7 @@ export async function applyUpdate(opts?: {
   tag?: string;
   mode?: ApplyUpdateMode;
 }): Promise<ApplyUpdateResult> {
-  if (!isSelfUpdateEnabled()) {
-    throw new HTTPException(403, {
-      message:
-        "Self-update is disabled on this server (SELF_UPDATE_ENABLED!=true).",
-    });
-  }
+  assertSelfUpdateEnabled();
 
   // Acquire the run lock BEFORE any async work so two concurrent requests
   // can't both pass the check and spawn racing runners (the status-file
@@ -303,7 +443,7 @@ export async function applyUpdate(opts?: {
     const mode = opts?.mode ?? "update";
     const target = opts?.tag
       ? await getReleaseByTag(opts.tag)
-      : await getLatestRelease();
+      : await resolveUpdateSource().getLatestRelease();
     const targetTag = target.tag;
     const tarballUrl = target.tarballUrl;
 

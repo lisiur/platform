@@ -21,7 +21,7 @@ export const applyUpdateRoute = defineOpenAPIRoute({
     tags: ["Version"],
     summary: "Apply a self-update (OTA)",
     description:
-      "Triggers an in-place server self-update: downloads the latest release tarball, extracts it over the deploy dir (preserving .env.production), then either runs migrations and reloads PM2 or redeploys from scratch with a database reset. Requires SELF_UPDATE_ENABLED=true. Returns immediately; poll /version/update/status for progress.",
+      "Triggers an in-place server self-update from the configured update source: downloads the release tarball, extracts it over the deploy dir (preserving .env.production), then either runs migrations and reloads PM2 or redeploys from scratch with a database reset. Requires SELF_UPDATE_ENABLED=true. Returns immediately; poll /version/update/status for progress.",
     request: {
       body: {
         content: {
