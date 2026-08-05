@@ -207,7 +207,7 @@ export function VersionDialog({
                 {t("gitSha")}
               </span>
               <span className="font-mono text-muted-foreground text-sm">
-                {APP_GIT_SHA}
+                {APP_GIT_SHA.slice(0, 7)}
               </span>
             </div>
             <div className="flex items-center justify-between">

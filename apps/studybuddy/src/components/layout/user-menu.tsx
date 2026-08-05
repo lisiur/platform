@@ -1,6 +1,7 @@
 "use client";
 
 import { VersionDialog } from "@repo/frontend";
+import { APP_VERSION } from "@repo/shared";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -331,7 +332,10 @@ export function UserMenu({ full, items }: UserMenuProps) {
           {showVersion && (
             <DropdownMenuItem onClick={() => setVersionOpen(true)}>
               <Milestone className="h-4 w-4" />
-              {t("version")}
+              <span>{t("version")}</span>
+              <span className="ml-auto font-mono text-muted-foreground text-xs">
+                {APP_VERSION}
+              </span>
             </DropdownMenuItem>
           )}
           {(showLabel ||
