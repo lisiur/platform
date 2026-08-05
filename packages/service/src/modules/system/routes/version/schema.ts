@@ -25,9 +25,17 @@ export const latestReleaseSchema = z
   })
   .openapi("LatestRelease");
 
+export const applyUpdateModeSchema = z
+  .enum(["update", "redeploy"])
+  .openapi({ example: "update" });
+
 export const applyUpdateBodySchema = z
   .object({
     tag: z.string().min(1).optional().openapi({ example: "v1.3.0" }),
+    mode: applyUpdateModeSchema.optional().openapi({
+      description:
+        "update keeps database data and runs migrations; redeploy stops PM2, resets the database, and starts PM2 again.",
+    }),
   })
   .openapi("ApplyUpdateBody");
 
@@ -36,6 +44,7 @@ export const applyUpdateResultSchema = z
     jobId: z.string().openapi({ example: "9b1e2c3d-..." }),
     targetTag: z.string().openapi({ example: "v1.3.0" }),
     tarballUrl: z.string().url(),
+    mode: applyUpdateModeSchema,
   })
   .openapi("ApplyUpdateResult");
 
@@ -47,6 +56,7 @@ export const updateStatusSchema = z
     step: z.string().openapi({ example: "extracting" }),
     message: z.string().openapi({ example: "Extracting tarball" }),
     targetTag: z.string().nullable().openapi({ example: "v1.3.0" }),
+    mode: applyUpdateModeSchema.nullable().openapi({ example: "update" }),
     startedAt: z
       .string()
       .nullable()

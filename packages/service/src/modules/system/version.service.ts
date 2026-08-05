@@ -25,12 +25,14 @@ export interface LatestRelease {
 }
 
 export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
+export type ApplyUpdateMode = "update" | "redeploy";
 
 export interface UpdateStatus {
   phase: UpdatePhase;
   step: string;
   message: string;
   targetTag: string | null;
+  mode: ApplyUpdateMode | null;
   startedAt: string | null;
   updatedAt: string | null;
 }
@@ -133,6 +135,7 @@ export function readUpdateStatus(): UpdateStatus {
       step: "",
       message: "",
       targetTag: null,
+      mode: null,
       startedAt: null,
       updatedAt: null,
     };
@@ -269,10 +272,12 @@ export interface ApplyUpdateResult {
   jobId: string;
   targetTag: string;
   tarballUrl: string;
+  mode: ApplyUpdateMode;
 }
 
 export async function applyUpdate(opts?: {
   tag?: string;
+  mode?: ApplyUpdateMode;
 }): Promise<ApplyUpdateResult> {
   if (!isSelfUpdateEnabled()) {
     throw new HTTPException(403, {
@@ -288,16 +293,19 @@ export async function applyUpdate(opts?: {
 
   let spawned = false;
   try {
+    const mode = opts?.mode ?? "update";
     const target = opts?.tag
       ? await getReleaseByTag(opts.tag)
       : await getLatestRelease();
     const targetTag = target.tag;
     const tarballUrl = target.tarballUrl;
 
-    // Block both redundant "latest" re-deploys and explicit downgrades. Without
+    // Block both redundant "latest" updates and explicit downgrades. Without
     // this on the no-tag path, an admin could trigger a full download → extract
     // → npm install → migrate → pm2 reload even when already on the latest.
-    if (!isNewer(targetTag, APP_VERSION)) {
+    // Redeploy mode is intentionally allowed for the same version because its
+    // destructive database reset is the point of that mode.
+    if (mode === "update" && !isNewer(targetTag, APP_VERSION)) {
       throw new HTTPException(409, {
         message: `Target version ${targetTag} is not newer than the running version ${APP_VERSION}.`,
       });
@@ -308,15 +316,19 @@ export async function applyUpdate(opts?: {
     writeUpdateStatus({
       phase: "running",
       step: "queued",
-      message: `Preparing update to ${targetTag}`,
+      message:
+        mode === "redeploy"
+          ? `Preparing redeploy to ${targetTag}`
+          : `Preparing update to ${targetTag}`,
       targetTag,
+      mode,
       startedAt: now,
       updatedAt: now,
     });
 
     const child = spawn(
       process.execPath,
-      [resolveRunner(), tarballUrl, targetTag],
+      [resolveRunner(), tarballUrl, targetTag, mode],
       {
         cwd: deployRoot(),
         detached: true,
@@ -364,7 +376,7 @@ export async function applyUpdate(opts?: {
 
     child.unref();
 
-    return { jobId: randomUUID(), targetTag, tarballUrl };
+    return { jobId: randomUUID(), targetTag, tarballUrl, mode };
   } catch (err) {
     // Spawn succeeded → the runner owns the lock for the rest of its run.
     // Spawn failed (or earlier throw) → we still hold it, release here.

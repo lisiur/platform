@@ -108,6 +108,10 @@ persists. Only `pm2 save` is needed to record the new process list.
 
 For a non-destructive update (keep the data), follow "Update an existing deploy".
 
+The admin app's Version dialog exposes both flows when `SELF_UPDATE_ENABLED=true`:
+normal update runs the non-destructive migrate/reload path, while "Redeploy from
+scratch" runs the destructive reset/start path above.
+
 ## nginx
 
 The tarball ships `nginx_template.conf` (source: [`scripts/nginx.conf`](scripts/nginx.conf)).

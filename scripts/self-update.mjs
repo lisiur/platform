@@ -1,15 +1,17 @@
 // Server-side OTA self-update runner.
 //
 // Spawned detached by the service (POST /api/version/update) so it survives the
-// gateway being reloaded. Performs the DEPLOY.md update flow atomically and
+// gateway being reloaded. Performs the DEPLOY.md update/redeploy flow and
 // reports progress to $UPDATE_STATE_FILE (a JSON file the service reads):
 //
-//   download → verify → extract → npm install → migrate → pm2 reload
+//   update:   download → verify → extract → npm install → migrate → pm2 reload
+//   redeploy: download → verify → pm2 delete all → extract → npm install
+//             → prisma migrate reset → pm2 start → pm2 save
 //
 // Runs only with the Node runtime present on the deploy host (no workspace
 // imports). Shipped inside the tarball by scripts/assemble.sh.
 //
-// Usage: node self-update.mjs <tarballUrl> <targetTag>
+// Usage: node self-update.mjs <tarballUrl> <targetTag> [update|redeploy]
 // Env:   DEPLOY_ROOT (cwd of the deploy dir), UPDATE_STATE_FILE (status json).
 
 import { spawnSync } from "node:child_process";
@@ -24,7 +26,11 @@ import { join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-const [tarballUrl, targetTag] = process.argv.slice(2);
+const [tarballUrl, targetTag, modeArg = "update"] = process.argv.slice(2);
+if (!["update", "redeploy"].includes(modeArg)) {
+  throw new Error(`Invalid update mode: ${modeArg}`);
+}
+const MODE = modeArg;
 const DEPLOY_ROOT = resolve(process.env.DEPLOY_ROOT || process.cwd());
 const STATE_FILE =
   process.env.UPDATE_STATE_FILE || join(DEPLOY_ROOT, ".update-state.json");
@@ -46,6 +52,7 @@ function setStatus(phase, step, message) {
     step,
     message,
     targetTag: targetTag || prev?.targetTag || null,
+    mode: MODE,
     startedAt: prev?.startedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -68,12 +75,24 @@ function run(cmd, args, step, label) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
+  if (result.error) {
+    throw new Error(`${label} failed: ${result.error.message}`);
+  }
   if (result.stdout) logStream.write(result.stdout);
   if (result.stderr) logStream.write(result.stderr);
   if (result.status !== 0) {
     throw new Error(
       `${label} failed (${cmd} exit ${result.status}): ${result.stderr || result.stdout}`,
     );
+  }
+}
+
+function runPm2(args, step, label) {
+  try {
+    run("pm2", args, step, label);
+  } catch (err) {
+    log(`[${step}] global pm2 failed, retrying via npx: ${err.message}`);
+    run("npx", ["--yes", "pm2", ...args], step, `${label} (via npx)`);
   }
 }
 
@@ -104,12 +123,16 @@ function verifyTarball(file) {
 async function main() {
   if (!tarballUrl) throw new Error("Missing tarballUrl argument");
   log(
-    `=== self-update start → ${targetTag || "latest"} (root: ${DEPLOY_ROOT}) ===`,
+    `=== self-update ${MODE} start → ${targetTag || "latest"} (root: ${DEPLOY_ROOT}) ===`,
   );
 
   const tmp = join(tmpdir(), `platform-deploy-${Date.now()}.tar.gz`);
   await download(tarballUrl, tmp);
   verifyTarball(tmp);
+
+  if (MODE === "redeploy") {
+    runPm2(["delete", "all"], "stopping", "Stopping PM2 apps");
+  }
 
   run(
     "tar",
@@ -123,28 +146,33 @@ async function main() {
     "installing",
     "Installing dependencies",
   );
-  run("npm", ["run", "migrate"], "migrating", "Running database migrations");
-
-  // Reload PM2. Prefer the global pm2; fall back to npx if not on PATH.
-  try {
-    run("pm2", ["reload", "ecosystem.config.js"], "reloading", "Reloading PM2");
-  } catch (err) {
-    log(`[reloading] global pm2 failed, retrying via npx: ${err.message}`);
+  if (MODE === "redeploy") {
     run(
       "npx",
-      ["--yes", "pm2", "reload", "ecosystem.config.js"],
-      "reloading",
-      "Reloading PM2 (via npx)",
+      ["prisma", "migrate", "reset", "--force"],
+      "resetting",
+      "Resetting database",
     );
+    runPm2(["start", "ecosystem.config.js"], "starting", "Starting PM2");
+    runPm2(["save"], "saving", "Saving PM2 process list");
+  } else {
+    run("npm", ["run", "migrate"], "migrating", "Running database migrations");
+    runPm2(["reload", "ecosystem.config.js"], "reloading", "Reloading PM2");
   }
 
-  setStatus("succeeded", "done", `Updated to ${targetTag || "latest"}`);
-  log(`=== self-update succeeded → ${targetTag || "latest"} ===`);
+  setStatus(
+    "succeeded",
+    "done",
+    MODE === "redeploy"
+      ? `Redeployed ${targetTag || "latest"}`
+      : `Updated to ${targetTag || "latest"}`,
+  );
+  log(`=== self-update ${MODE} succeeded → ${targetTag || "latest"} ===`);
 }
 
 main()
   .catch((err) => {
-    log(`=== self-update FAILED: ${err.message} ===`);
+    log(`=== self-update ${MODE} FAILED: ${err.message} ===`);
     setStatus("failed", "error", err.message);
     process.exitCode = 1;
   })

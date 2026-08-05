@@ -21,7 +21,7 @@ export const applyUpdateRoute = defineOpenAPIRoute({
     tags: ["Version"],
     summary: "Apply a self-update (OTA)",
     description:
-      "Triggers an in-place server self-update: downloads the latest release tarball, extracts it over the deploy dir (preserving .env.production), runs migrations, and reloads PM2. Requires SELF_UPDATE_ENABLED=true. Returns immediately; poll /version/update/status for progress.",
+      "Triggers an in-place server self-update: downloads the latest release tarball, extracts it over the deploy dir (preserving .env.production), then either runs migrations and reloads PM2 or redeploys from scratch with a database reset. Requires SELF_UPDATE_ENABLED=true. Returns immediately; poll /version/update/status for progress.",
     request: {
       body: {
         content: {
@@ -44,8 +44,11 @@ export const applyUpdateRoute = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "system/version:update");
-    const { tag } = c.req.valid("json");
-    const result = await applyUpdate(tag ? { tag } : undefined);
+    const { mode, tag } = c.req.valid("json");
+    const result = await applyUpdate({
+      ...(mode ? { mode } : {}),
+      ...(tag ? { tag } : {}),
+    });
     await logAudit({ event: "version.update_applied", category: "version", c });
     return c.json(result, 200);
   },

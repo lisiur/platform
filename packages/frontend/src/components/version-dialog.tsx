@@ -3,6 +3,7 @@
 import { APP_BUILD_TIME, APP_GIT_SHA, APP_VERSION } from "@repo/shared";
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogBody,
   DialogContent,
@@ -14,6 +15,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { ClientResponse } from "hono/client";
 import {
+  AlertTriangle,
   ArrowUpCircle,
   CheckCircle2,
   ExternalLink,
@@ -61,7 +63,10 @@ export interface UpdateStatus {
   step: string;
   message: string;
   targetTag: string | null;
+  mode: UpdateMode | null;
 }
+
+type UpdateMode = "update" | "redeploy";
 
 async function readJson(res: ClientResponse<unknown, number, string>) {
   if (res.status === 401 || res.status === 403) {
@@ -91,6 +96,7 @@ export function VersionDialog({
   const t = useTranslations("Frontend.version");
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [polling, setPolling] = useState(false);
+  const [mode, setMode] = useState<UpdateMode>("update");
 
   const latestQuery = useQuery({
     queryKey: ["version", "latest"],
@@ -104,7 +110,7 @@ export function VersionDialog({
 
   const applyMutation = useMutation({
     mutationFn: async () => {
-      const res = await appClient.api.version.update.$post({ json: {} });
+      const res = await appClient.api.version.update.$post({ json: { mode } });
       return readJson(res);
     },
     onSuccess: () => {
@@ -176,6 +182,7 @@ export function VersionDialog({
   const latest = latestQuery.data;
   const checking = latestQuery.isLoading;
   const hasNewer = !!latest?.newer;
+  const canApply = !!latest && (hasNewer || mode === "redeploy");
   const updating = status?.phase === "running" || applyMutation.isPending;
 
   return (
@@ -258,12 +265,32 @@ export function VersionDialog({
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {t("updating")}
+                {status.mode === "redeploy" ? t("redeploying") : t("updating")}
               </div>
               <p className="text-muted-foreground text-xs">
                 {status.step}: {status.message}
               </p>
             </div>
+          ) : null}
+          {canManageVersion ? (
+            <label className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+              <Checkbox
+                checked={mode === "redeploy"}
+                onCheckedChange={(checked) =>
+                  setMode(checked === true ? "redeploy" : "update")
+                }
+                disabled={updating}
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-1.5 font-medium text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  {t("redeployMode")}
+                </span>
+                <span className="block text-muted-foreground text-xs">
+                  {t("redeployDescription")}
+                </span>
+              </span>
+            </label>
           ) : null}
         </DialogBody>
         {canManageVersion ? (
@@ -276,13 +303,14 @@ export function VersionDialog({
               <RefreshCw className="h-4 w-4" />
               {t("checkUpdates")}
             </Button>
-            {hasNewer && !updating ? (
+            {canApply && !updating ? (
               <Button
                 onClick={() => applyMutation.mutate()}
                 disabled={applyMutation.isPending}
+                variant={mode === "redeploy" ? "destructive" : "default"}
               >
                 <ArrowUpCircle className="h-4 w-4" />
-                {t("updateNow")}
+                {mode === "redeploy" ? t("redeployNow") : t("updateNow")}
               </Button>
             ) : null}
             {updating ? (
