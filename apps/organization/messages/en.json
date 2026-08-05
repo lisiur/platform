@@ -432,7 +432,7 @@
       "succeeded": "Update applied. Reloading...",
       "failed": "Update failed",
       "permissionDenied": "You do not have permission to do this",
-      "selfUpdateDisabled": "Self-update is disabled on this server. Set SELF_UPDATE_ENABLED=true to enable it.",
+      "selfUpdateDisabled": "Self-update is disabled on this server.",
       "deployRootRequired": "DEPLOY_ROOT is required to run self-update.",
       "statusSteps": {
         "queued": "Queued",

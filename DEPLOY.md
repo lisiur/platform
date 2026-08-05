@@ -113,14 +113,15 @@ and an explicit update source is configured: normal update runs the
 non-destructive migrate/reload path, while "Redeploy from scratch" runs the
 destructive reset/start path above.
 
-Configure one source explicitly; there is no implicit default:
+Configure one source explicitly; there is no implicit default. All settings
+can also be configured through the admin UI under **Settings → Self Update**.
 
 ```bash
 # GitHub Releases source
 SELF_UPDATE_ENABLED=true
 SELF_UPDATE_SOURCE=github
-GITHUB_REPO=lisiur/platform              # optional, defaults to lisiur/platform
-GITHUB_TOKEN=                            # optional
+SELF_UPDATE_GITHUB_REPO=lisiur/platform              # optional, defaults to lisiur/platform
+SELF_UPDATE_GITHUB_TOKEN=                            # optional
 DEPLOY_ROOT=/data/platform
 ```
 

@@ -111,7 +111,8 @@ export function UserMenu({ full, items, avatarRadius }: UserMenuProps) {
   const showProfile = visible.has("profile");
   const showTokens = visible.has("tokens");
   const showUtilities = visible.has("theme") || visible.has("locale");
-  const showVersion = visible.has("version");
+  const showVersion =
+    visible.has("version") && (canViewVersion || canManageVersion);
   const showSignOut = visible.has("signOut");
 
   const avatar = (

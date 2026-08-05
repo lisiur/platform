@@ -447,7 +447,7 @@
       "succeeded": "更新已完成，正在重新加载...",
       "failed": "更新失败",
       "permissionDenied": "您没有权限执行此操作",
-      "selfUpdateDisabled": "此服务器未启用自更新。请设置 SELF_UPDATE_ENABLED=true 后再使用。",
+      "selfUpdateDisabled": "此服务器未启用自更新。",
       "deployRootRequired": "运行自更新需要配置 DEPLOY_ROOT。",
       "statusSteps": {
         "queued": "已排队",

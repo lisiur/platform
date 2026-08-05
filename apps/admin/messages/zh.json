@@ -178,7 +178,8 @@
       "webauthn": "WebAuthn",
       "upload": "上传",
       "rate-limit": "限流",
-      "ai-agent": "AI 智能体"
+      "ai-agent": "AI 智能体",
+      "self-update": "自更新"
     },
     "save": "保存",
     "saving": "保存中...",
@@ -654,7 +655,14 @@
         "aiAgentModel": "模型",
         "aiAgentReasoning": "推理强度",
         "aiAgentShowReasoning": "显示推理",
-        "aiAgentShowToolCalls": "显示工具调用"
+        "aiAgentShowToolCalls": "显示工具调用",
+        "selfUpdateEnabled": "启用自更新",
+        "selfUpdateSource": "更新来源",
+        "selfUpdateGithubRepo": "GitHub 仓库",
+        "selfUpdateGithubToken": "GitHub 令牌",
+        "selfUpdateManifestUrl": "Manifest URL",
+        "selfUpdateReleaseUrlTemplate": "发布 URL 模板",
+        "selfUpdateAuthToken": "认证令牌"
       },
       "fieldsDesc": {
         "enableRegistration": "允许新用户注册",
@@ -677,7 +685,14 @@
         "aiAgentModel": "所配置接口支持的模型标识（如 gpt-4o）。",
         "aiAgentReasoning": "模型推理强度。思维链会以可折叠面板的形式展示。支持 Anthropic Claude（extended thinking）、OpenAI o1/o3/gpt-5、Google Gemini、DeepSeek 等。",
         "aiAgentShowReasoning": "向用户显示推理面板（模型的思维链）。与上方的功能性推理强度相互独立。",
-        "aiAgentShowToolCalls": "显示通用工具调用卡片（工具名称、输入与输出）。交互式工具卡片始终显示。"
+        "aiAgentShowToolCalls": "显示通用工具调用卡片（工具名称、输入与输出）。交互式工具卡片始终显示。",
+        "selfUpdateEnabled": "应用内自更新功能的总开关",
+        "selfUpdateSource": "发布来源：\"github\" 使用 GitHub Releases，\"manifest\" 使用自定义 JSON 接口",
+        "selfUpdateGithubRepo": "用于检查/下载更新的 GitHub 仓库（例如 lisiur/platform）",
+        "selfUpdateGithubToken": "GitHub 个人访问令牌，用于私有仓库或提升 API 频率限制",
+        "selfUpdateManifestUrl": "最新发布 JSON manifest 的 URL（选择 manifest 来源时必填）",
+        "selfUpdateReleaseUrlTemplate": "指定标签的发布 URL 模板，必须包含 '{'tag'}'（例如 https://example.com/'{'tag'}'.json）",
+        "selfUpdateAuthToken": "manifest 接口的 Bearer 认证令牌"
       },
       "aiAgentReasoningOptions": {
         "off": "关闭",
@@ -686,6 +701,10 @@
         "medium": "中",
         "high": "高",
         "xhigh": "极高"
+      },
+      "selfUpdateSourceOptions": {
+        "github": "GitHub Releases",
+        "manifest": "自定义 Manifest"
       }
     }
   },
@@ -1101,7 +1120,7 @@
       "succeeded": "更新已完成，正在重新加载...",
       "failed": "更新失败",
       "permissionDenied": "您没有权限执行此操作",
-      "selfUpdateDisabled": "此服务器未启用自更新。请设置 SELF_UPDATE_ENABLED=true 后再使用。",
+      "selfUpdateDisabled": "此服务器未启用自更新。",
       "deployRootRequired": "运行自更新需要配置 DEPLOY_ROOT。",
       "statusSteps": {
         "queued": "已排队",

@@ -14,7 +14,13 @@ import { useTranslations } from "next-intl";
 import { ManagementPageShell } from "@/components/management-page-shell";
 import { ConfigGroup } from "./components/config-group";
 
-const tabKeys = ["auth", "webauthn", "upload", "rate-limit"] as const;
+const tabKeys = [
+  "auth",
+  "webauthn",
+  "upload",
+  "rate-limit",
+  "self-update",
+] as const;
 
 export default function SettingsPage() {
   const t = useTranslations("Settings");

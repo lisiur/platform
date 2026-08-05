@@ -3,7 +3,7 @@
 import { Button, FieldGroup } from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
@@ -83,7 +83,17 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
     values,
   });
 
+  const watchedValues = useWatch({ control: form.control });
+
   const { isDirty } = form.formState;
+
+  function isFieldVisible(item: ConfigItem) {
+    const schema = item.schema as
+      | { dependsOn?: { field: string; value: string } }
+      | undefined;
+    if (!schema?.dependsOn) return true;
+    return watchedValues[schema.dependsOn.field] === schema.dependsOn.value;
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -92,7 +102,10 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
         items.map((item) => [item.key, form.getValues(item.key)]),
       );
       const payload = items
-        .filter((item) => currentValues[item.key] !== item.value)
+        .filter(
+          (item) =>
+            isFieldVisible(item) && currentValues[item.key] !== item.value,
+        )
         .map((item) => ({
           group: item.group,
           key: item.key,
@@ -144,7 +157,12 @@ export function ConfigGroup({ group }: ConfigGroupProps) {
       <fieldset disabled={saving} className="space-y-6">
         <FieldGroup>
           {items.map((item) => (
-            <ConfigField key={item.key} item={item} control={form.control} />
+            <div
+              key={item.key}
+              className={isFieldVisible(item) ? "" : "hidden"}
+            >
+              <ConfigField item={item} control={form.control} />
+            </div>
           ))}
         </FieldGroup>
       </fieldset>

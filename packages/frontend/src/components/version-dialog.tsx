@@ -78,6 +78,9 @@ async function readJson(res: ClientResponse<unknown, number, string>) {
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
     if (res.status === 401 || res.status === 403) {
+      if (body.message?.includes("Self-update is disabled")) {
+        throw new StatusError(res.status, body.message);
+      }
       throw new StatusError(res.status, "permissionDenied");
     }
     throw new StatusError(res.status, body.message ?? `HTTP ${res.status}`);
@@ -114,7 +117,7 @@ export function VersionDialog({
   const formatErrorMessage = (err: unknown) => {
     if (err instanceof StatusError) {
       if (err.message === "permissionDenied") return t("permissionDenied");
-      if (err.message.includes("SELF_UPDATE_ENABLED")) {
+      if (err.message.includes("Self-update is disabled")) {
         return t("selfUpdateDisabled");
       }
       if (err.message.includes("DEPLOY_ROOT")) return t("deployRootRequired");
@@ -276,6 +279,9 @@ export function VersionDialog({
   const hasNewer = !!latest?.newer;
   const canApply = !!latest && (hasNewer || mode === "redeploy");
   const updating = status?.phase === "running" || applyMutation.isPending;
+  const isSelfUpdateDisabled =
+    latestQuery.error instanceof StatusError &&
+    latestQuery.error.message.includes("Self-update is disabled");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -318,7 +324,13 @@ export function VersionDialog({
               {t("checking")}
             </div>
           ) : canCheckVersion && latestQuery.error ? (
-            <p className="text-destructive text-sm">
+            <p
+              className={
+                isSelfUpdateDisabled
+                  ? "text-muted-foreground text-sm"
+                  : "text-destructive text-sm"
+              }
+            >
               {formatErrorMessage(latestQuery.error)}
             </p>
           ) : canCheckVersion && latest ? (
@@ -362,7 +374,7 @@ export function VersionDialog({
               </p>
             </div>
           ) : null}
-          {canManageVersion ? (
+          {canManageVersion && !isSelfUpdateDisabled ? (
             <label className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
               <Checkbox
                 checked={mode === "redeploy"}
@@ -383,7 +395,7 @@ export function VersionDialog({
             </label>
           ) : null}
         </DialogBody>
-        {canCheckVersion ? (
+        {canCheckVersion && !isSelfUpdateDisabled ? (
           <DialogFooter>
             <Button
               variant="outline"

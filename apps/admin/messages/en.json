@@ -178,7 +178,8 @@
       "webauthn": "WebAuthn",
       "upload": "Upload",
       "rate-limit": "Rate Limit",
-      "ai-agent": "AI Agent"
+      "ai-agent": "AI Agent",
+      "self-update": "Self Update"
     },
     "save": "Save",
     "saving": "Saving...",
@@ -654,7 +655,14 @@
         "aiAgentModel": "Model",
         "aiAgentReasoning": "Reasoning",
         "aiAgentShowReasoning": "Show Reasoning",
-        "aiAgentShowToolCalls": "Show Tool Calls"
+        "aiAgentShowToolCalls": "Show Tool Calls",
+        "selfUpdateEnabled": "Enable Self-Update",
+        "selfUpdateSource": "Update Source",
+        "selfUpdateGithubRepo": "GitHub Repository",
+        "selfUpdateGithubToken": "GitHub Token",
+        "selfUpdateManifestUrl": "Manifest URL",
+        "selfUpdateReleaseUrlTemplate": "Release URL Template",
+        "selfUpdateAuthToken": "Auth Token"
       },
       "fieldsDesc": {
         "enableRegistration": "Allow new users to register",
@@ -677,7 +685,14 @@
         "aiAgentModel": "Model identifier understood by the endpoint (e.g. gpt-4o).",
         "aiAgentReasoning": "Reasoning effort. The model's chain-of-thought is streamed in a collapsible panel. Supported by Anthropic Claude (extended thinking), OpenAI o1/o3/gpt-5, Google Gemini, DeepSeek, etc.",
         "aiAgentShowReasoning": "Show the reasoning panel (the model's chain-of-thought) to the user. Independent from the functional reasoning level above.",
-        "aiAgentShowToolCalls": "Show the generic tool-call card (tool name, input, and output). Interactive tool cards are always shown."
+        "aiAgentShowToolCalls": "Show the generic tool-call card (tool name, input, and output). Interactive tool cards are always shown.",
+        "selfUpdateEnabled": "Master switch for the in-app self-update feature",
+        "selfUpdateSource": "Release source: \"github\" for GitHub Releases or \"manifest\" for a custom JSON endpoint",
+        "selfUpdateGithubRepo": "GitHub repository to check/download releases from (e.g. lisiur/platform)",
+        "selfUpdateGithubToken": "GitHub personal access token for private repos or higher API rate limits",
+        "selfUpdateManifestUrl": "URL to the latest release JSON manifest (required when source is manifest)",
+        "selfUpdateReleaseUrlTemplate": "URL template for a tagged release, must include '{'tag'}' (e.g. https://example.com/'{'tag'}'.json)",
+        "selfUpdateAuthToken": "Bearer token for manifest endpoints"
       },
       "aiAgentReasoningOptions": {
         "off": "Off",
@@ -686,6 +701,10 @@
         "medium": "Medium",
         "high": "High",
         "xhigh": "Extra High"
+      },
+      "selfUpdateSourceOptions": {
+        "github": "GitHub Releases",
+        "manifest": "Custom Manifest"
       }
     }
   },
@@ -1101,7 +1120,7 @@
       "succeeded": "Update applied. Reloading...",
       "failed": "Update failed",
       "permissionDenied": "You do not have permission to do this",
-      "selfUpdateDisabled": "Self-update is disabled on this server. Set SELF_UPDATE_ENABLED=true to enable it.",
+      "selfUpdateDisabled": "Self-update is disabled on this server.",
       "deployRootRequired": "DEPLOY_ROOT is required to run self-update.",
       "statusSteps": {
         "queued": "Queued",

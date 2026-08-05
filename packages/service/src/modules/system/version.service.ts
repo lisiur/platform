@@ -4,9 +4,9 @@ import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_BUILD_TIME, APP_GIT_SHA, APP_VERSION } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
+import { envVarFor, getMergedConfigRows } from "#modules/system/public";
 
 const GITHUB_API = "https://api.github.com";
-const DEFAULT_GITHUB_REPO = "lisiur/platform";
 
 export interface VersionInfo {
   version: string;
@@ -34,8 +34,11 @@ interface UpdateRelease {
 }
 
 interface UpdateSourceProvider {
-  getLatestRelease(): Promise<UpdateRelease>;
-  getReleaseByTag(tag: string): Promise<UpdateRelease>;
+  getLatestRelease(config?: Map<string, string>): Promise<UpdateRelease>;
+  getReleaseByTag(
+    tag: string,
+    config?: Map<string, string>,
+  ): Promise<UpdateRelease>;
 }
 
 export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
@@ -64,15 +67,19 @@ export function getVersionInfo(): VersionInfo {
   };
 }
 
-export function isSelfUpdateEnabled(): boolean {
-  return process.env.SELF_UPDATE_ENABLED === "true";
+export async function isSelfUpdateEnabled(
+  config?: Map<string, string>,
+): Promise<boolean> {
+  const cfg = config ?? (await getSelfUpdateConfig());
+  return (cfg.get("enabled") ?? "false") === "true";
 }
 
-function assertSelfUpdateEnabled(): void {
-  if (!isSelfUpdateEnabled()) {
+async function assertSelfUpdateEnabled(
+  config?: Map<string, string>,
+): Promise<void> {
+  if (!(await isSelfUpdateEnabled(config))) {
     throw new HTTPException(403, {
-      message:
-        "Self-update is disabled on this server (SELF_UPDATE_ENABLED!=true).",
+      message: "Self-update is disabled on this server.",
     });
   }
 }
@@ -244,28 +251,45 @@ interface ManifestRelease {
   tarballSize: number;
 }
 
-function requireEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new HTTPException(503, {
-      message: `${name} is required to run self-update.`,
-    });
+async function getSelfUpdateConfig(): Promise<Map<string, string>> {
+  const rows = await getMergedConfigRows("self-update");
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  for (const key of [
+    "enabled",
+    "source",
+    "githubRepo",
+    "githubToken",
+    "manifestUrl",
+    "releaseUrlTemplate",
+    "authToken",
+  ]) {
+    if (map.get(key) === undefined) {
+      const envValue = process.env[envVarFor("self-update", key)];
+      if (envValue) map.set(key, envValue);
+    }
   }
-  return value;
+  return map;
 }
 
-function authHeaders(): Record<string, string> {
-  const token = process.env.SELF_UPDATE_AUTH_TOKEN?.trim();
+async function getAuthHeaders(
+  config?: Map<string, string>,
+): Promise<Record<string, string>> {
+  const cfg = config ?? (await getSelfUpdateConfig());
+  const token = cfg.get("authToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function fetchRelease(path: string): Promise<RawRelease> {
-  const repo = process.env.GITHUB_REPO?.trim() || DEFAULT_GITHUB_REPO;
+async function fetchRelease(
+  path: string,
+  config?: Map<string, string>,
+): Promise<RawRelease> {
+  const cfg = config ?? (await getSelfUpdateConfig());
+  const repo = cfg.get("githubRepo") || "lisiur/platform";
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "platform-self-update",
   };
-  const token = process.env.GITHUB_TOKEN?.trim();
+  const token = cfg.get("githubToken");
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${GITHUB_API}/repos/${repo}${path}`, { headers });
@@ -308,12 +332,15 @@ function fromGithubRelease(data: RawRelease): UpdateRelease {
 }
 
 const githubUpdateSource: UpdateSourceProvider = {
-  async getLatestRelease() {
-    return fromGithubRelease(await fetchRelease("/releases/latest"));
+  async getLatestRelease(config) {
+    return fromGithubRelease(await fetchRelease("/releases/latest", config));
   },
-  async getReleaseByTag(tag: string) {
+  async getReleaseByTag(tag, config) {
     return fromGithubRelease(
-      await fetchRelease(`/releases/tags/${encodeURIComponent(tag)}`),
+      await fetchRelease(
+        `/releases/tags/${encodeURIComponent(tag)}`,
+        config,
+      ),
     );
   },
 };
@@ -350,7 +377,7 @@ async function fetchManifest(url: string): Promise<UpdateRelease> {
     headers: {
       Accept: "application/json",
       "User-Agent": "platform-self-update",
-      ...authHeaders(),
+      ...(await getAuthHeaders()),
     },
   });
   if (res.status === 404) {
@@ -365,22 +392,41 @@ async function fetchManifest(url: string): Promise<UpdateRelease> {
 }
 
 const manifestUpdateSource: UpdateSourceProvider = {
-  async getLatestRelease() {
-    return fetchManifest(requireEnv("SELF_UPDATE_MANIFEST_URL"));
+  async getLatestRelease(config) {
+    const cfg = config ?? (await getSelfUpdateConfig());
+    const url = cfg.get("manifestUrl");
+    if (!url) {
+      throw new HTTPException(503, {
+        message:
+          "Missing self-update config: manifestUrl. Set it under Settings → Self Update.",
+      });
+    }
+    return fetchManifest(url);
   },
-  async getReleaseByTag(tag: string) {
-    const template = requireEnv("SELF_UPDATE_RELEASE_URL_TEMPLATE");
+  async getReleaseByTag(tag, config) {
+    const cfg = config ?? (await getSelfUpdateConfig());
+    const template = cfg.get("releaseUrlTemplate");
+    if (!template) {
+      throw new HTTPException(503, {
+        message:
+          "Missing self-update config: releaseUrlTemplate. Set it under Settings → Self Update.",
+      });
+    }
     if (!template.includes("{tag}")) {
       throw new HTTPException(503, {
-        message: "SELF_UPDATE_RELEASE_URL_TEMPLATE must include {tag}.",
+        message:
+          "Missing self-update config: releaseUrlTemplate must include {tag}. Set it under Settings → Self Update.",
       });
     }
     return fetchManifest(template.replaceAll("{tag}", encodeURIComponent(tag)));
   },
 };
 
-function resolveUpdateSource(): UpdateSourceProvider {
-  const source = process.env.SELF_UPDATE_SOURCE?.trim();
+async function resolveUpdateSource(
+  config?: Map<string, string>,
+): Promise<UpdateSourceProvider> {
+  const cfg = config ?? (await getSelfUpdateConfig());
+  const source = cfg.get("source");
   switch (source) {
     case "github":
       return githubUpdateSource;
@@ -389,14 +435,16 @@ function resolveUpdateSource(): UpdateSourceProvider {
     default:
       throw new HTTPException(503, {
         message:
-          'SELF_UPDATE_SOURCE is required when self-update is enabled. Use "github" or "manifest".',
+          'Missing self-update config: source. Set it under Settings → Self Update.',
       });
   }
 }
 
 export async function getLatestRelease(): Promise<LatestRelease> {
-  assertSelfUpdateEnabled();
-  const data = await resolveUpdateSource().getLatestRelease();
+  const config = await getSelfUpdateConfig();
+  await assertSelfUpdateEnabled(config);
+  const source = await resolveUpdateSource(config);
+  const data = await source.getLatestRelease(config);
   return {
     tag: data.tag,
     name: data.name,
@@ -408,11 +456,15 @@ export async function getLatestRelease(): Promise<LatestRelease> {
   };
 }
 
-async function getReleaseByTag(tag: string): Promise<{
+async function getReleaseByTag(
+  tag: string,
+  config?: Map<string, string>,
+): Promise<{
   tag: string;
   tarballUrl: string;
 }> {
-  const data = await resolveUpdateSource().getReleaseByTag(tag);
+  const source = await resolveUpdateSource(config);
+  const data = await source.getReleaseByTag(tag, config);
   return { tag: data.tag, tarballUrl: data.tarballUrl };
 }
 
@@ -431,7 +483,8 @@ export async function applyUpdate(opts?: {
   tag?: string;
   mode?: ApplyUpdateMode;
 }): Promise<ApplyUpdateResult> {
-  assertSelfUpdateEnabled();
+  const config = await getSelfUpdateConfig();
+  await assertSelfUpdateEnabled(config);
 
   // Acquire the run lock BEFORE any async work so two concurrent requests
   // can't both pass the check and spawn racing runners (the status-file
@@ -442,8 +495,10 @@ export async function applyUpdate(opts?: {
   try {
     const mode = opts?.mode ?? "update";
     const target = opts?.tag
-      ? await getReleaseByTag(opts.tag)
-      : await resolveUpdateSource().getLatestRelease();
+      ? await getReleaseByTag(opts.tag, config)
+      : await (
+          await resolveUpdateSource(config)
+        ).getLatestRelease(config);
     const targetTag = target.tag;
     const tarballUrl = target.tarballUrl;
 
