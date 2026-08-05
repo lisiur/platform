@@ -345,6 +345,7 @@
     }
   },
   "Sidebar": {
+    "dashboard": "Dashboard",
     "monitor": "Monitor",
     "users": "Users",
     "roles": "Roles",
