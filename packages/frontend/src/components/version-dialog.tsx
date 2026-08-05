@@ -136,17 +136,24 @@ export function VersionDialog({
     const tick = async () => {
       const s = await fetchStatus();
       if (cancelled) return;
-      if (s?.phase !== "running") {
+      if (!s || s.phase === "running") {
+        timer = setTimeout(tick, 1500);
+        return;
+      }
+      if (
+        s.phase === "idle" ||
+        s.phase === "succeeded" ||
+        s.phase === "failed"
+      ) {
         setPolling(false);
-        if (s?.phase === "succeeded") {
+        if (s.phase === "succeeded") {
           toast.success(t("succeeded"));
           setTimeout(() => window.location.reload(), 1500);
-        } else if (s?.phase === "failed") {
+        } else if (s.phase === "failed") {
           toast.error(`${t("failed")}: ${s.message}`);
         }
         return;
       }
-      timer = setTimeout(tick, 1500);
     };
     timer = setTimeout(tick, 1500);
     return () => {
