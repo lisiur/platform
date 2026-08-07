@@ -1121,6 +1121,8 @@
       "reload": "Reload",
       "succeeded": "Update applied. Reloading...",
       "failed": "Update failed",
+      "cancelled": "Update cancelled",
+      "cancelDownload": "Cancel download",
       "permissionDenied": "You do not have permission to do this",
       "selfUpdateDisabled": "Self-update is disabled on this server.",
       "deployRootRequired": "DEPLOY_ROOT is required to run self-update.",
@@ -1128,6 +1130,7 @@
         "queued": "Queued",
         "downloading": "Downloading",
         "verifying": "Verifying",
+        "forking": "Forking",
         "stopping": "Stopping",
         "extracting": "Extracting",
         "installing": "Installing",
@@ -1137,7 +1140,8 @@
         "starting": "Starting",
         "saving": "Saving",
         "done": "Done",
-        "error": "Error"
+        "error": "Error",
+        "cancelled": "Cancelled"
       },
       "statusMessages": {
         "queuedUpdate": "Preparing update to {target}",
@@ -1155,7 +1159,8 @@
         "starting": "Starting PM2",
         "saving": "Saving PM2 process list",
         "doneUpdate": "Updated to {target}",
-        "doneRedeploy": "Redeployed {target}"
+        "doneRedeploy": "Redeployed {target}",
+        "cancelled": "Update cancelled by user"
       }
     }
   },

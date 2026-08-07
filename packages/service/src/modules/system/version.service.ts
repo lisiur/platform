@@ -524,7 +524,11 @@ function startUpdateStatusStream() {
         progress: status.progress,
       });
     }
-    if (status.phase === "succeeded" || status.phase === "failed") {
+    if (
+      status.phase === "succeeded" ||
+      status.phase === "failed" ||
+      status.phase === "cancelled"
+    ) {
       clearInterval(interval);
       if (statusStreamInterval === interval) {
         statusStreamInterval = null;
@@ -534,6 +538,23 @@ function startUpdateStatusStream() {
 
   statusStreamInterval = interval;
   return interval;
+}
+
+export function cancelUpdate(): void {
+  const status = readUpdateStatus();
+  if (status.phase !== "running") {
+    throw new HTTPException(409, { message: "No update is in progress." });
+  }
+  if (status.step !== "downloading") {
+    throw new HTTPException(409, {
+      message: "Update has passed the cancellable download phase.",
+    });
+  }
+  const cancelFile = join(
+    /*turbopackIgnore: true*/ deployRoot(),
+    ".update-cancel",
+  );
+  writeFileSync(/*turbopackIgnore: true*/ cancelFile, "");
 }
 
 export interface ApplyUpdateResult {

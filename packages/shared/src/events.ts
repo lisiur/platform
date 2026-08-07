@@ -24,7 +24,12 @@ export interface AgentSessionTitleUpdatedEvent {
   name: string;
 }
 
-export type UpdatePhase = "idle" | "running" | "succeeded" | "failed";
+export type UpdatePhase =
+  | "idle"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
 export type ApplyUpdateMode = "update" | "redeploy";
 
 export interface SelfUpdateStatusUpdatedEvent {

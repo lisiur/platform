@@ -55,6 +55,15 @@ export const notFoundResponse = {
   },
 } as const;
 
+export const conflictResponse = {
+  409: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Conflict",
+  },
+} as const;
+
 export const serviceUnavailableResponse = {
   503: {
     content: {

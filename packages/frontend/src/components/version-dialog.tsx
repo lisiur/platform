@@ -36,6 +36,7 @@ export interface VersionAppClient {
       latest: { $get: ApiMethod };
       update: {
         $post: ApiMethod;
+        cancel: { $post: ApiMethod };
         status: { $get: ApiMethod };
       };
     };
@@ -63,7 +64,7 @@ export interface LatestRelease {
 }
 
 export interface UpdateStatus {
-  phase: "idle" | "running" | "succeeded" | "failed";
+  phase: "idle" | "running" | "succeeded" | "failed" | "cancelled";
   step: string;
   message: string;
   targetTag: string | null;
@@ -135,6 +136,7 @@ export function VersionDialog({
         case "queued":
         case "downloading":
         case "verifying":
+        case "forking":
         case "stopping":
         case "extracting":
         case "installing":
@@ -145,6 +147,7 @@ export function VersionDialog({
         case "saving":
         case "done":
         case "error":
+        case "cancelled":
           return t(`statusSteps.${step}`);
         default:
           return step;
@@ -186,6 +189,8 @@ export function VersionDialog({
         case "starting":
         case "saving":
           return t(`statusMessages.${s.step}`);
+        case "cancelled":
+          return t("statusMessages.cancelled");
         case "done":
           return s.mode === "redeploy"
             ? t("statusMessages.doneRedeploy", { target })
@@ -213,6 +218,16 @@ export function VersionDialog({
   const applyMutation = useMutation({
     mutationFn: async () => {
       const res = await appClient.api.version.update.$post({ json: { mode } });
+      return readJson(res);
+    },
+    onError: (err: unknown) => {
+      toast.error(formatErrorMessage(err));
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const res = await appClient.api.version.update.cancel.$post();
       return readJson(res);
     },
     onError: (err: unknown) => {
@@ -251,6 +266,8 @@ export function VersionDialog({
             setTimeout(() => window.location.reload(), 1500);
           } else if (data.phase === "failed") {
             toast.error(`${t("failed")}: ${formatStatusMessage(data)}`);
+          } else if (data.phase === "cancelled") {
+            toast.info(t("cancelled"));
           }
         }
         prevPhaseRef.current = data.phase;
@@ -274,6 +291,8 @@ export function VersionDialog({
   const hasNewer = !!latest?.newer;
   const canApply = !!latest && (hasNewer || mode === "redeploy");
   const updating = status?.phase === "running" || applyMutation.isPending;
+  const canCancel =
+    status?.phase === "running" && status?.step === "downloading";
   const isSelfUpdateDisabled =
     latestQuery.error instanceof StatusError &&
     latestQuery.error.message.includes("Self-update is disabled");
@@ -367,6 +386,21 @@ export function VersionDialog({
               <p className="text-muted-foreground text-xs">
                 {formatStatusStep(status.step)}: {formatStatusMessage(status)}
               </p>
+              {canCancel ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={cancelMutation.isPending}
+                >
+                  {t("cancelDownload")}
+                </Button>
+              ) : null}
+            </div>
+          ) : canCheckVersion && status?.phase === "cancelled" ? (
+            <div className="rounded-md border p-3 space-y-2">
+              <p className="text-muted-foreground text-sm">{t("cancelled")}</p>
             </div>
           ) : null}
           {canManageVersion && !isSelfUpdateDisabled ? (

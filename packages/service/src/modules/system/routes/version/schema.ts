@@ -55,7 +55,7 @@ export const applyUpdateResultSchema = z
 export const updateStatusSchema = z
   .object({
     phase: z
-      .enum(["idle", "running", "succeeded", "failed"])
+      .enum(["idle", "running", "succeeded", "failed", "cancelled"])
       .openapi({ example: "running" }),
     step: z.string().openapi({ example: "extracting" }),
     message: z.string().openapi({ example: "Extracting tarball" }),
@@ -81,3 +81,9 @@ export const updateStatusSchema = z
       .openapi({ example: "2026-08-04T10:00:05Z" }),
   })
   .openapi("UpdateStatus");
+
+export const cancelUpdateResultSchema = z
+  .object({
+    cancelled: z.boolean().openapi({ example: true }),
+  })
+  .openapi("CancelUpdateResult");

@@ -446,6 +446,8 @@
       "reload": "重新加载",
       "succeeded": "更新已完成，正在重新加载...",
       "failed": "更新失败",
+      "cancelled": "更新已取消",
+      "cancelDownload": "取消下载",
       "permissionDenied": "您没有权限执行此操作",
       "selfUpdateDisabled": "此服务器未启用自更新。",
       "deployRootRequired": "运行自更新需要配置 DEPLOY_ROOT。",
@@ -453,6 +455,7 @@
         "queued": "已排队",
         "downloading": "下载中",
         "verifying": "校验中",
+        "forking": "派生中",
         "stopping": "停止中",
         "extracting": "解压中",
         "installing": "安装中",
@@ -462,7 +465,8 @@
         "starting": "启动中",
         "saving": "保存中",
         "done": "完成",
-        "error": "错误"
+        "error": "错误",
+        "cancelled": "已取消"
       },
       "statusMessages": {
         "queuedUpdate": "正在准备更新到 {target}",
@@ -480,7 +484,8 @@
         "starting": "正在启动 PM2",
         "saving": "正在保存 PM2 进程列表",
         "doneUpdate": "已更新到 {target}",
-        "doneRedeploy": "已重新部署 {target}"
+        "doneRedeploy": "已重新部署 {target}",
+        "cancelled": "用户取消了更新"
       }
     }
   },
