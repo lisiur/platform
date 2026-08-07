@@ -59,11 +59,11 @@ cp -a "$SRC_ROOT/scripts/nginx.conf" "$OUT/nginx_template.conf"
 cp -a "$SRC_ROOT/DEPLOY.md" "$OUT/DEPLOY.md"
 
 # Ship Prisma schema + migrations + config so `npm run migrate` works on the
-# server after `npm install`. The prisma CLI is a devDependency (pinned to
-# match the generated client baked into each standalone server.js); the CLI
-# itself is NOT traced into Next.js standalone output. Seeding is handled
-# separately — the gateway self-seeds on boot from app.ts, gated by the
-# presence of the admin Application row (one-shot bootstrap).
+# server after `npm install`. The prisma CLI is pinned to match the generated
+# client baked into each standalone server.js; the CLI itself is NOT traced
+# into Next.js standalone output. Seeding is handled separately — the gateway
+# self-seeds on boot from app.ts, gated by the presence of the admin
+# Application row (one-shot bootstrap).
 mkdir -p "$OUT/prisma"
 cp -a "$SRC_ROOT/packages/service/prisma/migrations" "$OUT/prisma/migrations"
 cp -a "$SRC_ROOT/packages/service/prisma/schema.prisma" "$OUT/prisma/schema.prisma"
@@ -72,7 +72,9 @@ cp -a "$SRC_ROOT/packages/service/prisma.config.ts" "$OUT/prisma.config.ts"
 
 # Generate a minimal deploy package.json. The prisma/dotenv versions are read
 # from the service package so they never drift from the generated client.
-# `npm install` on the server fetches the matching prisma engines.
+# `npm install` on the server fetches the matching prisma engines. They are
+# regular `dependencies` (not devDependencies) because the self-update runner
+# inherits NODE_ENV=production, under which npm omits devDependencies.
 prisma_ver=$(node -p "require('$SRC_ROOT/packages/service/package.json').devDependencies.prisma")
 dotenv_ver=$(node -p "require('$SRC_ROOT/packages/service/package.json').devDependencies.dotenv")
 cat >"$OUT/package.json" <<EOF
@@ -84,7 +86,7 @@ cat >"$OUT/package.json" <<EOF
     "start": "pm2 start ecosystem.config.js",
     "reload": "pm2 reload ecosystem.config.js"
   },
-  "devDependencies": {
+  "dependencies": {
     "prisma": "${prisma_ver}",
     "dotenv": "${dotenv_ver}"
   }
