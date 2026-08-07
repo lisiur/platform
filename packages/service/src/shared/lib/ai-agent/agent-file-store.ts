@@ -3,7 +3,8 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const UPLOADS_ROOT =
-  process.env.UPLOAD_ROOT_DIR ?? join(process.cwd(), "uploads");
+  process.env.UPLOAD_ROOT_DIR ??
+  join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 const FILE_DIR =
   process.env.AGENT_FILE_DIR ?? join(UPLOADS_ROOT, "agent-attachments");
 

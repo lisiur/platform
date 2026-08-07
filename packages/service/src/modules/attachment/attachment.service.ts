@@ -15,7 +15,8 @@ import {
 import { getConfigRow } from "#modules/system/public";
 
 const UPLOADS_ROOT =
-  process.env.UPLOAD_ROOT_DIR ?? join(process.cwd(), "uploads");
+  process.env.UPLOAD_ROOT_DIR ??
+  join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 const DEFAULT_HOTLINK_CONFIG = {
   enabled: false,
   allowedDomains: [],
