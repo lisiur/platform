@@ -5,11 +5,11 @@
 // reports progress to $UPDATE_STATE_FILE (a JSON file the service reads):
 //
 //   update:   download → verify → extract → npm install → migrate → pm2 reload
-//   redeploy: download → verify → fork → (detached) pm2 delete all → extract
+//   redeploy: download → verify → fork → (detached) pm2 kill → extract
 //             → npm install → prisma migrate reset → pm2 start → pm2 save
 //
 // In redeploy mode the runner forks into a fresh detached process before
-// touching PM2, so that pm2 delete all cannot kill the runner itself.
+// touching PM2, so that pm2 kill cannot kill the runner itself.
 //
 // Runs only with the Node runtime present on the deploy host (no workspace
 // imports). Shipped inside the tarball by scripts/assemble.sh.
@@ -27,7 +27,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
 const [tarballUrl, targetTag, modeArg = "update"] = process.argv.slice(2);
@@ -93,16 +93,23 @@ function isCancelled() {
   }
 }
 
-function run(cmd, args, step, label) {
+function run(cmd, args, step, label, opts = {}) {
   log(`[${step}] $ ${cmd} ${args.join(" ")}`);
   setStatus("running", step, label);
   const result = spawnSync(cmd, args, {
     cwd: DEPLOY_ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    timeout: opts.timeoutMs ?? undefined,
+    killSignal: "SIGKILL",
   });
   if (result.error) {
     throw new Error(`${label} failed: ${result.error.message}`);
+  }
+  if (opts.timeoutMs && result.signal === "SIGKILL") {
+    const err = new Error(`${label} timed out after ${opts.timeoutMs}ms`);
+    err.isTimeout = true;
+    throw err;
   }
   if (result.stdout) logStream.write(result.stdout);
   if (result.stderr) logStream.write(result.stderr);
@@ -113,12 +120,16 @@ function run(cmd, args, step, label) {
   }
 }
 
-function runPm2(args, step, label) {
+function runPm2(args, step, label, opts) {
   try {
-    run("pm2", args, step, label);
+    run("pm2", args, step, label, opts);
   } catch (err) {
+    // The npx fallback is for hosts without a global pm2 (ENOENT) or where it
+    // exits non-zero. Skip it on timeout: re-running against the same hung
+    // daemon just burns the timeout window again before the pkill fallback.
+    if (err.isTimeout) throw err;
     log(`[${step}] global pm2 failed, retrying via npx: ${err.message}`);
-    run("npx", ["--yes", "pm2", ...args], step, `${label} (via npx)`);
+    run("npx", ["--yes", "pm2", ...args], step, `${label} (via npx)`, opts);
   }
 }
 
@@ -278,7 +289,9 @@ async function main() {
   );
 
   run("npm", ["run", "migrate"], "migrating", "Running database migrations");
-  runPm2(["reload", "ecosystem.config.js"], "reloading", "Reloading PM2");
+  runPm2(["reload", "ecosystem.config.js"], "reloading", "Reloading PM2", {
+    timeoutMs: 30000,
+  });
 
   setStatus("succeeded", "done", `Updated to ${targetTag || "latest"}`);
   log(`=== self-update ${MODE} succeeded → ${targetTag || "latest"} ===`);
@@ -293,7 +306,21 @@ async function redeployWorker(tarballPath) {
     log(`[worker] sleeping 2s to let parent exit cleanly`);
     await new Promise((r) => setTimeout(r, 2000));
 
-    runPm2(["delete", "all"], "stopping", "Stopping PM2 apps");
+    // Kill the PM2 God daemon entirely (not just `delete all`) so the redeploy
+    // starts from a clean slate. `pm2 start` later will spin up a fresh daemon.
+    // A timeout is essential — if the daemon is unresponsive, `pm2 kill` /
+    // `pm2 delete all` can block forever on its RPC socket with no way out.
+    try {
+      runPm2(["kill"], "stopping", "Stopping PM2 daemon", { timeoutMs: 20000 });
+    } catch (err) {
+      log(
+        `[stopping] pm2 kill failed/timed out, force-killing: ${err.message}`,
+      );
+      const r = spawnSync("pkill", ["-9", "-f", "pm2"], { encoding: "utf8" });
+      if (r.status !== 0) {
+        log(`[stopping] pkill found no PM2 processes (non-fatal)`);
+      }
+    }
 
     run(
       "tar",
@@ -313,7 +340,9 @@ async function redeployWorker(tarballPath) {
       "resetting",
       "Resetting database",
     );
-    runPm2(["start", "ecosystem.config.js"], "starting", "Starting PM2");
+    runPm2(["start", "ecosystem.config.js"], "starting", "Starting PM2", {
+      timeoutMs: 60000,
+    });
     runPm2(["save"], "saving", "Saving PM2 process list");
 
     try {
@@ -338,6 +367,9 @@ async function redeployWorker(tarballPath) {
       if (err.code !== "ENOENT") log(`[lock] release failed: ${err.message}`);
     }
     logStream.end();
+    try {
+      await finished(logStream);
+    } catch {}
     // Exit directly so we don't fall through to main()'s finally-block, which
     // would double-release the lock and double-close the log stream.
     process.exit(process.exitCode || 0);
