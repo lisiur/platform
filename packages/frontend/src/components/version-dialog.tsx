@@ -220,6 +220,10 @@ export function VersionDialog({
       const res = await appClient.api.version.update.$post({ json: { mode } });
       return readJson(res);
     },
+    onMutate: () => {
+      setStatus(null);
+      prevPhaseRef.current = null;
+    },
     onError: (err: unknown) => {
       toast.error(formatErrorMessage(err));
     },
@@ -377,15 +381,19 @@ export function VersionDialog({
             </div>
           ) : null}
 
-          {canCheckVersion && updating && status ? (
+          {canCheckVersion && updating ? (
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {status.mode === "redeploy" ? t("redeploying") : t("updating")}
+                {(status?.mode ?? mode) === "redeploy"
+                  ? t("redeploying")
+                  : t("updating")}
               </div>
-              <p className="text-muted-foreground text-xs">
-                {formatStatusStep(status.step)}: {formatStatusMessage(status)}
-              </p>
+              {status ? (
+                <p className="text-muted-foreground text-xs">
+                  {formatStatusStep(status.step)}: {formatStatusMessage(status)}
+                </p>
+              ) : null}
               {canCancel ? (
                 <Button
                   variant="outline"
