@@ -29,28 +29,34 @@ import { resetStaleUpdateStatus } from "#modules/system/version.service";
 import { seed } from "../prisma/seed";
 import { routes } from "./modules";
 
-(async () => {
-  const adminApp = await prisma.application.findUnique({
-    where: { code: "admin" },
-  });
-  if (!adminApp) {
-    console.log("Running seed...");
-    await seed(prisma);
-    console.log("Seed completed.");
-  }
+// Skip DB-dependent startup during `next build`: the gateway's API route
+// value-imports this module, so its evaluation during static generation would
+// otherwise fire prisma queries with no DB connection. Runs at runtime
+// (gateway prod/dev server, standalone service) where NEXT_PHASE is unset.
+if (process.env.NEXT_PHASE !== "phase-production-build") {
+  (async () => {
+    const adminApp = await prisma.application.findUnique({
+      where: { code: "admin" },
+    });
+    if (!adminApp) {
+      console.log("Running seed...");
+      await seed(prisma);
+      console.log("Seed completed.");
+    }
 
-  jobExecutor.start();
-  resetStaleUpdateStatus();
-  await loadAuthDefaults().catch((e) =>
-    console.error("Failed to load auth defaults:", e),
-  );
-  await initRateLimitDefaults().catch((e) =>
-    console.error("Failed to load rate-limit defaults:", e),
-  );
-  await initRateLimitOverrides().catch((e) =>
-    console.error("Failed to load rate-limit overrides:", e),
-  );
-})().catch((e) => console.error("Startup failed:", e));
+    jobExecutor.start();
+    resetStaleUpdateStatus();
+    await loadAuthDefaults().catch((e) =>
+      console.error("Failed to load auth defaults:", e),
+    );
+    await initRateLimitDefaults().catch((e) =>
+      console.error("Failed to load rate-limit defaults:", e),
+    );
+    await initRateLimitOverrides().catch((e) =>
+      console.error("Failed to load rate-limit overrides:", e),
+    );
+  })().catch((e) => console.error("Startup failed:", e));
+}
 
 const openAPIApp = new OpenAPIHono().basePath("/api");
 
