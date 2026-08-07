@@ -18,7 +18,7 @@ export const latestReleaseSchema = z
     publishedAt: z.string().openapi({ example: "2026-08-01T12:00:00Z" }),
     tarballUrl: z.string().url().openapi({
       example:
-        "https://updates.example.com/platform/platform-deploy-v1.3.0.tar.gz",
+        "https://updates.example.com/platform/platform-deploy-linux-amd64.tar.gz",
     }),
     tarballSize: z
       .number()

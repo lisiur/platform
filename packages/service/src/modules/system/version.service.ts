@@ -15,6 +15,11 @@ import { eventBus } from "#states";
 
 const GITHUB_API = "https://api.github.com";
 
+// Deploy artifacts are named platform-deploy-<os>-<arch>.tar.gz. The running
+// server is a Linux deploy, so we match its arch against the release assets.
+const TARGET_OS = "linux";
+const TARGET_ARCH = process.arch === "arm64" ? "arm64" : "amd64";
+
 export interface VersionInfo {
   version: string;
   gitSha: string;
@@ -330,8 +335,11 @@ function pickTarball(assets: RawRelease["assets"]): {
   size: number;
 } {
   const asset =
-    assets.find((a) => a.name === "platform-deploy-latest.tar.gz") ??
-    assets.find((a) => /^platform-deploy-.*\.tar\.gz$/.test(a.name));
+    assets.find(
+      (a) => a.name === `platform-deploy-${TARGET_OS}-${TARGET_ARCH}.tar.gz`,
+    ) ??
+    // Legacy releases shipped platform-deploy-latest.tar.gz (no arch suffix).
+    assets.find((a) => a.name === "platform-deploy-latest.tar.gz");
   if (!asset) {
     throw new HTTPException(502, {
       message: "Release has no deploy tarball asset.",

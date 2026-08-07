@@ -23,7 +23,7 @@ under PM2 on a localhost port, and nginx reverse-proxies one domain to them.
 
 The "build" GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml),
 triggered on `v*` tags) compiles the apps on a Linux runner and packs a
-self-contained `platform-deploy-<version>.tar.gz` — standalone server bundles, static
+self-contained `platform-deploy-linux-<arch>.tar.gz` — standalone server bundles, static
 assets, `ecosystem.config.js`, Prisma schema/migrations, and a minimal
 `package.json`. It is attached to the GitHub release, so the server needs only
 the Node runtime: **no git, pnpm, or build toolchain** on the host.
@@ -31,11 +31,10 @@ the Node runtime: **no git, pnpm, or build toolchain** on the host.
 ```bash
 mkdir platform && cd platform
 
-# Download the latest release tarball. To pin a specific tag, replace
-# `latest/download/platform-deploy-latest.tar.gz` with
-# `download/<tag>/platform-deploy-<tag>.tar.gz`.
+# Download the latest release tarball (linux/amd64). To pin a specific tag,
+# replace `latest/download/...` with `download/<tag>/...`.
 wget -O deploy.tar.gz \
-  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-latest.tar.gz
+  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-linux-amd64.tar.gz
 tar -xzf deploy.tar.gz && rm deploy.tar.gz
 
 cp .env.production.example .env.production
@@ -62,7 +61,7 @@ cd platform
 
 # Download the latest release tarball.
 wget -O deploy.tar.gz \
-  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-latest.tar.gz
+  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-linux-amd64.tar.gz
 
 # Extract over the current deploy dir — your .env.production is preserved
 # (the tarball ships only .env.production.example).
@@ -92,7 +91,7 @@ pm2 delete all                              # stop & remove running processes
 # Download the latest release tarball and extract it over the current dir —
 # .env.production is preserved (the tarball ships only the .example).
 wget -O deploy.tar.gz \
-  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-latest.tar.gz
+  https://github.com/lisiur/platform/releases/latest/download/platform-deploy-linux-amd64.tar.gz
 tar -xzf deploy.tar.gz && rm deploy.tar.gz
 
 npm install                                 # prisma CLI + dotenv (engines)
@@ -143,7 +142,7 @@ Manifest responses must contain the release metadata and deploy tarball URL:
   "name": "v1.3.0",
   "htmlUrl": "https://updates.example.com/platform/v1.3.0",
   "publishedAt": "2026-08-05T00:00:00.000Z",
-  "tarballUrl": "https://updates.example.com/platform/platform-deploy-v1.3.0.tar.gz",
+  "tarballUrl": "https://updates.example.com/platform/platform-deploy-linux-amd64.tar.gz",
   "tarballSize": 52428800
 }
 ```

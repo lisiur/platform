@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Assembles Next.js standalone deploy artifacts under $OUT and packs them into
-# a deployable tarball platform-deploy-<version>.tar.gz. Run after `pnpm build`.
+# a deployable tarball platform-deploy-<os>-<arch>.tar.gz. Run after `pnpm build`.
 # Used by .github/workflows/build.yml, but works standalone locally too.
 set -eu
 
@@ -94,10 +94,18 @@ EOF
 echo "==> Artifact tree (depth 3):"
 find "$OUT" -maxdepth 3 -type d | sort | head -80
 
-# Pack the staged dir into a deployable tarball named by the version (tag),
-# falling back to the git short SHA / 'local'. Produces the same artifact
+# Pack the staged dir into a deployable tarball named by OS + arch. The release
+# tag carries the version (in CI) — it is not encoded in the filename, so every
+# release ships a canonical asset name per arch. Produces the same artifact
 # locally that the GitHub Actions workflow ships.
-version="${VERSION:-$(git -C "$SRC_ROOT" rev-parse --short HEAD 2>/dev/null || echo local)}"
-tarball="$SRC_ROOT/platform-deploy-${version}.tar.gz"
+arch_raw="$(uname -m)"
+case "$arch_raw" in
+  x86_64 | amd64) arch_default=amd64 ;;
+  aarch64 | arm64) arch_default=arm64 ;;
+  *) arch_default="$arch_raw" ;;
+esac
+os="${OS:-linux}"
+arch="${ARCH:-$arch_default}"
+tarball="$SRC_ROOT/platform-deploy-${os}-${arch}.tar.gz"
 tar -czf "$tarball" -C "$OUT" .
 echo "==> Packed $tarball"

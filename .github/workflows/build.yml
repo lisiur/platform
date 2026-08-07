@@ -7,7 +7,7 @@ name: build
 # for the target arch on the runner.
 #
 # Outputs:
-#   - Workflow artifact: platform-deploy-<version>.tar.gz  (every run)
+#   - Workflow artifact: platform-deploy-linux-<arch>.tar.gz  (every run)
 #   - Release asset:       attached to v* tags
 
 on:
@@ -20,6 +20,11 @@ permissions:
 env:
   NODE_VERSION: '24'
   PNPM_VERSION: '11.11.0'
+  # Pinned build target. The tarball bakes in native deps (argon2, Prisma
+  # engines, ...) for this arch, so the asset name encodes it. When adding an
+  # arm64 runner (matrix), set these per matrix leg.
+  TARGET_OS: linux
+  TARGET_ARCH: amd64
 
 jobs:
   build:
@@ -61,26 +66,20 @@ jobs:
         run: pnpm build
 
       - name: Assemble and pack deploy tarball
-        id: assemble
         env:
           SRC_ROOT: ${{ github.workspace }}
           OUT: ${{ github.workspace }}/deploy
-          VERSION: ${{ github.ref_name }}
-        run: |
-          sh scripts/assemble.sh
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          OS: ${{ env.TARGET_OS }}
+          ARCH: ${{ env.TARGET_ARCH }}
+        run: sh scripts/assemble.sh
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: platform-deploy-${{ steps.assemble.outputs.version }}
+          name: platform-deploy-${{ env.TARGET_OS }}-${{ env.TARGET_ARCH }}
           path: platform-deploy-*.tar.gz
           if-no-files-found: error
           retention-days: 30
-
-      - name: Create stable-name alias for latest
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: cp platform-deploy-*.tar.gz platform-deploy-latest.tar.gz
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
