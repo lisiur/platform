@@ -33,7 +33,13 @@ if (fs.existsSync(envPath)) {
     const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
     if (!m) continue;
     const [, key, raw] = m;
-    appEnv[key] = (raw ?? "").replace(/^["']|["']$/g, "");
+    // Operator overrides win: a value already in the real environment
+    // (e.g. `pm2 restart --update-env`, or systemd) takes precedence over the
+    // tarball's .env.production — e.g. rotating DATABASE_URL without
+    // rebuilding the tarball. Only keys present in .env.production are
+    // considered, so PM2 internals (name, pm_exec_path, …) never leak in.
+    const fileValue = (raw ?? "").replace(/^["']|["']$/g, "");
+    appEnv[key] = process.env[key] !== undefined ? process.env[key] : fileValue;
   }
 }
 
