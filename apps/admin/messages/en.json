@@ -1118,6 +1118,7 @@
       "redeployNow": "Redeploy now",
       "updating": "Updating...",
       "redeploying": "Redeploying...",
+      "reconnecting": "Reconnecting…",
       "reload": "Reload",
       "succeeded": "Update applied. Reloading...",
       "failed": "Update failed",

@@ -27,6 +27,6 @@ export const getUpdateStatusRoute = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "system/version:view");
-    return c.json(readUpdateStatus(), 200);
+    return c.json(await readUpdateStatus(), 200);
   },
 });

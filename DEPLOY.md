@@ -43,7 +43,8 @@ vim .env.production                      # fill in DATABASE_URL, secrets, CORS
 npm install                               # prisma CLI + dotenv (engines) only
 npm run migrate                           # prisma migrate deploy
 
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.js             # gateway + admin + organization
+pm2 start updater.config.js               # OTA updater daemon (separate ecosystem file)
 pm2 save                                  # persist the process list
 pm2 startup                               # follow the printed command to enable boot
 ```
@@ -86,7 +87,8 @@ itself on boot, so a fresh admin login is recreated automatically.
 ```bash
 cd platform
 
-pm2 delete all                              # stop & remove running processes
+# Stop & remove the three apps — keeps the updater daemon (and PM2 god) alive.
+pm2 delete gateway admin organization
 
 # Download the latest release tarball and extract it over the current dir —
 # .env.production is preserved (the tarball ships only the .example).
@@ -98,7 +100,7 @@ npm install                                 # prisma CLI + dotenv (engines)
 
 npx prisma migrate reset --force            # drop all data, re-apply migrations
 
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.js               # gateway + admin + organization
 pm2 save                                    # re-persist the process list
 ```
 
@@ -112,6 +114,16 @@ and an explicit update source is configured: normal update runs the
 non-destructive migrate/reload path, while "Redeploy from scratch" runs the
 destructive reset/start path above.
 
+OTA is driven by a standalone **updater daemon** (`updater.mjs`, supervised by
+`updater.config.js` as a fourth PM2 process under the same god). The service
+resolves the release tarball URL from the configured source and hands it to the
+daemon over a Unix socket (`$DEPLOY_ROOT/updater.sock`); the daemon owns the
+download/extract/install/migrate/reload pipeline, the run lock, and the live
+status. The daemon lives in its own ecosystem file so a `pm2 reload/start
+ecosystem.config.js` (apps only) never restarts it mid-update. If it crashes,
+PM2 autorestarts it; an interrupted run is detected on the next boot and
+surfaced as failed.
+
 Configure one source explicitly; there is no implicit default. All settings
 can also be configured through the admin UI under **Settings → Self Update**.
 
@@ -121,7 +133,6 @@ SELF_UPDATE_ENABLED=true
 SELF_UPDATE_SOURCE=github
 SELF_UPDATE_GITHUB_REPO=lisiur/platform              # optional, defaults to lisiur/platform
 SELF_UPDATE_GITHUB_TOKEN=                            # optional
-DEPLOY_ROOT=/data/platform
 ```
 
 ```bash
@@ -131,7 +142,6 @@ SELF_UPDATE_SOURCE=manifest
 SELF_UPDATE_MANIFEST_URL=https://updates.example.com/platform/latest.json
 SELF_UPDATE_RELEASE_URL_TEMPLATE=https://updates.example.com/platform/{tag}.json
 SELF_UPDATE_AUTH_TOKEN=                  # optional bearer token
-DEPLOY_ROOT=/data/platform
 ```
 
 Manifest responses must contain the release metadata and deploy tarball URL:
@@ -189,6 +199,7 @@ Required:
 pm2 status                  # process status
 pm2 logs                    # live logs (all apps)
 pm2 logs admin              # one app
-pm2 reload ecosystem.config.cjs   # zero-downtime restart after rebuild
+pm2 logs updater            # the OTA updater daemon
+pm2 reload ecosystem.config.js   # zero-downtime restart after rebuild
 pm2 stop all / pm2 delete all
 ```

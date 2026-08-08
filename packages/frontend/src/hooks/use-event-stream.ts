@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type SseEventHandler = (event: MessageEvent) => void;
+
+export type SseConnectionState = "connecting" | "open" | "closed";
 
 export interface EventStreamOptions {
   origin: string;
@@ -28,7 +30,7 @@ function acquire({ origin, appCode }: EventStreamOptions): EventSource {
   return entry.es;
 }
 
-function release({ origin, appCode }: EventStreamOptions) {
+function release({ origin, appCode }: EventStreamOptions): void {
   const key = `${origin}|${appCode}`;
   const entry = connections.get(key);
   if (!entry) return;
@@ -36,6 +38,17 @@ function release({ origin, appCode }: EventStreamOptions) {
   if (entry.refs <= 0) {
     entry.es.close();
     connections.delete(key);
+  }
+}
+
+function readyStateOf(es: EventSource): SseConnectionState {
+  switch (es.readyState) {
+    case EventSource.OPEN:
+      return "open";
+    case EventSource.CLOSED:
+      return "closed";
+    default:
+      return "connecting";
   }
 }
 
@@ -51,18 +64,35 @@ export function useEventStream({
   event,
   handler,
   enabled = true,
-}: UseEventStreamOptions) {
+}: UseEventStreamOptions): SseConnectionState {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
+
+  const [connection, setConnection] =
+    useState<SseConnectionState>("connecting");
 
   useEffect(() => {
     if (!enabled) return;
     const es = acquire({ origin, appCode });
-    const listener = (e: MessageEvent) => handlerRef.current(e);
-    es.addEventListener(event, listener as EventListener);
+    setConnection(readyStateOf(es));
+
+    const onOpen = () => setConnection("open");
+    // EventSource fires `error` on every failed attempt while it keeps retrying
+    // (readyState CONNECTING); CLOSED means it gave up entirely.
+    const onError = () => setConnection(readyStateOf(es));
+    const onMessage = (e: MessageEvent) => handlerRef.current(e);
+
+    es.addEventListener("open", onOpen);
+    es.addEventListener("error", onError);
+    es.addEventListener(event, onMessage as EventListener);
+
     return () => {
-      es.removeEventListener(event, listener as EventListener);
+      es.removeEventListener("open", onOpen);
+      es.removeEventListener("error", onError);
+      es.removeEventListener(event, onMessage as EventListener);
       release({ origin, appCode });
     };
   }, [origin, appCode, event, enabled]);
+
+  return connection;
 }

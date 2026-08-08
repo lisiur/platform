@@ -32,7 +32,7 @@ export const cancelUpdateRoute = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "system/version:update");
-    cancelUpdate();
+    await cancelUpdate();
     await logAudit({
       event: "version.update_cancelled",
       category: "version",

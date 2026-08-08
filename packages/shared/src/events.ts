@@ -32,6 +32,23 @@ export type UpdatePhase =
   | "cancelled";
 export type ApplyUpdateMode = "update" | "redeploy";
 
+export interface DownloadProgress {
+  downloadedBytes: number;
+  totalBytes: number | null;
+  percent: number | null;
+}
+
+export interface UpdateStatus {
+  phase: UpdatePhase;
+  step: string;
+  message: string;
+  targetTag: string | null;
+  mode: ApplyUpdateMode | null;
+  progress: DownloadProgress | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface SelfUpdateStatusUpdatedEvent {
   type: "self_update.status.updated";
   target: string;

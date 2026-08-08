@@ -25,5 +25,6 @@ lazygit
 noExplicitAny
 noNonNullAssertion
 opencode
+pm2
 pnpm
 stylua

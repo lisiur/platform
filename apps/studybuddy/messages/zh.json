@@ -443,6 +443,7 @@
       "redeployNow": "立即重新部署",
       "updating": "更新中...",
       "redeploying": "重新部署中...",
+      "reconnecting": "重新连接中…",
       "reload": "重新加载",
       "succeeded": "更新已完成，正在重新加载...",
       "failed": "更新失败",

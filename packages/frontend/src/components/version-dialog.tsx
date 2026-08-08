@@ -74,6 +74,8 @@ export interface UpdateStatus {
     totalBytes: number | null;
     percent: number | null;
   } | null;
+  startedAt: string | null;
+  updatedAt: string | null;
 }
 
 type UpdateMode = "update" | "redeploy";
@@ -245,14 +247,13 @@ export function VersionDialog({
       const res = await appClient.api.version.update.status.$get();
       const s = (await readJson(res)) as UpdateStatus;
       setStatus(s);
-      prevPhaseRef.current = s.phase;
       return s;
     } catch {
       return null;
     }
   }, [appClient, canCheckVersion]);
 
-  useEventStream({
+  const sseConnection = useEventStream({
     origin: apiOrigin,
     appCode,
     event: "self_update.status.updated",
@@ -264,17 +265,6 @@ export function VersionDialog({
           target: string;
         };
         setStatus(data);
-        if (prevPhaseRef.current === "running") {
-          if (data.phase === "succeeded") {
-            toast.success(t("succeeded"));
-            setTimeout(() => window.location.reload(), 1500);
-          } else if (data.phase === "failed") {
-            toast.error(`${t("failed")}: ${formatStatusMessage(data)}`);
-          } else if (data.phase === "cancelled") {
-            toast.info(t("cancelled"));
-          }
-        }
-        prevPhaseRef.current = data.phase;
       } catch {
         // ignore parse errors
       }
@@ -289,6 +279,50 @@ export function VersionDialog({
     }
     void fetchStatus();
   }, [open, fetchStatus]);
+
+  useEffect(() => {
+    if (!status) return;
+    const phase = status.phase;
+    if (prevPhaseRef.current === "running" && phase !== "running") {
+      if (phase === "succeeded") {
+        toast.success(t("succeeded"));
+        setTimeout(() => window.location.reload(), 1500);
+      } else if (phase === "failed") {
+        toast.error(`${t("failed")}: ${formatStatusMessage(status)}`);
+      } else if (phase === "cancelled") {
+        toast.info(t("cancelled"));
+      }
+    }
+    prevPhaseRef.current = phase;
+  }, [status, t, formatStatusMessage]);
+
+  // SSE is the primary progress channel. The HTTP poll is a fallback that runs
+  // ONLY while the SSE stream is disconnected (e.g. during a redeploy's gateway
+  // restart) — so it fires for just a few seconds instead of the whole update,
+  // avoiding continuous rate-limited requests.
+  const reconnecting =
+    sseConnection !== "open" &&
+    canCheckVersion &&
+    (applyMutation.isPending || status?.phase === "running");
+  const pollingEnabled = open && reconnecting;
+  useEffect(() => {
+    if (!pollingEnabled) return;
+    const id = setInterval(() => {
+      void fetchStatus();
+    }, 2000);
+    return () => clearInterval(id);
+  }, [pollingEnabled, fetchStatus]);
+
+  // Resync current status whenever the SSE stream (re)connects. This is the
+  // fix for the redeploy gateway-restart case: the daemon may reach a terminal
+  // phase while the gateway (and thus the SSE bridge) is down, so no live event
+  // would ever deliver that terminal status. Pulling /status on reconnect
+  // guarantees the UI reflects the true current state.
+  useEffect(() => {
+    if (sseConnection === "open") {
+      void fetchStatus();
+    }
+  }, [sseConnection, fetchStatus]);
 
   const latest = latestQuery.data;
   const checking = latestQuery.isLoading || latestQuery.isFetching;
@@ -392,6 +426,12 @@ export function VersionDialog({
               {status ? (
                 <p className="text-muted-foreground text-xs">
                   {formatStatusStep(status.step)}: {formatStatusMessage(status)}
+                </p>
+              ) : null}
+              {reconnecting ? (
+                <p className="flex items-center gap-1.5 text-amber-600 text-xs">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {t("reconnecting")}
                 </p>
               ) : null}
               {canCancel ? (

@@ -41,9 +41,12 @@ done
 # tarball is self-contained. The real .env.production (with secrets) is never
 # baked in — it stays on the server; the deployer fills it from the template.
 cp "$SRC_ROOT/scripts/ecosystem.config.js" "$OUT/"
-# Ship the OTA self-update runner so the running server can update itself
-# (POST /api/version/update spawns <deploy-root>/self-update.mjs).
-cp "$SRC_ROOT/scripts/self-update.mjs" "$OUT/"
+# Ship the standalone updater daemon (a single bundled file) plus its own PM2
+# config. The daemon lives in a separate ecosystem file so it is never restarted
+# by `pm2 reload/start ecosystem.config.js` (which targets only the three apps).
+# It must be built first: `pnpm --filter @repo/updater build`.
+cp "$SRC_ROOT/packages/updater/dist/updater.mjs" "$OUT/updater.mjs"
+cp "$SRC_ROOT/scripts/updater.config.js" "$OUT/"
 if [ -f "$SRC_ROOT/.env.production.example" ]; then
   cp "$SRC_ROOT/.env.production.example" "$OUT/"
 fi

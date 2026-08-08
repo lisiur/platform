@@ -25,7 +25,7 @@ import {
   initRateLimitDefaults,
   initRateLimitOverrides,
 } from "#modules/system/rate-limit.service";
-import { resetStaleUpdateStatus } from "#modules/system/version.service";
+import { resumeUpdateStatusStream } from "#modules/system/updater-client";
 import { seed } from "../prisma/seed";
 import { routes } from "./modules";
 
@@ -45,7 +45,9 @@ if (process.env.NEXT_PHASE !== "phase-production-build") {
     }
 
     jobExecutor.start();
-    resetStaleUpdateStatus();
+    resumeUpdateStatusStream().catch((e) =>
+      console.error("Failed to resume update status stream:", e),
+    );
     await loadAuthDefaults().catch((e) =>
       console.error("Failed to load auth defaults:", e),
     );

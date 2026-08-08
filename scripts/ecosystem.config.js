@@ -16,8 +16,12 @@
 //     npm run migrate && npm run reload # migrate fails → reload skipped
 
 const fs = require("node:fs");
+const path = require("node:path");
 
-const envPath = "./.env.production";
+// Resolve paths from this file's location (the deploy root) so the config is
+// independent of the directory `pm2 start` is invoked from — same approach as
+// updater.config.js.
+const envPath = path.join(__dirname, ".env.production");
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
     const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
@@ -35,10 +39,15 @@ const apps = [
   { name: "organization", port: 3002 },
 ];
 
+// The updater daemon's Unix socket lives at the deploy root (next to this
+// file). Resolve it from __dirname so the gateway (which hosts the service)
+// can always find the daemon without the operator setting DEPLOY_ROOT.
+const UPDATER_SOCKET = path.join(__dirname, "updater.sock");
+
 module.exports = {
   apps: apps.map(({ name, port }) => ({
     name,
-    cwd: `./${name}`,
+    cwd: path.join(__dirname, name),
     script: `apps/${name}/server.js`,
     exec_mode: "fork",
     instances: 1,
@@ -48,6 +57,7 @@ module.exports = {
       ...process.env,
       NODE_ENV: "production",
       PORT: String(port),
+      UPDATER_SOCKET,
     },
   })),
 };

@@ -1,17 +1,20 @@
-import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   APP_BUILD_TIME,
   APP_GIT_SHA,
   APP_VERSION,
   type ApplyUpdateMode,
-  type UpdatePhase,
+  type UpdateStatus,
 } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { envVarFor, getMergedConfigRows } from "#modules/system/public";
-import { eventBus } from "#states";
+import {
+  daemonApply,
+  daemonCancel,
+  getDaemonStatus,
+  startUpdateStatusStream,
+} from "#modules/system/updater-client";
+
+export type { UpdateStatus };
 
 const GITHUB_API = "https://api.github.com";
 
@@ -53,21 +56,6 @@ interface UpdateSourceProvider {
   ): Promise<UpdateRelease>;
 }
 
-export interface UpdateStatus {
-  phase: UpdatePhase;
-  step: string;
-  message: string;
-  targetTag: string | null;
-  mode: ApplyUpdateMode | null;
-  progress: {
-    downloadedBytes: number;
-    totalBytes: number | null;
-    percent: number | null;
-  } | null;
-  startedAt: string | null;
-  updatedAt: string | null;
-}
-
 export function getVersionInfo(): VersionInfo {
   return {
     version: APP_VERSION,
@@ -93,122 +81,12 @@ async function assertSelfUpdateEnabled(
   }
 }
 
-export function deployRoot(): string {
-  const root = process.env.DEPLOY_ROOT?.trim();
-  if (!root) {
-    throw new HTTPException(503, {
-      message: "DEPLOY_ROOT is required to run self-update.",
-    });
-  }
-  return root;
-}
-
-function stateFile(): string {
-  return (
-    process.env.UPDATE_STATE_FILE?.trim() ||
-    join(/*turbopackIgnore: true*/ deployRoot(), ".update-state.json")
-  );
-}
-
-// Lock held for the lifetime of an update run (acquire here, release in the
-// detached runner via $UPDATE_LOCK_FILE). Guards against two concurrent
-// POST /version/update requests both passing a status check and spawning
-// racing runners. The 'wx' flag makes acquire atomic (O_EXCL); a stale lock
-// older than the timeout is reclaimed so a hard crash can't wedge updates.
-const LOCK_TIMEOUT_MS = 30 * 60 * 1000;
-
-function lockFile(): string {
-  return `${stateFile()}.lock`;
-}
-
-function acquireLock(): void {
-  const path = lockFile();
-  const stamp = () => JSON.stringify({ since: Date.now() });
-  try {
-    writeFileSync(/*turbopackIgnore: true*/ path, stamp(), { flag: "wx" });
-    return;
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
-  }
-  // Lock exists — reclaim it if it's been held past the timeout (the holder
-  // crashed without releasing). Unlink-then-retry closes the reclaim race
-  // against a third request: only one unlink succeeds, the other's 'wx' open
-  // fails and we report in-progress.
-  let since = 0;
-  try {
-    since =
-      JSON.parse(readFileSync(/*turbopackIgnore: true*/ path, "utf8")).since ??
-      0;
-  } catch {
-    // unreadable — treat as reclaimable
-  }
-  if (Date.now() - since < LOCK_TIMEOUT_MS) {
-    throw new HTTPException(409, {
-      message: "An update is already in progress.",
-    });
-  }
-  try {
-    unlinkSync(/*turbopackIgnore: true*/ path);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-  }
-  try {
-    writeFileSync(/*turbopackIgnore: true*/ path, stamp(), { flag: "wx" });
-  } catch {
-    throw new HTTPException(409, {
-      message: "An update is already in progress.",
-    });
-  }
-}
-
-function releaseLock(): void {
-  try {
-    unlinkSync(/*turbopackIgnore: true*/ lockFile());
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-  }
-}
-
-export function readUpdateStatus(): UpdateStatus {
-  try {
-    const raw = readFileSync(/*turbopackIgnore: true*/ stateFile(), "utf8");
-    const status = JSON.parse(raw) as UpdateStatus;
-    return { ...status, progress: status.progress ?? null };
-  } catch {
-    return {
-      phase: "idle",
-      step: "",
-      message: "",
-      targetTag: null,
-      mode: null,
-      progress: null,
-      startedAt: null,
-      updatedAt: null,
-    };
-  }
-}
-
-function writeUpdateStatus(status: UpdateStatus): void {
-  writeFileSync(
-    /*turbopackIgnore: true*/ stateFile(),
-    `${JSON.stringify(status, null, 2)}\n`,
-  );
-}
-
-export function resetStaleUpdateStatus(): void {
-  const status = readUpdateStatus();
-  if (status.phase === "running") {
-    writeUpdateStatus({
-      phase: "failed",
-      step: "stale",
-      message: "Server restarted while update was running — reset to failed.",
-      targetTag: status.targetTag,
-      mode: status.mode,
-      progress: status.progress,
-      startedAt: status.startedAt,
-      updatedAt: new Date().toISOString(),
-    });
-  }
+// Current update status comes straight from the updater daemon — it owns the
+// authoritative state (in-memory, mirrored to a file on its own terms). The old
+// file-lock / stale-status machinery lived here; it is gone now that a dedicated
+// peer process runs the pipeline.
+export function readUpdateStatus(): Promise<UpdateStatus> {
+  return getDaemonStatus();
 }
 
 interface SemverParts {
@@ -507,62 +385,10 @@ async function getReleaseByTag(
   return { tag: data.tag, tarballUrl: data.tarballUrl };
 }
 
-function resolveRunner(): string {
-  return join(/*turbopackIgnore: true*/ deployRoot(), "self-update.mjs");
-}
-
-const STATUS_POLL_MS = 500;
-let statusStreamInterval: ReturnType<typeof setInterval> | null = null;
-
-function startUpdateStatusStream() {
-  let lastJson = "";
-  const interval = setInterval(() => {
-    const status = readUpdateStatus();
-    const json = JSON.stringify(status);
-    if (json !== lastJson) {
-      lastJson = json;
-      eventBus.publish({
-        type: "self_update.status.updated",
-        target: "sse:admin:*:*",
-        phase: status.phase,
-        step: status.step,
-        message: status.message,
-        targetTag: status.targetTag,
-        mode: status.mode,
-        progress: status.progress,
-      });
-    }
-    if (
-      status.phase === "succeeded" ||
-      status.phase === "failed" ||
-      status.phase === "cancelled"
-    ) {
-      clearInterval(interval);
-      if (statusStreamInterval === interval) {
-        statusStreamInterval = null;
-      }
-    }
-  }, STATUS_POLL_MS);
-
-  statusStreamInterval = interval;
-  return interval;
-}
-
-export function cancelUpdate(): void {
-  const status = readUpdateStatus();
-  if (status.phase !== "running") {
-    throw new HTTPException(409, { message: "No update is in progress." });
-  }
-  if (status.step !== "downloading") {
-    throw new HTTPException(409, {
-      message: "Update has passed the cancellable download phase.",
-    });
-  }
-  const cancelFile = join(
-    /*turbopackIgnore: true*/ deployRoot(),
-    ".update-cancel",
-  );
-  writeFileSync(/*turbopackIgnore: true*/ cancelFile, "");
+export async function cancelUpdate(): Promise<void> {
+  // The daemon enforces that cancellation only works during the download phase;
+  // it returns 409 (forwarded as-is) once extraction has begun.
+  await daemonCancel();
 }
 
 export interface ApplyUpdateResult {
@@ -579,104 +405,31 @@ export async function applyUpdate(opts?: {
   const config = await getSelfUpdateConfig();
   await assertSelfUpdateEnabled(config);
 
-  // Acquire the run lock BEFORE any async work so two concurrent requests
-  // can't both pass the check and spawn racing runners (the status-file
-  // check alone is a TOCTOU window that spans the GitHub fetch below).
-  acquireLock();
+  const mode = opts?.mode ?? "update";
 
-  let spawned = false;
-  try {
-    const mode = opts?.mode ?? "update";
-    const target = opts?.tag
-      ? await getReleaseByTag(opts.tag, config)
-      : await (await resolveUpdateSource(config)).getLatestRelease(config);
-    const targetTag = target.tag;
-    const tarballUrl = target.tarballUrl;
+  // Resolve the release tarball URL locally (the daemon never talks to GitHub /
+  // the manifest source — it only downloads a URL and deploys it).
+  const target = opts?.tag
+    ? await getReleaseByTag(opts.tag, config)
+    : await (await resolveUpdateSource(config)).getLatestRelease(config);
+  const targetTag = target.tag;
+  const tarballUrl = target.tarballUrl;
 
-    // Block both redundant "latest" updates and explicit downgrades. Without
-    // this on the no-tag path, an admin could trigger a full download → extract
-    // → npm install → migrate → pm2 reload even when already on the latest.
-    // Redeploy mode is intentionally allowed for the same version because its
-    // destructive database reset is the point of that mode.
-    if (mode === "update" && !isNewer(targetTag, APP_VERSION)) {
-      throw new HTTPException(409, {
-        message: `Target version ${targetTag} is not newer than the running version ${APP_VERSION}.`,
-      });
-    }
-
-    const now = new Date().toISOString();
-
-    writeUpdateStatus({
-      phase: "running",
-      step: "queued",
-      message:
-        mode === "redeploy"
-          ? `Preparing redeploy to ${targetTag}`
-          : `Preparing update to ${targetTag}`,
-      targetTag,
-      mode,
-      progress: null,
-      startedAt: now,
-      updatedAt: now,
+  // Block both redundant "latest" updates and explicit downgrades. Without
+  // this on the no-tag path, an admin could trigger a full download → extract
+  // → npm install → migrate → pm2 reload even when already on the latest.
+  // Redeploy mode is intentionally allowed for the same version because its
+  // destructive database reset is the point of that mode.
+  if (mode === "update" && !isNewer(targetTag, APP_VERSION)) {
+    throw new HTTPException(409, {
+      message: `Target version ${targetTag} is not newer than the running version ${APP_VERSION}.`,
     });
-
-    const child = spawn(
-      process.execPath,
-      [resolveRunner(), tarballUrl, targetTag, mode],
-      {
-        cwd: deployRoot(),
-        detached: true,
-        stdio: "ignore",
-        env: {
-          ...process.env,
-          DEPLOY_ROOT: deployRoot(),
-          UPDATE_STATE_FILE: stateFile(),
-          UPDATE_LOCK_FILE: lockFile(),
-        },
-      },
-    );
-    spawned = true;
-
-    // If the runner fails to start or exits before writing a terminal status,
-    // transition out of "running" so subsequent update attempts are not blocked.
-    child.on("error", (err) => {
-      releaseLock();
-      const prev = readUpdateStatus();
-      if (prev.phase === "running") {
-        writeUpdateStatus({
-          ...prev,
-          phase: "failed",
-          step: "spawn",
-          message: `Failed to start update runner: ${err.message}`,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    });
-    child.on("exit", (code) => {
-      // The runner normally releases the lock in its own finally-block; only
-      // intervene when it died before doing so (non-zero exit + still running).
-      if (code !== 0 && readUpdateStatus().phase === "running") {
-        releaseLock();
-        const prev = readUpdateStatus();
-        writeUpdateStatus({
-          ...prev,
-          phase: "failed",
-          step: "spawn",
-          message: `Update runner exited with code ${code} before reporting status.`,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    });
-
-    child.unref();
-
-    startUpdateStatusStream();
-
-    return { jobId: randomUUID(), targetTag, tarballUrl, mode };
-  } catch (err) {
-    // Spawn succeeded → the runner owns the lock for the rest of its run.
-    // Spawn failed (or earlier throw) → we still hold it, release here.
-    if (!spawned) releaseLock();
-    throw err;
   }
+
+  // Hand off to the updater daemon, which owns the run lock + pipeline + lock.
+  // It returns 409 (forwarded) if an update is already in progress, or 503 if
+  // the daemon is down / unconfigured.
+  const { jobId } = await daemonApply({ tarballUrl, targetTag, mode });
+  startUpdateStatusStream(); // arm the SSE bridge for this run
+  return { jobId, targetTag, tarballUrl, mode };
 }
