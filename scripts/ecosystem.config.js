@@ -18,19 +18,41 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-// Resolve paths from this file's location (the deploy root) so the config is
-// independent of the directory `pm2 start` is invoked from — same approach as
-// updater.config.js.
+// Build the environment for the app processes from .env.production plus a
+// curated set of system variables. We deliberately do NOT spread process.env
+// wholesale: when this file is loaded by `pm2 start` from inside the updater
+// daemon (itself a PM2-managed process), process.env contains PM2-internal
+// variables — most critically `name` and `pm_exec_path` pointing at
+// updater.mjs. Spreading those into each app's env makes PM2 inherit the
+// updater's script and name, so every app launches updater.mjs instead of its
+// own server.js (the "three updaters, EADDRINUSE on updater.sock" failure).
+const appEnv = {};
 const envPath = path.join(__dirname, ".env.production");
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
     const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
     if (!m) continue;
     const [, key, raw] = m;
-    if (process.env[key] === undefined) {
-      process.env[key] = (raw ?? "").replace(/^["']|["']$/g, "");
-    }
+    appEnv[key] = (raw ?? "").replace(/^["']|["']$/g, "");
   }
+}
+
+// System vars the standalone servers need (binary resolution, locale, npm
+// config, …). Passed through individually to avoid pulling in PM2 internals.
+const SYS_ENV_KEYS = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "SHELL",
+  "TERM",
+  "NODE_OPTIONS",
+];
+const systemEnv = {};
+for (const key of SYS_ENV_KEYS) {
+  if (process.env[key] !== undefined) systemEnv[key] = process.env[key];
 }
 
 const apps = [
@@ -61,7 +83,8 @@ module.exports = {
     autorestart: true,
     max_memory_restart: "1G",
     env: {
-      ...process.env,
+      ...systemEnv,
+      ...appEnv,
       NODE_ENV: "production",
       PORT: String(port),
       UPDATER_SOCKET,

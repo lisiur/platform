@@ -13,17 +13,36 @@
 // resolves the release tarball URL and hands it to the daemon.
 
 const fs = require("node:fs");
+const path = require("node:path");
 
-const envPath = "./.env.production";
+// Load .env.production into a clean object rather than process.env. See
+// ecosystem.config.js for why spreading process.env is unsafe inside a
+// PM2-managed process (PM2 internals like pm_exec_path leak through).
+const appEnv = {};
+const envPath = path.join(__dirname, ".env.production");
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
     const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
     if (!m) continue;
     const [, key, raw] = m;
-    if (process.env[key] === undefined) {
-      process.env[key] = (raw ?? "").replace(/^["']|["']$/g, "");
-    }
+    appEnv[key] = (raw ?? "").replace(/^["']|["']$/g, "");
   }
+}
+
+const SYS_ENV_KEYS = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "SHELL",
+  "TERM",
+  "NODE_OPTIONS",
+];
+const systemEnv = {};
+for (const key of SYS_ENV_KEYS) {
+  if (process.env[key] !== undefined) systemEnv[key] = process.env[key];
 }
 
 module.exports = {
@@ -37,7 +56,8 @@ module.exports = {
       autorestart: true,
       max_memory_restart: "512M",
       env: {
-        ...process.env,
+        ...systemEnv,
+        ...appEnv,
         NODE_ENV: "production",
         DEPLOY_ROOT: __dirname,
       },

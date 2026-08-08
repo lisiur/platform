@@ -113,7 +113,10 @@ export async function saveProcessList(): Promise<void> {
 // Confirm the three apps actually came online after `pm2 start`. If they didn't
 // (bad script path, crash on boot, PM2 quirk), surface it loudly with the real
 // process table so the failure is debuggable instead of looking like "success".
+// Throws so the pipeline reports failure instead of a misleading "succeeded".
 async function verifyAppsOnline(): Promise<void> {
+  // Give PM2 a moment to transition processes from "launching" to "online".
+  await new Promise((r) => setTimeout(r, 2000));
   const procs = await listProcesses();
   const byName = new Map(procs.map((p) => [p.name, p.status]));
   const missing = APPS.filter((n) => !byName.has(n));
@@ -129,8 +132,9 @@ async function verifyAppsOnline(): Promise<void> {
       parts.push(
         `not online: ${notOnline.map((n) => `${n}=${byName.get(n)}`).join(", ")}`,
       );
-    log(`[starting] WARNING — ${parts.join("; ")}. PM2 now has: ${table}.`);
-    return;
+    const msg = `Apps not online after start — ${parts.join("; ")}. PM2 now has: ${table}.`;
+    log(`[starting] FAILED — ${msg}`);
+    throw new Error(msg);
   }
   log(`[starting] apps online: ${APPS.map((n) => `${n}=online`).join(", ")}`);
 }
