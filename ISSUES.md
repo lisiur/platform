@@ -10,17 +10,6 @@
       `encryptedData`. Encrypt at rest or don't persist beyond the active
       session.
 
-- [ ] **Admin user create/update assigns arbitrary `roleId`s with no scope
-      validation (privilege escalation)** — `createUser`
-      (`modules/identity/user.service.ts:80-96`) and `updateUser`
-      (`:163-185`) upsert every `roleId` from the body without checking the
-      `Role`'s scope. `updateUser` only clears `SYSTEM_SCOPE` assignments
-      (`:167`) but re-creates whatever `roleId`s are passed — including
-      org-scoped roles like `org:<id>/owner`. A platform admin holding only
-      `system/user:create|:update` can grant themselves (or anyone) the
-      `org:<anyId>/owner` role and take over any organization, or assign a
-      higher system role. Fetch each `Role` and assert its scope/code is within
-      the caller's administrative purview before upserting.
 - [ ] **Admin `updateUser` doesn't lowercase email → login lockout + case
       duplicates** — `createUser`/`signInWithEmail` lowercase the email
       (`auth.service.ts:252,82`) but `updateUser` stores it verbatim and
@@ -714,6 +703,18 @@
       password/session mutation (`modules/identity/user.service.ts:216`),
       mirroring `deleteUser` (`:304`). A `system/user:update` holder can no
       longer reset the platform super-admin's password.
+- [x] **Admin user create/update assigns arbitrary `roleId`s with no scope
+      validation (privilege escalation)** — `createUser` and `updateUser`
+      now validate every `roleId` via `assertRoleIdsWithinScope(roleIds,
+      SYSTEM_SCOPE)` (`modules/identity/user.service.ts`): it fetches each
+      `Role`, rejects unknown ids (400), and asserts each role's scope
+      (parsed from its code) equals `SYSTEM_SCOPE` (403). This closes the
+      cross-tenant vector where a `system/user:create|:update` holder could
+      grant `org:<anyId>/owner` and take over any organization, and aligns
+      the upsert path with the existing `SYSTEM_SCOPE`-only delete filter.
+      (Assigning a different system role the caller doesn't personally hold
+      is intentionally out of scope — that's within the trust model of
+      `system/user:update`.)
 
 ### Schema & DB
 

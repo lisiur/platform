@@ -4,7 +4,11 @@ import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { hashPassword } from "#lib/password";
 import { assertUserIsNotBuiltin } from "#lib/protected-user";
-import { roleAssignmentWhereByRoleScope, SYSTEM_SCOPE } from "#lib/scope";
+import {
+  roleAssignmentWhereByRoleScope,
+  SYSTEM_SCOPE,
+  scopeOfRoleCode,
+} from "#lib/scope";
 import { createUser as createAuthUser } from "#modules/identity/auth.service";
 
 const userWithRolesInclude = {
@@ -21,6 +25,34 @@ const userWithRolesInclude = {
     },
   },
 } as const;
+
+/**
+ * Asserts that every roleId resolves to an existing Role whose scope (parsed
+ * from its code) matches `allowedScope`. Prevents callers of the system
+ * user-management endpoints from assigning out-of-scope (e.g. org-scoped)
+ * roles, which would grant cross-tenant privileges.
+ */
+async function assertRoleIdsWithinScope(
+  roleIds: string[],
+  allowedScope: string,
+): Promise<void> {
+  if (roleIds.length === 0) return;
+  const distinctIds = [...new Set(roleIds)];
+  const roles = await prisma.role.findMany({
+    where: { id: { in: distinctIds } },
+    select: { code: true },
+  });
+  if (roles.length !== distinctIds.length) {
+    throw new HTTPException(400, { message: "One or more roles not found" });
+  }
+  for (const { code } of roles) {
+    if (scopeOfRoleCode(code) !== allowedScope) {
+      throw new HTTPException(403, {
+        message: "Cannot assign roles outside your administrative scope",
+      });
+    }
+  }
+}
 
 export async function listUsers(limit: number, offset: number) {
   const [users, total] = await Promise.all([
@@ -51,6 +83,8 @@ export async function createUser(data: {
   if (existingUser) {
     throw new HTTPException(400, { message: "User already exists" });
   }
+
+  await assertRoleIdsWithinScope(roleIds, SYSTEM_SCOPE);
 
   const result = await createAuthUser({
     name,
@@ -151,6 +185,10 @@ export async function updateUser(
   const updateData: Record<string, unknown> = {};
   if (name) updateData.name = name;
   if (email) updateData.email = email;
+
+  if (!builtin && roleIds !== undefined) {
+    await assertRoleIdsWithinScope(roleIds, SYSTEM_SCOPE);
+  }
 
   await prisma.$transaction(async (tx) => {
     if (Object.keys(updateData).length > 0) {
