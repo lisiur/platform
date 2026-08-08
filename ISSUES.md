@@ -10,6 +10,59 @@
       `encryptedData`. Encrypt at rest or don't persist beyond the active
       session.
 
+- [ ] **Admin user create/update assigns arbitrary `roleId`s with no scope
+      validation (privilege escalation)** — `createUser`
+      (`modules/identity/user.service.ts:80-96`) and `updateUser`
+      (`:163-185`) upsert every `roleId` from the body without checking the
+      `Role`'s scope. `updateUser` only clears `SYSTEM_SCOPE` assignments
+      (`:167`) but re-creates whatever `roleId`s are passed — including
+      org-scoped roles like `org:<id>/owner`. A platform admin holding only
+      `system/user:create|:update` can grant themselves (or anyone) the
+      `org:<anyId>/owner` role and take over any organization, or assign a
+      higher system role. Fetch each `Role` and assert its scope/code is within
+      the caller's administrative purview before upserting.
+- [ ] **`resetPassword` skips the builtin-user guard (privilege escalation)**
+      — `deleteUser` calls `assertUserIsNotBuiltin`
+      (`modules/identity/user.service.ts:302`) and `updateUser` checks
+      `isBuiltinUser` before role changes (`:133-139`), but `resetPassword`
+      (`:203-253`) performs no builtin check at all. Any `system/user:update`
+      holder can reset the platform super-admin's password and sign in as
+      them. Add `await assertUserIsNotBuiltin(id)` at the top.
+- [ ] **Admin `updateUser` doesn't lowercase email → login lockout + case
+      duplicates** — `createUser`/`signInWithEmail` lowercase the email
+      (`auth.service.ts:252,82`) but `updateUser` stores it verbatim and
+      uniqueness-checks the raw value (`user.service.ts:141-153`). An admin
+      setting `User@Example.com` makes the user un-loginable (sign-in
+      lowercases → not found) and lets a case-only-different account slip past
+      the `findUnique` uniqueness check. Normalize to lowercase before both
+      the check and the write.
+- [ ] **`emailVerified` is not reset when an admin changes a user's email**
+      — `updateUser` writes the new `email` but never touches `emailVerified`
+      (`user.service.ts:151-161`); the new, unverified address silently
+      inherits the old address's verified status. Set `emailVerified: false`
+      (and trigger re-verification) when `email` changes.
+- [ ] **`tokenHash` leaked in `/api-tokens/verify` response** — every other
+      API-token path goes through `toPublic()` which strips `tokenHash`, but
+      `verify` returns `principal.token` directly
+      (`routes/api-token/verify.ts:22`) and `getApiTokenByBearer` only strips
+      the `owner` relation (`shared/lib/api-token.ts:55-56`). The Zod response
+      schema does not strip fields at runtime, so `tokenHash` reaches the
+      client. Apply `toPublic()` before serializing.
+- [ ] **Banned-account status leaked in WebAuthn login defeats the
+      anti-enumeration design** — `verifyAuthentication` routes every failure
+      through a uniform `fail()` → `400 "Authentication failed"`
+      (`webauthn.service.ts:401-417`), but `assertNotBanned(user)` is called
+      *before* credential verification (`:481`) and throws a distinct `403`
+      carrying the internal `banReason` (`auth.service.ts:32-35`). An attacker
+      probing a known email learns the user exists, is banned, and reads the
+      ban reason. Move the check to *after* successful verification and route
+      it through the generic error.
+- [ ] **`resetPassword` audit log omits the target user** — the
+      `user.password_reset` audit entry records only `userId: actorId` (the
+      admin performing the reset) and never the target user whose password
+      changed (`user.service.ts:245-252`). After the fact it is impossible to
+      tell whose password was reset. Add `metadata: { targetUserId: id }`.
+
 ### SSE / Events / EventBus
 
 - [ ] **SSE: write failures silently swallowed, no per-user connection cap**
@@ -41,6 +94,240 @@
       steps are independent writes. A mid-seed failure leaves reference
       data partially updated. Wrap the whole `seed()` body in one
       `$transaction`.
+
+### Access Control / Organization
+
+- [ ] **`removeMember` does not revoke org-scoped `RoleAssignment`s — removed
+      members keep all permissions** — `removeMember` only deletes the
+      `Member` row (`modules/organization/member.service.ts:77`); it never
+      removes the user's role assignments at that org's scope. Position-based
+      roles (`position.service.ts:280`) and direct org roles persist
+      indefinitely. Compare `deleteOrganization`, which does
+      `roleAssignment.deleteMany(roleAssignmentWhereByRoleScope(orgScope(id)))`
+      (`organization.service.ts:260-263`). An expelled member can keep calling
+      `org/*`-gated endpoints forever. Add the same `deleteMany` inside
+      `removeMember`'s transaction.
+- [ ] **`updateMember` lets org admins mutate the global `User.name`
+      (cross-tenant)** — an org admin with `org/organization-member:update`
+      can overwrite `prisma.user.name` (`member.service.ts:108-113`), visible
+      in every other org and across the platform. Remove the `User.name`
+      update from the org-scoped endpoint (use a per-org `Member` display name
+      if needed).
+- [ ] **`reorderMenus` allows cross-app moves, non-`GROUP` parents, and
+      cyclic parent chains** — items are applied with no `appId` filter on
+      `existingMenus`, no same-app/`linkType === "GROUP"` parent check, and no
+      cycle detection (`modules/application/menu.service.ts:307-358`). Cycles
+      corrupt `fillAncestorGroups` traversal; cross-app nesting surfaces menus
+      under the wrong app. Validate the three invariants before applying.
+- [ ] **`updateDepartment` only guards direct self-parent — multi-node cycles
+      are possible** — the guard is `parentId === id` only
+      (`modules/organization/department.service.ts:90-106`); setting A→B then
+      B→A creates a cycle that breaks delete/reparent traversal. Walk the
+      ancestor chain from `parentId` and reject if `id` is encountered.
+
+### AI Agent / Cost Abuse
+
+- [ ] **No `maxOutputTokens` cap on the chat stream (unbounded per-request
+      cost)** — `streamText({ ... })` sets no output cap
+      (`shared/lib/ai-agent/agent.ts:88-99`), unlike the title generator which
+      caps at 1000 (`sendMessage.ts:85`). One turn can elicit an arbitrarily
+      long (reasoning) response. Add a configurable `maxOutputTokens`.
+- [ ] **No per-user rate limit, turn cap, or token budget on `sendMessage`**
+      — only the global limiter applies (default 300/min); each accepted
+      request fans out to 1 stream + 1 fire-and-forget title call + up to 8
+      internal `call_api` tool calls that bypass rate limiting
+      (`rate-limit.ts:30`). Add a tighter dedicated limiter and a per-user /
+      per-session token accumulator.
+- [ ] **Unbounded conversation history reloaded and re-sent every turn** —
+      `sendMessage` `findMany`s *all* prior `AgentMessage` rows with no cutoff
+      and passes them to the provider
+      (`routes/agent/sendMessage.ts:147-156`); nothing prunes/summarises,
+      `AgentMessage.parts` stores full tool outputs, and `AgentSession` has no
+      TTL/GC. Cap reloaded history (count or tokens) and add a session/message
+      reaper.
+- [ ] **No maximum prompt length** — `promptRequestSchema` is
+      `z.string().trim().min(1)` with no `.max()`
+      (`sendMessage.ts:34-36`); the 2 MB global body limit permits ~500K
+      tokens in one user message. Add an explicit cap; also cap the
+      `toolResults` array (currently `.min(1)` only, `:51`).
+- [ ] **Unbounded buffering of tool/API responses into memory and history**
+      — `executeApiCall` does `await res.text()` with no ceiling
+      (`shared/lib/ai-agent/tools/call-api.ts:93-94`); a large list/search
+      payload is buffered, persisted into `AgentMessage.parts`
+      (`sendMessage.ts:224-259`), and re-sent every subsequent turn. Enforce a
+      byte cap and truncate tool results.
+- [ ] **No server-side timeout on the upstream LLM stream** — `streamAgent`
+      passes only the client disconnect signal (`agent.ts:88-99`,
+      `sendMessage.ts:197-204`); a hung provider keeps the request, stream,
+      and DB connection open indefinitely. Combine the client signal with
+      `AbortSignal.timeout(...)`.
+- [ ] **Lazy session creation with no `id` validation** — the messaging route
+      uses `c.req.param("id")` raw and `ensureSession` will *create* a session
+      with that arbitrary string as the PK (`AgentSession.id` is a `String
+      @id`, not UUID). File uploads then throw "Invalid sessionId"
+      (`agent-file-store.ts:37-39`, which *does* validate UUID), and the
+      `agent_session` table can be flooded. Apply the existing
+      `sessionIdParamSchema` (`schema.ts:4`) on the route.
+- [ ] **Stream-persistence failures in `onFinish` are swallowed** — the
+      assistant turn is persisted in a `try/catch` that only `console.error`s
+      (`sendMessage.ts:224-269`); on DB failure the user has already seen the
+      answer but nothing is saved, leaving a dangling user turn. Retry with
+      backoff and emit a client signal so the UI can mark the turn unsaved.
+- [ ] **Title-update SSE event is hardcoded to the `admin` namespace** —
+      `eventBus.publish({ target: \`sse:admin:${userId}:*\` ... })`
+      (`sendMessage.ts:97-102`) always targets admin, but the module supports
+      the org scope (`org/agent:chat`); org-portal users never see the
+      auto-generated title until reload. Derive the namespace from
+      `principalScope`.
+
+### Jobs / Queue
+
+- [ ] **`loadExpiredJobs` can infinite-loop and enqueue the same job multiple
+      times** — the `while (true)` loop calls `findPendingJobs({ limit: 1000 })`
+      which filters only `status: PENDING` with no `scheduledAt <= now` filter
+      and no pagination offset (`job-instance.repository.ts:37-43`;
+      `job-scheduler.ts:28-52`). With ≥1000 future-PENDING rows the same page
+      returns forever (event-loop peg, DB flood, startup hang); with due jobs,
+      the same row is re-added to the queue before the worker flips it to
+      PROCESSING → duplicate execution. Push the due-filter into the query,
+      keyset-paginate, and claim rows atomically before enqueue.
+- [ ] **Crashed/stuck `PROCESSING` jobs are never recovered** — `PROCESSING`
+      is only ever written (`job-worker.ts:20`); nothing transitions it back.
+      If the process dies mid-job the row is stuck `PROCESSING` forever and
+      silently dropped (`findPendingJobs` won't return it; the sweep handler
+      only deletes `COMPLETED`/`FAILED`). Add a `claimAt`/`startedAt` column
+      and a recovery sweep that re-queues stale `PROCESSING` rows.
+- [ ] **Job timeout doesn't cancel the handler and leaks the timer → double
+      execution** — `Promise.race([handler, timeout])` neither aborts
+      `handler(job)` nor `clearTimeout`s the winner
+      (`shared/lib/queues/job-worker.ts:32-36`). On timeout the row is marked
+      PENDING for retry while the original handler keeps running and completes
+      its side effects (email/sweep) — the retry then repeats them. Pass an
+      `AbortController` into handlers and abort on timeout; clear the timer in
+      `finally`.
+- [ ] **Job-cancellation is a check-then-delete race with no audit / no
+      `CANCELLED` status** — `cancelInstance` reads `status === PENDING` then
+      `delete`s (`job-instance.service.ts:57-67`); the worker can flip the row
+      to `PROCESSING` in between, so `delete` removes a running job and the
+      handler's final `updateStatus` throws `P2025` (unhandled). Use a
+      conditional `deleteMany({ id, status: PENDING })` (409 if 0 rows), and
+      add a `CANCELLED` status via `updateStatus` instead of hard delete.
+- [ ] **Scheduling >24 days out fires prematurely or never** — `scheduleNext`
+      caps delays >24h to a re-check, but `rescheduleIfNeeded`/`setTimer` only
+      arm a timer when `delay <= MAX_TIMER_DURATION_MS` and call
+      `setTimeout(delay)` uncapped (`job-scheduler.ts:81-110`); Node clamps
+      `setTimeout` at ~24.8d (fires almost immediately) and a >24d job created
+      into an empty queue arms nothing (never scheduled). Route all arming
+      through `scheduleNext`'s cap behavior.
+- [ ] **Cron runs in the host's local timezone with no per-job timezone** —
+      `new Cron(expression)` passes no `timezone`
+      (`shared/lib/cron.ts:3-18`; `Job` has no timezone column,
+      `schema.prisma:134-154`), so `"0 9 * * *"` means "09:00 in whatever the
+      container's TZ is" and shifts if deployment TZ changes. Store/validate
+      an IANA `timezone` and default explicitly to UTC.
+- [ ] **Overlapping executions of the same cron job** — `claimDueTemplates`
+      advances `nextRunAt` from *now* before the instance runs
+      (`job.repository.ts:88-116`); a run slower than its interval is
+      re-dispatched and runs concurrently (compounded delivery, concurrent
+      deletes on the same sweep rows). Skip dispatch while a non-terminal
+      instance exists, or advance from the prior `nextRunAt`.
+- [ ] **HTML injection via unescaped template variables in email body** —
+      `renderTemplate` substitutes variable values verbatim
+      (`modules/notification/services/template-renderer.ts:67-89`) and the
+      result is sent as `html:` to nodemailer with no escaping
+      (`mailer.ts:70-81`). A partly user-controlled variable (e.g. `userName`,
+      or admin test `variables`) injects arbitrary HTML/links/tracking pixels.
+      HTML-escape substitutions (or use an auto-escaping template engine).
+- [ ] **Per-notification retry is abandoned — a single SMTP blip permanently
+      fails the notification** — `deliverNotifications` marks a row `FAILED` on
+      the first SMTP error (`notification.service.ts:192-240`), and the
+      `attempts`/`nextAttemptAt` columns exist but are never written
+      (`schema.prisma:590-591`); the wrapping job retries, but re-entry skips
+      non-`PENDING` rows (`:163-167`), so a transient outage drops the email
+      for good with no dead-letter path. On transient errors leave `PENDING`,
+      bump `attempts`/`nextAttemptAt` with backoff; only `FAILED` after N.
+
+### Upload / Attachment
+
+- [ ] **`createAttachment` accepts arbitrary, unvalidated `bizType`/`bizId`
+      (tenant-isolation bypass + data pollution)** — the multipart
+      `bizType`/`bizId` are read raw and passed through with only
+      `requirePrincipal` (no permission check, no allow-list)
+      (`routes/attachment/createAttachment.ts:41-62`;
+      `attachment.service.ts:53-60,122-130`). Internal consumers treat
+      `(bizType, bizId)` as a trusted tenant scope (`user:avatar`,
+      `organization:logo`, `application:favicon`), so any authenticated user
+      can create attachment rows under another tenant's namespace. Validate
+      `bizType` against an allow-list and authorize the caller against `bizId`
+      for each type.
+- [ ] **Concurrent delete race → unhandled `P2025` → 500; non-transactional
+      file cleanup** — in `deleteAttachments`/`deleteAttachmentsByBiz`, two
+      attachments sharing one `Upload` can both observe `count === 0` and both
+      call `upload.delete`, the second throwing `P2025` (outside the `unlink`
+      try/catch) → 500 though the delete already succeeded
+      (`attachment.service.ts:380-399,401-430`); the unlink/delete sequence is
+      also not transactional, so a crash leaves disk/DB out of sync. Use a
+      conditional `deleteMany` + commit-before-unlink, and guard `P2025`.
+- [ ] **SSE has an unbounded per-connection write queue → memory exhaustion
+      under backpressure** — every event/heartbeat is chained onto
+      `writeChain = writeChain.then(write, () => {})`; a stalled client makes
+      `stream.writeSSE` neither resolve nor reject, so the chain (each closure
+      retaining the full payload) grows without bound
+      (`routes/events/streamEvents.ts:20-23,29-43`). A few slow readers
+      exhaust heap. Bound the per-connection queue and tear down on overflow;
+      also surface write rejections (see existing swallowed-write issue).
+- [ ] **Session revocation / logout does not terminate active SSE streams** —
+      after the connect-time `requirePrincipal`, the loop never re-validates
+      the session (`streamEvents.ts:55-62`); and `signOut` closes
+      `sse:${app.code}:...` where `app.code` comes from the logout request's
+      `X-App-Code` header, while the subscriber's appCode came from the SSE
+      `?app=` query (`:13`) — a mismatch misses the subscriber and the stream
+      survives logout/password-change/token-rotation. Re-validate the session
+      in the loop (or subscribe to an invalidation event), and key/close
+      subscriptions by `userId + sessionId`, not appCode.
+
+### Infra / Boot
+
+- [ ] **Boot seed gate skips reference-data updates on `update`-deploys** —
+      `seed` runs only `if (!adminApp)` (`app.ts:38-45`), but `seed.ts` is an
+      idempotent desired-state upsert (permissions, menus, roles, configs,
+      notification templates) explicitly "safe to run in production". The
+      updater's update path runs migrations but *not* seed
+      (`packages/updater/src/pipeline.ts:95-100`), so on a non-fresh deploy any
+      newly added permission/menu/role/config never reaches the DB (mysterious
+      403s / missing menus). Drop the gate and run the idempotent seed every
+      boot (or on version change).
+- [ ] **Body-size limit is bypassable via Content-Type spoofing** — the cap is
+      chosen by sniffing the `Content-Type` header (`app.ts:143-149`): a 6 MB
+      JSON payload reaches any JSON endpoint by sending `Content-Type:
+      multipart/form-data` (Hono parses the body as JSON regardless of the
+      declared type). Select the limit from the route, not the header; at
+      minimum re-validate size when `c.req.json()` runs.
+- [ ] **CORS dev branch reflects any origin with credentials; reachable via
+      `NODE_ENV` misconfiguration** — when `CORS_ALLOWED_ORIGINS` is unset and
+      `NODE_ENV !== "production"`, the server reflects the caller's `Origin`
+      and allows credentials (`app.ts:106-108`): any site can issue
+      authenticated credentialed requests. The sole gate is the exact string
+      `"production"`; many deploy defaults leave `NODE_ENV` unset /
+      `"development"` and silently run this in production. Fail closed
+      (`origin: null`) when no allowlist is configured; require an explicit
+      opt-in for dev-permissive behavior.
+- [ ] **`serializeHTTPException` blind-spreads `cause` into the client
+      response** — whatever a throw site puts in
+      `new HTTPException(status, { cause })` is serialized verbatim
+      (`shared/lib/http-error.ts:10-22`); a single site including internal
+      context (Prisma meta, internal IDs, partial records) leaks it to the
+      client. Allow-list public fields instead of spreading.
+- [ ] **Updater tarball extraction has no path-traversal (tar-slip)
+      mitigation** — `verifyTarball` only checks three marker filenames in
+      `tar -tzf`; it does not reject absolute paths, `..` components, or
+      escaping symlinks (`packages/updater/src/pipeline.ts:244-267,83-88`). A
+      tarball with the markers *plus* traversal entries
+      (`../../../.ssh/authorized_keys`, or overwriting
+      `ecosystem.config.js`/`updater.mjs`) passes and is extracted verbatim,
+      ending in automatic restart = code execution as the deploy user.
+      Validate every entry's path before extraction; add
+      `--no-same-owner --no-overwrite-dir`.
 
 ## Low Priority
 
@@ -161,6 +448,147 @@
       drift is invisible. Adopt `prisma migrate dev`/`migrate deploy` for
       schema changes.
 
+### Auth & Session
+
+- [ ] **Overly broad `catch` in admin `createUser` masks all failures as
+      "User already exists"** — `.catch(async () => …)` handles every error
+      from `createAuthUser` identically and re-queries by email
+      (`user.service.ts:55-68`): a transient DB blip or a P2002 on a *different*
+      constraint is misreported as a conflict (or a generic 500), and a
+      network hiccup that did create the user is retried as a conflict. Narrow
+      the catch to `err.code === "P2002"` on the email constraint; rethrow the
+      rest.
+- [ ] **API token with `scope: null` bypasses token-binding enforcement** —
+      tokens created without an explicit scope store `scope: null`
+      (`api-token.service.ts:69`), and `enforceTokenBinding` checks
+      `if (token.scope && token.scope !== scope)`
+      (`role-permission.service.ts:245`), so a null scope short-circuits the
+      binding entirely. Harmless today (scope validation elsewhere still
+      gates), but the binding layer provides no defense-in-depth. Default the
+      stored scope to `SYSTEM_SCOPE`, or treat null as `SYSTEM_SCOPE` in the
+      guard.
+
+### Jobs / Queue
+
+- [ ] **No jitter in retry backoff** — backoff is
+      `RETRY_BASE * 2 ** (attempts-1)` capped at 5 min with no randomness
+      (`shared/lib/queues/job-worker.ts:7-8,55-59`); a simultaneous failure
+      burst (DB/SMTP outage) retries in lockstep and re-hammers the recovering
+      dependency. Add full/decorrelated jitter.
+- [ ] **Duplicate delivery side-effects on job retry** — side effects fire
+      before the status row is persisted (`eventBus.publish`/`sendMail` before
+      the `SENT` update: `notification.service.ts:176-187,209-228`); if the
+      process dies in that window the row stays `PENDING` and the retried run
+      re-publishes/re-sends. Persist an "attempted" state (or an idempotency
+      key) before the side effect.
+- [ ] **`JobExecutorContext.emit` swallows listener errors and can skip later
+      listeners** — `void listener(data)` discards the handle but does not
+      catch a throw; a synchronous throw aborts the `forEach` and silently
+      breaks later listeners (e.g. job scheduling)
+      (`shared/lib/queues/job-executor-context.ts:38-43`). Wrap each listener
+      in try/catch (compare `packages/updater/src/state.ts:42-50`, which does
+      it correctly).
+
+### Upload / Attachment
+
+- [ ] **`getAttachment` ignores HTTP `Range` (no 206 partial content)** — it
+      always streams the full file with `200`/full `Content-Length`
+      (`routes/attachment/getAttachment.ts:27-79`;
+      `attachment.service.ts:199-212`); PDFs (an allowed type) can't seek by
+      page and clients waste bandwidth. Parse `Range`, return `206` with
+      `Content-Range`/`Accept-Ranges: bytes`, and pass `{start,end}` to
+      `createReadStream`.
+- [ ] **`Content-Disposition` carries no `filename`** — the header is bare
+      `"inline"`/`"attachment"` with no filename (`getAttachment.ts:66`); the
+      URL path is an opaque id with no extension, so browsers save
+      extension-less files. Add a sanitized RFC-5987 `filename*` derived from
+      the attachment id + mime extension (never raw user input).
+- [ ] **Unsanitized `?app=` query is interpolated into the SSE routing key** —
+      `c.req.query("app") ?? "*"` is placed raw into
+      `sse:${appCode}:${userId}:${token}` and matched by `split(":")`
+      (`streamEvents.ts:13-14`); `app=*` widens receipt and a value diverging
+      from the server's app code defeats the logout-close. Validate against
+      known application codes; reject values containing `:`/`*`.
+
+### Access Control / Organization
+
+- [ ] **`registerOrganization`/`activateOrganization` crash (500) for
+      API-token principals** — both call `requirePrincipal` (accepts tokens)
+      then unsafely cast to the user variant and read `principal.session.id`
+      (`routes/organization/registerOrganization.ts:66-72`;
+      `activateOrganization.ts:39-44`); for a token principal `.session` is
+      undefined → `TypeError`, and in `registerOrganization` the org is
+      created *before* the crash (orphaned org). Guard
+      `principal.kind !== "user"` (or use `requireSession`).
+- [ ] **`batchUpdateMembers` omits `organizationId` from the `updateMany`
+      WHERE** — the final mutation is `where: { id: { in: memberIds } }` with
+      no org boundary (`member.service.ts:151-154`); safe today only because
+      preceding validation checked membership, but fragile to refactor. Add
+      `organizationId` to the WHERE (defense-in-depth).
+
+### AI Agent
+
+- [ ] **Fire-and-forget title generation runs with no abort/budget** —
+      `generateText` is launched with `.catch(...)` and no `abortSignal`
+      (`sendMessage.ts:177-186`), so it keeps doing a full provider round-trip
+      after the user disconnects / the main stream aborts. Thread the request
+      signal (or `AbortSignal.any([clientSignal, shortTimeout])`).
+- [ ] **OpenAPI spec is cached forever and fetched with no timeout/retry** —
+      `getPlatformOpenApiSpec` caches in a module variable with no TTL and a
+      bare `fetch(url)` (`openapi.service.ts:56,110-123`): the first agent
+      request after boot blocks on it (500 if the service is still starting),
+      and new operationIds added later won't resolve until restart. Add a
+      fetch timeout, short retry, and TTL.
+- [ ] **Raw upstream errors are logged server-side and may contain provider
+      auth details** — `onError`, the title `.catch`, and the persistence
+      catch all `console.error(err)` the raw object
+      (`sendMessage.ts:183-185,216-223,260-268`); OpenAI-compatible providers
+      sometimes echo key fragments/URLs in `APICallError.message`, landing
+      them in log aggregators. (Client-facing output is masked in prod —
+      good.) Redact `apiKey`/`Authorization`/known patterns before logging.
+
+### Infra / Boot
+
+- [ ] **Operation-log API exposes full stack traces** — every unhandled
+      error's `Error.stack` + message is persisted (`shared/lib/logger.ts:73-75`)
+      and returned by the operation-log API
+      (`modules/audit/routes/operation-log/schema.ts:20-22`), readable by any
+      `system/operation-log:list|:view` holder. The app error handler hides
+      stacks from end users in prod, then re-exposes them here. Don't return
+      `stack` from the API (store server-side only) or gate it behind a
+      separate permission.
+- [ ] **Internal-token (SSR/Agent) comparison is non-constant-time** —
+      `token === process.env.SSR_API_TOKEN` / `=== AGENT_API_TOKEN`
+      (`shared/lib/internal-request.ts:7-9`;
+      `shared/middleware/operation-logger.ts:13-21`); `===` short-circuits on
+      the first differing byte and possession bypasses rate limiting
+      (`rate-limit.ts:30-32`). Use `crypto.timingSafeEqual` (after a length
+      check).
+- [ ] **`x-trace-id` response header is missing on error responses** —
+      `trace-context` sets the header *after* `next()`
+      (`shared/middleware/trace-context.ts:9-17`), so when a handler throws the
+      header doesn't land on the `onError` response (the JSON-body `traceId`
+      is the only fallback). Set the header before `next()` (idempotent).
+- [ ] **Updater download has no maximum-size cap** — `download()` streams to
+      disk with no byte ceiling, using `content-length` only for progress
+      (`packages/updater/src/pipeline.ts:161-242`); a wrong/compromised
+      `tarballUrl` (no checksum/signature today) can disk-exhaust the box
+      mid-update. Abort + delete the partial file past an explicit ceiling.
+- [ ] **`createSession` loads every session for the user** —
+      `prisma.session.findMany({ where: { userId }})` has no `take`/`select`
+      (`shared/lib/session.ts:88-101`); an attacker automating logins to
+      accumulate thousands of rows triggers an unbounded load on every
+      sign-in. Prune in the DB (`deleteMany` expired/revoked) or cap with
+      `take`.
+- [ ] **Rate-limit subject/IP depends on a trust-proxy spec that's easy to
+      misconfigure** — with the default trust
+      (`uniqueLocal,loopback,linkLocal`, `shared/lib/client-ip.ts:3`) behind a
+      cloud LB every client shares one bucket (limit trivially exhausted or
+      irrelevant); the natural fix (`trustProxy=all`) trusts attacker-supplied
+      `X-Forwarded-For` and lets an attacker rotate buckets to bypass limiting
+      — including the auth limiter. Validate/require the trust spec at boot;
+      derive the subject from a more robust signal.
+
 ## No Dues
 
 ### Auth & Session
@@ -266,6 +694,19 @@
       publish, and plaintext in-process session store are all unfixable
       without an external broker/shared store; same horizontal-scaling
       blocker as Jobs/Cache/Rate-limit above.
+
+### Auth & Session
+
+- [ ] **WebAuthn challenge cache is in-process only — passkeys break under
+      any horizontal scaling** — challenges live in a per-process LRU
+      (`shared/states/cache.ts:12-13` → `shared/lib/cache.ts`); a challenge
+      issued by instance A is unknown to instance B, so registration/login
+      verification always fails `400 "Invalid challenge"` behind a load
+      balancer. Unlike the soft-failing notification/rate-limit caches, the
+      WebAuthn flow *requires* the challenge, so this is a functional
+      regression (not merely a scaling caveat) the moment a second instance is
+      added. Back the store with Redis or a TTL'd DB table, or use sticky
+      sessions. Same single-process constraint as Jobs/Cache/Rate-limit above.
 
 ## Resolved
 
