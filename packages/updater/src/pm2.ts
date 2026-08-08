@@ -72,10 +72,17 @@ async function runPm2(
   }
 }
 
-// Normal update: zero-downtime rolling reload of the three apps. By-name reload
-// is scoped to exactly these processes regardless of ecosystem files.
+// Normal update: restart the three apps to pick up the newly extracted code.
+//
+// NOTE: `restart` causes brief downtime (old process killed, then new one
+// starts). `pm2 reload` would achieve zero-downtime, but ONLY in cluster mode
+// — it relies on the app handling a graceful-shutdown signal while a new
+// instance boots. The apps currently run in fork mode (single instance, no
+// signal handler), so `reload` silently leaves the old process running with
+// stale code. Switch back to `reload` once the apps move to cluster mode
+// (exec_mode: "cluster", instances > 1) to get rolling zero-downtime updates.
 export async function reloadApps(): Promise<void> {
-  await runPm2(["reload", ...APPS], "reloading", "Reloading PM2 apps", {
+  await runPm2(["restart", ...APPS], "reloading", "Restarting PM2 apps", {
     timeoutMs: 30000,
   });
 }

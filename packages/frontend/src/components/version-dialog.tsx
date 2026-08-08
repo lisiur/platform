@@ -30,9 +30,16 @@ import { toast } from "../lib/toast";
 // biome-ignore lint/suspicious/noExplicitAny: Hono RPC client methods are overloaded and app-generated.
 type ApiMethod = (...args: any[]) => Promise<ClientResponse<any, any, any>>;
 
+export interface VersionInfo {
+  version: string;
+  gitSha: string;
+  buildTime: string;
+}
+
 export interface VersionAppClient {
   api: {
     version: {
+      $get: ApiMethod;
       latest: { $get: ApiMethod };
       update: {
         $post: ApiMethod;
@@ -206,6 +213,20 @@ export function VersionDialog({
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [mode, setMode] = useState<UpdateMode>("update");
   const prevPhaseRef = useRef<string | null>(null);
+
+  const versionQuery = useQuery({
+    queryKey: ["version", "current"],
+    queryFn: async () => {
+      const res = await appClient.api.version.$get();
+      return (await readJson(res)) as VersionInfo;
+    },
+    enabled: open,
+    staleTime: 0,
+  });
+
+  const currentVersion = versionQuery.data?.version ?? APP_VERSION;
+  const currentGitSha = versionQuery.data?.gitSha ?? APP_GIT_SHA;
+  const currentBuildTime = versionQuery.data?.buildTime ?? APP_BUILD_TIME;
   // True when the status poll got a 401 while an update is in flight — the
   // session row is gone (e.g. a redeploy's DB reset) and the stream can never
   // recover, so the reconnect poll effect reloads the page for re-auth.
@@ -308,6 +329,7 @@ export function VersionDialog({
     if (prevPhaseRef.current === "running" && phase !== "running") {
       if (phase === "succeeded") {
         toast.success(t("succeeded"));
+        void versionQuery.refetch();
         setTimeout(() => window.location.reload(), 1500);
       } else if (phase === "failed") {
         toast.error(`${t("failed")}: ${formatStatusMessage(status)}`);
@@ -316,7 +338,7 @@ export function VersionDialog({
       }
     }
     prevPhaseRef.current = phase;
-  }, [status, t, formatStatusMessage]);
+  }, [status, t, formatStatusMessage, versionQuery.refetch]);
 
   // SSE is the primary progress channel. The HTTP poll is a fallback that runs
   // ONLY while the SSE stream is disconnected (e.g. during a redeploy's gateway
@@ -383,7 +405,7 @@ export function VersionDialog({
                 {t("currentVersion")}
               </span>
               <span className="font-mono font-medium text-sm">
-                {APP_VERSION}
+                {currentVersion}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -391,7 +413,7 @@ export function VersionDialog({
                 {t("gitSha")}
               </span>
               <span className="font-mono text-muted-foreground text-sm">
-                {APP_GIT_SHA.slice(0, 7)}
+                {currentGitSha.slice(0, 7)}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -399,7 +421,7 @@ export function VersionDialog({
                 {t("builtAt")}
               </span>
               <span className="font-mono text-muted-foreground text-xs">
-                {new Date(APP_BUILD_TIME).toLocaleString()}
+                {new Date(currentBuildTime).toLocaleString()}
               </span>
             </div>
           </div>
@@ -420,10 +442,16 @@ export function VersionDialog({
               {formatErrorMessage(latestQuery.error)}
             </p>
           ) : canCheckVersion && latest ? (
-            <div className="rounded-md border p-3 space-y-2">
+            <div
+              className={
+                hasNewer
+                  ? "rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2"
+                  : "rounded-md border p-3 space-y-2"
+              }
+            >
               <div className="flex items-center gap-2">
                 {hasNewer ? (
-                  <ArrowUpCircle className="h-4 w-4 text-primary" />
+                  <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 )}

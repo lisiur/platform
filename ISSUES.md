@@ -44,6 +44,20 @@
 
 ## Low Priority
 
+### Self-Update / Deploy
+
+- [ ] **Old JS chunks accumulate after self-update** — `tar -xzf` only
+      adds/overwrites; it never deletes files absent from the tarball, so
+      stale `.next/static/chunks/*.js` from every previous build pile up
+      indefinitely in `apps/<name>/apps/<name>/.next/static/`
+      (`packages/updater/src/pipeline.ts:83-88`). Fix: `rm -rf
+      $DEPLOY_ROOT/apps` before extraction — the tarball contains the
+      complete `apps/` tree, and nothing inside `apps/` needs to persist
+      (`.env.production`, `updater.sock`, `node_modules/`, `prisma/` all
+      live at the DEPLOY_ROOT root). Brief gap for static-asset requests
+      during extraction is acceptable: apps serve from memory and
+      `pm2 restart` follows shortly after.
+
 ### Auth & Session
 
 - [ ] **Session tokens stored in plaintext (+ raw token embedded in SSE

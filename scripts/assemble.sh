@@ -87,7 +87,7 @@ cat >"$OUT/package.json" <<EOF
   "scripts": {
     "migrate": "prisma migrate deploy",
     "start": "pm2 start ecosystem.config.js",
-    "reload": "pm2 reload ecosystem.config.js"
+    "reload": "pm2 restart ecosystem.config.js"
   },
   "dependencies": {
     "prisma": "${prisma_ver}",

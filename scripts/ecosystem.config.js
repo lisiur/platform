@@ -9,7 +9,7 @@
 //   ./apps/organization/apps/organization/server.js
 //
 //   pm2 start ecosystem.config.js
-//   pm2 reload ecosystem.config.js   # zero-downtime after redeploy
+//   pm2 restart ecosystem.config.js  # pick up newly extracted code
 //
 //   Deploy / migrate flow (one-time, then per-release):
 //     npm install                       # installs prisma + dotenv (engines)
