@@ -154,7 +154,8 @@ export async function updateUser(
     roleIds?: string[];
   },
 ) {
-  const { name, email, roleIds } = data;
+  const { name, email: rawEmail, roleIds } = data;
+  const email = rawEmail?.toLowerCase();
 
   const existingUser = await prisma.user.findUnique({
     where: { id },
@@ -184,7 +185,12 @@ export async function updateUser(
 
   const updateData: Record<string, unknown> = {};
   if (name) updateData.name = name;
-  if (email) updateData.email = email;
+  if (email) {
+    updateData.email = email;
+    if (email !== existingUser.email) {
+      updateData.emailVerified = false;
+    }
+  }
 
   if (!builtin && roleIds !== undefined) {
     await assertRoleIdsWithinScope(roleIds, SYSTEM_SCOPE);

@@ -10,19 +10,6 @@
       `encryptedData`. Encrypt at rest or don't persist beyond the active
       session.
 
-- [ ] **Admin `updateUser` doesn't lowercase email → login lockout + case
-      duplicates** — `createUser`/`signInWithEmail` lowercase the email
-      (`auth.service.ts:252,82`) but `updateUser` stores it verbatim and
-      uniqueness-checks the raw value (`user.service.ts:141-153`). An admin
-      setting `User@Example.com` makes the user un-loginable (sign-in
-      lowercases → not found) and lets a case-only-different account slip past
-      the `findUnique` uniqueness check. Normalize to lowercase before both
-      the check and the write.
-- [ ] **`emailVerified` is not reset when an admin changes a user's email**
-      — `updateUser` writes the new `email` but never touches `emailVerified`
-      (`user.service.ts:151-161`); the new, unverified address silently
-      inherits the old address's verified status. Set `emailVerified: false`
-      (and trigger re-verification) when `email` changes.
 - [ ] **`tokenHash` leaked in `/api-tokens/verify` response** — every other
       API-token path goes through `toPublic()` which strips `tokenHash`, but
       `verify` returns `principal.token` directly
@@ -731,6 +718,20 @@
       (Assigning a different system role the caller doesn't personally hold
       is intentionally out of scope — that's within the trust model of
       `system/user:update`.)
+- [x] **Admin `updateUser` doesn't lowercase email → login lockout + case
+      duplicates** — `updateUser` now normalizes the incoming email to
+      lowercase once, so the change-detection comparison, the uniqueness
+      `findUnique`, and the write all use the normalized value
+      (`modules/identity/user.service.ts:157-158,176-178,188-189`), matching
+      `createUser`/`signInWithEmail` (`auth.service.ts:82,252`). An admin
+      entering `User@Example.com` no longer locks the user out of sign-in,
+      and a case-only-different account can no longer slip past the
+      `findUnique` uniqueness check.
+- [x] **`emailVerified` is not reset when an admin changes a user's email**
+      — `updateUser` now sets `emailVerified: false` when the email actually
+      changes (`modules/identity/user.service.ts:190-192`), so a new,
+      unverified address no longer silently inherits the old address's
+      verified status.
 
 ### Schema & DB
 
