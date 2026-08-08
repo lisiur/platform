@@ -21,13 +21,6 @@
       `org:<anyId>/owner` role and take over any organization, or assign a
       higher system role. Fetch each `Role` and assert its scope/code is within
       the caller's administrative purview before upserting.
-- [ ] **`resetPassword` skips the builtin-user guard (privilege escalation)**
-      — `deleteUser` calls `assertUserIsNotBuiltin`
-      (`modules/identity/user.service.ts:302`) and `updateUser` checks
-      `isBuiltinUser` before role changes (`:133-139`), but `resetPassword`
-      (`:203-253`) performs no builtin check at all. Any `system/user:update`
-      holder can reset the platform super-admin's password and sign in as
-      them. Add `await assertUserIsNotBuiltin(id)` at the top.
 - [ ] **Admin `updateUser` doesn't lowercase email → login lockout + case
       duplicates** — `createUser`/`signInWithEmail` lowercase the email
       (`auth.service.ts:252,82`) but `updateUser` stores it verbatim and
@@ -716,6 +709,11 @@
       — the handler now gates on `principal.kind !== "user"` before acting
       (`routes/auth/updateUser.ts:27-29`), so a bearer API token can no
       longer rewrite the owner's profile.
+- [x] **`resetPassword` skips the builtin-user guard (privilege escalation)**
+      — `resetPassword` now calls `assertUserIsNotBuiltin(id)` before any
+      password/session mutation (`modules/identity/user.service.ts:216`),
+      mirroring `deleteUser` (`:304`). A `system/user:update` holder can no
+      longer reset the platform super-admin's password.
 
 ### Schema & DB
 

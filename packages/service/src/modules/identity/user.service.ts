@@ -213,6 +213,8 @@ export async function resetPassword(
     throw new HTTPException(404, { message: "User not found" });
   }
 
+  await assertUserIsNotBuiltin(id);
+
   const hashedPassword = await hashPassword(newPassword);
 
   await prisma.$transaction(async (tx) => {
