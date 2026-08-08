@@ -7,6 +7,7 @@ import {
   type OrgRole,
   orgOwnerAssignmentWhere,
 } from "#lib/org-role";
+import { orgScope, roleAssignmentWhereByRoleScope } from "#lib/scope";
 
 const memberInclude = {
   user: { select: { id: true, name: true, email: true, avatar: true } },
@@ -73,6 +74,13 @@ export async function removeMember(organizationId: string, memberId: string) {
     if (isOwner > 0) {
       throw new HTTPException(403, { message: "Cannot remove an owner" });
     }
+
+    await tx.roleAssignment.deleteMany({
+      where: {
+        userId: member.userId,
+        ...roleAssignmentWhereByRoleScope(orgScope(organizationId)),
+      },
+    });
 
     await tx.member.delete({ where: { id: memberId } });
   });

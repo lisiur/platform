@@ -79,16 +79,6 @@
 
 ### Access Control / Organization
 
-- [ ] **`removeMember` does not revoke org-scoped `RoleAssignment`s — removed
-      members keep all permissions** — `removeMember` only deletes the
-      `Member` row (`modules/organization/member.service.ts:77`); it never
-      removes the user's role assignments at that org's scope. Position-based
-      roles (`position.service.ts:280`) and direct org roles persist
-      indefinitely. Compare `deleteOrganization`, which does
-      `roleAssignment.deleteMany(roleAssignmentWhereByRoleScope(orgScope(id)))`
-      (`organization.service.ts:260-263`). An expelled member can keep calling
-      `org/*`-gated endpoints forever. Add the same `deleteMany` inside
-      `removeMember`'s transaction.
 - [ ] **`updateMember` lets org admins mutate the global `User.name`
       (cross-tenant)** — an org admin with `org/organization-member:update`
       can overwrite `prisma.user.name` (`member.service.ts:108-113`), visible
@@ -706,11 +696,23 @@
 
 ## Resolved
 
+### Access Control / Organization
+
+- [x] **`removeMember` does not revoke org-scoped `RoleAssignment`s — removed
+      members keep all permissions** — `removeMember` now deletes the user's
+      org-scoped `RoleAssignment`s inside its existing transaction
+      (`modules/organization/member.service.ts`), mirroring `deleteOrganization`'s
+      `roleAssignment.deleteMany(roleAssignmentWhereByRoleScope(orgScope(id)))`.
+      The delete is scoped to `userId + org:<organizationId>/*`, so an expelled
+      member loses every org permission (direct roles and position-derived roles)
+      while system-scoped and other-org assignments are untouched. Previously the
+      handler deleted only the `Member` row, leaving the user able to call
+      `org/*`-gated endpoints indefinitely.
+
 ### Auth & Session
 
 - [x] **`/auth/update-user` accepts API tokens with no scope check** [#11](https://github.com/lisiur/platform/issues/11)
       — the handler now gates on `principal.kind !== "user"` before acting
-      (`routes/auth/updateUser.ts:27-29`), so a bearer API token can no
       longer rewrite the owner's profile.
 - [x] **`resetPassword` skips the builtin-user guard (privilege escalation)**
       — `resetPassword` now calls `assertUserIsNotBuiltin(id)` before any
