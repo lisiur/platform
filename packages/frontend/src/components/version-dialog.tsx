@@ -206,6 +206,11 @@ export function VersionDialog({
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [mode, setMode] = useState<UpdateMode>("update");
   const prevPhaseRef = useRef<string | null>(null);
+  // True when the status poll got a 401 while an update is in flight — the
+  // session row is gone (e.g. a redeploy's DB reset) and the stream can never
+  // recover, so the reconnect poll effect reloads the page for re-auth.
+  const [authLostDuringUpdate, setAuthLostDuringUpdate] = useState(false);
+  const authLostToastShownRef = useRef(false);
 
   const latestQuery = useQuery({
     queryKey: ["version", "latest"],
@@ -225,6 +230,8 @@ export function VersionDialog({
     onMutate: () => {
       setStatus(null);
       prevPhaseRef.current = null;
+      setAuthLostDuringUpdate(false);
+      authLostToastShownRef.current = false;
     },
     onError: (err: unknown) => {
       toast.error(formatErrorMessage(err));
@@ -247,11 +254,24 @@ export function VersionDialog({
       const res = await appClient.api.version.update.status.$get();
       const s = (await readJson(res)) as UpdateStatus;
       setStatus(s);
+      setAuthLostDuringUpdate(false);
+      authLostToastShownRef.current = false;
       return s;
-    } catch {
+    } catch (err) {
+      // A 401 while an update is in flight means the session row is gone —
+      // almost always a redeploy's DB reset. The stream cannot recover, so flag
+      // it and let the reconnect poll effect reload the page for sign-in. Fire
+      // the toast here (guarded to once) so SSE/poll flapping can't stack it.
+      if (err instanceof StatusError && err.status === 401) {
+        setAuthLostDuringUpdate(true);
+        if (!authLostToastShownRef.current) {
+          authLostToastShownRef.current = true;
+          toast.info(t("updateAppliedSignIn"));
+        }
+      }
       return null;
     }
-  }, [appClient, canCheckVersion]);
+  }, [appClient, canCheckVersion, t]);
 
   const sseConnection = useEventStream({
     origin: apiOrigin,
@@ -275,6 +295,8 @@ export function VersionDialog({
     if (!open) {
       setStatus(null);
       prevPhaseRef.current = null;
+      setAuthLostDuringUpdate(false);
+      authLostToastShownRef.current = false;
       return;
     }
     void fetchStatus();
@@ -312,6 +334,18 @@ export function VersionDialog({
     }, 2000);
     return () => clearInterval(id);
   }, [pollingEnabled, fetchStatus]);
+
+  // If the reconnect poll gets a 401, the session has been wiped (typically by
+  // a redeploy's DB reset). Neither the SSE bridge nor the HTTP poll can ever
+  // recover, so reload — the user lands on the login page and signs in again.
+  // The toast is fired from fetchStatus (guarded to once) so this effect only
+  // owns the reload. This fixes the "Reconnecting..." hang after a DB-resetting
+  // redeploy.
+  useEffect(() => {
+    if (!pollingEnabled || !authLostDuringUpdate) return;
+    const id = setTimeout(() => window.location.reload(), 1500);
+    return () => clearTimeout(id);
+  }, [pollingEnabled, authLostDuringUpdate]);
 
   // Resync current status whenever the SSE stream (re)connects. This is the
   // fix for the redeploy gateway-restart case: the daemon may reach a terminal

@@ -431,6 +431,7 @@
       "reconnecting": "Reconnecting…",
       "reload": "Reload",
       "succeeded": "Update applied. Reloading...",
+      "updateAppliedSignIn": "Update applied. Please sign in again.",
       "failed": "Update failed",
       "cancelled": "Update cancelled",
       "cancelDownload": "Cancel download",

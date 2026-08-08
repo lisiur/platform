@@ -431,6 +431,7 @@
       "reconnecting": "重新连接中…",
       "reload": "重新加载",
       "succeeded": "更新已完成，正在重新加载...",
+      "updateAppliedSignIn": "更新已完成，请重新登录。",
       "failed": "更新失败",
       "cancelled": "更新已取消",
       "cancelDownload": "取消下载",
