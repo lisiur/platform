@@ -48,7 +48,14 @@ module.exports = {
   apps: apps.map(({ name, port }) => ({
     name,
     cwd: path.join(__dirname, name),
-    script: `apps/${name}/server.js`,
+    // Absolute path on purpose: PM2 resolves a relative `script` against the
+    // ecosystem file's directory (the deploy root), NOT against `cwd`, so a
+    // relative `apps/<name>/server.js` would resolve to
+    // `<root>/apps/<name>/server.js` (missing) instead of the real
+    // `<root>/<name>/apps/<name>/server.js`. updater.config.js dodges this only
+    // because its cwd and script share a base; pinning the full path here is
+    // unambiguous and makes `pm2 start ecosystem.config.js` reliable.
+    script: path.join(__dirname, name, "apps", name, "server.js"),
     exec_mode: "fork",
     instances: 1,
     autorestart: true,

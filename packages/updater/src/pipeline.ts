@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { createWriteStream, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,8 +6,14 @@ import { pipeline } from "node:stream/promises";
 import { DEPLOY_ROOT, MARKER_FILE } from "./config";
 import { log } from "./log";
 import { deleteApps, reloadApps, saveProcessList, startApps } from "./pm2";
+import { type SpawnResult, spawnAsync } from "./spawn";
 import { getStatus, patch, setStatus } from "./state";
 import type { ApplyRequest } from "./types";
+
+// Abort a download if the transfer goes silent for this long. A stalled CDN
+// connection would otherwise hang forever at the last reported percent (the
+// original "stuck at 91%" symptom) with no detection or recovery.
+const STALL_TIMEOUT_MS = 30_000;
 
 // Active download controller — the only cancellable phase. null outside the
 // download step, so POST /cancel is rejected once extraction has begun.
@@ -49,51 +54,51 @@ export async function runPipeline(req: ApplyRequest): Promise<void> {
   try {
     const tarball = join(tmpdir(), `platform-deploy-${Date.now()}.tar.gz`);
     await download(req.tarballUrl, tarball, req.targetTag);
-    verifyTarball(tarball);
+    await verifyTarball(tarball);
 
     if (req.mode === "redeploy") {
       // Stop apps first so they release DB connections before the reset.
-      deleteApps();
-      run(
+      await deleteApps();
+      await run(
         "tar",
         ["-xzf", tarball, "-C", DEPLOY_ROOT],
         "extracting",
         "Extracting tarball",
       );
-      run(
+      await run(
         "npm",
         ["install", "--no-audit", "--no-fund"],
         "installing",
         "Installing dependencies",
       );
-      run(
+      await run(
         "npx",
         ["prisma", "migrate", "reset", "--force"],
         "resetting",
         "Resetting database",
       );
-      startApps();
-      saveProcessList();
+      await startApps();
+      await saveProcessList();
     } else {
-      run(
+      await run(
         "tar",
         ["-xzf", tarball, "-C", DEPLOY_ROOT],
         "extracting",
         "Extracting tarball",
       );
-      run(
+      await run(
         "npm",
         ["install", "--no-audit", "--no-fund"],
         "installing",
         "Installing dependencies",
       );
-      run(
+      await run(
         "npm",
         ["run", "migrate"],
         "migrating",
         "Running database migrations",
       );
-      reloadApps();
+      await reloadApps();
     }
 
     setStatus({
@@ -168,6 +173,20 @@ async function download(
 
   const controller = new AbortController();
   activeController = controller;
+  // Distinguishes a stall-driven abort (→ failed) from a user cancel (→
+  // cancelled). Both abort the same controller, so the flag is the only signal.
+  let stalled = false;
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
+  const armStall = () => {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => {
+      stalled = true;
+      log(`[downloading] no data for ${STALL_TIMEOUT_MS / 1000}s — aborting`);
+      controller.abort();
+    }, STALL_TIMEOUT_MS);
+  };
+
+  armStall();
   try {
     const res = await fetch(url, {
       redirect: "follow",
@@ -202,21 +221,40 @@ async function download(
         transform(chunk, _encoding, callback) {
           downloadedBytes += chunk.length;
           report(false);
+          armStall();
           callback(null, chunk);
         },
       }),
       createWriteStream(dest),
     );
     report(true);
+  } catch (err) {
+    if (stalled) {
+      throw new Error(
+        `Download stalled — no data received for ${STALL_TIMEOUT_MS / 1000}s.`,
+      );
+    }
+    throw err;
   } finally {
+    if (stallTimer) clearTimeout(stallTimer);
     activeController = null;
   }
 }
 
-function verifyTarball(file: string): void {
-  patch({ step: "verifying", message: "Verifying tarball", progress: null });
-  const result = spawnSync("tar", ["-tzf", file], { encoding: "utf8" });
-  if (result.status !== 0) {
+async function verifyTarball(file: string): Promise<void> {
+  // Intentionally NOT resetting progress to null here: the download just
+  // reached 100%, and the async spawn below keeps the event loop responsive so
+  // the status bridge can actually observe that 100% state before the next step
+  // (extracting) clears it. Clobbering it synchronously (the old behavior) made
+  // the 100% state last microseconds — unobservable by the 500ms poll.
+  patch({ step: "verifying", message: "Verifying tarball" });
+  let result: SpawnResult;
+  try {
+    result = await spawnAsync("tar", ["-tzf", file], { cwd: DEPLOY_ROOT });
+  } catch (err) {
+    throw new Error(`Verifying tarball failed: ${(err as Error).message}`);
+  }
+  if (result.code !== 0) {
     throw new Error(`Tarball is not valid gzip: ${result.stderr}`);
   }
   // Guard against a release that's missing the updater itself, which would
@@ -228,22 +266,25 @@ function verifyTarball(file: string): void {
   }
 }
 
-function run(cmd: string, args: string[], step: string, label: string): void {
+async function run(
+  cmd: string,
+  args: string[],
+  step: string,
+  label: string,
+): Promise<void> {
   log(`[${step}] $ ${cmd} ${args.join(" ")}`);
   patch({ step, message: label, progress: null });
-  const result = spawnSync(cmd, args, {
-    cwd: DEPLOY_ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  let result: SpawnResult;
+  try {
+    result = await spawnAsync(cmd, args, { cwd: DEPLOY_ROOT });
+  } catch (err) {
+    throw new Error(`${label} failed: ${(err as Error).message}`);
+  }
   if (result.stdout) log(result.stdout.trim());
   if (result.stderr) log(result.stderr.trim());
-  if (result.error) {
-    throw new Error(`${label} failed: ${result.error.message}`);
-  }
-  if (result.status !== 0) {
+  if (result.code !== 0) {
     throw new Error(
-      `${label} failed (${cmd} exit ${result.status}): ${result.stderr || result.stdout}`,
+      `${label} failed (${cmd} exit ${result.code}): ${result.stderr || result.stdout}`,
     );
   }
 }

@@ -1,82 +1,162 @@
-import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { DEPLOY_ROOT } from "./config";
 import { log } from "./log";
+import { type SpawnResult, spawnAsync } from "./spawn";
+import { patch } from "./state";
 
 // The three application processes. The updater runs in its OWN ecosystem file
 // (updater.config.js), so these names never include itself — every helper here
 // is structurally incapable of restarting the daemon mid-update.
 const APPS = ["gateway", "admin", "organization"];
+const ECOSYSTEM_FILE = join(DEPLOY_ROOT, "ecosystem.config.js");
 
 interface RunOpts {
   timeoutMs?: number;
 }
 
-function runPm2(
+// Run a pm2 invocation, retrying via npx if the global pm2 binary is missing or
+// exits non-zero (skip the retry on timeout — re-running against the same hung
+// daemon just burns the window again). Each step also publishes its status so
+// the UI shows stopping/starting/reloading/saving instead of jumping straight
+// to the next visible step.
+async function invoke(
+  cmd: string,
+  args: string[],
+  opts?: RunOpts,
+): Promise<SpawnResult> {
+  try {
+    return await spawnAsync(cmd, args, {
+      cwd: DEPLOY_ROOT,
+      timeoutMs: opts?.timeoutMs,
+    });
+  } catch (err) {
+    // Spawn-level failure (e.g. ENOENT — no global pm2). Surface as a non-zero
+    // result so the npx retry path handles it uniformly.
+    return {
+      code: -1,
+      signal: null,
+      stdout: "",
+      stderr: (err as Error).message,
+      timedOut: false,
+    };
+  }
+}
+
+async function runPm2(
   args: string[],
   step: string,
   label: string,
   opts?: RunOpts,
-): void {
-  log(`[${step}] $ pm2 ${args.join(" ")}`);
-  const result = spawnSync("pm2", args, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: opts?.timeoutMs,
-    killSignal: "SIGKILL",
-  });
-  if (result.stdout) log(result.stdout.trim());
-  if (result.stderr) log(result.stderr.trim());
-  if (result.error) throw new Error(`${label} failed: ${result.error.message}`);
-  if (opts?.timeoutMs && result.signal === "SIGKILL") {
-    throw new Error(`${label} timed out after ${opts.timeoutMs}ms`);
-  }
-  if (result.status === 0) return;
+): Promise<void> {
+  log(`[${step}] $ pm2 ${args.join(" ")} (cwd: ${DEPLOY_ROOT})`);
+  patch({ step, message: label, progress: null });
 
-  // Retry via npx for hosts without a global pm2 install. Skip on timeout:
-  // re-running against the same hung daemon just burns the window again.
-  log(`[${step}] global pm2 failed (exit ${result.status}), retrying via npx`);
-  const retry = spawnSync("npx", ["--yes", "pm2", ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: opts?.timeoutMs,
-    killSignal: "SIGKILL",
-  });
+  const first = await invoke("pm2", args, opts);
+  if (first.stdout) log(first.stdout.trim());
+  if (first.stderr) log(first.stderr.trim());
+  if (first.timedOut)
+    throw new Error(`${label} timed out after ${opts?.timeoutMs}ms`);
+  if (first.code === 0) return;
+
+  log(`[${step}] global pm2 failed (exit ${first.code}), retrying via npx`);
+  const retry = await invoke("npx", ["--yes", "pm2", ...args], opts);
   if (retry.stdout) log(retry.stdout.trim());
   if (retry.stderr) log(retry.stderr.trim());
-  if (retry.error) throw new Error(`${label} failed: ${retry.error.message}`);
-  if (opts?.timeoutMs && retry.signal === "SIGKILL") {
-    throw new Error(`${label} timed out after ${opts.timeoutMs}ms`);
-  }
-  if (retry.status !== 0) {
+  if (retry.timedOut)
+    throw new Error(`${label} timed out after ${opts?.timeoutMs}ms`);
+  if (retry.code !== 0) {
     throw new Error(
-      `${label} failed (pm2 exit ${result.status} / npx exit ${retry.status}): ${retry.stderr || retry.stdout}`,
+      `${label} failed (pm2 exit ${first.code} / npx exit ${retry.code}): ${retry.stderr || retry.stdout}`,
     );
   }
 }
 
 // Normal update: zero-downtime rolling reload of the three apps. By-name reload
 // is scoped to exactly these processes regardless of ecosystem files.
-export function reloadApps(): void {
-  runPm2(["reload", ...APPS], "reloading", "Reloading PM2 apps", {
+export async function reloadApps(): Promise<void> {
+  await runPm2(["reload", ...APPS], "reloading", "Reloading PM2 apps", {
     timeoutMs: 30000,
   });
 }
 
 // Redeploy: stop and remove the three apps (keeps the PM2 god + this daemon
 // alive). Replaces the old `pm2 kill` + `pkill -9 -f pm2` dance.
-export function deleteApps(): void {
-  runPm2(["delete", ...APPS], "stopping", "Stopping PM2 apps", {
+export async function deleteApps(): Promise<void> {
+  await runPm2(["delete", ...APPS], "stopping", "Stopping PM2 apps", {
     timeoutMs: 20000,
   });
 }
 
 // Redeploy: re-launch the three apps from the app ecosystem file. The updater
 // lives in a separate file, so it is unaffected.
-export function startApps(): void {
-  runPm2(["start", "ecosystem.config.js"], "starting", "Starting PM2 apps", {
+export async function startApps(): Promise<void> {
+  // Log the exact script paths PM2 is about to load, with an existence check,
+  // so a missing-artifact failure is obvious in updater.log instead of a silent
+  // "App [updater] launched" surprise.
+  for (const name of APPS) {
+    const script = join(DEPLOY_ROOT, name, "apps", name, "server.js");
+    log(
+      `[starting] expect ${name} → ${script} (exists: ${existsSync(script)})`,
+    );
+  }
+  await runPm2(["start", ECOSYSTEM_FILE], "starting", "Starting PM2 apps", {
     timeoutMs: 60000,
   });
+  await verifyAppsOnline();
 }
 
-export function saveProcessList(): void {
-  runPm2(["save"], "saving", "Saving PM2 process list");
+export async function saveProcessList(): Promise<void> {
+  await runPm2(["save"], "saving", "Saving PM2 process list");
+}
+
+// Confirm the three apps actually came online after `pm2 start`. If they didn't
+// (bad script path, crash on boot, PM2 quirk), surface it loudly with the real
+// process table so the failure is debuggable instead of looking like "success".
+async function verifyAppsOnline(): Promise<void> {
+  const procs = await listProcesses();
+  const byName = new Map(procs.map((p) => [p.name, p.status]));
+  const missing = APPS.filter((n) => !byName.has(n));
+  const notOnline = APPS.filter(
+    (n) => byName.has(n) && byName.get(n) !== "online",
+  );
+  if (missing.length > 0 || notOnline.length > 0) {
+    const table =
+      procs.map((p) => `${p.name}=${p.status}`).join(", ") || "(none)";
+    const parts: string[] = [];
+    if (missing.length > 0) parts.push(`missing: ${missing.join(", ")}`);
+    if (notOnline.length > 0)
+      parts.push(
+        `not online: ${notOnline.map((n) => `${n}=${byName.get(n)}`).join(", ")}`,
+      );
+    log(`[starting] WARNING — ${parts.join("; ")}. PM2 now has: ${table}.`);
+    return;
+  }
+  log(`[starting] apps online: ${APPS.map((n) => `${n}=online`).join(", ")}`);
+}
+
+interface Pm2Proc {
+  name?: string;
+  pm2_env?: { status?: string };
+}
+
+async function listProcesses(): Promise<
+  Array<{ name: string; status: string }>
+> {
+  let result: SpawnResult;
+  try {
+    result = await spawnAsync("pm2", ["jlist"], { cwd: DEPLOY_ROOT });
+  } catch {
+    return [];
+  }
+  if (result.code !== 0 || !result.stdout) return [];
+  try {
+    const list = JSON.parse(result.stdout) as Pm2Proc[];
+    return list.map((p) => ({
+      name: p.name ?? "?",
+      status: p.pm2_env?.status ?? "unknown",
+    }));
+  } catch {
+    return [];
+  }
 }
