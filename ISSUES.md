@@ -300,16 +300,6 @@
       (`shared/lib/http-error.ts:10-22`); a single site including internal
       context (Prisma meta, internal IDs, partial records) leaks it to the
       client. Allow-list public fields instead of spreading.
-- [ ] **Updater tarball extraction has no path-traversal (tar-slip)
-      mitigation** — `verifyTarball` only checks three marker filenames in
-      `tar -tzf`; it does not reject absolute paths, `..` components, or
-      escaping symlinks (`packages/updater/src/pipeline.ts:244-267,83-88`). A
-      tarball with the markers *plus* traversal entries
-      (`../../../.ssh/authorized_keys`, or overwriting
-      `ecosystem.config.js`/`updater.mjs`) passes and is extracted verbatim,
-      ending in automatic restart = code execution as the deploy user.
-      Validate every entry's path before extraction; add
-      `--no-same-owner --no-overwrite-dir`.
 
 ## Low Priority
 
@@ -326,6 +316,30 @@
       live at the DEPLOY_ROOT root). Brief gap for static-asset requests
       during extraction is acceptable: apps serve from memory and
       `pm2 restart` follows shortly after.
+- [ ] **Directory metadata frozen on redeploy (`--no-overwrite-dir`)** — the
+      new `--no-overwrite-dir` flag (`packages/updater/src/pipeline.ts:21`)
+      deliberately stops an attacker tarball dictating dir owner/perms/mtime,
+      but it also blocks a legitimate release from changing an existing
+      directory's metadata. In `redeploy` mode `deleteApps()` (`pipeline.ts:76`)
+      only removes pm2 apps, not files, so the prior release's dir metadata
+      persists and the new tarball's is silently ignored — a release that
+      intentionally changes directory permissions won't take effect on redeploy.
+      Confirm acceptable, or explicitly chmod directories post-extract.
+- [ ] **Extraction implicitly requires GNU tar** — `--no-same-owner` and
+      `--no-overwrite-dir` (`packages/updater/src/pipeline.ts:21`) are GNU-tar
+      long options; BusyBox tar (Alpine) rejects them as unrecognized and would
+      abort extraction mid-deploy. The repo doesn't pin the deploy host OS;
+      Debian/Ubuntu + pm2 almost certainly ships GNU tar, but a failed deploy
+      here is high-impact. Add a guard/version check or a comment noting the
+      GNU-tar assumption.
+- [ ] **Hard-link entries bypass the traversal check** — the symlink filter
+      keys on `line[0] === "l"` + ` -> `
+      (`packages/updater/src/pipeline.ts:311-314`), but hard-link entries
+      render in `tar -tvf` as regular-file lines (`-`) using ` link to `, so
+      their targets are never run through `isEscapingTarPath`. GNU tar
+      sanitizes hard-link targets the same way it does symlinks, so likely a
+      non-issue in practice, but it's an inconsistency in the otherwise
+      self-contained pre-validation.
 
 ### Auth & Session
 
@@ -722,4 +736,17 @@
       — resolved on both fronts: `@@index([expiresAt])` is now present
       (`prisma/schema.prisma:80`) and the `verification-sweep` job handler
       deletes expired rows (`states/job-executor/handlers/verification-sweep.handler.ts`).
+
+### Infra / Boot
+
+- [x] **Updater tarball extraction has no path-traversal (tar-slip)
+      mitigation** — resolved on all fronts: `isEscapingTarPath`
+      (`packages/updater/src/pipeline.ts:27`) rejects absolute paths,
+      backslash-variants, and any `..` segment; `verifyTarball` now lists
+      every entry (`tar -tzf`) and rejects any escaping name before extraction,
+      and also inspects `tar -tvf` for symlink (`l`) entries and rejects
+      escaping link targets. Both extraction call sites (redeploy and update
+      branches) now pass `--no-same-owner --no-overwrite-dir`
+      (`pipeline.ts:21`) so attacker-controlled entries can't dictate
+      ownership or directory metadata.
 
