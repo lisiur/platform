@@ -95,7 +95,7 @@ export async function startApps(): Promise<void> {
   // so a missing-artifact failure is obvious in updater.log instead of a silent
   // "App [updater] launched" surprise.
   for (const name of APPS) {
-    const script = join(DEPLOY_ROOT, name, "apps", name, "server.js");
+    const script = join(DEPLOY_ROOT, "apps", name, "apps", name, "server.js");
     log(
       `[starting] expect ${name} → ${script} (exists: ${existsSync(script)})`,
     );

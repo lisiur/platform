@@ -23,17 +23,17 @@ for app in $APPS; do
   fi
 
   echo "==> Assembling $app"
-  mkdir -p "$OUT/$app"
-  cp -a "$standalone/." "$OUT/$app/"
+  mkdir -p "$OUT/apps/$app"
+  cp -a "$standalone/." "$OUT/apps/$app/"
 
   # Standalone omits static assets and public/ — copy them back in.
   rel="apps/$app"
   if [ -d "$app_dir/.next/static" ]; then
-    mkdir -p "$OUT/$app/$rel/.next"
-    cp -a "$app_dir/.next/static" "$OUT/$app/$rel/.next/static"
+    mkdir -p "$OUT/apps/$app/$rel/.next"
+    cp -a "$app_dir/.next/static" "$OUT/apps/$app/$rel/.next/static"
   fi
   if [ -d "$app_dir/public" ]; then
-    cp -a "$app_dir/public" "$OUT/$app/$rel/public"
+    cp -a "$app_dir/public" "$OUT/apps/$app/$rel/public"
   fi
 done
 
@@ -96,8 +96,8 @@ cat >"$OUT/package.json" <<EOF
 }
 EOF
 
-echo "==> Artifact tree (depth 3):"
-find "$OUT" -maxdepth 3 -type d | sort | head -80
+echo "==> Artifact tree (depth 4):"
+find "$OUT" -maxdepth 4 -type d | sort | head -80
 
 # Pack the staged dir into a deployable tarball named by OS + arch. The release
 # tag carries the version (in CI) — it is not encoded in the filename, so every

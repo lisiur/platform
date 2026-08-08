@@ -4,9 +4,9 @@
 // the server), this runs the prebuilt standalone server bundles produced by
 // the "build" GitHub Actions workflow (.github/workflows/build.yml).
 // Server layout (from the tarball):
-//   ./gateway/apps/gateway/server.js
-//   ./admin/apps/admin/server.js
-//   ./organization/apps/organization/server.js
+//   ./apps/gateway/apps/gateway/server.js
+//   ./apps/admin/apps/admin/server.js
+//   ./apps/organization/apps/organization/server.js
 //
 //   pm2 start ecosystem.config.js
 //   pm2 reload ecosystem.config.js   # zero-downtime after redeploy
@@ -75,15 +75,15 @@ const UPDATER_SOCKET = path.join(__dirname, "updater.sock");
 module.exports = {
   apps: apps.map(({ name, port }) => ({
     name,
-    cwd: path.join(__dirname, name),
+    cwd: path.join(__dirname, "apps", name),
     // Absolute path on purpose: PM2 resolves a relative `script` against the
     // ecosystem file's directory (the deploy root), NOT against `cwd`, so a
     // relative `apps/<name>/server.js` would resolve to
     // `<root>/apps/<name>/server.js` (missing) instead of the real
-    // `<root>/<name>/apps/<name>/server.js`. updater.config.js dodges this only
-    // because its cwd and script share a base; pinning the full path here is
-    // unambiguous and makes `pm2 start ecosystem.config.js` reliable.
-    script: path.join(__dirname, name, "apps", name, "server.js"),
+    // `<root>/apps/<name>/apps/<name>/server.js`. updater.config.js dodges this
+    // only because its cwd and script share a base; pinning the full path here
+    // is unambiguous and makes `pm2 start ecosystem.config.js` reliable.
+    script: path.join(__dirname, "apps", name, "apps", name, "server.js"),
     exec_mode: "fork",
     instances: 1,
     autorestart: true,
