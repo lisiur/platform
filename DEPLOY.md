@@ -55,6 +55,26 @@ no manual `db:seed`.
 
 Then point nginx at it (see below) and reload.
 
+## Verify after every (re)start
+
+The service **refuses to start unless `NODE_ENV` is `production`, `development`,
+or `test`** (`packages/service/src/app.ts`). This guards against the dev CORS
+branch — which reflects any origin with credentials — being silently selected by
+a missing `NODE_ENV`. Both ecosystem configs pin `NODE_ENV: "production"`, so it
+only bites if an app is launched outside them (bare `node server.js`, or a
+future Docker/systemd setup that omits it).
+
+The trade-off: a missing `NODE_ENV` now **crash-loops** under PM2 autorestart
+instead of starting insecurely and silently. So after every
+`pm2 start` / `pm2 reload`, confirm the apps actually came up:
+
+```bash
+pm2 status                  # gateway + admin + organization must be 'online'
+# If any app shows 'errored' or restart-loops, inspect logs for:
+#   "Refusing to start: NODE_ENV must be one of …"
+pm2 logs gateway --lines 50
+```
+
 ## Update an existing deploy
 
 ```bash

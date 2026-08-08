@@ -29,6 +29,22 @@ import { resumeUpdateStatusStream } from "#modules/system/updater-client";
 import { seed } from "../prisma/seed";
 import { routes } from "./modules";
 
+// Hard contract: NODE_ENV must be set explicitly. The CORS policy and many
+// libraries (incl. Next.js, which hosts this service) branch on it; a missing
+// value silently degrades security (the dev branch reflects any origin with
+// credentials). Fail loud at boot instead of guessing.
+const nodeEnv = process.env.NODE_ENV;
+if (
+  nodeEnv !== "production" &&
+  nodeEnv !== "development" &&
+  nodeEnv !== "test"
+) {
+  console.error(
+    `Refusing to start: NODE_ENV must be one of "production" | "development" | "test" (got ${JSON.stringify(nodeEnv)}). Set it explicitly before booting the service.`,
+  );
+  process.exit(1);
+}
+
 // Skip DB-dependent startup during `next build`: the gateway's API route
 // value-imports this module, so its evaluation during static generation would
 // otherwise fire prisma queries with no DB connection. Runs at runtime

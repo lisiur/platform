@@ -49,4 +49,5 @@
 - Tests: `pnpm exec vitest --run`; focus one file with `pnpm exec vitest --run src/modules/application/routes/application/__tests__/application.test.ts`.
 
 ## Environment
-- `CORS_ALLOWED_ORIGINS` — comma-separated list of allowed cross-origin requesters, e.g. `http://localhost:3001,https://admin.example.com`. When set, only these origins are reflected by CORS. When unset in production, CORS fails closed (no cross-origin allowed). When unset in development, any origin is allowed.
+- `NODE_ENV` — must be one of `production` | `development` | `test`. Asserted at boot in `src/app.ts`; the service refuses to start if unset/unknown, because the CORS policy and key libraries (incl. Next.js, which hosts this service) branch on it.
+- `CORS_ALLOWED_ORIGINS` — comma-separated list of allowed cross-origin requesters, e.g. `http://localhost:3001,https://admin.example.com`. When set, only these origins are reflected by CORS. When unset in production, CORS fails closed (no cross-origin allowed); when unset in development, any origin is allowed.
