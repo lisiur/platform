@@ -13,6 +13,7 @@ interface JobSchedulerDeps {
 
 export class JobScheduler {
   private timer: NodeJS.Timeout | null = null;
+  private started = false;
 
   constructor(private readonly deps: JobSchedulerDeps) {
     this.deps.context.on("job:created", (job) => this.onJobCreated(job));
@@ -22,33 +23,47 @@ export class JobScheduler {
   }
 
   async start(): Promise<void> {
-    await this.loadExpiredJobs();
+    if (this.started) return;
+    this.started = true;
+    try {
+      // Reset PROCESSING rows orphaned by a previous process death. Safe only
+      // under the single-process constraint (documented in ARCHITECTURE.md §8):
+      // a second replica or rolling deploy would reset the first's in-flight
+      // jobs, causing concurrent re-execution.
+      await this.deps.repository.recoverStuckProcessing();
+    } catch (err) {
+      this.started = false;
+      throw err;
+    }
+    try {
+      await this.loadExpiredJobs();
+    } catch (err) {
+      // Recovery succeeded but initial load failed. Don't reset `started`:
+      // onJobCreated still works, and the template scheduler's dispatch will
+      // eventually arm a timer. If all pending rows are already due and no
+      // future-scheduled job exists, they sit until the next job:created
+      // event — a best-effort boot edge case, not a regression (the old code
+      // had the same gap when loadExpiredJobs threw).
+      console.error("[job-scheduler] initial loadExpiredJobs failed:", err);
+    }
   }
 
   async loadExpiredJobs(): Promise<void> {
-    let nextTimer: Date | null = null;
+    const now = new Date();
+    const BATCH = 1000;
 
     while (true) {
-      const jobs = await this.deps.repository.findPendingJobs({ limit: 1000 });
+      const claimed = await this.deps.repository.claimDueJobs(now, BATCH);
+      if (claimed.length === 0) break;
 
-      if (jobs.length === 0) break;
-
-      for (const job of jobs) {
-        if (job.scheduledAt <= new Date()) {
-          this.deps.queue.add(job);
-        } else if (!nextTimer) {
-          nextTimer = job.scheduledAt;
-        }
+      for (const job of claimed) {
+        this.deps.queue.add(job);
       }
 
-      if (jobs.length < 1000) break;
+      if (claimed.length < BATCH) break;
     }
 
-    if (nextTimer) {
-      this.setTimer(nextTimer);
-    } else {
-      await this.scheduleNext();
-    }
+    await this.scheduleNext();
   }
 
   async scheduleNext(): Promise<void> {
@@ -79,8 +94,12 @@ export class JobScheduler {
   }
 
   private async onJobCreated(job: JobInstance): Promise<void> {
-    if (job.scheduledAt <= new Date()) {
-      this.deps.queue.add(job);
+    const now = new Date();
+    if (job.scheduledAt <= now) {
+      const claimed = await this.deps.repository.claimJobById(job.id, now);
+      if (claimed) {
+        this.deps.queue.add(claimed);
+      }
     }
     await this.rescheduleIfNeeded(job);
   }
@@ -94,17 +113,6 @@ export class JobScheduler {
       if (this.timer) {
         clearTimeout(this.timer);
       }
-      this.timer = setTimeout(() => this.onTimerFire(), delay);
-    }
-  }
-
-  private setTimer(targetDate: Date): void {
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
-
-    const delay = targetDate.getTime() - Date.now();
-    if (delay > 0) {
       this.timer = setTimeout(() => this.onTimerFire(), delay);
     }
   }

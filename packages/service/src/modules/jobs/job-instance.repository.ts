@@ -34,12 +34,71 @@ export class JobInstanceRepository {
     return prisma.jobInstance.findUnique({ where: { id } });
   }
 
-  async findPendingJobs(opts: { limit: number }): Promise<JobInstance[]> {
-    return prisma.jobInstance.findMany({
-      where: { status: JobStatus.PENDING },
-      orderBy: { scheduledAt: "asc" },
-      take: opts.limit,
+  /**
+   * Atomically claim due PENDING instances and flip them to PROCESSING,
+   * returning the claimed rows for enqueue. Uses `SELECT ... FOR UPDATE
+   * SKIP LOCKED` to lock rows at read time, so concurrent callers (within
+   * or across processes) each get a disjoint set — no double-claim under
+   * READ COMMITTED. Mirrors `claimDueTemplates` in job.repository.ts.
+   * `attempts` is left untouched; the worker owns the `attempts + 1` increment.
+   *
+   * Because the status flip happens before the in-memory queue drains, a
+   * process death (OOM, deploy, SIGKILL) between claim and worker pickup
+   * orphans the row. `recoverStuckProcessing` at next boot resets it.
+   */
+  async claimDueJobs(now: Date, limit: number): Promise<JobInstance[]> {
+    return prisma.$transaction(async (t) => {
+      const rows = await t.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "job_instance"
+        WHERE "status" = 'PENDING'
+          AND "scheduledAt" <= ${now}
+        ORDER BY "scheduledAt" ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      `;
+      if (rows.length === 0) return [];
+
+      const ids = rows.map((r) => r.id);
+
+      await t.jobInstance.updateMany({
+        where: { id: { in: ids }, status: JobStatus.PENDING },
+        data: { status: JobStatus.PROCESSING },
+      });
+
+      return t.jobInstance.findMany({ where: { id: { in: ids } } });
     });
+  }
+
+  /**
+   * Claim a single due instance by id. Used by `onJobCreated` to route a
+   * freshly-created job through the same atomic claim path as `claimDueJobs`,
+   * so concurrent `loadExpiredJobs` and `job:created` paths cannot double-enqueue.
+   * Returns `null` if the row was already claimed by another path.
+   */
+  async claimJobById(id: string, now: Date): Promise<JobInstance | null> {
+    const result = await prisma.jobInstance.updateMany({
+      where: { id, status: JobStatus.PENDING, scheduledAt: { lte: now } },
+      data: { status: JobStatus.PROCESSING },
+    });
+    if (result.count === 0) return null;
+    return prisma.jobInstance.findUnique({ where: { id } });
+  }
+
+  /**
+   * Reset every PROCESSING instance back to PENDING. Called once at boot,
+   * before `loadExpiredJobs`. Under the single-process deployment constraint,
+   * any row still PROCESSING at startup was orphaned by a previous process
+   * death — either claimed by `claimDueJobs` but not yet picked up by the
+   * worker, or actively executing when the process was killed. After reset,
+   * `loadExpiredJobs` re-claims and re-enqueues them. `startedAt` is cleared
+   * so the worker sets it fresh when it actually begins processing.
+   */
+  async recoverStuckProcessing(): Promise<number> {
+    const result = await prisma.jobInstance.updateMany({
+      where: { status: JobStatus.PROCESSING },
+      data: { status: JobStatus.PENDING, startedAt: null },
+    });
+    return result.count;
   }
 
   async findNextScheduledJob(): Promise<JobInstance | null> {

@@ -93,11 +93,16 @@ executor. Concurrency comes from `JOB_CONCURRENCY` (default `5`).
 
 ### JobScheduler — `lib/queues/job-scheduler.ts` (instance scheduler)
 Decides *when* a `JobInstance` enters the in-memory queue.
-- On `start()` it calls `loadExpiredJobs()`: pages through all `PENDING`
-  instances (1000 at a time), enqueues any whose `scheduledAt <= now`, and arms
-  a `setTimeout` for the next future-scheduled instance.
-- Listens to the `job:created` and `job:rescheduled` context events to enqueue
-  due instances immediately and to re-arm the timer.
+- On `start()` it resets orphaned `PROCESSING` rows to `PENDING`
+  (`recoverStuckProcessing`), then calls `loadExpiredJobs()`: atomically claims
+  due `PENDING` instances in batches of 1000 via `claimDueJobs`
+  (`SELECT … FOR UPDATE SKIP LOCKED`), enqueues each claimed instance, and
+  arms a `setTimeout` for the next future-scheduled instance.
+- Listens to the `job:created` event: atomically claims the instance via
+  `claimJobById` (conditional `updateMany` on `status = PENDING`) before
+  enqueueing, so concurrent `loadExpiredJobs` and `job:created` paths cannot
+  double-enqueue the same row.
+- Listens to the `job:rescheduled` event to re-arm the timer.
 - Long delays are capped at `MAX_TIMER_DURATION_MS` (24h) and re-evaluated on
   fire.
 
@@ -164,7 +169,8 @@ The facade that wires everything together. Public API:
 1. **Create** — a `JobInstance` row is inserted (`PENDING`, `attempts=0`). This
    happens either from a template (via `JobTemplateScheduler`) or ad-hoc.
 2. **Schedule** — `jobExecutor.enqueue(job)` emits `job:created`. The scheduler
-   enqueues it immediately if `scheduledAt <= now`, else arms a timer.
+   atomically claims the instance and enqueues it immediately if
+   `scheduledAt <= now`, else arms a timer.
 3. **Process** — `p-queue` calls `JobWorker.processJob` under concurrency.
 4. **Retry** — failures before `maxAttempts` flip back to `PENDING` with an
    exponential backoff and a `job:rescheduled` event; the scheduler re-arms.
@@ -322,23 +328,26 @@ All five recurring templates are seeded via `builtInJobTemplates` in
   `priority` (NORMAL).
 
 **Startup**: `jobExecutor.start()` is invoked at module load in `src/app.ts`.
-On boot it runs both `loadExpiredJobs()` (recovers `PENDING` instances left
-behind by a previous/crashed process) and `dispatchDue()` (dispatches due
-templates).
+On boot it runs `recoverStuckProcessing()` (resets `PROCESSING` instances
+orphaned by a previous/crashed process back to `PENDING`), then
+`loadExpiredJobs()` (atomically claims and enqueues due instances), and
+`dispatchDue()` (dispatches due templates).
 
 **Important limitations to keep in mind:**
 
-- **Single-process only.** The queue, both schedulers' timers, and lifecycle
-  events live in memory. There is **no row-level lock / "claim"** step when
-  moving an instance to `PROCESSING`, so running multiple API instances will
-  cause **duplicate execution**. This design assumes a single long-lived process
-  (e.g. one standalone Next.js server). Do not horizontally scale the API
-  without first adding a claim/lease mechanism (e.g.
-  `SELECT ... FOR UPDATE SKIP LOCKED` or an atomic `updateMany` conditional on
-  `status = 'PENDING'`). Template *dispatch* is already claim-protected
-  (`claimDueTemplates` uses `SKIP LOCKED`), so concurrent workers cannot create
-  duplicate instances from the same due template — but the duplicate-execution
-  risk remains at the instance-processing level.
+- **Single-process constraint narrowed to boot recovery.** Instance dispatch
+  is now claim-protected: `claimDueJobs` and `claimJobById` both flip
+  `PENDING → PROCESSING` atomically (via `SELECT … FOR UPDATE SKIP LOCKED`
+  and conditional `updateMany` respectively), so concurrent workers within a
+  single process cannot duplicate-execute the same instance. However,
+  `recoverStuckProcessing()` unconditionally resets *all* `PROCESSING` rows
+  to `PENDING` at boot — safe only when one process owns the queue. A second
+  replica or rolling deploy with overlap would reset the first's in-flight
+  jobs, causing concurrent re-execution. The in-memory `p-queue`, timers, and
+  lifecycle events also remain process-local. Do not horizontally scale
+  without first replacing the boot reset with a stale-claim sweep keyed on a
+  heartbeat/lease column (e.g. `claimAt`/`startedAt` + a periodic sweep that
+  re-queues rows whose claim is older than a TTL).
 
 - **Retention via sweep handlers.** The `job-instance-sweep` handler deletes
   terminal instances (`COMPLETED`/`FAILED`) older than 30 days on a daily

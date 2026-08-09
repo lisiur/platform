@@ -141,21 +141,6 @@
 
 ### Jobs / Queue
 
-- [ ] **`loadExpiredJobs` can infinite-loop and enqueue the same job multiple
-      times** — the `while (true)` loop calls `findPendingJobs({ limit: 1000 })`
-      which filters only `status: PENDING` with no `scheduledAt <= now` filter
-      and no pagination offset (`job-instance.repository.ts:37-43`;
-      `job-scheduler.ts:28-52`). With ≥1000 future-PENDING rows the same page
-      returns forever (event-loop peg, DB flood, startup hang); with due jobs,
-      the same row is re-added to the queue before the worker flips it to
-      PROCESSING → duplicate execution. Push the due-filter into the query,
-      keyset-paginate, and claim rows atomically before enqueue.
-- [ ] **Crashed/stuck `PROCESSING` jobs are never recovered** — `PROCESSING`
-      is only ever written (`job-worker.ts:20`); nothing transitions it back.
-      If the process dies mid-job the row is stuck `PROCESSING` forever and
-      silently dropped (`findPendingJobs` won't return it; the sweep handler
-      only deletes `COMPLETED`/`FAILED`). Add a `claimAt`/`startedAt` column
-      and a recovery sweep that re-queues stale `PROCESSING` rows.
 - [ ] **Job timeout doesn't cancel the handler and leaks the timer → double
       execution** — `Promise.race([handler, timeout])` neither aborts
       `handler(job)` nor `clearTimeout`s the winner
@@ -608,13 +593,14 @@
       **duplicate-execute**. Add `SELECT … FOR UPDATE SKIP LOCKED` or a
       conditional `updateMany` on `status = 'PENDING'` before processing.
       See `ARCHITECTURE.md` §8.
-      **Deferred:** the service runs in-process inside Next.js as a
-      single long-lived process by design (ARCHITECTURE.md §8), so no
-      duplicate execution occurs today. This only bites if the API is
-      horizontally scaled — PM2/Node cluster mode, rolling or blue-green
-      deploys with overlap, Docker `replicas > 1`, or Next.js standalone
-      with multiple workers — none of which are on the roadmap. Revisit
-      when multi-instance deployment is actually planned.
+      **Partially addressed:** instance-level dispatch is now claim-protected
+      (`claimDueJobs` uses `SELECT … FOR UPDATE SKIP LOCKED`, `claimJobById`
+      uses conditional `updateMany`), so concurrent workers cannot
+      duplicate-execute the same instance. The remaining blocker is
+      `recoverStuckProcessing()`, which unconditionally resets all
+      `PROCESSING` rows at boot — unsafe with overlapping processes. A
+      periodic stale-claim sweep (keyed on `startedAt` + TTL) is needed
+      before horizontal scaling. See ARCHITECTURE.md §8.
 
 ## Not Planned
 
@@ -682,6 +668,32 @@
       sessions. Same single-process constraint as Jobs/Cache/Rate-limit above.
 
 ## Resolved
+
+### Jobs / Queue
+
+- [x] **`loadExpiredJobs` can infinite-loop and enqueue the same job multiple
+      times** — resolved on all fronts. `loadExpiredJobs` now atomically claims
+      due instances in bounded batches via `claimDueJobs` (`SELECT … FOR UPDATE
+      SKIP LOCKED` inside a `$transaction`, `job-instance.repository.ts`) and
+      enqueues only claimed rows, so the loop terminates (claimed rows are no
+      longer `PENDING`) and no row is double-enqueued. `onJobCreated` routes
+      through `claimJobById` (conditional `updateMany` on `status = PENDING`)
+      instead of direct enqueue, closing the cross-path double-enqueue race.
+      The old non-mutating `findPendingJobs` and the dead `setTimer` helper
+      were removed. `start()` is guarded by a `started` flag (idempotent,
+      resets on failure) and resets orphaned `PROCESSING` rows to `PENDING` via
+      `recoverStuckProcessing` before loading. ARCHITECTURE.md §2/§3/§8 updated
+      to reflect the claim-based design.
+- [x] **Crashed/stuck `PROCESSING` jobs are never recovered** — resolved for
+      the single-process deployment: `recoverStuckProcessing()`
+      (`job-instance.repository.ts`) runs once at boot and resets every
+      `PROCESSING` row back to `PENDING` (clearing `startedAt`), after which
+      `loadExpiredJobs` re-claims and re-enqueues them. Under the single-process
+      constraint, any row still `PROCESSING` at startup was orphaned by a
+      previous process death — either claimed but not yet picked up, or actively
+      executing when the process was killed. A periodic stale-claim sweep
+      (keyed on `startedAt` + TTL) remains as future work for multi-instance
+      support (see [#26]).
 
 ### Access Control / Organization
 
