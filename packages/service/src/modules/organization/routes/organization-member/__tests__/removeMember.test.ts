@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("#lib/db", () => ({
   prisma: {
     member: { findFirst: vi.fn(), delete: vi.fn() },
-    roleAssignment: { count: vi.fn() },
+    roleAssignment: { count: vi.fn(), deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
@@ -18,6 +18,7 @@ const db = prisma as unknown as {
   };
   roleAssignment: {
     count: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
   };
   $transaction: ReturnType<typeof vi.fn>;
 };
@@ -30,6 +31,7 @@ describe("removeMember", () => {
       async (cb: (tx: typeof prisma) => Promise<unknown>) => cb(prisma),
     );
     db.member.delete.mockResolvedValue({ id: "member1" });
+    db.roleAssignment.deleteMany.mockResolvedValue({ count: 0 });
   });
 
   it("deletes a non-owner member inside a transaction", async () => {
@@ -47,6 +49,12 @@ describe("removeMember", () => {
     });
     expect(db.member.delete).toHaveBeenCalledWith({
       where: { id: "member1" },
+    });
+    expect(db.roleAssignment.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user1",
+        role: { code: { startsWith: "org:org1/" } },
+      },
     });
   });
 
