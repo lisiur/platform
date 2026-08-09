@@ -32,387 +32,22 @@ import {
   STUDYBUDDY_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
+import type { ConfigRegistryEntry } from "#lib/config-registry";
 import { nextRunFromNow } from "#lib/cron";
 import { provisionOrgRoles } from "#lib/org-role";
 import { hashPassword } from "#lib/password";
+import { APPLICATION_CONFIG_REGISTRY } from "#modules/application/application-config.registry";
+import { SYSTEM_CONFIG_REGISTRY } from "#modules/system/system-config.registry";
 import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 // ============================================================
 // 1. REFERENCE DATA DEFINITIONS
 // ============================================================
 
-// --- System Configs ---
-const systemConfigs = [
-  {
-    group: "auth",
-    key: "registration.enabled",
-    value: "true",
-    type: "boolean",
-    label: "settings.fields.enableRegistration",
-    description: "settings.fieldsDesc.enableRegistration",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "auth",
-    key: "session.maxAge",
-    // Value is in SECONDS (604800 = 7 days). Honors AUTH_SESSION_MAX_AGE env.
-    value: "604800",
-    type: "number",
-    label: "settings.fields.sessionMaxAge",
-    description: "settings.fieldsDesc.sessionMaxAge",
-    isSecret: false,
-    sortOrder: 1,
-  },
-  {
-    group: "wechat",
-    key: "appid",
-    value: "",
-    type: "string",
-    label: "settings.fields.wechatAppid",
-    description: "settings.fieldsDesc.wechatAppid",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "wechat",
-    key: "secret",
-    value: "",
-    type: "string",
-    label: "settings.fields.wechatSecret",
-    description: "settings.fieldsDesc.wechatSecret",
-    isSecret: true,
-    mask: "start{4}.{*}",
-    sortOrder: 1,
-  },
-  {
-    group: "webauthn",
-    key: "enabled",
-    value: "",
-    type: "boolean",
-    label: "settings.fields.webauthnEnabled",
-    description: "settings.fieldsDesc.webauthnEnabled",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "webauthn",
-    key: "rp.name",
-    value: "",
-    type: "string",
-    label: "settings.fields.webauthnRpName",
-    description: "settings.fieldsDesc.webauthnRpName",
-    isSecret: false,
-    sortOrder: 1,
-  },
-  {
-    group: "webauthn",
-    key: "rp.id",
-    value: "",
-    type: "string",
-    label: "settings.fields.webauthnRpId",
-    description: "settings.fieldsDesc.webauthnRpId",
-    isSecret: false,
-    sortOrder: 2,
-  },
-  {
-    group: "webauthn",
-    key: "origin",
-    value: "",
-    type: "string",
-    label: "settings.fields.webauthnOrigin",
-    description: "settings.fieldsDesc.webauthnOrigin",
-    isSecret: false,
-    sortOrder: 3,
-  },
-  {
-    group: "upload",
-    key: "hotlink",
-    value: JSON.stringify({
-      enabled: false,
-      allowedDomains: [],
-      allowEmptyReferer: true,
-    }),
-    type: "json",
-    schema: {
-      $schema: "https://json-schema.org/draft/2020-12/schema",
-      type: "object",
-      additionalProperties: false,
-      required: ["enabled", "allowedDomains", "allowEmptyReferer"],
-      properties: {
-        enabled: {
-          type: "boolean",
-          title: "settings.fields.uploadHotlinkEnabled",
-          default: false,
-        },
-        allowedDomains: {
-          type: "array",
-          title: "settings.fields.uploadHotlinkAllowedDomains",
-          description: "settings.fieldsDesc.uploadHotlinkAllowedDomains",
-          items: { type: "string" },
-          default: [],
-        },
-        allowEmptyReferer: {
-          type: "boolean",
-          title: "settings.fields.uploadHotlinkAllowEmptyReferer",
-          description: "settings.fieldsDesc.uploadHotlinkAllowEmptyReferer",
-          default: true,
-        },
-      },
-    },
-    label: "settings.fields.uploadHotlink",
-    description: "settings.fieldsDesc.uploadHotlink",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "rate-limit",
-    key: "enabled",
-    value: "true",
-    type: "boolean",
-    label: "settings.fields.rateLimitEnabled",
-    description: "settings.fieldsDesc.rateLimitEnabled",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "rate-limit",
-    key: "global.max",
-    value: "300",
-    type: "number",
-    label: "settings.fields.rateLimitGlobalMax",
-    description: "settings.fieldsDesc.rateLimitGlobalMax",
-    isSecret: false,
-    sortOrder: 1,
-  },
-  {
-    group: "rate-limit",
-    key: "global.windowMs",
-    value: "60000",
-    type: "number",
-    label: "settings.fields.rateLimitGlobalWindowMs",
-    description: "settings.fieldsDesc.rateLimitGlobalWindowMs",
-    isSecret: false,
-    sortOrder: 2,
-  },
-  {
-    group: "rate-limit",
-    key: "auth.max",
-    value: "10",
-    type: "number",
-    label: "settings.fields.rateLimitAuthMax",
-    description: "settings.fieldsDesc.rateLimitAuthMax",
-    isSecret: false,
-    sortOrder: 3,
-  },
-  {
-    group: "rate-limit",
-    key: "auth.windowMs",
-    value: "60000",
-    type: "number",
-    label: "settings.fields.rateLimitAuthWindowMs",
-    description: "settings.fieldsDesc.rateLimitAuthWindowMs",
-    isSecret: false,
-    sortOrder: 4,
-  },
-  {
-    group: "rate-limit",
-    key: "trustProxy",
-    value: "uniqueLocal,loopback,linkLocal",
-    type: "string",
-    label: "settings.fields.rateLimitTrustProxy",
-    description: "settings.fieldsDesc.rateLimitTrustProxy",
-    isSecret: false,
-    sortOrder: 5,
-  },
-  {
-    group: "self-update",
-    key: "enabled",
-    value: "",
-    type: "boolean",
-    label: "settings.fields.selfUpdateEnabled",
-    description: "settings.fieldsDesc.selfUpdateEnabled",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "self-update",
-    key: "source",
-    value: "",
-    type: "select",
-    label: "settings.fields.selfUpdateSource",
-    description: "settings.fieldsDesc.selfUpdateSource",
-    schema: {
-      options: [
-        { value: "github", label: "settings.selfUpdateSourceOptions.github" },
-        {
-          value: "manifest",
-          label: "settings.selfUpdateSourceOptions.manifest",
-        },
-      ],
-    },
-    isSecret: false,
-    sortOrder: 1,
-  },
-  {
-    group: "self-update",
-    key: "githubRepo",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateGithubRepo",
-    description: "settings.fieldsDesc.selfUpdateGithubRepo",
-    isSecret: false,
-    schema: { dependsOn: { field: "source", value: "github" } },
-    sortOrder: 2,
-  },
-  {
-    group: "self-update",
-    key: "githubToken",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateGithubToken",
-    description: "settings.fieldsDesc.selfUpdateGithubToken",
-    isSecret: true,
-    mask: "start{4}.{*}",
-    schema: { dependsOn: { field: "source", value: "github" } },
-    sortOrder: 3,
-  },
-  {
-    group: "self-update",
-    key: "githubProxy",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateGithubProxy",
-    description: "settings.fieldsDesc.selfUpdateGithubProxy",
-    isSecret: false,
-    schema: { dependsOn: { field: "source", value: "github" } },
-    sortOrder: 4,
-  },
-  {
-    group: "self-update",
-    key: "manifestUrl",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateManifestUrl",
-    description: "settings.fieldsDesc.selfUpdateManifestUrl",
-    isSecret: false,
-    schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 5,
-  },
-  {
-    group: "self-update",
-    key: "releaseUrlTemplate",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateReleaseUrlTemplate",
-    description: "settings.fieldsDesc.selfUpdateReleaseUrlTemplate",
-    isSecret: false,
-    schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 6,
-  },
-  {
-    group: "self-update",
-    key: "authToken",
-    value: "",
-    type: "string",
-    label: "settings.fields.selfUpdateAuthToken",
-    description: "settings.fieldsDesc.selfUpdateAuthToken",
-    isSecret: true,
-    mask: "start{4}.{*}",
-    schema: { dependsOn: { field: "source", value: "manifest" } },
-    sortOrder: 7,
-  },
-];
-
-/**
- * AI Agent config field definitions. Seeded per-application (each app gets its
- * own baseURL/apiKey/model/reasoning) under the application_config
- * table. Labels/descriptions reuse the shared `settings.*` i18n keys.
- */
-const aiAgentConfigFields = [
-  {
-    group: "ai-agent",
-    key: "baseURL",
-    value: "",
-    type: "string",
-    label: "settings.fields.aiAgentBaseURL",
-    description: "settings.fieldsDesc.aiAgentBaseURL",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "ai-agent",
-    key: "apiKey",
-    value: "",
-    type: "string",
-    label: "settings.fields.aiAgentApiKey",
-    description: "settings.fieldsDesc.aiAgentApiKey",
-    isSecret: true,
-    mask: "start{4}.{*}end{4}",
-    sortOrder: 1,
-  },
-  {
-    group: "ai-agent",
-    key: "model",
-    value: "",
-    type: "string",
-    label: "settings.fields.aiAgentModel",
-    description: "settings.fieldsDesc.aiAgentModel",
-    isSecret: false,
-    sortOrder: 2,
-  },
-  {
-    group: "ai-agent",
-    key: "reasoning",
-    value: "",
-    type: "select",
-    label: "settings.fields.aiAgentReasoning",
-    description: "settings.fieldsDesc.aiAgentReasoning",
-    schema: {
-      options: [
-        { value: "off", label: "settings.aiAgentReasoningOptions.off" },
-        { value: "minimal", label: "settings.aiAgentReasoningOptions.minimal" },
-        { value: "low", label: "settings.aiAgentReasoningOptions.low" },
-        { value: "medium", label: "settings.aiAgentReasoningOptions.medium" },
-        { value: "high", label: "settings.aiAgentReasoningOptions.high" },
-        { value: "xhigh", label: "settings.aiAgentReasoningOptions.xhigh" },
-      ],
-    },
-    isSecret: false,
-    sortOrder: 3,
-  },
-];
-
-/**
- * AI Agent *visual* config field definitions — which chat UI parts the user
- * sees. Independent from the functional `reasoning` level above. Seeded with
- * an empty value so the env fallback (`AI_AGENT_UI_SHOW_REASONING` /
- * `AI_AGENT_UI_SHOW_TOOL_CALLS`) takes precedence; when the env var is also
- * unset, the loader treats the empty value as "not shown" (a panel is shown
- * only when its value is explicitly `"true"`).
- */
-const aiAgentUiConfigFields = [
-  {
-    group: "ai-agent-ui",
-    key: "showReasoning",
-    value: "",
-    type: "boolean",
-    label: "settings.fields.aiAgentShowReasoning",
-    description: "settings.fieldsDesc.aiAgentShowReasoning",
-    isSecret: false,
-    sortOrder: 0,
-  },
-  {
-    group: "ai-agent-ui",
-    key: "showToolCalls",
-    value: "",
-    type: "boolean",
-    label: "settings.fields.aiAgentShowToolCalls",
-    description: "settings.fieldsDesc.aiAgentShowToolCalls",
-    isSecret: false,
-    sortOrder: 1,
-  },
-];
+// --- System & Application Configs ---
+// Config key definitions live in the registries (imported below), which are
+// the single source of truth shared with the API services — seed writes
+// `defaultValue`, the API validates against `valueSchema`.
 
 // --- System Permissions (appId: null) ---
 const systemPermissions = [
@@ -1391,6 +1026,27 @@ async function upsertRolePermissions(roleId: string, permissionIds: string[]) {
   }
 }
 
+/** Maps a registry entry to the row shape expected by `upsertSystemConfig`. */
+function registryEntryToSystemRow(e: ConfigRegistryEntry) {
+  return {
+    group: e.group,
+    key: e.key,
+    value: e.defaultValue,
+    type: e.type,
+    label: e.label,
+    description: e.description ?? "",
+    isSecret: e.isSecret,
+    sortOrder: e.sortOrder,
+    schema: e.schema,
+    mask: e.mask,
+  };
+}
+
+/** Maps a registry entry to the row shape expected by `upsertApplicationConfig`. */
+function registryEntryToAppRow(e: ConfigRegistryEntry) {
+  return registryEntryToSystemRow(e);
+}
+
 async function upsertSystemConfig(data: {
   group: string;
   key: string;
@@ -1400,7 +1056,7 @@ async function upsertSystemConfig(data: {
   description: string;
   isSecret: boolean;
   sortOrder: number;
-  schema?: object;
+  schema?: Prisma.InputJsonValue;
   mask?: string | null;
 }) {
   return prisma.systemConfig.upsert({
@@ -1430,7 +1086,7 @@ async function upsertApplicationConfig(
     description: string;
     isSecret: boolean;
     sortOrder: number;
-    schema?: object;
+    schema?: Prisma.InputJsonValue;
     mask?: string | null;
   },
 ) {
@@ -1625,12 +1281,12 @@ async function upsertRoleAssignment(params: {
 export async function seed(client: PrismaClient) {
   prisma = client;
 
-  // 1. System Configs
+  // 1. System Configs (driven by the registry — single source of truth)
   console.log("System configs:");
-  for (const config of systemConfigs) {
-    await upsertSystemConfig(config);
+  for (const entry of SYSTEM_CONFIG_REGISTRY) {
+    await upsertSystemConfig(registryEntryToSystemRow(entry));
   }
-  console.log(`  ${systemConfigs.length} configs ready.\n`);
+  console.log(`  ${SYSTEM_CONFIG_REGISTRY.length} configs ready.\n`);
 
   // 2. Notification Channels
   console.log("Notification channels:");
@@ -1669,28 +1325,21 @@ export async function seed(client: PrismaClient) {
   }
   console.log(`  ${applications.length} applications ready.\n`);
 
-  // 5b. Per-application AI Agent config
-  console.log("Application configs (ai-agent):");
-  for (const code of Object.keys(appRecords)) {
-    const appId = appRecords[code];
-    for (const field of aiAgentConfigFields) {
-      await upsertApplicationConfig(appId, field);
-    }
-  }
-  console.log(
-    `  ai-agent config seeded for ${Object.keys(appRecords).length} applications.\n`,
+  // 5b. Per-application config (driven by the registry — single source of
+  // truth). Covers ai-agent (functional) and ai-agent-ui (visual) groups.
+  // `seed: false` entries (e.g. ai-agent.allowedApis) are skipped here.
+  console.log("Application configs (ai-agent, ai-agent-ui):");
+  const seedableAppConfig = APPLICATION_CONFIG_REGISTRY.filter(
+    (e) => e.seed !== false,
   );
-
-  // 5c. Per-application AI Agent visual config (which UI parts the user sees)
-  console.log("Application configs (ai-agent-ui):");
   for (const code of Object.keys(appRecords)) {
     const appId = appRecords[code];
-    for (const field of aiAgentUiConfigFields) {
-      await upsertApplicationConfig(appId, field);
+    for (const field of seedableAppConfig) {
+      await upsertApplicationConfig(appId, registryEntryToAppRow(field));
     }
   }
   console.log(
-    `  ai-agent-ui config seeded for ${Object.keys(appRecords).length} applications.\n`,
+    `  ${seedableAppConfig.length} config fields seeded for ${Object.keys(appRecords).length} applications.\n`,
   );
 
   // 6. System Permissions (platform)

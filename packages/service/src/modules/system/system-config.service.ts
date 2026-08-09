@@ -1,5 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
+import { validateConfigWrite } from "#lib/config-write";
+import { SYSTEM_CONFIG_INDEX } from "#modules/system/system-config.registry";
 import { systemConfigRepository } from "#modules/system/system-config.repository";
 import { mergeEnvFallback } from "./system-config-env.service";
 
@@ -93,14 +95,17 @@ export async function upsertConfig(
     value: string;
     type?: string;
     schema?: Prisma.InputJsonValue;
-    label: string;
+    label?: string;
     description?: string;
     isSecret?: boolean;
     sortOrder?: number;
     mask?: string | null;
   },
 ) {
-  return systemConfigRepository.upsert(group, key, data);
+  // Allowlist + value guard. Metadata is registry-authoritative: client-supplied
+  // type/isSecret/mask/label are ignored (see validateConfigWrite).
+  const row = validateConfigWrite(SYSTEM_CONFIG_INDEX, group, key, data.value);
+  return systemConfigRepository.upsert(group, key, row);
 }
 
 export async function batchUpsertConfigs(
@@ -110,14 +115,23 @@ export async function batchUpsertConfigs(
     value: string;
     type?: string;
     schema?: Prisma.InputJsonValue;
-    label: string;
+    label?: string;
     description?: string;
     isSecret?: boolean;
     sortOrder?: number;
     mask?: string | null;
   }>,
 ) {
-  return systemConfigRepository.batchUpsert(items);
+  const rows = items.map((item) => {
+    const row = validateConfigWrite(
+      SYSTEM_CONFIG_INDEX,
+      item.group,
+      item.key,
+      item.value,
+    );
+    return { group: item.group, key: item.key, ...row };
+  });
+  return systemConfigRepository.batchUpsert(rows);
 }
 
 export async function deleteConfig(group: string, key: string) {

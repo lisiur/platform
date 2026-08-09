@@ -55,7 +55,7 @@ export const batchUpsertBodySchema = z.object({
         value: z.string().openapi({ example: "https://api.openai.com/v1" }),
         type: configTypeSchema.default("string"),
         schema: jsonSchemaValueSchema.optional(),
-        label: z.string().min(1).openapi({ example: "Base URL" }),
+        label: z.string().optional().openapi({ example: "Base URL" }),
         description: z.string().optional(),
         isSecret: z.boolean().default(false),
         mask: z.string().nullable().optional(),

@@ -1,5 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
+import { validateConfigWrite } from "#lib/config-write";
+import { APPLICATION_CONFIG_INDEX } from "#modules/application/application-config.registry";
 import { applicationConfigRepository } from "#modules/application/application-config.repository";
 import {
   applyMask,
@@ -47,14 +49,22 @@ export async function upsertAppConfig(
     value: string;
     type?: string;
     schema?: Prisma.InputJsonValue;
-    label: string;
+    label?: string;
     description?: string;
     isSecret?: boolean;
     sortOrder?: number;
     mask?: string | null;
   },
 ) {
-  return applicationConfigRepository.upsert(appId, group, key, data);
+  // Allowlist + value guard. Metadata is registry-authoritative: client-supplied
+  // type/isSecret/mask/label are ignored (see validateConfigWrite).
+  const row = validateConfigWrite(
+    APPLICATION_CONFIG_INDEX,
+    group,
+    key,
+    data.value,
+  );
+  return applicationConfigRepository.upsert(appId, group, key, row);
 }
 
 export async function batchUpsertAppConfigs(
@@ -65,14 +75,23 @@ export async function batchUpsertAppConfigs(
     value: string;
     type?: string;
     schema?: Prisma.InputJsonValue;
-    label: string;
+    label?: string;
     description?: string;
     isSecret?: boolean;
     sortOrder?: number;
     mask?: string | null;
   }>,
 ) {
-  return applicationConfigRepository.batchUpsert(items);
+  const rows = items.map((item) => {
+    const row = validateConfigWrite(
+      APPLICATION_CONFIG_INDEX,
+      item.group,
+      item.key,
+      item.value,
+    );
+    return { appId: item.appId, group: item.group, key: item.key, ...row };
+  });
+  return applicationConfigRepository.batchUpsert(rows);
 }
 
 export async function deleteAppConfig(
