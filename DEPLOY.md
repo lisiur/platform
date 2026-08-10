@@ -1,6 +1,6 @@
 # Deployment (PM2 + nginx, own Linux server)
 
-This app is a pnpm monorepo of three Next.js apps. In production each app runs
+This app is a pnpm monorepo of four Next.js apps. In production each app runs
 under PM2 on a localhost port, and nginx reverse-proxies one domain to them.
 
 | App           | Port | Serves                                                |
@@ -8,6 +8,11 @@ under PM2 on a localhost port, and nginx reverse-proxies one domain to them.
 | `gateway`     | 3000 | `/api` (Hono service) + root page                     |
 | `admin`       | 3001 | `/admin` (basePath), `/admin-static` (assetPrefix)    |
 | `organization`| 3002 | `/organization`, `/organization-static`               |
+| `studybuddy`  | 3003 | `/studybuddy`, `/studybuddy-static`                   |
+
+> The app list (name/port/basePath) is the single source in
+> [`scripts/apps.json`](scripts/apps.json), which also drives PM2, nginx, and
+> the tarball packer — so adding an app is a one-line change there.
 
 > The Hono service is mounted inside the gateway at `/api` — there is no
 > standalone service process to run.
@@ -43,7 +48,7 @@ vim .env.production                      # fill in DATABASE_URL, secrets, CORS
 npm install                               # prisma CLI + dotenv (engines) only
 npm run migrate                           # prisma migrate deploy
 
-pm2 start ecosystem.config.js             # gateway + admin + organization
+pm2 start ecosystem.config.js             # gateway + admin + organization + studybuddy
 pm2 start updater.config.js               # OTA updater daemon (separate ecosystem file)
 pm2 save                                  # persist the process list
 pm2 startup                               # follow the printed command to enable boot
@@ -69,7 +74,7 @@ instead of starting insecurely and silently. So after every
 `pm2 start` / `pm2 reload`, confirm the apps actually came up:
 
 ```bash
-pm2 status                  # gateway + admin + organization must be 'online'
+pm2 status                  # gateway + admin + organization + studybuddy must be 'online'
 # If any app shows 'errored' or restart-loops, inspect logs for:
 #   "Refusing to start: NODE_ENV must be one of …"
 pm2 logs gateway --lines 50
@@ -92,10 +97,13 @@ npm install                               # prisma CLI + dotenv (engines) only
 npm run migrate                           # only if there are new migrations
 
 pm2 reload ecosystem.config.js            # zero-downtime restart
+sudo nginx -t && sudo nginx -s reload     # activate any regenerated nginx/apps/*.conf
 ```
 
 `pm2 reload` does a zero-downtime rolling restart. Use `pm2 restart` instead
-only if a native module was recompiled.
+only if a native module was recompiled. The tarball regenerates
+`nginx/apps/*.conf` on every release, so reload nginx even when no ports or
+apps changed (see the nginx section below).
 
 ## Redeploy from scratch (wipe database only)
 
@@ -107,8 +115,8 @@ itself on boot, so a fresh admin login is recreated automatically.
 ```bash
 cd platform
 
-# Stop & remove the three apps — keeps the updater daemon (and PM2 god) alive.
-pm2 delete gateway admin organization
+# Stop & remove the apps — keeps the updater daemon (and PM2 god) alive.
+pm2 delete gateway admin organization studybuddy
 
 # Download the latest release tarball and extract it over the current dir —
 # .env.production is preserved (the tarball ships only the .example).
@@ -120,7 +128,7 @@ npm install                                 # prisma CLI + dotenv (engines)
 
 npx prisma migrate reset --force            # drop all data, re-apply migrations
 
-pm2 start ecosystem.config.js               # gateway + admin + organization
+pm2 start ecosystem.config.js               # gateway + admin + organization + studybuddy
 pm2 save                                    # re-persist the process list
 ```
 
@@ -179,11 +187,31 @@ Manifest responses must contain the release metadata and deploy tarball URL:
 
 ## nginx
 
-The tarball ships `nginx_template.conf` (source: [`scripts/nginx.conf`](scripts/nginx.conf)).
-Merge its `location` blocks into the existing `server { }` block that terminates
-TLS for your domain, changing `server_name` to match. Then:
+The tarball ships **self-contained per-app `location` files** under
+`nginx/apps/*.conf` (generated from `scripts/apps.json` by
+`scripts/gen-nginx.mjs`; source: [`scripts/nginx/`](scripts/nginx/)). nginx
+can't `include` a full `server { }` inside another `server { }`, so the app
+routing is split out from your TLS server block.
+
+**One-time setup** — add a single line to the `server { }` block that
+terminates TLS for your domain (see `nginx/server-block.example.conf`):
+
+```nginx
+    include /home/you/platform/nginx/apps/*.conf;
+    # replace the path with your real tarball extract directory
+```
+
+Then validate and reload once:
 
 ```bash
+sudo nginx -t && sudo nginx -s reload
+```
+
+**Every later release** — just extract the new tarball (which overwrites
+`nginx/apps/*.conf`) and reload; no manual merge:
+
+```bash
+tar -xzf deploy.tar.gz
 sudo nginx -t && sudo nginx -s reload
 ```
 
@@ -191,6 +219,7 @@ Routing summary (nginx longest-prefix match):
 
 - `/admin*`, `/admin-static/*` -> admin :3001
 - `/organization*`, `/organization-static/*` -> organization :3002
+- `/studybuddy*`, `/studybuddy-static/*` -> studybuddy :3003
 - everything else (`/api`, `/`) -> gateway :3000
 
 ## Environment variables
@@ -208,10 +237,10 @@ Required:
 - **HTTPS is required.** The session cookie is `secure` in production, so it is
   only sent over HTTPS. Plain HTTP will break login.
 - **One domain, path-based routing.** All apps + `/api` must share a single
-  origin so the session cookie (`path: "/"`) is shared across admin and
-  organization. Don't split them onto subdomains.
-- **Firewall 3000–3002.** Block external access to the app ports (e.g.
-  `ufw deny 3000:3002`) so only nginx can reach them.
+  origin so the session cookie (`path: "/"`) is shared across admin,
+  organization, and studybuddy. Don't split them onto subdomains.
+- **Firewall 3000–3003.** Block external access to the app ports (e.g.
+  `ufw deny 3000:3003`) so only nginx can reach them.
 
 ## Useful PM2 commands
 

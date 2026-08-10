@@ -4,10 +4,13 @@
 # Used by .github/workflows/build.yml, but works standalone locally too.
 set -eu
 
-APPS="gateway admin organization"
+# Source of truth for the app list is scripts/apps.json (also drives
+# ecosystem.config.js and scripts/gen-nginx.mjs). Read it here so the tarball
+# never drifts from PM2/nginx when an app is added.
+SRC_ROOT="${SRC_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+APPS=$(node -e "console.log(require('$SRC_ROOT/scripts/apps.json').map(a=>a.name).join(' '))")
 # Default to the repo root (one level above this script) so `sh scripts/assemble.sh`
 # works locally; CI overrides SRC_ROOT/OUT explicitly.
-SRC_ROOT="${SRC_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 OUT="${OUT:-$SRC_ROOT/deploy}"
 
 rm -rf "$OUT"
@@ -41,9 +44,12 @@ done
 # tarball is self-contained. The real .env.production (with secrets) is never
 # baked in — it stays on the server; the deployer fills it from the template.
 cp "$SRC_ROOT/scripts/ecosystem.config.js" "$OUT/"
+# apps.json is the shared source of truth for the app list; ecosystem.config.js
+# requires it at PM2 start, so it must live next to the ecosystem file.
+cp "$SRC_ROOT/scripts/apps.json" "$OUT/"
 # Ship the standalone updater daemon (a single bundled file) plus its own PM2
 # config. The daemon lives in a separate ecosystem file so it is never restarted
-# by `pm2 reload/start ecosystem.config.js` (which targets only the three apps).
+# by `pm2 reload/start ecosystem.config.js` (which targets only the apps).
 # It must be built first: `pnpm --filter @repo/updater build`.
 cp "$SRC_ROOT/packages/updater/dist/updater.mjs" "$OUT/updater.mjs"
 cp "$SRC_ROOT/scripts/updater.config.js" "$OUT/"
@@ -51,11 +57,14 @@ if [ -f "$SRC_ROOT/.env.production.example" ]; then
   cp "$SRC_ROOT/.env.production.example" "$OUT/"
 fi
 
-# Ship the nginx reverse-proxy template alongside the bundles so the tarball
-# is self-contained. The deployer merges its `location` blocks into their
-# existing server { } — it is not a drop-in nginx.conf (see the header
-# comments in scripts/nginx.conf).
-cp -a "$SRC_ROOT/scripts/nginx.conf" "$OUT/nginx_template.conf"
+# Ship the nginx reverse-proxy config alongside the bundles so the tarball is
+# self-contained. The location blocks are GENERATED per app from apps.json
+# (via gen-nginx.mjs) into nginx/apps/*.conf; the operator adds ONE
+# `include <deploy-root>/nginx/apps/*.conf;` line to their TLS server block
+# once (see nginx/server-block.example.conf). After that, every release is just
+# extract + `nginx -s reload` — no manual merge.
+node "$SRC_ROOT/scripts/gen-nginx.mjs" "$OUT/nginx/apps"
+cp -a "$SRC_ROOT/scripts/nginx/server-block.example.conf" "$OUT/nginx/"
 
 # Ship the deploy runbook so the operator has the first-time / update / wipe
 # procedures, env-var reference, and nginx routing notes on the host.
