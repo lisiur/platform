@@ -10,9 +10,8 @@ under PM2 on a localhost port, and nginx reverse-proxies one domain to them.
 | `organization`| 3002 | `/organization`, `/organization-static`               |
 | `studybuddy`  | 3003 | `/studybuddy`, `/studybuddy-static`                   |
 
-> The app list (name/port/basePath) lives in each app's OWN `package.json`
-> under a `platform` field (read by [`scripts/read-apps.mjs`](scripts/read-apps.mjs)),
-> which also drives PM2, nginx, and the tarball packer — so adding an app is
+> The app list (name/port/basePath) lives in [`manifest.json`](manifest.json),
+> which drives PM2, nginx, and the tarball packer — so adding an app is
 > just creating `apps/<name>/` with that field.
 
 > The Hono service is mounted inside the gateway at `/api` — there is no

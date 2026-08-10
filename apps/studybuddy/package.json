@@ -2,11 +2,6 @@
   "name": "@apps/studybuddy",
   "version": "0.1.0",
   "private": true,
-  "platform": {
-    "port": 3003,
-    "basePath": "/studybuddy",
-    "assetPrefix": "/studybuddy-static"
-  },
   "scripts": {
     "dev": "next dev --port 3003",
     "build": "next build",

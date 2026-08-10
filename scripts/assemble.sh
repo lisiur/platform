@@ -4,9 +4,8 @@
 # Used by .github/workflows/build.yml, but works standalone locally too.
 set -eu
 
-# Source of truth for the app list is each app's OWN package.json "platform"
-# field (read by scripts/read-apps.mjs). There is no central registry to keep
-# in sync — adding an app = creating apps/<name>/ with a platform field.
+# Source of truth for the app list is the root manifest.json. Adding an app =
+# adding it to manifest.json. There is no per-app platform field in package.json.
 SRC_ROOT="${SRC_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 # Default to the repo root (one level above this script) so `sh scripts/assemble.sh`
 # works locally; CI overrides SRC_ROOT/OUT explicitly.
@@ -15,10 +14,8 @@ OUT="${OUT:-$SRC_ROOT/deploy}"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-# One pass: materialize apps.json into the tarball AND capture the app names for
-# the copy loop below. scripts/ecosystem.config.js reads that file at deploy —
-# the host has no source tree to rediscover from.
-APPS=$(node "$SRC_ROOT/scripts/read-apps.mjs" "$OUT/apps.json")
+# Get the app names for the copy loop below from the manifest.
+APPS=$(node -e "console.log(require('$SRC_ROOT/manifest.json').apps.map(a=>a.name).join(' '))")
 
 for app in $APPS; do
   app_dir="$SRC_ROOT/apps/$app"
@@ -48,7 +45,7 @@ done
 # tarball is self-contained. The real .env.production (with secrets) is never
 # baked in — it stays on the server; the deployer fills it from the template.
 cp "$SRC_ROOT/scripts/ecosystem.config.js" "$OUT/"
-# apps.json was already written above; ecosystem.config.js requires it at PM2 start.
+cp "$SRC_ROOT/manifest.json" "$OUT/"
 # Ship the standalone updater daemon (a single bundled file) plus its own PM2
 # config. The daemon lives in a separate ecosystem file so it is never restarted
 # by `pm2 reload/start ecosystem.config.js` (which targets only the apps).
@@ -60,8 +57,8 @@ if [ -f "$SRC_ROOT/.env.production.example" ]; then
 fi
 
 # Ship the nginx reverse-proxy config alongside the bundles so the tarball is
-# self-contained. The location blocks are GENERATED per app from each app's
-# package.json "platform" field (via gen-nginx.mjs) into nginx/apps/*.conf; the
+# self-contained. The location blocks are GENERATED per app from manifest.json
+# (via gen-nginx.mjs) into nginx/apps/*.conf; the
 # `include <deploy-root>/nginx/apps/*.conf;` line to their TLS server block
 # once (see nginx/server-block.example.conf). After that, every release is just
 # extract + `nginx -s reload` — no manual merge.

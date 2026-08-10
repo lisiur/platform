@@ -2,11 +2,6 @@
   "name": "@apps/admin",
   "version": "0.1.0",
   "private": true,
-  "platform": {
-    "port": 3001,
-    "basePath": "/admin",
-    "assetPrefix": "/admin-static"
-  },
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",

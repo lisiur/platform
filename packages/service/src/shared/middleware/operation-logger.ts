@@ -1,25 +1,6 @@
-import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import { resolveRequestSource } from "#lib/internal-request";
 import { logOperation } from "#lib/logger";
-
-/**
- * Classifies a request's origin for the operation-log `source` field:
- *   agent   — AI Agent `call_api` tool (x-internal-token matches AGENT_API_TOKEN)
- *   ssr     — server-side render request (x-internal-token matches SSR_API_TOKEN)
- *   browser — any other client
- */
-function resolveSource(c: Context): "agent" | "ssr" | "browser" {
-  const token = c.req.header("x-internal-token");
-  if (
-    token &&
-    process.env.AGENT_API_TOKEN &&
-    token === process.env.AGENT_API_TOKEN
-  )
-    return "agent";
-  if (token && process.env.SSR_API_TOKEN && token === process.env.SSR_API_TOKEN)
-    return "ssr";
-  return "browser";
-}
 
 export const operationLogger = createMiddleware(async (c, next) => {
   const startedAt = Date.now();
@@ -31,7 +12,7 @@ export const operationLogger = createMiddleware(async (c, next) => {
     const statusCode = c.res.status;
     await logOperation({
       level: statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info",
-      source: resolveSource(c),
+      source: resolveRequestSource(c),
       module: getModuleFromPath(c.req.path) ?? undefined,
       event: "http.request",
       message: "Request completed",
@@ -46,7 +27,7 @@ export const operationLogger = createMiddleware(async (c, next) => {
 
     await logOperation({
       level: "error",
-      source: resolveSource(c),
+      source: resolveRequestSource(c),
       module: getModuleFromPath(c.req.path) ?? undefined,
       event: "http.request.failed",
       message: "Request failed",

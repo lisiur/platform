@@ -2,9 +2,6 @@
   "name": "@apps/gateway",
   "version": "0.1.0",
   "private": true,
-  "platform": {
-    "port": 3000
-  },
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",

@@ -53,14 +53,13 @@ dev.db
 # generated app version (from scripts/gen-version.mjs)
 /packages/shared/src/version.ts
 
-# env files (can opt-in for committing if needed)
-.env*
+# env: bare .env holds non-sensitive shared defaults (committed); secret
+# variants (.env.local, .env.production, …) are ignored.
+.env.*
 !.env.example
 !.env.production.example
-!apps/admin/.env
-!apps/gateway/.env
-!apps/organization/.env
-!apps/studybuddy/.env
+# packages/service/.env holds local dev secrets — keep ignored.
+/packages/service/.env
 
 # vercel
 .vercel

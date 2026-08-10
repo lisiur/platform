@@ -1,6 +1,7 @@
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
 import { resolveAgentFile } from "#lib/ai-agent/agent-file-store";
+import { getEnvToken } from "#lib/internal-request";
 import {
   findOperation,
   getBinaryFieldNames,
@@ -67,12 +68,14 @@ async function executeApiCall(
 
   const url = `${origin.replace(/\/$/, "")}${urlPath}${qs ? `?${qs}` : ""}`;
 
+  const token = getEnvToken("AGENT_API_TOKEN");
+
   const init: RequestInit = {
     method,
     headers: {
       accept: "application/json",
       "user-agent": "platform-agent/1.0",
-      "x-internal-token": process.env.AGENT_API_TOKEN ?? "",
+      ...(token ? { "x-internal-token": token } : {}),
       ...fwdHeaders,
     },
   };
