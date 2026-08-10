@@ -58,6 +58,7 @@ dev.db
 !.env.example
 !.env.production.example
 !apps/admin/.env
+!apps/gateway/.env
 !apps/organization/.env
 !apps/studybuddy/.env
 

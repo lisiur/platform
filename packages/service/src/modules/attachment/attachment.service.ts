@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { Prisma } from "#generated/prisma/client";
 import { MAX_UPLOAD_FILE_SIZE, UPLOAD_SIGN_EXPIRY_MS } from "#lib/constants";
 import { prisma } from "#lib/db";
+import { uploadsDir } from "#lib/directories";
 import {
   allowedMimeTypes,
   extensionForMime,
@@ -14,9 +15,6 @@ import {
 } from "#lib/mime";
 import { getConfigRow } from "#modules/system/public";
 
-const UPLOADS_ROOT =
-  process.env.UPLOAD_ROOT_DIR ??
-  join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 const DEFAULT_HOTLINK_CONFIG = {
   enabled: false,
   allowedDomains: [],
@@ -96,7 +94,7 @@ export async function createAttachment(params: {
   const hash = computeHash(buffer);
   const relPath = shardPath(hash, ext);
   const dir = visibility === "public" ? "public" : "private";
-  const fullPath = join(UPLOADS_ROOT, dir, relPath);
+  const fullPath = join(uploadsDir(), dir, relPath);
   const dbPath = `${dir}/${relPath}`;
 
   let upload = await tx.upload.findUnique({
@@ -104,7 +102,7 @@ export async function createAttachment(params: {
   });
 
   if (!upload) {
-    await mkdir(join(UPLOADS_ROOT, dir, dirname(relPath)), {
+    await mkdir(join(uploadsDir(), dir, dirname(relPath)), {
       recursive: true,
     });
     await writeFile(fullPath, buffer);
@@ -188,7 +186,7 @@ export async function getFileAccess(params: {
     await assertHotlinkAllowed(headers);
   }
 
-  const filePath = join(UPLOADS_ROOT, attachment.upload.path);
+  const filePath = join(uploadsDir(), attachment.upload.path);
 
   try {
     await stat(filePath);
@@ -387,7 +385,7 @@ export async function deleteAttachments(
     });
     if (remainingCount === 0) {
       try {
-        await unlink(join(UPLOADS_ROOT, attachment.upload.path));
+        await unlink(join(uploadsDir(), attachment.upload.path));
       } catch {
         // File already absent — ignore.
       }
@@ -420,7 +418,7 @@ export async function deleteAttachmentsByBiz(
     });
     if (remainingCount === 0) {
       try {
-        await unlink(join(UPLOADS_ROOT, attachment.upload.path));
+        await unlink(join(uploadsDir(), attachment.upload.path));
       } catch {
         // File already absent — ignore.
       }
@@ -476,14 +474,14 @@ export async function replaceAttachment(params: {
   const hash = computeHash(buffer);
   const relPath = shardPath(hash, ext);
   const dir = attachment.visibility === "public" ? "public" : "private";
-  const fullPath = join(UPLOADS_ROOT, dir, relPath);
+  const fullPath = join(uploadsDir(), dir, relPath);
   const dbPath = `${dir}/${relPath}`;
 
   const oldUpload = attachment.upload;
   const oldPath = oldUpload.path;
 
   if (hash !== oldUpload.hash) {
-    await mkdir(join(UPLOADS_ROOT, dir, dirname(relPath)), {
+    await mkdir(join(uploadsDir(), dir, dirname(relPath)), {
       recursive: true,
     });
     await writeFile(fullPath, buffer);
@@ -507,7 +505,7 @@ export async function replaceAttachment(params: {
     });
     if (remainingCount === 0) {
       try {
-        await unlink(join(UPLOADS_ROOT, oldPath));
+        await unlink(join(uploadsDir(), oldPath));
       } catch {
         // Old file already absent — ignore.
       }
@@ -518,7 +516,7 @@ export async function replaceAttachment(params: {
   }
 
   if (dbPath !== oldUpload.path) {
-    await mkdir(join(UPLOADS_ROOT, dir, dirname(relPath)), {
+    await mkdir(join(uploadsDir(), dir, dirname(relPath)), {
       recursive: true,
     });
     await writeFile(fullPath, buffer);
