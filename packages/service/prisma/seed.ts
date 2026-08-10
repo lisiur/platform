@@ -393,46 +393,10 @@ const organizationPermissions = [
 // --- StudyBuddy App Permissions (org-scoped: granted to every org owner) ---
 const studybuddyPermissions = [
   {
-    code: "org/studybuddy-exam:list",
-    group: "studybuddy-exam",
-    name: "List Exams",
-    description: "List exams in an organization",
-  },
-  {
-    code: "org/studybuddy-exam:create",
-    group: "studybuddy-exam",
-    name: "Create Exam",
-    description: "Create an exam in an organization",
-  },
-  {
-    code: "org/studybuddy-exam:update",
-    group: "studybuddy-exam",
-    name: "Update Exam",
-    description: "Update an exam in an organization",
-  },
-  {
-    code: "org/studybuddy-exam:delete",
-    group: "studybuddy-exam",
-    name: "Delete Exam",
-    description: "Delete an exam from an organization",
-  },
-  {
-    code: "org/studybuddy-submission:list",
-    group: "studybuddy-submission",
-    name: "List Submissions",
-    description: "List exam submissions in an organization",
-  },
-  {
-    code: "org/studybuddy-submission:upload",
-    group: "studybuddy-submission",
-    name: "Upload Submission",
-    description: "Upload an exam submission image",
-  },
-  {
-    code: "org/studybuddy-submission:grade",
-    group: "studybuddy-submission",
-    name: "Grade Submission",
-    description: "Grade or review an exam submission",
+    code: "org/studybuddy-collection:manage",
+    group: "studybuddy-collection",
+    name: "Manage Collection",
+    description: "Create and manage personal English collection items",
   },
 ];
 
@@ -713,24 +677,14 @@ const studybuddyMenus = [
     permissions: ["org/dashboard:view"],
   },
   {
-    id: "studybuddy-exams",
-    code: "exams",
-    name: "Exams",
-    icon: "FileText",
+    id: "studybuddy-collection",
+    code: "collection",
+    name: "Collection",
+    icon: "BookMarked",
     linkType: "INTERNAL" as const,
-    url: "/studybuddy/exams",
+    url: "/studybuddy/collection",
     sortOrder: 1,
-    permissions: ["org/studybuddy-exam:list"],
-  },
-  {
-    id: "studybuddy-submissions",
-    code: "submissions",
-    name: "Submissions",
-    icon: "Upload",
-    linkType: "INTERNAL" as const,
-    url: "/studybuddy/submissions",
-    sortOrder: 2,
-    permissions: ["org/studybuddy-submission:list"],
+    permissions: ["org/studybuddy-collection:manage"],
   },
 ];
 

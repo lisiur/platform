@@ -16,6 +16,9 @@ CREATE TYPE "LinkType" AS ENUM ('GROUP', 'INTERNAL', 'EXTERNAL');
 -- CreateEnum
 CREATE TYPE "agent_message_role" AS ENUM ('user', 'assistant');
 
+-- CreateEnum
+CREATE TYPE "CollectionItemType" AS ENUM ('WORD', 'PHRASE', 'SENTENCE', 'ARTICLE', 'LINK');
+
 -- CreateTable
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
@@ -526,6 +529,37 @@ CREATE TABLE "agent_message" (
     CONSTRAINT "agent_message_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "studybuddy_collection_item" (
+    "id" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "appId" TEXT NOT NULL DEFAULT 'studybuddy',
+    "type" "CollectionItemType" NOT NULL,
+    "source" TEXT NOT NULL,
+    "url" TEXT,
+    "title" TEXT,
+    "note" TEXT,
+    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "mastery" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "studybuddy_collection_item_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "studybuddy_item_enrichment" (
+    "id" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "content" JSONB NOT NULL,
+    "model" TEXT NOT NULL,
+    "generatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "studybuddy_item_enrichment_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -808,6 +842,21 @@ CREATE INDEX "agent_session_userId_createdAt_idx" ON "agent_session"("userId", "
 -- CreateIndex
 CREATE INDEX "agent_message_sessionId_createdAt_idx" ON "agent_message"("sessionId", "createdAt");
 
+-- CreateIndex
+CREATE INDEX "studybuddy_collection_item_ownerId_appId_idx" ON "studybuddy_collection_item"("ownerId", "appId");
+
+-- CreateIndex
+CREATE INDEX "studybuddy_collection_item_ownerId_type_idx" ON "studybuddy_collection_item"("ownerId", "type");
+
+-- CreateIndex
+CREATE INDEX "studybuddy_collection_item_ownerId_status_idx" ON "studybuddy_collection_item"("ownerId", "status");
+
+-- CreateIndex
+CREATE INDEX "studybuddy_item_enrichment_itemId_idx" ON "studybuddy_item_enrichment"("itemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "studybuddy_item_enrichment_itemId_kind_key" ON "studybuddy_item_enrichment"("itemId", "kind");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -909,4 +958,10 @@ ALTER TABLE "agent_session" ADD CONSTRAINT "agent_session_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "agent_message" ADD CONSTRAINT "agent_message_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "agent_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "studybuddy_collection_item" ADD CONSTRAINT "studybuddy_collection_item_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "studybuddy_item_enrichment" ADD CONSTRAINT "studybuddy_item_enrichment_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "studybuddy_collection_item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

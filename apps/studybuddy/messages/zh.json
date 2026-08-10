@@ -66,27 +66,73 @@
     "statusLabel": "状态",
     "status": "脚手架已就绪",
     "nextStepLabel": "下一步",
-    "nextStep": "创建试卷并上传答题卡以开始自动批改。"
+    "nextStep": "添加英语单词、短语和链接到你的收藏。"
   },
-  "Exams": {
-    "title": "试卷",
-    "description": "创建试卷并设置题目与答案",
-    "placeholder": "试卷编辑器将在此处呈现：创建试卷、定义题目、设置答案。"
-  },
-  "ExamBuilder": {
-    "title": "试卷编辑器",
-    "description": "为本试卷定义题目与答案",
-    "placeholder": "题目与答案编辑器将在此处呈现。"
-  },
-  "Submissions": {
-    "title": "答题卡",
-    "description": "等待批改的上传答题卡",
-    "placeholder": "答题卡列表将在此处呈现：上传答题卡图片以自动批改。"
-  },
-  "SubmissionReview": {
-    "title": "审阅答题卡",
-    "description": "核对识别结果并调整分数",
-    "placeholder": "上传与审阅将在此处呈现，并在答题卡图片上叠加 OCR 识别结果。"
+  "Collection": {
+    "title": "收藏",
+    "description": "收集并学习英语单词、短语、句子、文章和链接",
+    "quickAddPlaceholder": "粘贴单词、短语、句子或链接…",
+    "add": "添加",
+    "adding": "添加中…",
+    "added": "已加入收藏",
+    "all": "全部",
+    "searchPlaceholder": "搜索…",
+    "empty": "还没有内容。在上方粘贴任意内容即可开始收藏。",
+    "types": {
+      "WORD": "单词",
+      "PHRASE": "短语",
+      "SENTENCE": "句子",
+      "ARTICLE": "文章",
+      "LINK": "链接"
+    },
+    "enriched": "{count} 条释义",
+    "back": "返回",
+    "edit": "编辑",
+    "editDescription": "更新条目详情",
+    "detailTitle": "条目",
+    "detailDescription": "查看并丰富此条目",
+    "enrichAll": "全部生成",
+    "enrichSuccess": "释义已生成",
+    "generate": "生成",
+    "regenerate": "重新生成",
+    "notGenerated": "尚未生成。",
+    "noEnrichmentForType": "此类型暂不支持 AI 释义。",
+    "delete": "删除",
+    "confirmDelete": "删除此条目及其全部释义？此操作不可撤销。",
+    "deleteSuccess": "条目已删除",
+    "notFound": "未找到该条目。",
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "保存中…",
+    "updateSuccess": "条目已更新",
+    "status": {
+      "active": "进行中",
+      "archived": "已归档",
+      "learned": "已掌握"
+    },
+    "fields": {
+      "title": "标题",
+      "note": "笔记",
+      "url": "链接",
+      "tags": "标签（逗号分隔）",
+      "status": "状态"
+    },
+    "enrichments": {
+      "translation": "翻译",
+      "etymology": "词源",
+      "examples": "例句",
+      "synonyms": "同义词与反义词",
+      "grammar": "语法",
+      "summary": "摘要"
+    },
+    "enrichmentDescriptions": {
+      "translation": "中文翻译、发音与词性",
+      "etymology": "单词的起源与历史",
+      "examples": "自然的例句",
+      "synonyms": "相关与相反的词",
+      "grammar": "语法拆解与要点",
+      "summary": "简明摘要与重点词汇"
+    }
   },
   "Dashboard": {
     "welcome": "欢迎回来，{name}",
@@ -373,8 +419,7 @@
   "Sidebar": {
     "noMenus": "暂无菜单",
     "dashboard": "仪表盘",
-    "exams": "试卷",
-    "submissions": "答题卡",
+    "collection": "收藏",
     "profile": "个人资料",
     "tokens": "API 令牌",
     "switchOrganization": "切换组织",

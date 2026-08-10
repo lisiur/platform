@@ -82,7 +82,9 @@ export const ModelName = {
   RateLimitOverride: 'RateLimitOverride',
   ApiToken: 'ApiToken',
   AgentSession: 'AgentSession',
-  AgentMessage: 'AgentMessage'
+  AgentMessage: 'AgentMessage',
+  CollectionItem: 'CollectionItem',
+  ItemEnrichment: 'ItemEnrichment'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -609,6 +611,37 @@ export const AgentMessageScalarFieldEnum = {
 } as const
 
 export type AgentMessageScalarFieldEnum = (typeof AgentMessageScalarFieldEnum)[keyof typeof AgentMessageScalarFieldEnum]
+
+
+export const CollectionItemScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  appId: 'appId',
+  type: 'type',
+  source: 'source',
+  url: 'url',
+  title: 'title',
+  note: 'note',
+  tags: 'tags',
+  status: 'status',
+  mastery: 'mastery',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CollectionItemScalarFieldEnum = (typeof CollectionItemScalarFieldEnum)[keyof typeof CollectionItemScalarFieldEnum]
+
+
+export const ItemEnrichmentScalarFieldEnum = {
+  id: 'id',
+  itemId: 'itemId',
+  kind: 'kind',
+  content: 'content',
+  model: 'model',
+  generatedAt: 'generatedAt'
+} as const
+
+export type ItemEnrichmentScalarFieldEnum = (typeof ItemEnrichmentScalarFieldEnum)[keyof typeof ItemEnrichmentScalarFieldEnum]
 
 
 export const SortOrder = {

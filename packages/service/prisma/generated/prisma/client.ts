@@ -201,3 +201,13 @@ export type AgentSession = Prisma.AgentSessionModel
  * 
  */
 export type AgentMessage = Prisma.AgentMessageModel
+/**
+ * Model CollectionItem
+ * 
+ */
+export type CollectionItem = Prisma.CollectionItemModel
+/**
+ * Model ItemEnrichment
+ * 
+ */
+export type ItemEnrichment = Prisma.ItemEnrichmentModel

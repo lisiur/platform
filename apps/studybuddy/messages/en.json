@@ -66,27 +66,73 @@
     "statusLabel": "Status",
     "status": "Scaffold ready",
     "nextStepLabel": "Next step",
-    "nextStep": "Create an exam and upload submissions to start grading."
+    "nextStep": "Add English words, phrases, and links to your collection."
   },
-  "Exams": {
-    "title": "Exams",
-    "description": "Build exams with questions and answer keys",
-    "placeholder": "Exam builder will land here. Create exams, define questions, and set answer keys."
-  },
-  "ExamBuilder": {
-    "title": "Exam Builder",
-    "description": "Define questions and the answer key for this exam",
-    "placeholder": "Question and answer-key editor will land here."
-  },
-  "Submissions": {
-    "title": "Submissions",
-    "description": "Uploaded exam submissions awaiting grading",
-    "placeholder": "Submissions list will land here. Upload answer-sheet images to auto-grade."
-  },
-  "SubmissionReview": {
-    "title": "Review Submission",
-    "description": "Verify extracted answers and adjust grades",
-    "placeholder": "Upload and review will land here, with OCR overlays on the submission image."
+  "Collection": {
+    "title": "Collection",
+    "description": "Capture and learn English words, phrases, sentences, articles, and links",
+    "quickAddPlaceholder": "Paste a word, phrase, sentence, or link…",
+    "add": "Add",
+    "adding": "Adding…",
+    "added": "Added to collection",
+    "all": "All",
+    "searchPlaceholder": "Search…",
+    "empty": "No items yet. Paste something above to start your collection.",
+    "types": {
+      "WORD": "Word",
+      "PHRASE": "Phrase",
+      "SENTENCE": "Sentence",
+      "ARTICLE": "Article",
+      "LINK": "Link"
+    },
+    "enriched": "{count, plural, one {# enrichment} other {# enrichments}}",
+    "back": "Back",
+    "edit": "Edit",
+    "editDescription": "Update the item details",
+    "detailTitle": "Item",
+    "detailDescription": "View and enrich this item",
+    "enrichAll": "Enrich all",
+    "enrichSuccess": "Enrichments generated",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "notGenerated": "Not generated yet.",
+    "noEnrichmentForType": "AI enrichment is not available for this item type.",
+    "delete": "Delete",
+    "confirmDelete": "Delete this item and all its enrichments? This cannot be undone.",
+    "deleteSuccess": "Item deleted",
+    "notFound": "Item not found.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "updateSuccess": "Item updated",
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "learned": "Learned"
+    },
+    "fields": {
+      "title": "Title",
+      "note": "Note",
+      "url": "URL",
+      "tags": "Tags (comma separated)",
+      "status": "Status"
+    },
+    "enrichments": {
+      "translation": "Translation",
+      "etymology": "Etymology",
+      "examples": "Example sentences",
+      "synonyms": "Synonyms & antonyms",
+      "grammar": "Grammar",
+      "summary": "Summary"
+    },
+    "enrichmentDescriptions": {
+      "translation": "Chinese translation, pronunciation, and part of speech",
+      "etymology": "Origin and history of the word",
+      "examples": "Natural example sentences",
+      "synonyms": "Related and opposite words",
+      "grammar": "Grammatical breakdown and key points",
+      "summary": "Concise summary and key vocabulary"
+    }
   },
   "Dashboard": {
     "welcome": "Welcome back, {name}",
@@ -373,8 +419,7 @@
   "Sidebar": {
     "noMenus": "No menus available",
     "dashboard": "Dashboard",
-    "exams": "Exams",
-    "submissions": "Submissions",
+    "collection": "Collection",
     "profile": "Profile",
     "tokens": "API Tokens",
     "switchOrganization": "Switch Organization",

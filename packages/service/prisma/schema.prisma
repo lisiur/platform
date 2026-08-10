@@ -30,6 +30,7 @@ model User {
   apiTokens           ApiToken[]
   agentSessions   AgentSession[]
   attachments     Attachment[] @relation("AttachmentCreator")
+  collectionItems CollectionItem[] @relation("CollectionItemOwner")
 
   @@unique([email])
   @@map("user")
@@ -684,5 +685,55 @@ model AgentMessage {
 
   @@index([sessionId, createdAt])
   @@map("agent_message")
+}
+
+// ============================================================
+// StudyBuddy — English Collection
+// ============================================================
+
+enum CollectionItemType {
+  WORD
+  PHRASE
+  SENTENCE
+  ARTICLE
+  LINK
+}
+
+model CollectionItem {
+  id        String             @id @default(cuid())
+  ownerId   String
+  owner     User               @relation("CollectionItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  appId     String             @default("studybuddy")
+  type      CollectionItemType
+  source    String
+  url       String?
+  title     String?
+  note      String?
+  tags      String[]           @default([])
+  status    String             @default("active")
+  mastery   Int                @default(0)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  enrichments ItemEnrichment[]
+
+  @@index([ownerId, appId])
+  @@index([ownerId, type])
+  @@index([ownerId, status])
+  @@map("studybuddy_collection_item")
+}
+
+model ItemEnrichment {
+  id          String         @id @default(cuid())
+  itemId      String
+  item        CollectionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  kind        String
+  content     Json
+  model       String
+  generatedAt DateTime       @default(now())
+
+  @@unique([itemId, kind])
+  @@index([itemId])
+  @@map("studybuddy_item_enrichment")
 }
 

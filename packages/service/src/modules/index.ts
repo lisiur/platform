@@ -9,6 +9,7 @@ import { menuRoutes } from "./application/routes/menu";
 import { attachmentRoutes } from "./attachment/routes/attachment";
 import { auditLogRoutes } from "./audit/routes/audit-log";
 import { operationLogRoutes } from "./audit/routes/operation-log";
+import { collectionRoutes } from "./collection/routes";
 import { eventsRoutes } from "./events/routes/events";
 import { apiTokenRoutes } from "./identity/routes/api-token";
 import { authRoutes } from "./identity/routes/auth";
@@ -48,6 +49,7 @@ const routes = new OpenAPIHono()
   .route("/events", eventsRoutes)
   .route("/users", userRoutes)
   .route("/api-tokens", apiTokenRoutes)
+  .route("/collection", collectionRoutes)
   .route("/jobs", jobRoutes)
   .route("/job-instances", jobInstanceRoutes)
   .route("/rate-limit", rateLimitRoutes)

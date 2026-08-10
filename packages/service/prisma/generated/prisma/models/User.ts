@@ -244,6 +244,7 @@ export type UserWhereInput = {
   apiTokens?: Prisma.ApiTokenListRelationFilter
   agentSessions?: Prisma.AgentSessionListRelationFilter
   attachments?: Prisma.AttachmentListRelationFilter
+  collectionItems?: Prisma.CollectionItemListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -269,6 +270,7 @@ export type UserOrderByWithRelationInput = {
   apiTokens?: Prisma.ApiTokenOrderByRelationAggregateInput
   agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
   attachments?: Prisma.AttachmentOrderByRelationAggregateInput
+  collectionItems?: Prisma.CollectionItemOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -297,6 +299,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   apiTokens?: Prisma.ApiTokenListRelationFilter
   agentSessions?: Prisma.AgentSessionListRelationFilter
   attachments?: Prisma.AttachmentListRelationFilter
+  collectionItems?: Prisma.CollectionItemListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -358,6 +361,7 @@ export type UserCreateInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -383,6 +387,7 @@ export type UserUncheckedCreateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUpdateInput = {
@@ -408,6 +413,7 @@ export type UserUpdateInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -433,6 +439,7 @@ export type UserUncheckedUpdateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -716,6 +723,20 @@ export type UserUpdateOneRequiredWithoutAgentSessionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAgentSessionsInput, Prisma.UserUpdateWithoutAgentSessionsInput>, Prisma.UserUncheckedUpdateWithoutAgentSessionsInput>
 }
 
+export type UserCreateNestedOneWithoutCollectionItemsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCollectionItemsInput, Prisma.UserUncheckedCreateWithoutCollectionItemsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectionItemsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCollectionItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCollectionItemsInput, Prisma.UserUncheckedCreateWithoutCollectionItemsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectionItemsInput
+  upsert?: Prisma.UserUpsertWithoutCollectionItemsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCollectionItemsInput, Prisma.UserUpdateWithoutCollectionItemsInput>, Prisma.UserUncheckedUpdateWithoutCollectionItemsInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   name: string
@@ -738,6 +759,7 @@ export type UserCreateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -762,6 +784,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -802,6 +825,7 @@ export type UserUpdateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -826,6 +850,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -850,6 +875,7 @@ export type UserCreateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -874,6 +900,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -914,6 +941,7 @@ export type UserUpdateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -938,6 +966,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutMembersInput = {
@@ -962,6 +991,7 @@ export type UserCreateWithoutMembersInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutMembersInput = {
@@ -986,6 +1016,7 @@ export type UserUncheckedCreateWithoutMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutMembersInput = {
@@ -1026,6 +1057,7 @@ export type UserUpdateWithoutMembersInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMembersInput = {
@@ -1050,6 +1082,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutInvitationsInput = {
@@ -1074,6 +1107,7 @@ export type UserCreateWithoutInvitationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutInvitationsInput = {
@@ -1098,6 +1132,7 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutInvitationsInput = {
@@ -1138,6 +1173,7 @@ export type UserUpdateWithoutInvitationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutInvitationsInput = {
@@ -1162,6 +1198,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutAttachmentsInput = {
@@ -1186,6 +1223,7 @@ export type UserCreateWithoutAttachmentsInput = {
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutAttachmentsInput = {
@@ -1210,6 +1248,7 @@ export type UserUncheckedCreateWithoutAttachmentsInput = {
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutAttachmentsInput = {
@@ -1250,6 +1289,7 @@ export type UserUpdateWithoutAttachmentsInput = {
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAttachmentsInput = {
@@ -1274,6 +1314,7 @@ export type UserUncheckedUpdateWithoutAttachmentsInput = {
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutRoleAssignmentsInput = {
@@ -1298,6 +1339,7 @@ export type UserCreateWithoutRoleAssignmentsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutRoleAssignmentsInput = {
@@ -1322,6 +1364,7 @@ export type UserUncheckedCreateWithoutRoleAssignmentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutRoleAssignmentsInput = {
@@ -1362,6 +1405,7 @@ export type UserUpdateWithoutRoleAssignmentsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
@@ -1386,6 +1430,7 @@ export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutNotificationsInput = {
@@ -1410,6 +1455,7 @@ export type UserCreateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -1434,6 +1480,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -1463,6 +1510,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
@@ -1487,6 +1535,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutCreatedNotificationsInput = {
@@ -1527,6 +1576,7 @@ export type UserUpdateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -1551,6 +1601,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUpsertWithoutCreatedNotificationsInput = {
@@ -1586,6 +1637,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
@@ -1610,6 +1662,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutApiTokensInput = {
@@ -1634,6 +1687,7 @@ export type UserCreateWithoutApiTokensInput = {
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutApiTokensInput = {
@@ -1658,6 +1712,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutApiTokensInput = {
@@ -1698,6 +1753,7 @@ export type UserUpdateWithoutApiTokensInput = {
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiTokensInput = {
@@ -1722,6 +1778,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserCreateWithoutAgentSessionsInput = {
@@ -1746,6 +1803,7 @@ export type UserCreateWithoutAgentSessionsInput = {
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
   attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
 }
 
 export type UserUncheckedCreateWithoutAgentSessionsInput = {
@@ -1770,6 +1828,7 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
   attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
 }
 
 export type UserCreateOrConnectWithoutAgentSessionsInput = {
@@ -1810,6 +1869,7 @@ export type UserUpdateWithoutAgentSessionsInput = {
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
   attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentSessionsInput = {
@@ -1834,6 +1894,123 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
   attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserCreateWithoutCollectionItemsInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+}
+
+export type UserUncheckedCreateWithoutCollectionItemsInput = {
+  id?: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+}
+
+export type UserCreateOrConnectWithoutCollectionItemsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCollectionItemsInput, Prisma.UserUncheckedCreateWithoutCollectionItemsInput>
+}
+
+export type UserUpsertWithoutCollectionItemsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCollectionItemsInput, Prisma.UserUncheckedUpdateWithoutCollectionItemsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCollectionItemsInput, Prisma.UserUncheckedCreateWithoutCollectionItemsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCollectionItemsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCollectionItemsInput, Prisma.UserUncheckedUpdateWithoutCollectionItemsInput>
+}
+
+export type UserUpdateWithoutCollectionItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCollectionItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 
@@ -1852,6 +2029,7 @@ export type UserCountOutputType = {
   apiTokens: number
   agentSessions: number
   attachments: number
+  collectionItems: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1865,6 +2043,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   apiTokens?: boolean | UserCountOutputTypeCountApiTokensArgs
   agentSessions?: boolean | UserCountOutputTypeCountAgentSessionsArgs
   attachments?: boolean | UserCountOutputTypeCountAttachmentsArgs
+  collectionItems?: boolean | UserCountOutputTypeCountCollectionItemsArgs
 }
 
 /**
@@ -1947,6 +2126,13 @@ export type UserCountOutputTypeCountAttachmentsArgs<ExtArgs extends runtime.Type
   where?: Prisma.AttachmentWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCollectionItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CollectionItemWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1971,6 +2157,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
   attachments?: boolean | Prisma.User$attachmentsArgs<ExtArgs>
+  collectionItems?: boolean | Prisma.User$collectionItemsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -2031,6 +2218,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
   attachments?: boolean | Prisma.User$attachmentsArgs<ExtArgs>
+  collectionItems?: boolean | Prisma.User$collectionItemsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2049,6 +2237,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     apiTokens: Prisma.$ApiTokenPayload<ExtArgs>[]
     agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
     attachments: Prisma.$AttachmentPayload<ExtArgs>[]
+    collectionItems: Prisma.$CollectionItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2467,6 +2656,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   apiTokens<T extends Prisma.User$apiTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$apiTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApiTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   agentSessions<T extends Prisma.User$agentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$agentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   attachments<T extends Prisma.User$attachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$attachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  collectionItems<T extends Prisma.User$collectionItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$collectionItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3138,6 +3328,30 @@ export type User$attachmentsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.AttachmentScalarFieldEnum | Prisma.AttachmentScalarFieldEnum[]
+}
+
+/**
+ * User.collectionItems
+ */
+export type User$collectionItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CollectionItem
+   */
+  select?: Prisma.CollectionItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CollectionItem
+   */
+  omit?: Prisma.CollectionItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CollectionItemInclude<ExtArgs> | null
+  where?: Prisma.CollectionItemWhereInput
+  orderBy?: Prisma.CollectionItemOrderByWithRelationInput | Prisma.CollectionItemOrderByWithRelationInput[]
+  cursor?: Prisma.CollectionItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CollectionItemScalarFieldEnum | Prisma.CollectionItemScalarFieldEnum[]
 }
 
 /**

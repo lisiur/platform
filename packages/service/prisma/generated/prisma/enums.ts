@@ -54,3 +54,14 @@ export const AgentMessageRole = {
 } as const
 
 export type AgentMessageRole = (typeof AgentMessageRole)[keyof typeof AgentMessageRole]
+
+
+export const CollectionItemType = {
+  WORD: 'WORD',
+  PHRASE: 'PHRASE',
+  SENTENCE: 'SENTENCE',
+  ARTICLE: 'ARTICLE',
+  LINK: 'LINK'
+} as const
+
+export type CollectionItemType = (typeof CollectionItemType)[keyof typeof CollectionItemType]
