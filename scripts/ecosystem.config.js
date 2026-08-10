@@ -3,7 +3,8 @@
 // Unlike ecosystem.config.cjs (which runs `next start` from source built on
 // the server), this runs the prebuilt standalone server bundles produced by
 // the "build" GitHub Actions workflow (.github/workflows/build.yml).
-// Server layout (from the tarball), one entry per app in scripts/apps.json:
+// Server layout (from the tarball), one entry per app (list derived from each
+// app's package.json "platform" field; see read-apps.mjs / assemble.sh):
 //   ./apps/<name>/apps/<name>/server.js
 // Currently: gateway, admin, organization, studybuddy.
 //
@@ -60,11 +61,11 @@ for (const key of SYS_ENV_KEYS) {
   if (process.env[key] !== undefined) systemEnv[key] = process.env[key];
 }
 
-// Source of truth for the app list: scripts/apps.json (shared with
-// scripts/assemble.sh and scripts/gen-nginx.mjs, so PM2, the tarball, and
-// nginx never drift apart when an app is added). In the tarball this file and
-// apps.json ship side-by-side at the deploy root, so the relative require
-// resolves in both the repo and post-extract.
+// App list: read from the apps.json that scripts/assemble.sh GENERATES (from
+// each app's package.json "platform" field via read-apps.mjs) into the tarball
+// root. The deploy host has no source tree to rediscover from, so we read the
+// materialized file; it ships next to this one at the deploy root, so the
+// relative require resolves post-extract.
 const apps = require("./apps.json");
 
 // The updater daemon's Unix socket lives at the deploy root (next to this

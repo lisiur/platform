@@ -2,6 +2,11 @@
   "name": "@apps/organization",
   "version": "0.1.0",
   "private": true,
+  "platform": {
+    "port": 3002,
+    "basePath": "/organization",
+    "assetPrefix": "/organization-static"
+  },
   "scripts": {
     "dev": "next dev --port 3002",
     "build": "next build",

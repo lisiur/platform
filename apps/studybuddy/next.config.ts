@@ -1,10 +1,15 @@
+import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+const { basePath, assetPrefix } = JSON.parse(
+  readFileSync("package.json", "utf8"),
+).platform;
+
 const nextConfig: NextConfig = {
   output: "standalone",
-  basePath: "/studybuddy",
-  assetPrefix: "/studybuddy-static",
+  basePath,
+  assetPrefix,
   htmlLimitedBots: /.*/,
 };
 

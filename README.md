@@ -125,8 +125,6 @@ Both frontends call the API through typed Hono RPC (`appClient` from `@/lib/api`
 | `DATABASE_URL`                 | Yes      | PostgreSQL connection string used by Prisma.                                         |
 | `CORS_ALLOWED_ORIGINS`         | No       | Comma-separated allowed API origins. Unset = any origin in dev, none in prod.        |
 | `NEXT_PUBLIC_API_ORIGIN`       | No       | Overrides the browser API origin (defaults to `http://localhost:3000` in dev).       |
-| `NEXT_PUBLIC_ADMIN_URL`        | No       | Gateway dev rewrite target for `/admin` (defaults to `http://localhost:3001`).      |
-| `NEXT_PUBLIC_ORGANIZATION_URL` | No       | Gateway dev rewrite target for `/organization` (defaults to `http://localhost:3002`).|
 | `RATE_LIMIT_ENABLED`           | No       | Set to `false` to disable rate limiting (defaults to enabled).                       |
 | `RATE_LIMIT_GLOBAL_MAX`        | No       | Max requests per global window (default `300`).                                      |
 | `RATE_LIMIT_GLOBAL_WINDOW_MS`  | No       | Global limiter window length in ms (default `60000`).                                |

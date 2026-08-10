@@ -10,9 +10,10 @@ under PM2 on a localhost port, and nginx reverse-proxies one domain to them.
 | `organization`| 3002 | `/organization`, `/organization-static`               |
 | `studybuddy`  | 3003 | `/studybuddy`, `/studybuddy-static`                   |
 
-> The app list (name/port/basePath) is the single source in
-> [`scripts/apps.json`](scripts/apps.json), which also drives PM2, nginx, and
-> the tarball packer — so adding an app is a one-line change there.
+> The app list (name/port/basePath) lives in each app's OWN `package.json`
+> under a `platform` field (read by [`scripts/read-apps.mjs`](scripts/read-apps.mjs)),
+> which also drives PM2, nginx, and the tarball packer — so adding an app is
+> just creating `apps/<name>/` with that field.
 
 > The Hono service is mounted inside the gateway at `/api` — there is no
 > standalone service process to run.
@@ -188,8 +189,8 @@ Manifest responses must contain the release metadata and deploy tarball URL:
 ## nginx
 
 The tarball ships **self-contained per-app `location` files** under
-`nginx/apps/*.conf` (generated from `scripts/apps.json` by
-`scripts/gen-nginx.mjs`; source: [`scripts/nginx/`](scripts/nginx/)). nginx
+`nginx/apps/*.conf` (generated from each app's `package.json` `platform` field
+by `scripts/gen-nginx.mjs`; source: [`scripts/nginx/`](scripts/nginx/)). nginx
 can't `include` a full `server { }` inside another `server { }`, so the app
 routing is split out from your TLS server block.
 
