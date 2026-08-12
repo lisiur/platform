@@ -40,7 +40,7 @@ function Table({
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-sm bg-background", className)}
         {...props}
       />
     </div>
@@ -56,7 +56,7 @@ function TableHeader({
     <thead
       data-slot="table-header"
       className={cn(
-        "[&_tr]:border-b",
+        "[&_tr]:border-b [&_tr]:hover:bg-transparent",
         sticky && "[&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:bg-background",
         className,
       )}
