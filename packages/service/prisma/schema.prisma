@@ -8,29 +8,33 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String
-  emailVerified Boolean      @default(false)
-  avatar        String?
-  avatarId      String?
-  banned        Boolean?     @default(false)
-  banReason     String?
-  banExpires    DateTime?
-  flags         String[]     @default([])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  members       Member[]
-  invitations   Invitation[]
-  roleAssignments RoleAssignment[]
-  notifications       Notification[]
-  createdNotifications Notification[] @relation("NotificationCreator")
-  apiTokens           ApiToken[]
-  agentSessions   AgentSession[]
-  attachments     Attachment[] @relation("AttachmentCreator")
-  collectionItems CollectionItem[] @relation("CollectionItemOwner")
+  id                   String           @id @default(cuid())
+  name                 String
+  email                String
+  emailVerified        Boolean          @default(false)
+  avatar               String?
+  avatarId             String?
+  banned               Boolean?         @default(false)
+  banReason            String?
+  banExpires           DateTime?
+  flags                String[]         @default([])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  sessions             Session[]
+  accounts             Account[]
+  members              Member[]
+  invitations          Invitation[]
+  roleAssignments      RoleAssignment[]
+  notifications        Notification[]
+  createdNotifications Notification[]   @relation("NotificationCreator")
+  apiTokens            ApiToken[]
+  aiConversations      AiConversation[]
+  attachments          Attachment[]     @relation("AttachmentCreator")
+  collectionItems      CollectionItem[] @relation("CollectionItemOwner")
+  userQuotas           UserQuota[]
+  userCredit           UserCredit?
+  userCreditLedger     UserCreditLedger[]
+  aiUsageEvents        AiUsageEvent[]
 
   @@unique([email])
   @@map("user")
@@ -133,22 +137,22 @@ model JobInstance {
 }
 
 model Job {
-  id             String       @id @default(cuid())
-  name           String       @unique
+  id             String      @id @default(cuid())
+  name           String      @unique
   type           String
   description    String?
   payload        Json?
   cronExpression String?
-  enabled        Boolean      @default(true)
-  priority       JobPriority  @default(NORMAL)
-  maxAttempts    Int          @default(3)
-  timeoutMs      Int          @default(60000)
+  enabled        Boolean     @default(true)
+  priority       JobPriority @default(NORMAL)
+  maxAttempts    Int         @default(3)
+  timeoutMs      Int         @default(60000)
   lastRunAt      DateTime?
   nextRunAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  instances      JobInstance[]
+  instances JobInstance[]
 
   @@index([enabled, nextRunAt])
   @@map("job")
@@ -192,18 +196,18 @@ model Department {
 }
 
 model Position {
-  id             String           @id @default(cuid())
-  organizationId String
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  code           String
-  description    String?
-  sortOrder      Int              @default(0)
-  roleId         String?          @unique
-  role           Role?            @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  id              String           @id @default(cuid())
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  code            String
+  description     String?
+  sortOrder       Int              @default(0)
+  roleId          String?          @unique
+  role            Role?            @relation(fields: [roleId], references: [id], onDelete: SetNull)
   memberPositions MemberPosition[]
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@unique([organizationId, code])
   @@index([organizationId])
@@ -225,17 +229,17 @@ model MemberPosition {
 }
 
 model Member {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employeeId     String?
-  departmentId   String?
-  department     Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  id              String           @id @default(cuid())
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId      String?
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   memberPositions MemberPosition[]
-  createdAt      DateTime
-  updatedAt      DateTime     @updatedAt
+  createdAt       DateTime
+  updatedAt       DateTime         @updatedAt
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -283,12 +287,12 @@ model SystemConfig {
 }
 
 model Upload {
-  id         String   @id @default(cuid())
-  path       String
-  mimeType   String
-  size       Int
-  hash       String   @unique
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  path      String
+  mimeType  String
+  size      Int
+  hash      String   @unique
+  createdAt DateTime @default(now())
 
   attachments Attachment[]
 
@@ -320,24 +324,25 @@ enum LinkType {
 }
 
 model Application {
-  id          String       @id @default(cuid())
-  name        String
-  code        String
-  description String?
-  logo        String?
-  logoId      String?
-  favicon     String?
-  faviconId   String?
-  copyright   String?
-  icp         String?
-  psif        String?
-  watermarkEnabled Boolean @default(false)
-  watermarkConfig  String?
-  sortOrder   Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  menus        Menu[]
-  notifications Notification[]
+  id                 String              @id @default(cuid())
+  name               String
+  code               String
+  description        String?
+  logo               String?
+  logoId             String?
+  favicon            String?
+  faviconId          String?
+  copyright          String?
+  icp                String?
+  psif               String?
+  watermarkEnabled   Boolean             @default(false)
+  watermarkConfig    String?
+  sortOrder          Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  aiConversations    AiConversation[]
+  menus              Menu[]
+  notifications      Notification[]
   applicationConfigs ApplicationConfig[]
 
   @@unique([code])
@@ -345,21 +350,21 @@ model Application {
 }
 
 model ApplicationConfig {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   appId       String
   app         Application @relation(fields: [appId], references: [id], onDelete: Cascade)
   group       String
   key         String
   value       String
-  type        String   @default("string")
+  type        String      @default("string")
   schema      Json?
   label       String
   description String?
-  isSecret    Boolean  @default(false)
+  isSecret    Boolean     @default(false)
   mask        String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@unique([appId, group, key])
   @@index([appId, group])
@@ -367,21 +372,21 @@ model ApplicationConfig {
 }
 
 model Menu {
-  id           String     @id @default(cuid())
-  appId        String
-  app          Application @relation(fields: [appId], references: [id], onDelete: Cascade)
-  parentId     String?
-  parent       Menu?      @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children     Menu[]     @relation("MenuTree")
-  name         String
-  code         String
-  icon         String?
-  linkType     LinkType        @default(GROUP)
-  url          String?
-  sortOrder    Int             @default(0)
+  id              String           @id @default(cuid())
+  appId           String
+  app             Application      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  parentId        String?
+  parent          Menu?            @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Menu[]           @relation("MenuTree")
+  name            String
+  code            String
+  icon            String?
+  linkType        LinkType         @default(GROUP)
+  url             String?
+  sortOrder       Int              @default(0)
   menuPermissions MenuPermission[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([appId])
   @@index([parentId])
@@ -525,15 +530,15 @@ model AuditLog {
 }
 
 model NotificationChannel {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   key         String
   name        String
   providerKey String
-  enabled     Boolean   @default(true)
+  enabled     Boolean  @default(true)
   config      Json?
   flags       String[] @default([])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   templates     NotificationTemplate[]
   notifications Notification[]
@@ -557,9 +562,9 @@ model NotificationTemplate {
   bodyTemplate    String
   variablesSchema Json?
   sampleVariables Json?
-  flags           String[]           @default([])
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  flags           String[]            @default([])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   notifications Notification[]
 
@@ -629,21 +634,21 @@ model RateLimitOverride {
 }
 
 model ApiToken {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
   tokenPrefix String
-  tokenSuffix String @default("")
-  name      String
-  ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  scopes    String[] @default([])
-  scope     String?
-  enabled    Boolean  @default(true)
-  expiresAt  DateTime?
-  lastUsedAt DateTime?
-  lastUsedIp String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  tokenSuffix String    @default("")
+  name        String
+  ownerId     String
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  scopes      String[]  @default([])
+  scope       String?
+  enabled     Boolean   @default(true)
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  lastUsedIp  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([ownerId])
   @@index([scope])
@@ -654,37 +659,40 @@ model ApiToken {
 // AI Agent (Vercel AI SDK)
 // ============================================================
 
-enum AgentMessageRole {
+enum AiMessageRole {
   user
   assistant
 
-  @@map("agent_message_role")
+  @@map("ai_message_role")
 }
 
-model AgentSession {
-  id        String   @id
+model AiConversation {
+  id        String      @id
   userId    String
+  appId     String
   name      String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  app       Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
 
-  messages  AgentMessage[]
+  messages AiMessage[]
 
   @@index([userId, createdAt])
-  @@map("agent_session")
+  @@index([appId])
+  @@map("ai_conversation")
 }
 
-model AgentMessage {
-  id        String           @id @default(cuid())
+model AiMessage {
+  id        String        @id @default(cuid())
   sessionId String
-  role      AgentMessageRole
+  role      AiMessageRole
   parts     Json
-  createdAt DateTime         @default(now())
+  createdAt DateTime      @default(now())
 
-  session   AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session AiConversation @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, createdAt])
-  @@map("agent_message")
+  @@map("ai_message")
 }
 
 // ============================================================
@@ -737,3 +745,310 @@ model ItemEnrichment {
   @@map("studybuddy_item_enrichment")
 }
 
+// ============================================================
+// AI — Providers, Accounts, Keys, Models, Agents, Usage
+// ============================================================
+
+model AiProvider {
+  id           String   @id @default(cuid())
+  name         String
+  baseUrl      String
+  aiAdapter    String
+  enabled      Boolean        @default(true)
+  description  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  accounts AiAccountProvider[]
+  models   AiModel[]
+
+  @@map("ai_provider")
+}
+
+model AiAccount {
+  id               String   @id @default(cuid())
+  name             String
+  balance          Decimal  @default(0) @db.Decimal(12, 4)
+  currency         String   @default("USD")
+  concurrencyLimit Int      @default(1)
+  status           String   @default("active")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  providers   AiAccountProvider[]
+  keys        AiKey[]
+  pricing     AiModelPricing[]
+  usageEvents AiUsageEvent[]
+
+  @@map("ai_account")
+}
+
+model AiAccountProvider {
+  accountId  String
+  providerId String
+
+  account  AiAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  provider AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, providerId])
+  @@index([providerId])
+  @@map("ai_account_provider")
+}
+
+model AiKey {
+  id              String    @id @default(cuid())
+  accountId       String
+  name            String
+  encryptedSecret String
+  mask            String?
+  status          String    @default("active")
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  account AiAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("ai_key")
+}
+
+model AiModel {
+  id                String          @id @default(cuid())
+  providerId        String
+  modelId           String
+  displayName       String
+  capabilities      String[]        @default([])
+  contextWindow     Int?
+  supportsReasoning Boolean         @default(false)
+  supportsCaching   Boolean         @default(false)
+  enabled           Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  provider    AiProvider       @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  pricing     AiModelPricing[]
+  usageEvents AiUsageEvent[]
+
+  @@unique([providerId, modelId])
+  @@map("ai_model")
+}
+
+model AiModelPricing {
+  id            String    @id @default(cuid())
+  modelId       String
+  accountId     String
+  timeZone      String    @default("UTC")
+  policy        Json      @default("[]")
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+
+  model   AiModel   @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  account AiAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([modelId, effectiveFrom])
+  @@index([accountId, modelId])
+  @@index([modelId, accountId, timeZone])
+  @@map("ai_model_pricing")
+}
+
+model AiAgent {
+  id           String            @id @default(cuid())
+  code         String            @unique
+  name         String
+  description  String?
+  status       String            @default("active")
+  subAgents    Json              @default("{}")
+  allowedApis  Json?             @default("[]")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  usageEvents AiUsageEvent[]
+
+  @@map("ai_agent")
+}
+
+model AiUsageEvent {
+  id                String   @id @default(cuid())
+  userId            String?
+  agentId           String?
+  modelId           String
+  accountId         String
+  inputTokens       Int      @default(0)
+  cachedInputTokens Int      @default(0)
+  outputTokens      Int      @default(0)
+  reasoningTokens   Int      @default(0)
+  cost              Decimal  @default(0) @db.Decimal(12, 6)
+  currency          String   @default("USD")
+  latencyMs         Int?
+  status            String   @default("ok")
+  createdAt         DateTime @default(now())
+
+  user    User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agent   AiAgent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  model   AiModel   @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  account AiAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([agentId, createdAt])
+  @@index([modelId, createdAt])
+  @@index([accountId, createdAt])
+  @@map("ai_usage_event")
+}
+
+model BillingConfig {
+  id           String   @id @default(cuid())
+  resourceType String
+  resourceId   String
+  billingType  String   @default("none")
+  priceUnit    String   @default("credit")
+  priceAmount  Decimal  @default(0) @db.Decimal(12, 6)
+  status       String   @default("active")
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([resourceType, resourceId])
+  @@index([resourceType])
+  @@map("billing_config")
+}
+
+model CurrencyRate {
+  id        String   @id @default(cuid())
+  currency  String   @unique
+  rate      Decimal  @db.Decimal(36, 18)
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("currency_rate")
+}
+
+// ============================================================
+// Pricing — Plans, Features, Subscriptions, Quotas
+// ============================================================
+
+model PricingPlan {
+  id            String   @id @default(cuid())
+  code          String
+  name          String
+  price         Decimal  @default(0) @db.Decimal(12, 4)
+  currency      String   @default("USD")
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  features      PlanFeature[]
+  subscriptions PricingSubscription[]
+
+  @@unique([code])
+  @@map("pricing_plan")
+}
+
+model Feature {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  planFeatures PlanFeature[]
+
+  @@map("feature")
+}
+
+model PlanFeature {
+  planId    String
+  featureId String
+
+  plan    PricingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureId])
+  @@index([featureId])
+  @@map("plan_feature")
+}
+
+model UserQuota {
+  id        String   @id @default(cuid())
+  userId    String
+  allocated Int      @default(0)
+  used      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([userId])
+  @@map("user_quota")
+}
+
+model PricingSubscription {
+  id            String    @id @default(cuid())
+  principalType String
+  principalId   String
+  planId        String
+  status        String    @default("active")
+  startsAt      DateTime  @default(now())
+  endsAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  plan PricingPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([principalType, principalId])
+  @@index([planId])
+  @@map("pricing_subscription")
+}
+
+model UserCredit {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  frozen    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credit")
+}
+
+model UserCreditLedger {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  amount        Int
+  balanceBefore Int
+  balanceAfter  Int
+  frozenBefore  Int      @default(0)
+  frozenAfter   Int      @default(0)
+  referenceType String?
+  referenceId   String?
+  description   String?
+  metadata      Json?    @default("{}")
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("user_credit_ledger")
+}
+
+model RedeemCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  credit    Int
+  status    String    @default("unused")
+  expiresAt DateTime?
+  enabled   Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("redeem_code")
+}

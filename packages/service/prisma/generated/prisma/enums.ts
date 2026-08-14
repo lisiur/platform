@@ -48,12 +48,12 @@ export const LinkType = {
 export type LinkType = (typeof LinkType)[keyof typeof LinkType]
 
 
-export const AgentMessageRole = {
+export const AiMessageRole = {
   user: 'user',
   assistant: 'assistant'
 } as const
 
-export type AgentMessageRole = (typeof AgentMessageRole)[keyof typeof AgentMessageRole]
+export type AiMessageRole = (typeof AiMessageRole)[keyof typeof AiMessageRole]
 
 
 export const CollectionItemType = {

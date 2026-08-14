@@ -1,14 +1,24 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateObject, type LanguageModel } from "ai";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { CollectionItemType } from "#generated/prisma/client";
+import { createProviderModel } from "#lib/ai-agent/provider-adapter";
+import { prisma } from "#lib/db";
+import { accountConcurrencyTracker } from "#modules/agent/account-concurrency";
 import {
-  isAgentConfigured,
-  loadAiAgentConfig,
-} from "#modules/agent/agent-config.service";
+  computeUsageCost,
+  resolveAgentModel,
+} from "#modules/agent/agent-resolution.service";
+import {
+  BILLING_RESOURCE_AI_AGENT,
+  releaseForAiUsage,
+  reserveForAiUsage,
+  resolveBilling,
+  settleForAiUsage,
+} from "#modules/billing/billing.service";
 import { collectionRepository } from "./collection.repository";
-import { resolveStudybuddyAppId } from "./collection.service";
+
+const STUDYBUDDY_ENRICHMENT_AGENT_CODE = "studybuddy_enrichment";
 
 export type EnrichmentKind =
   | "translation"
@@ -183,10 +193,37 @@ function kindsForType(type: CollectionItemType): EnrichmentKind[] {
   );
 }
 
-let cachedAppId: string | null = null;
-async function getAppId(): Promise<string> {
-  if (!cachedAppId) cachedAppId = await resolveStudybuddyAppId();
-  return cachedAppId;
+function defsForKinds(kinds: EnrichmentKind[]) {
+  return kinds
+    .map((kind) => DEFS.find((def) => def.kind === kind))
+    .filter((def): def is EnrichmentDef => Boolean(def));
+}
+
+function combinedSchema(defs: EnrichmentDef[]) {
+  return z.object(
+    Object.fromEntries(defs.map((def) => [def.kind, def.schema])) as Record<
+      EnrichmentKind,
+      z.ZodType
+    >,
+  );
+}
+
+function combinedPrompt(source: string, defs: EnrichmentDef[]) {
+  const tasks = defs.map((def) => {
+    const { prompt } = def.build(source);
+    return [`Section "${def.kind}":`, prompt, `Shape: ${def.shapeHint}`].join(
+      "\n",
+    );
+  });
+  return [
+    "Generate all requested StudyBuddy enrichment sections in ONE JSON object.",
+    "Each top-level key must be the section name shown below.",
+    "Do not omit a requested section.",
+    "",
+    `English source: ${source}`,
+    "",
+    ...tasks,
+  ].join("\n\n");
 }
 
 export async function enrichItem(
@@ -216,50 +253,147 @@ export async function enrichItem(
     return { itemId, generated: [] };
   }
 
-  const config = await loadAiAgentConfig(await getAppId());
-  if (!isAgentConfigured(config)) {
-    throw new HTTPException(503, {
-      message: "AI enrichment is not configured for this application",
-    });
-  }
+  const defs = defsForKinds(targets);
+  if (defs.length === 0) return { itemId, generated: [] };
 
-  const provider = createOpenAICompatible({
-    name: "studybuddy-enrich",
-    baseURL: config.baseURL,
-    apiKey: config.apiKey,
+  const billing = await resolveBilling(
+    BILLING_RESOURCE_AI_AGENT,
+    STUDYBUDDY_ENRICHMENT_AGENT_CODE,
+  );
+
+  const resolved = await resolveAgentModel({
+    agentCode: STUDYBUDDY_ENRICHMENT_AGENT_CODE,
+    subAgent: "default",
+    principal: { type: "user", id: ownerId },
   });
-  const model = provider(config.model) as LanguageModel;
 
-  const generated: EnrichmentKind[] = [];
-  for (const kind of targets) {
-    const def = DEFS.find((d) => d.kind === kind);
-    if (!def) continue;
-    const { system, prompt } = def.build(item.source);
-    const fullPrompt =
-      `${prompt}\n\nReturn ONLY a JSON object matching this shape ` +
-      `(omit a key if not applicable):\n${def.shapeHint}`;
+  await accountConcurrencyTracker.acquire(
+    resolved.accountId,
+    resolved.accountConcurrencyLimit,
+  );
+  let released = false;
+  const releaseSlot = () => {
+    if (!released) {
+      released = true;
+      accountConcurrencyTracker.release(resolved.accountId);
+    }
+  };
+
+  const langModel = createProviderModel(resolved.endpoint) as LanguageModel;
+  const startTime = Date.now();
+
+  try {
+    const usageEvent = await prisma.aiUsageEvent.create({
+      data: {
+        userId: ownerId,
+        agentId: resolved.agent.id,
+        modelId: resolved.aiModelId,
+        accountId: resolved.accountId,
+        status: "pending",
+      },
+    });
+
+    let reservedAmount: number;
     try {
-      const { object } = await generateObject({
-        model,
-        system,
-        prompt: fullPrompt,
-        schema: def.schema,
-      });
-      await collectionRepository.upsertEnrichment({
-        itemId: item.id,
-        kind,
-        content: object as Record<string, unknown>,
-        model: config.model,
-      });
-      generated.push(kind);
+      ({ reservedAmount } = await reserveForAiUsage({
+        userId: ownerId,
+        billing,
+        usageEventId: usageEvent.id,
+      }));
     } catch (err) {
+      await prisma.aiUsageEvent
+        .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
+        .catch(() => {});
+      throw err;
+    }
+
+    try {
+      const result = await generateObject({
+        model: langModel,
+        system: [resolved.agent.systemPrompt, COMMON_SYSTEM]
+          .filter(Boolean)
+          .join("\n\n"),
+        prompt: combinedPrompt(item.source, defs),
+        schema: combinedSchema(defs),
+        temperature: resolved.agent.temperature ?? undefined,
+        reasoning: resolved.agent.reasoning ?? undefined,
+      });
+
+      const object = result.object as Partial<
+        Record<EnrichmentKind, Record<string, unknown>>
+      >;
+      const generated: EnrichmentKind[] = [];
+      for (const def of defs) {
+        const content = object[def.kind];
+        if (!content) continue;
+        await collectionRepository.upsertEnrichment({
+          itemId: item.id,
+          kind: def.kind,
+          content,
+          model: resolved.endpoint.modelId,
+        });
+        generated.push(def.kind);
+      }
+
+      const usage = result.usage;
+      const inputTokens = usage.inputTokens ?? 0;
+      const cachedInputTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
+      const outputTokens = usage.outputTokens ?? 0;
+      const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
+      const cost = resolved.pricing
+        ? computeUsageCost(resolved.pricing, {
+            inputTokens,
+            cachedInputTokens,
+            outputTokens,
+          })
+        : 0;
+
+      await prisma.aiUsageEvent.update({
+        where: { id: usageEvent.id },
+        data: {
+          inputTokens,
+          cachedInputTokens,
+          outputTokens,
+          reasoningTokens,
+          cost,
+          currency: resolved.currency,
+          latencyMs: Date.now() - startTime,
+          status: "ok",
+        },
+      });
+
+      await settleForAiUsage({
+        userId: ownerId,
+        billing,
+        usageEventId: usageEvent.id,
+        reservedAmount,
+        cost,
+        currency: resolved.currency,
+      });
+
+      return { itemId, generated };
+    } catch (err) {
+      await prisma.aiUsageEvent
+        .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
+        .catch(() => {});
+      await releaseForAiUsage({
+        userId: ownerId,
+        billing,
+        usageEventId: usageEvent.id,
+        reservedAmount,
+      }).catch((releaseErr) => {
+        console.error(
+          "[studybuddy] failed to release reserved credits:",
+          releaseErr,
+        );
+      });
       throw new HTTPException(502, {
-        message: `AI enrichment failed for "${kind}": ${
+        message: `AI enrichment failed: ${
           err instanceof Error ? err.message : String(err)
         }`,
       });
     }
+  } finally {
+    releaseSlot();
   }
-
-  return { itemId, generated };
 }

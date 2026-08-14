@@ -3,10 +3,10 @@
 import {
   AgentLauncher,
   type AgentSessionsApi,
+  useActiveFeatures,
   withApiFeedback,
 } from "@repo/frontend";
 import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
-import { useHasPermission } from "@/lib/api/use-has-permission";
 
 const sessionsApi: AgentSessionsApi = {
   list: async (query) => {
@@ -27,8 +27,10 @@ const sessionsApi: AgentSessionsApi = {
 };
 
 export function AgentLauncherConnected() {
-  const canChat = useHasPermission("org/agent:chat");
-  if (!canChat) return null;
+  const { hasActiveFeature, loading } = useActiveFeatures(API_ORIGIN);
+
+  if (loading) return null;
+  if (!hasActiveFeature("platform_assistant")) return null;
 
   return (
     <AgentLauncher

@@ -14,7 +14,7 @@ CREATE TYPE "NotificationStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
 CREATE TYPE "LinkType" AS ENUM ('GROUP', 'INTERNAL', 'EXTERNAL');
 
 -- CreateEnum
-CREATE TYPE "agent_message_role" AS ENUM ('user', 'assistant');
+CREATE TYPE "ai_message_role" AS ENUM ('user', 'assistant');
 
 -- CreateEnum
 CREATE TYPE "CollectionItemType" AS ENUM ('WORD', 'PHRASE', 'SENTENCE', 'ARTICLE', 'LINK');
@@ -509,24 +509,25 @@ CREATE TABLE "api_token" (
 );
 
 -- CreateTable
-CREATE TABLE "agent_session" (
+CREATE TABLE "ai_conversation" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "appId" TEXT NOT NULL,
     "name" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "agent_session_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ai_conversation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "agent_message" (
+CREATE TABLE "ai_message" (
     "id" TEXT NOT NULL,
     "sessionId" TEXT NOT NULL,
-    "role" "agent_message_role" NOT NULL,
+    "role" "ai_message_role" NOT NULL,
     "parts" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "agent_message_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ai_message_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -558,6 +559,259 @@ CREATE TABLE "studybuddy_item_enrichment" (
     "generatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "studybuddy_item_enrichment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_provider" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "baseUrl" TEXT NOT NULL,
+    "aiAdapter" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ai_provider_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_account" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "balance" DECIMAL(12,4) NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "concurrencyLimit" INTEGER NOT NULL DEFAULT 1,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ai_account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_account_provider" (
+    "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+
+    CONSTRAINT "ai_account_provider_pkey" PRIMARY KEY ("accountId","providerId")
+);
+
+-- CreateTable
+CREATE TABLE "ai_key" (
+    "id" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "encryptedSecret" TEXT NOT NULL,
+    "mask" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "lastUsedAt" TIMESTAMP(3),
+    "expiresAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ai_key_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_model" (
+    "id" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "modelId" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "capabilities" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "contextWindow" INTEGER,
+    "supportsReasoning" BOOLEAN NOT NULL DEFAULT false,
+    "supportsCaching" BOOLEAN NOT NULL DEFAULT false,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ai_model_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_model_pricing" (
+    "id" TEXT NOT NULL,
+    "modelId" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "timeZone" TEXT NOT NULL DEFAULT 'UTC',
+    "policy" JSONB NOT NULL DEFAULT '[]',
+    "effectiveFrom" TIMESTAMP(3) NOT NULL,
+    "effectiveTo" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ai_model_pricing_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_agent" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "subAgents" JSONB NOT NULL DEFAULT '{}',
+    "allowedApis" JSONB DEFAULT '[]',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ai_agent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_usage_event" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "agentId" TEXT,
+    "modelId" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "inputTokens" INTEGER NOT NULL DEFAULT 0,
+    "cachedInputTokens" INTEGER NOT NULL DEFAULT 0,
+    "outputTokens" INTEGER NOT NULL DEFAULT 0,
+    "reasoningTokens" INTEGER NOT NULL DEFAULT 0,
+    "cost" DECIMAL(12,6) NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "latencyMs" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'ok',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ai_usage_event_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "billing_config" (
+    "id" TEXT NOT NULL,
+    "resourceType" TEXT NOT NULL,
+    "resourceId" TEXT NOT NULL,
+    "billingType" TEXT NOT NULL DEFAULT 'none',
+    "priceUnit" TEXT NOT NULL DEFAULT 'credit',
+    "priceAmount" DECIMAL(12,6) NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "description" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "billing_config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "currency_rate" (
+    "id" TEXT NOT NULL,
+    "currency" TEXT NOT NULL,
+    "rate" DECIMAL(36,18) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "currency_rate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "pricing_plan" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "price" DECIMAL(12,4) NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pricing_plan_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "feature" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "feature_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "plan_feature" (
+    "planId" TEXT NOT NULL,
+    "featureId" TEXT NOT NULL,
+
+    CONSTRAINT "plan_feature_pkey" PRIMARY KEY ("planId","featureId")
+);
+
+-- CreateTable
+CREATE TABLE "user_quota" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "allocated" INTEGER NOT NULL DEFAULT 0,
+    "used" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_quota_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "pricing_subscription" (
+    "id" TEXT NOT NULL,
+    "principalType" TEXT NOT NULL,
+    "principalId" TEXT NOT NULL,
+    "planId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "startsAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "endsAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pricing_subscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_credit" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "balance" INTEGER NOT NULL DEFAULT 0,
+    "frozen" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_credit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_credit_ledger" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "balanceBefore" INTEGER NOT NULL,
+    "balanceAfter" INTEGER NOT NULL,
+    "frozenBefore" INTEGER NOT NULL DEFAULT 0,
+    "frozenAfter" INTEGER NOT NULL DEFAULT 0,
+    "referenceType" TEXT,
+    "referenceId" TEXT,
+    "description" TEXT,
+    "metadata" JSONB DEFAULT '{}',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_credit_ledger_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "redeem_code" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "credit" INTEGER NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'unused',
+    "expiresAt" TIMESTAMP(3),
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "redeem_code_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -837,10 +1091,13 @@ CREATE INDEX "api_token_ownerId_idx" ON "api_token"("ownerId");
 CREATE INDEX "api_token_scope_idx" ON "api_token"("scope");
 
 -- CreateIndex
-CREATE INDEX "agent_session_userId_createdAt_idx" ON "agent_session"("userId", "createdAt");
+CREATE INDEX "ai_conversation_userId_createdAt_idx" ON "ai_conversation"("userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "agent_message_sessionId_createdAt_idx" ON "agent_message"("sessionId", "createdAt");
+CREATE INDEX "ai_conversation_appId_idx" ON "ai_conversation"("appId");
+
+-- CreateIndex
+CREATE INDEX "ai_message_sessionId_createdAt_idx" ON "ai_message"("sessionId", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "studybuddy_collection_item_ownerId_appId_idx" ON "studybuddy_collection_item"("ownerId", "appId");
@@ -856,6 +1113,81 @@ CREATE INDEX "studybuddy_item_enrichment_itemId_idx" ON "studybuddy_item_enrichm
 
 -- CreateIndex
 CREATE UNIQUE INDEX "studybuddy_item_enrichment_itemId_kind_key" ON "studybuddy_item_enrichment"("itemId", "kind");
+
+-- CreateIndex
+CREATE INDEX "ai_account_provider_providerId_idx" ON "ai_account_provider"("providerId");
+
+-- CreateIndex
+CREATE INDEX "ai_key_accountId_idx" ON "ai_key"("accountId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ai_model_providerId_modelId_key" ON "ai_model"("providerId", "modelId");
+
+-- CreateIndex
+CREATE INDEX "ai_model_pricing_modelId_effectiveFrom_idx" ON "ai_model_pricing"("modelId", "effectiveFrom");
+
+-- CreateIndex
+CREATE INDEX "ai_model_pricing_accountId_modelId_idx" ON "ai_model_pricing"("accountId", "modelId");
+
+-- CreateIndex
+CREATE INDEX "ai_model_pricing_modelId_accountId_timeZone_idx" ON "ai_model_pricing"("modelId", "accountId", "timeZone");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ai_agent_code_key" ON "ai_agent"("code");
+
+-- CreateIndex
+CREATE INDEX "ai_usage_event_userId_createdAt_idx" ON "ai_usage_event"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ai_usage_event_agentId_createdAt_idx" ON "ai_usage_event"("agentId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ai_usage_event_modelId_createdAt_idx" ON "ai_usage_event"("modelId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ai_usage_event_accountId_createdAt_idx" ON "ai_usage_event"("accountId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "billing_config_resourceType_idx" ON "billing_config"("resourceType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "billing_config_resourceType_resourceId_key" ON "billing_config"("resourceType", "resourceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "currency_rate_currency_key" ON "currency_rate"("currency");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "pricing_plan_code_key" ON "pricing_plan"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "feature_code_key" ON "feature"("code");
+
+-- CreateIndex
+CREATE INDEX "plan_feature_featureId_idx" ON "plan_feature"("featureId");
+
+-- CreateIndex
+CREATE INDEX "user_quota_userId_idx" ON "user_quota"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_quota_userId_key" ON "user_quota"("userId");
+
+-- CreateIndex
+CREATE INDEX "pricing_subscription_principalType_principalId_idx" ON "pricing_subscription"("principalType", "principalId");
+
+-- CreateIndex
+CREATE INDEX "pricing_subscription_planId_idx" ON "pricing_subscription"("planId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_credit_userId_key" ON "user_credit"("userId");
+
+-- CreateIndex
+CREATE INDEX "user_credit_ledger_userId_createdAt_idx" ON "user_credit_ledger"("userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "user_credit_ledger_referenceType_referenceId_idx" ON "user_credit_ledger"("referenceType", "referenceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "redeem_code_code_key" ON "redeem_code"("code");
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -954,14 +1286,65 @@ ALTER TABLE "notification" ADD CONSTRAINT "notification_creatorId_fkey" FOREIGN 
 ALTER TABLE "api_token" ADD CONSTRAINT "api_token_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "agent_session" ADD CONSTRAINT "agent_session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ai_conversation" ADD CONSTRAINT "ai_conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "agent_message" ADD CONSTRAINT "agent_message_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "agent_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ai_conversation" ADD CONSTRAINT "ai_conversation_appId_fkey" FOREIGN KEY ("appId") REFERENCES "application"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_message" ADD CONSTRAINT "ai_message_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ai_conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "studybuddy_collection_item" ADD CONSTRAINT "studybuddy_collection_item_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "studybuddy_item_enrichment" ADD CONSTRAINT "studybuddy_item_enrichment_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "studybuddy_collection_item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_account_provider" ADD CONSTRAINT "ai_account_provider_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ai_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_account_provider" ADD CONSTRAINT "ai_account_provider_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "ai_provider"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_key" ADD CONSTRAINT "ai_key_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ai_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_model" ADD CONSTRAINT "ai_model_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "ai_provider"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_model_pricing" ADD CONSTRAINT "ai_model_pricing_modelId_fkey" FOREIGN KEY ("modelId") REFERENCES "ai_model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_model_pricing" ADD CONSTRAINT "ai_model_pricing_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ai_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_event" ADD CONSTRAINT "ai_usage_event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_event" ADD CONSTRAINT "ai_usage_event_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "ai_agent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_event" ADD CONSTRAINT "ai_usage_event_modelId_fkey" FOREIGN KEY ("modelId") REFERENCES "ai_model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_event" ADD CONSTRAINT "ai_usage_event_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "ai_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "plan_feature" ADD CONSTRAINT "plan_feature_planId_fkey" FOREIGN KEY ("planId") REFERENCES "pricing_plan"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "plan_feature" ADD CONSTRAINT "plan_feature_featureId_fkey" FOREIGN KEY ("featureId") REFERENCES "feature"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_quota" ADD CONSTRAINT "user_quota_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "pricing_subscription" ADD CONSTRAINT "pricing_subscription_planId_fkey" FOREIGN KEY ("planId") REFERENCES "pricing_plan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_credit" ADD CONSTRAINT "user_credit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_credit_ledger" ADD CONSTRAINT "user_credit_ledger_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

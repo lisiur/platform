@@ -1,16 +1,13 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import {
-  getPrincipalUserId,
-  principalScope,
-  requirePrincipal,
-} from "#extractors/session";
+import { requireAppId } from "#extractors/current-app";
+import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import {
   forbiddenResponse,
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { assertAccess } from "#modules/access-control/public";
-import { agentSessionManager } from "#modules/agent/agent-session.service";
+import { aiConversationManager } from "#modules/agent/ai-conversation.service";
+import { assertPlatformAssistantAccess } from "./entitlement";
 import { listSessionsQuerySchema, sessionListResponseSchema } from "./schema";
 
 export const listSessionsRoute = defineOpenAPIRoute({
@@ -32,15 +29,11 @@ export const listSessionsRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    const scope = principalScope(principal);
-    await assertAccess(
-      principal,
-      scope === "system" ? "system/agent:chat" : "org/agent:chat",
-      scope,
-    );
     const userId = getPrincipalUserId(principal);
+    const appId = await requireAppId(c);
     const { limit, offset } = c.req.valid("query");
-    const result = await agentSessionManager.listByUser(userId, {
+    await assertPlatformAssistantAccess(userId);
+    const result = await aiConversationManager.listByUser(userId, appId, {
       limit,
       offset,
     });

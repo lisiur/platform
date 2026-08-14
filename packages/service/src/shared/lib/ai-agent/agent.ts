@@ -1,44 +1,52 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { Context, ToolSet } from "@ai-sdk/provider-utils";
+import type { AiReasoningLevel } from "@repo/shared";
 import { type ModelMessage, stepCountIs, streamText } from "ai";
-import type { AiAgentConfig } from "#modules/agent/agent-config.service";
 import { findOperation } from "#modules/agent/openapi.service";
+import { createProviderModel, type ProviderEndpoint } from "./provider-adapter";
 import {
   buildInteractionTools,
   buildTools,
   type ForwardedHeaders,
 } from "./tools";
 
-export function buildSystemPrompt(openApiCatalogue: string[] = []): string {
-  const lines = [
-    "You are the platform AI Agent — an assistant of user",
-    "",
-    `When users ask about your capabilities (e.g., “What can you do?”), respond only with the supplied Available API endpoints, presented in a generic, user-friendly tone. Do not reveal anything else, including tool names, parameters, internal functions, or any non-business details.`,
-  ];
-  lines.push("", "Available API endpoints:");
+export function buildSystemPrompt(
+  systemPrompt: string | null,
+  openApiCatalogue: string[] = [],
+): string | undefined {
+  const lines: string[] = [];
+  const trimmedSystemPrompt = systemPrompt?.trim();
+  if (trimmedSystemPrompt) lines.push(trimmedSystemPrompt);
+
   if (openApiCatalogue.length > 0) {
-    lines.push(...openApiCatalogue);
-  } else {
-    lines.push("No available endpoints.");
+    lines.push("", "Available API endpoints:", ...openApiCatalogue);
   }
-  return lines.join("\n");
+
+  return lines.length > 0 ? lines.join("\n") : undefined;
 }
 
 export interface StreamAgentParams {
-  config: AiAgentConfig;
+  endpoint: ProviderEndpoint;
+  systemPrompt: string | null;
+  reasoning: AiReasoningLevel | null;
+  maxSteps: number;
+  temperature: number | null;
+  allowedApis: string[];
   messages: ModelMessage[];
   abortSignal: AbortSignal;
-  maxSteps?: number;
   apiOrigin?: string;
   sessionId?: string;
   forwardedHeaders?: ForwardedHeaders;
 }
 
 export async function streamAgent({
-  config,
+  endpoint,
+  systemPrompt,
+  reasoning,
+  maxSteps,
+  temperature,
+  allowedApis,
   messages,
   abortSignal,
-  maxSteps = 8,
   apiOrigin,
   sessionId,
   forwardedHeaders,
@@ -48,12 +56,12 @@ export async function streamAgent({
   let catalogue: string[] = [];
   let tools: ToolSet = buildInteractionTools();
 
-  if (apiOrigin && config.allowedApis && config.allowedApis.length > 0) {
+  if (apiOrigin && allowedApis.length > 0) {
     const resolved: Array<{
       operationId: string;
       found: NonNullable<Awaited<ReturnType<typeof findOperation>>>;
     }> = [];
-    for (const operationId of config.allowedApis) {
+    for (const operationId of allowedApis) {
       const found = await findOperation(operationId);
       if (found) resolved.push({ operationId, found });
     }
@@ -79,22 +87,16 @@ export async function streamAgent({
     }
   }
 
-  const openai = createOpenAICompatible({
-    name: "platform-agent",
-    baseURL: config.baseURL,
-    apiKey: config.apiKey,
-  });
+  const model = createProviderModel(endpoint);
 
   return streamText({
-    model: openai(config.model),
-    system: buildSystemPrompt(catalogue),
+    model,
+    system: buildSystemPrompt(systemPrompt, catalogue),
     messages,
     tools,
+    temperature: temperature ?? undefined,
     stopWhen: stepCountIs(maxSteps),
     abortSignal,
-    reasoning:
-      config.reasoning === "off" || !config.reasoning
-        ? "none"
-        : config.reasoning,
+    reasoning: reasoning ?? undefined,
   });
 }

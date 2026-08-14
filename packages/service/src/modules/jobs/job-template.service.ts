@@ -142,6 +142,19 @@ export class JobTemplateService {
 
   async triggerTemplate(id: string): Promise<JobInstance> {
     const template = await this.getTemplate(id);
+    return this.trigger(template);
+  }
+
+  async triggerTemplateByName(name: string): Promise<JobInstance> {
+    const template = await jobRepository.findByName(name);
+    if (!template) {
+      throw new HTTPException(404, { message: "Job template not found" });
+    }
+
+    return this.trigger(template);
+  }
+
+  private async trigger(template: Job): Promise<JobInstance> {
     const now = new Date();
 
     const instance = await jobInstanceRepository.create({

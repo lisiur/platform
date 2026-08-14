@@ -4,11 +4,13 @@ import { roleRoutes } from "./access-control/routes/role";
 import { rolePermissionRoutes } from "./access-control/routes/role-permission";
 import { userRoleRoutes } from "./access-control/routes/user-role";
 import { agentRoutes } from "./agent/routes/agent";
+import { aiRoutes } from "./ai/routes";
 import { applicationRoutes } from "./application/routes/application";
 import { menuRoutes } from "./application/routes/menu";
 import { attachmentRoutes } from "./attachment/routes/attachment";
 import { auditLogRoutes } from "./audit/routes/audit-log";
 import { operationLogRoutes } from "./audit/routes/operation-log";
+import { billingRoutes } from "./billing/routes";
 import { collectionRoutes } from "./collection/routes";
 import { eventsRoutes } from "./events/routes/events";
 import { apiTokenRoutes } from "./identity/routes/api-token";
@@ -21,6 +23,8 @@ import { notificationChannelRoutes } from "./notification/routes/notification-ch
 import { notificationRecordRoutes } from "./notification/routes/notification-record";
 import { notificationTemplateRoutes } from "./notification/routes/notification-template";
 import { organizationRoutes } from "./organization/routes/organization";
+import { pricingRoutes } from "./pricing/routes";
+import { redeemCodeRoutes } from "./redeem-code/routes/redeem-code";
 import { cacheRoutes } from "./system/routes/cache";
 import { rateLimitRoutes } from "./system/routes/rate-limit";
 import { systemConfigRoutes } from "./system/routes/system-config";
@@ -31,6 +35,8 @@ const routes = new OpenAPIHono()
   .route("/auth", authRoutes)
   .route("/system-config", systemConfigRoutes)
   .route("/organizations", organizationRoutes)
+  .route("/pricing", pricingRoutes)
+  .route("/redeem-codes", redeemCodeRoutes)
   .route("/applications", applicationRoutes)
   .route("/menus", menuRoutes)
   .route("/permissions", permissionRoutes)
@@ -54,6 +60,8 @@ const routes = new OpenAPIHono()
   .route("/job-instances", jobInstanceRoutes)
   .route("/rate-limit", rateLimitRoutes)
   .route("/cache", cacheRoutes)
-  .route("/agent", agentRoutes);
+  .route("/agent", agentRoutes)
+  .route("/ai", aiRoutes)
+  .route("/billing", billingRoutes);
 
 export { routes };

@@ -240,6 +240,47 @@ export const SYSTEM_CONFIG_REGISTRY: ConfigRegistryEntry[] = [
     valueSchema: z.string(),
   },
 
+  // --- currency ---
+  {
+    group: "currency",
+    key: "creditsCurrency",
+    defaultValue: "CNY",
+    type: "select",
+    label: "settings.fields.currencyCreditsCurrency",
+    description: "settings.fieldsDesc.currencyCreditsCurrency",
+    schema: {
+      options: [
+        { value: "CNY", label: "settings.currencyOptions.CNY" },
+        { value: "USD", label: "settings.currencyOptions.USD" },
+      ],
+    },
+    isSecret: false,
+    sortOrder: 0,
+    valueSchema: z.enum(["CNY", "USD"]),
+  },
+  {
+    group: "currency",
+    key: "creditsPerUnit",
+    defaultValue: "100",
+    type: "number",
+    label: "settings.fields.currencyCreditsPerUnit",
+    description: "settings.fieldsDesc.currencyCreditsPerUnit",
+    isSecret: false,
+    sortOrder: 1,
+    valueSchema: intValue,
+  },
+  {
+    group: "currency",
+    key: "lastSync",
+    defaultValue: "",
+    type: "string",
+    label: "settings.fields.currencyLastSync",
+    description: "settings.fieldsDesc.currencyLastSync",
+    isSecret: false,
+    sortOrder: 2,
+    valueSchema: z.string(),
+  },
+
   // --- self-update ---
   {
     group: "self-update",

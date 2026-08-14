@@ -31,6 +31,7 @@ export type {
 export { VersionDialog } from "./components/version-dialog";
 export type { WatermarkConfig, WatermarkProps } from "./components/watermark";
 export { Watermark } from "./components/watermark";
+export { useActiveFeatures } from "./hooks/use-active-features";
 export type {
   AgentChatApi,
   UseAgentChatOptions,

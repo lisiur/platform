@@ -20,7 +20,7 @@ import { operationLogger } from "#middleware/operation-logger";
 import { createRateLimiter } from "#middleware/rate-limit";
 import { traceContext } from "#middleware/trace-context";
 import { loadAuthDefaults } from "#modules/identity/auth-config.service";
-import { jobExecutor } from "#modules/jobs/public";
+import { jobExecutor, jobTemplateService } from "#modules/jobs/public";
 import {
   initRateLimitDefaults,
   initRateLimitOverrides,
@@ -61,6 +61,11 @@ if (process.env.NEXT_PHASE !== "phase-production-build") {
     }
 
     jobExecutor.start();
+    jobTemplateService
+      .triggerTemplateByName("sync-currency-rates")
+      .catch((e) =>
+        console.error("Failed to enqueue currency rate sync job:", e),
+      );
     resumeUpdateStatusStream().catch((e) =>
       console.error("Failed to resume update status stream:", e),
     );

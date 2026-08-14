@@ -16,6 +16,7 @@ export * from "./components/input";
 export * from "./components/input-group";
 export * from "./components/input-password";
 export * from "./components/label";
+export * from "./components/multiselect";
 export * from "./components/pagination";
 export * from "./components/popover";
 export * from "./components/progress";

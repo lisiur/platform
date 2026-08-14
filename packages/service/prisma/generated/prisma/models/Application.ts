@@ -304,6 +304,7 @@ export type ApplicationWhereInput = {
   sortOrder?: Prisma.IntFilter<"Application"> | number
   createdAt?: Prisma.DateTimeFilter<"Application"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Application"> | Date | string
+  aiConversations?: Prisma.AiConversationListRelationFilter
   menus?: Prisma.MenuListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   applicationConfigs?: Prisma.ApplicationConfigListRelationFilter
@@ -326,6 +327,7 @@ export type ApplicationOrderByWithRelationInput = {
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  aiConversations?: Prisma.AiConversationOrderByRelationAggregateInput
   menus?: Prisma.MenuOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   applicationConfigs?: Prisma.ApplicationConfigOrderByRelationAggregateInput
@@ -351,6 +353,7 @@ export type ApplicationWhereUniqueInput = Prisma.AtLeast<{
   sortOrder?: Prisma.IntFilter<"Application"> | number
   createdAt?: Prisma.DateTimeFilter<"Application"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Application"> | Date | string
+  aiConversations?: Prisma.AiConversationListRelationFilter
   menus?: Prisma.MenuListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   applicationConfigs?: Prisma.ApplicationConfigListRelationFilter
@@ -419,6 +422,7 @@ export type ApplicationCreateInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigCreateNestedManyWithoutAppInput
@@ -441,6 +445,7 @@ export type ApplicationUncheckedCreateInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationUncheckedCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuUncheckedCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedCreateNestedManyWithoutAppInput
@@ -463,6 +468,7 @@ export type ApplicationUpdateInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUpdateManyWithoutAppNestedInput
@@ -485,6 +491,7 @@ export type ApplicationUncheckedUpdateInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUncheckedUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUncheckedUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedUpdateManyWithoutAppNestedInput
@@ -666,6 +673,20 @@ export type ApplicationUpdateOneWithoutNotificationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ApplicationUpdateToOneWithWhereWithoutNotificationsInput, Prisma.ApplicationUpdateWithoutNotificationsInput>, Prisma.ApplicationUncheckedUpdateWithoutNotificationsInput>
 }
 
+export type ApplicationCreateNestedOneWithoutAiConversationsInput = {
+  create?: Prisma.XOR<Prisma.ApplicationCreateWithoutAiConversationsInput, Prisma.ApplicationUncheckedCreateWithoutAiConversationsInput>
+  connectOrCreate?: Prisma.ApplicationCreateOrConnectWithoutAiConversationsInput
+  connect?: Prisma.ApplicationWhereUniqueInput
+}
+
+export type ApplicationUpdateOneRequiredWithoutAiConversationsNestedInput = {
+  create?: Prisma.XOR<Prisma.ApplicationCreateWithoutAiConversationsInput, Prisma.ApplicationUncheckedCreateWithoutAiConversationsInput>
+  connectOrCreate?: Prisma.ApplicationCreateOrConnectWithoutAiConversationsInput
+  upsert?: Prisma.ApplicationUpsertWithoutAiConversationsInput
+  connect?: Prisma.ApplicationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ApplicationUpdateToOneWithWhereWithoutAiConversationsInput, Prisma.ApplicationUpdateWithoutAiConversationsInput>, Prisma.ApplicationUncheckedUpdateWithoutAiConversationsInput>
+}
+
 export type ApplicationCreateWithoutApplicationConfigsInput = {
   id?: string
   name: string
@@ -683,6 +704,7 @@ export type ApplicationCreateWithoutApplicationConfigsInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAppInput
 }
@@ -704,6 +726,7 @@ export type ApplicationUncheckedCreateWithoutApplicationConfigsInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationUncheckedCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuUncheckedCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAppInput
 }
@@ -741,6 +764,7 @@ export type ApplicationUpdateWithoutApplicationConfigsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAppNestedInput
 }
@@ -762,6 +786,7 @@ export type ApplicationUncheckedUpdateWithoutApplicationConfigsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUncheckedUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUncheckedUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAppNestedInput
 }
@@ -783,6 +808,7 @@ export type ApplicationCreateWithoutMenusInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigCreateNestedManyWithoutAppInput
 }
@@ -804,6 +830,7 @@ export type ApplicationUncheckedCreateWithoutMenusInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationUncheckedCreateNestedManyWithoutAppInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedCreateNestedManyWithoutAppInput
 }
@@ -841,6 +868,7 @@ export type ApplicationUpdateWithoutMenusInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUpdateManyWithoutAppNestedInput
 }
@@ -862,6 +890,7 @@ export type ApplicationUncheckedUpdateWithoutMenusInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUncheckedUpdateManyWithoutAppNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedUpdateManyWithoutAppNestedInput
 }
@@ -883,6 +912,7 @@ export type ApplicationCreateWithoutNotificationsInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigCreateNestedManyWithoutAppInput
 }
@@ -904,6 +934,7 @@ export type ApplicationUncheckedCreateWithoutNotificationsInput = {
   sortOrder?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  aiConversations?: Prisma.AiConversationUncheckedCreateNestedManyWithoutAppInput
   menus?: Prisma.MenuUncheckedCreateNestedManyWithoutAppInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedCreateNestedManyWithoutAppInput
 }
@@ -941,6 +972,7 @@ export type ApplicationUpdateWithoutNotificationsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUpdateManyWithoutAppNestedInput
 }
@@ -962,7 +994,112 @@ export type ApplicationUncheckedUpdateWithoutNotificationsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiConversations?: Prisma.AiConversationUncheckedUpdateManyWithoutAppNestedInput
   menus?: Prisma.MenuUncheckedUpdateManyWithoutAppNestedInput
+  applicationConfigs?: Prisma.ApplicationConfigUncheckedUpdateManyWithoutAppNestedInput
+}
+
+export type ApplicationCreateWithoutAiConversationsInput = {
+  id?: string
+  name: string
+  code: string
+  description?: string | null
+  logo?: string | null
+  logoId?: string | null
+  favicon?: string | null
+  faviconId?: string | null
+  copyright?: string | null
+  icp?: string | null
+  psif?: string | null
+  watermarkEnabled?: boolean
+  watermarkConfig?: string | null
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  menus?: Prisma.MenuCreateNestedManyWithoutAppInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAppInput
+  applicationConfigs?: Prisma.ApplicationConfigCreateNestedManyWithoutAppInput
+}
+
+export type ApplicationUncheckedCreateWithoutAiConversationsInput = {
+  id?: string
+  name: string
+  code: string
+  description?: string | null
+  logo?: string | null
+  logoId?: string | null
+  favicon?: string | null
+  faviconId?: string | null
+  copyright?: string | null
+  icp?: string | null
+  psif?: string | null
+  watermarkEnabled?: boolean
+  watermarkConfig?: string | null
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  menus?: Prisma.MenuUncheckedCreateNestedManyWithoutAppInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAppInput
+  applicationConfigs?: Prisma.ApplicationConfigUncheckedCreateNestedManyWithoutAppInput
+}
+
+export type ApplicationCreateOrConnectWithoutAiConversationsInput = {
+  where: Prisma.ApplicationWhereUniqueInput
+  create: Prisma.XOR<Prisma.ApplicationCreateWithoutAiConversationsInput, Prisma.ApplicationUncheckedCreateWithoutAiConversationsInput>
+}
+
+export type ApplicationUpsertWithoutAiConversationsInput = {
+  update: Prisma.XOR<Prisma.ApplicationUpdateWithoutAiConversationsInput, Prisma.ApplicationUncheckedUpdateWithoutAiConversationsInput>
+  create: Prisma.XOR<Prisma.ApplicationCreateWithoutAiConversationsInput, Prisma.ApplicationUncheckedCreateWithoutAiConversationsInput>
+  where?: Prisma.ApplicationWhereInput
+}
+
+export type ApplicationUpdateToOneWithWhereWithoutAiConversationsInput = {
+  where?: Prisma.ApplicationWhereInput
+  data: Prisma.XOR<Prisma.ApplicationUpdateWithoutAiConversationsInput, Prisma.ApplicationUncheckedUpdateWithoutAiConversationsInput>
+}
+
+export type ApplicationUpdateWithoutAiConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  favicon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  faviconId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  copyright?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  psif?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  watermarkConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  menus?: Prisma.MenuUpdateManyWithoutAppNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAppNestedInput
+  applicationConfigs?: Prisma.ApplicationConfigUpdateManyWithoutAppNestedInput
+}
+
+export type ApplicationUncheckedUpdateWithoutAiConversationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  favicon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  faviconId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  copyright?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  psif?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  watermarkConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  menus?: Prisma.MenuUncheckedUpdateManyWithoutAppNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAppNestedInput
   applicationConfigs?: Prisma.ApplicationConfigUncheckedUpdateManyWithoutAppNestedInput
 }
 
@@ -972,12 +1109,14 @@ export type ApplicationUncheckedUpdateWithoutNotificationsInput = {
  */
 
 export type ApplicationCountOutputType = {
+  aiConversations: number
   menus: number
   notifications: number
   applicationConfigs: number
 }
 
 export type ApplicationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  aiConversations?: boolean | ApplicationCountOutputTypeCountAiConversationsArgs
   menus?: boolean | ApplicationCountOutputTypeCountMenusArgs
   notifications?: boolean | ApplicationCountOutputTypeCountNotificationsArgs
   applicationConfigs?: boolean | ApplicationCountOutputTypeCountApplicationConfigsArgs
@@ -991,6 +1130,13 @@ export type ApplicationCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
    * Select specific fields to fetch from the ApplicationCountOutputType
    */
   select?: Prisma.ApplicationCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ApplicationCountOutputType without action
+ */
+export type ApplicationCountOutputTypeCountAiConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiConversationWhereInput
 }
 
 /**
@@ -1032,6 +1178,7 @@ export type ApplicationSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   sortOrder?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  aiConversations?: boolean | Prisma.Application$aiConversationsArgs<ExtArgs>
   menus?: boolean | Prisma.Application$menusArgs<ExtArgs>
   notifications?: boolean | Prisma.Application$notificationsArgs<ExtArgs>
   applicationConfigs?: boolean | Prisma.Application$applicationConfigsArgs<ExtArgs>
@@ -1097,6 +1244,7 @@ export type ApplicationSelectScalar = {
 
 export type ApplicationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "code" | "description" | "logo" | "logoId" | "favicon" | "faviconId" | "copyright" | "icp" | "psif" | "watermarkEnabled" | "watermarkConfig" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["application"]>
 export type ApplicationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  aiConversations?: boolean | Prisma.Application$aiConversationsArgs<ExtArgs>
   menus?: boolean | Prisma.Application$menusArgs<ExtArgs>
   notifications?: boolean | Prisma.Application$notificationsArgs<ExtArgs>
   applicationConfigs?: boolean | Prisma.Application$applicationConfigsArgs<ExtArgs>
@@ -1108,6 +1256,7 @@ export type ApplicationIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.
 export type $ApplicationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Application"
   objects: {
+    aiConversations: Prisma.$AiConversationPayload<ExtArgs>[]
     menus: Prisma.$MenuPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     applicationConfigs: Prisma.$ApplicationConfigPayload<ExtArgs>[]
@@ -1523,6 +1672,7 @@ readonly fields: ApplicationFieldRefs;
  */
 export interface Prisma__ApplicationClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  aiConversations<T extends Prisma.Application$aiConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Application$aiConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   menus<T extends Prisma.Application$menusArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Application$menusArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MenuPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.Application$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Application$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   applicationConfigs<T extends Prisma.Application$applicationConfigsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Application$applicationConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApplicationConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1961,6 +2111,30 @@ export type ApplicationDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many Applications to delete.
    */
   limit?: number
+}
+
+/**
+ * Application.aiConversations
+ */
+export type Application$aiConversationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiConversation
+   */
+  select?: Prisma.AiConversationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiConversation
+   */
+  omit?: Prisma.AiConversationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiConversationInclude<ExtArgs> | null
+  where?: Prisma.AiConversationWhereInput
+  orderBy?: Prisma.AiConversationOrderByWithRelationInput | Prisma.AiConversationOrderByWithRelationInput[]
+  cursor?: Prisma.AiConversationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiConversationScalarFieldEnum | Prisma.AiConversationScalarFieldEnum[]
 }
 
 /**

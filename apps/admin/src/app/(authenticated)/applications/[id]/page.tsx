@@ -9,8 +9,6 @@ import { use, useCallback, useEffect, useState } from "react";
 import { ManagementPageShell } from "@/components/management-page-shell";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
-import { AllowedApiSelector } from "./components/allowed-api-selector";
-import { ApplicationAiAgentForm } from "./components/application-ai-agent-form";
 import { ApplicationAiAgentUiForm } from "./components/application-ai-agent-ui-form";
 import { ApplicationMenuManagement } from "./components/application-menu-management";
 import { ApplicationRoleManagement } from "./components/application-role-management";
@@ -132,14 +130,7 @@ export default function ApplicationDetailPage({
           className="flex min-h-0 flex-1 overflow-hidden"
         >
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="space-y-6">
-              <ApplicationAiAgentForm appId={app.id} />
-              <ApplicationAiAgentUiForm appId={app.id} />
-            </div>
-            <AllowedApiSelector
-              appId={app.id}
-              className="h-full min-h-[30rem] overflow-hidden mt-6"
-            />
+            <ApplicationAiAgentUiForm appId={app.id} />
           </div>
         </TabsContent>
       </Tabs>

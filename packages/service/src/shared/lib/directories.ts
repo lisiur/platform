@@ -9,5 +9,5 @@ export function uploadsDir(): string {
 }
 
 export function agentAttachmentsDir(): string {
-	return join(uploadsDir(), "agent-attachments");
+  return join(uploadsDir(), "agent-attachments");
 }

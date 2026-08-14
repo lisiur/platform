@@ -26,14 +26,14 @@ export const sessionSummarySchema = z
       .openapi({ example: "Deploy pipeline debugging" }),
     createdAt: z.number().int().openapi({ example: 1753324800000 }),
   })
-  .openapi("AgentSessionSummary");
+  .openapi("AiConversationSummary");
 
 export const sessionListResponseSchema = z
   .object({
     sessions: z.array(sessionSummarySchema),
     total: z.number(),
   })
-  .openapi("AgentSessionList");
+  .openapi("AiConversationList");
 
 /**
  * History is returned as a permissive array: each entry is an AI SDK UIMessage
@@ -41,7 +41,7 @@ export const sessionListResponseSchema = z
  */
 export const sessionHistoryResponseSchema = z
   .array(z.any())
-  .openapi("AgentSessionHistory");
+  .openapi("AiConversationHistory");
 
 /**
  * Visual AI Agent config surfaced to the client: which chat UI parts the user

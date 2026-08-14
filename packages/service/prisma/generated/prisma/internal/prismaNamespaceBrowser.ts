@@ -81,10 +81,28 @@ export const ModelName = {
   Notification: 'Notification',
   RateLimitOverride: 'RateLimitOverride',
   ApiToken: 'ApiToken',
-  AgentSession: 'AgentSession',
-  AgentMessage: 'AgentMessage',
+  AiConversation: 'AiConversation',
+  AiMessage: 'AiMessage',
   CollectionItem: 'CollectionItem',
-  ItemEnrichment: 'ItemEnrichment'
+  ItemEnrichment: 'ItemEnrichment',
+  AiProvider: 'AiProvider',
+  AiAccount: 'AiAccount',
+  AiAccountProvider: 'AiAccountProvider',
+  AiKey: 'AiKey',
+  AiModel: 'AiModel',
+  AiModelPricing: 'AiModelPricing',
+  AiAgent: 'AiAgent',
+  AiUsageEvent: 'AiUsageEvent',
+  BillingConfig: 'BillingConfig',
+  CurrencyRate: 'CurrencyRate',
+  PricingPlan: 'PricingPlan',
+  Feature: 'Feature',
+  PlanFeature: 'PlanFeature',
+  UserQuota: 'UserQuota',
+  PricingSubscription: 'PricingSubscription',
+  UserCredit: 'UserCredit',
+  UserCreditLedger: 'UserCreditLedger',
+  RedeemCode: 'RedeemCode'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -592,17 +610,18 @@ export const ApiTokenScalarFieldEnum = {
 export type ApiTokenScalarFieldEnum = (typeof ApiTokenScalarFieldEnum)[keyof typeof ApiTokenScalarFieldEnum]
 
 
-export const AgentSessionScalarFieldEnum = {
+export const AiConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  appId: 'appId',
   name: 'name',
   createdAt: 'createdAt'
 } as const
 
-export type AgentSessionScalarFieldEnum = (typeof AgentSessionScalarFieldEnum)[keyof typeof AgentSessionScalarFieldEnum]
+export type AiConversationScalarFieldEnum = (typeof AiConversationScalarFieldEnum)[keyof typeof AiConversationScalarFieldEnum]
 
 
-export const AgentMessageScalarFieldEnum = {
+export const AiMessageScalarFieldEnum = {
   id: 'id',
   sessionId: 'sessionId',
   role: 'role',
@@ -610,7 +629,7 @@ export const AgentMessageScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type AgentMessageScalarFieldEnum = (typeof AgentMessageScalarFieldEnum)[keyof typeof AgentMessageScalarFieldEnum]
+export type AiMessageScalarFieldEnum = (typeof AiMessageScalarFieldEnum)[keyof typeof AiMessageScalarFieldEnum]
 
 
 export const CollectionItemScalarFieldEnum = {
@@ -642,6 +661,259 @@ export const ItemEnrichmentScalarFieldEnum = {
 } as const
 
 export type ItemEnrichmentScalarFieldEnum = (typeof ItemEnrichmentScalarFieldEnum)[keyof typeof ItemEnrichmentScalarFieldEnum]
+
+
+export const AiProviderScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  baseUrl: 'baseUrl',
+  aiAdapter: 'aiAdapter',
+  enabled: 'enabled',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiProviderScalarFieldEnum = (typeof AiProviderScalarFieldEnum)[keyof typeof AiProviderScalarFieldEnum]
+
+
+export const AiAccountScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  balance: 'balance',
+  currency: 'currency',
+  concurrencyLimit: 'concurrencyLimit',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiAccountScalarFieldEnum = (typeof AiAccountScalarFieldEnum)[keyof typeof AiAccountScalarFieldEnum]
+
+
+export const AiAccountProviderScalarFieldEnum = {
+  accountId: 'accountId',
+  providerId: 'providerId'
+} as const
+
+export type AiAccountProviderScalarFieldEnum = (typeof AiAccountProviderScalarFieldEnum)[keyof typeof AiAccountProviderScalarFieldEnum]
+
+
+export const AiKeyScalarFieldEnum = {
+  id: 'id',
+  accountId: 'accountId',
+  name: 'name',
+  encryptedSecret: 'encryptedSecret',
+  mask: 'mask',
+  status: 'status',
+  lastUsedAt: 'lastUsedAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiKeyScalarFieldEnum = (typeof AiKeyScalarFieldEnum)[keyof typeof AiKeyScalarFieldEnum]
+
+
+export const AiModelScalarFieldEnum = {
+  id: 'id',
+  providerId: 'providerId',
+  modelId: 'modelId',
+  displayName: 'displayName',
+  capabilities: 'capabilities',
+  contextWindow: 'contextWindow',
+  supportsReasoning: 'supportsReasoning',
+  supportsCaching: 'supportsCaching',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiModelScalarFieldEnum = (typeof AiModelScalarFieldEnum)[keyof typeof AiModelScalarFieldEnum]
+
+
+export const AiModelPricingScalarFieldEnum = {
+  id: 'id',
+  modelId: 'modelId',
+  accountId: 'accountId',
+  timeZone: 'timeZone',
+  policy: 'policy',
+  effectiveFrom: 'effectiveFrom',
+  effectiveTo: 'effectiveTo',
+  createdAt: 'createdAt'
+} as const
+
+export type AiModelPricingScalarFieldEnum = (typeof AiModelPricingScalarFieldEnum)[keyof typeof AiModelPricingScalarFieldEnum]
+
+
+export const AiAgentScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  status: 'status',
+  subAgents: 'subAgents',
+  allowedApis: 'allowedApis',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiAgentScalarFieldEnum = (typeof AiAgentScalarFieldEnum)[keyof typeof AiAgentScalarFieldEnum]
+
+
+export const AiUsageEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  agentId: 'agentId',
+  modelId: 'modelId',
+  accountId: 'accountId',
+  inputTokens: 'inputTokens',
+  cachedInputTokens: 'cachedInputTokens',
+  outputTokens: 'outputTokens',
+  reasoningTokens: 'reasoningTokens',
+  cost: 'cost',
+  currency: 'currency',
+  latencyMs: 'latencyMs',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type AiUsageEventScalarFieldEnum = (typeof AiUsageEventScalarFieldEnum)[keyof typeof AiUsageEventScalarFieldEnum]
+
+
+export const BillingConfigScalarFieldEnum = {
+  id: 'id',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  billingType: 'billingType',
+  priceUnit: 'priceUnit',
+  priceAmount: 'priceAmount',
+  status: 'status',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BillingConfigScalarFieldEnum = (typeof BillingConfigScalarFieldEnum)[keyof typeof BillingConfigScalarFieldEnum]
+
+
+export const CurrencyRateScalarFieldEnum = {
+  id: 'id',
+  currency: 'currency',
+  rate: 'rate',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CurrencyRateScalarFieldEnum = (typeof CurrencyRateScalarFieldEnum)[keyof typeof CurrencyRateScalarFieldEnum]
+
+
+export const PricingPlanScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  price: 'price',
+  currency: 'currency',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PricingPlanScalarFieldEnum = (typeof PricingPlanScalarFieldEnum)[keyof typeof PricingPlanScalarFieldEnum]
+
+
+export const FeatureScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FeatureScalarFieldEnum = (typeof FeatureScalarFieldEnum)[keyof typeof FeatureScalarFieldEnum]
+
+
+export const PlanFeatureScalarFieldEnum = {
+  planId: 'planId',
+  featureId: 'featureId'
+} as const
+
+export type PlanFeatureScalarFieldEnum = (typeof PlanFeatureScalarFieldEnum)[keyof typeof PlanFeatureScalarFieldEnum]
+
+
+export const UserQuotaScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  allocated: 'allocated',
+  used: 'used',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserQuotaScalarFieldEnum = (typeof UserQuotaScalarFieldEnum)[keyof typeof UserQuotaScalarFieldEnum]
+
+
+export const PricingSubscriptionScalarFieldEnum = {
+  id: 'id',
+  principalType: 'principalType',
+  principalId: 'principalId',
+  planId: 'planId',
+  status: 'status',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PricingSubscriptionScalarFieldEnum = (typeof PricingSubscriptionScalarFieldEnum)[keyof typeof PricingSubscriptionScalarFieldEnum]
+
+
+export const UserCreditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  balance: 'balance',
+  frozen: 'frozen',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserCreditScalarFieldEnum = (typeof UserCreditScalarFieldEnum)[keyof typeof UserCreditScalarFieldEnum]
+
+
+export const UserCreditLedgerScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  amount: 'amount',
+  balanceBefore: 'balanceBefore',
+  balanceAfter: 'balanceAfter',
+  frozenBefore: 'frozenBefore',
+  frozenAfter: 'frozenAfter',
+  referenceType: 'referenceType',
+  referenceId: 'referenceId',
+  description: 'description',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type UserCreditLedgerScalarFieldEnum = (typeof UserCreditLedgerScalarFieldEnum)[keyof typeof UserCreditLedgerScalarFieldEnum]
+
+
+export const RedeemCodeScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  credit: 'credit',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RedeemCodeScalarFieldEnum = (typeof RedeemCodeScalarFieldEnum)[keyof typeof RedeemCodeScalarFieldEnum]
 
 
 export const SortOrder = {

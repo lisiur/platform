@@ -168,15 +168,15 @@ export type RateLimitOverride = Prisma.RateLimitOverrideModel
  */
 export type ApiToken = Prisma.ApiTokenModel
 /**
- * Model AgentSession
+ * Model AiConversation
  * 
  */
-export type AgentSession = Prisma.AgentSessionModel
+export type AiConversation = Prisma.AiConversationModel
 /**
- * Model AgentMessage
+ * Model AiMessage
  * 
  */
-export type AgentMessage = Prisma.AgentMessageModel
+export type AiMessage = Prisma.AiMessageModel
 /**
  * Model CollectionItem
  * 
@@ -187,3 +187,93 @@ export type CollectionItem = Prisma.CollectionItemModel
  * 
  */
 export type ItemEnrichment = Prisma.ItemEnrichmentModel
+/**
+ * Model AiProvider
+ * 
+ */
+export type AiProvider = Prisma.AiProviderModel
+/**
+ * Model AiAccount
+ * 
+ */
+export type AiAccount = Prisma.AiAccountModel
+/**
+ * Model AiAccountProvider
+ * 
+ */
+export type AiAccountProvider = Prisma.AiAccountProviderModel
+/**
+ * Model AiKey
+ * 
+ */
+export type AiKey = Prisma.AiKeyModel
+/**
+ * Model AiModel
+ * 
+ */
+export type AiModel = Prisma.AiModelModel
+/**
+ * Model AiModelPricing
+ * 
+ */
+export type AiModelPricing = Prisma.AiModelPricingModel
+/**
+ * Model AiAgent
+ * 
+ */
+export type AiAgent = Prisma.AiAgentModel
+/**
+ * Model AiUsageEvent
+ * 
+ */
+export type AiUsageEvent = Prisma.AiUsageEventModel
+/**
+ * Model BillingConfig
+ * 
+ */
+export type BillingConfig = Prisma.BillingConfigModel
+/**
+ * Model CurrencyRate
+ * 
+ */
+export type CurrencyRate = Prisma.CurrencyRateModel
+/**
+ * Model PricingPlan
+ * 
+ */
+export type PricingPlan = Prisma.PricingPlanModel
+/**
+ * Model Feature
+ * 
+ */
+export type Feature = Prisma.FeatureModel
+/**
+ * Model PlanFeature
+ * 
+ */
+export type PlanFeature = Prisma.PlanFeatureModel
+/**
+ * Model UserQuota
+ * 
+ */
+export type UserQuota = Prisma.UserQuotaModel
+/**
+ * Model PricingSubscription
+ * 
+ */
+export type PricingSubscription = Prisma.PricingSubscriptionModel
+/**
+ * Model UserCredit
+ * 
+ */
+export type UserCredit = Prisma.UserCreditModel
+/**
+ * Model UserCreditLedger
+ * 
+ */
+export type UserCreditLedger = Prisma.UserCreditLedgerModel
+/**
+ * Model RedeemCode
+ * 
+ */
+export type RedeemCode = Prisma.RedeemCodeModel

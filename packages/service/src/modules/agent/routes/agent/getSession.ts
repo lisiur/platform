@@ -1,10 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import {
-  getPrincipalUserId,
-  principalScope,
-  requirePrincipal,
-} from "#extractors/session";
+import { requireAppId } from "#extractors/current-app";
+import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { prisma } from "#lib/db";
 import {
   forbiddenResponse,
@@ -12,16 +9,16 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { assertAccess } from "#modules/access-control/public";
 import {
-  AgentSessionNotFoundError,
-  agentSessionManager,
-} from "#modules/agent/agent-session.service";
+  AiConversationNotFoundError,
+  aiConversationManager,
+} from "#modules/agent/ai-conversation.service";
+import { assertPlatformAssistantAccess } from "./entitlement";
 import { sessionHistoryResponseSchema, sessionIdParamSchema } from "./schema";
 
 export const getSessionRoute = defineOpenAPIRoute({
   route: createRoute({
-    operationId: "getAgentSession",
+    operationId: "getAiConversation",
     method: "get",
     path: "/sessions/{id}",
     tags: ["Agent"],
@@ -43,18 +40,14 @@ export const getSessionRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    const scope = principalScope(principal);
-    await assertAccess(
-      principal,
-      scope === "system" ? "system/agent:chat" : "org/agent:chat",
-      scope,
-    );
     const userId = getPrincipalUserId(principal);
+    const appId = await requireAppId(c);
     const { id } = c.req.valid("param");
 
+    await assertPlatformAssistantAccess(userId);
     try {
-      await agentSessionManager.requireSession(id, userId);
-      const rows = await prisma.agentMessage.findMany({
+      await aiConversationManager.requireSession(id, userId, appId);
+      const rows = await prisma.aiMessage.findMany({
         where: { sessionId: id },
         orderBy: { createdAt: "asc" },
         select: { id: true, role: true, parts: true },
@@ -66,7 +59,7 @@ export const getSessionRoute = defineOpenAPIRoute({
       }));
       return c.json(messages, 200);
     } catch (err) {
-      if (err instanceof AgentSessionNotFoundError) {
+      if (err instanceof AiConversationNotFoundError) {
         throw new HTTPException(404, { message: "Agent session not found" });
       }
       throw err;
