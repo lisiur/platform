@@ -8,6 +8,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  DropdownMenuItem,
   Input,
   TableActionCell,
   TableActionHead,
@@ -165,7 +166,20 @@ export function CurrencyRateTable() {
             <TableRow key={item.id}>
               <TableCell className="font-mono">{item.currency}</TableCell>
               <TableCell className="font-mono">{item.rate}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  canDelete ? (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => remove(item)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  ) : undefined
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   {canDelete && (
                     <TooltipButton

@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -702,6 +703,17 @@ export function AgentTable() {
     ) as unknown as Resolver<AgentUpdateFormValues>,
   });
 
+  function openEdit(a: AiAgentRow) {
+    updateForm.reset({
+      name: a.name,
+      description: a.description,
+      status: a.status as AgentStatus,
+      subAgents: deserializeSubAgents(a.subAgents),
+      allowedApis: a.allowedApis ?? [],
+    });
+    setEi(a);
+  }
+
   const af = (
     form: UseFormReturn<FieldValues>,
     prefix: string,
@@ -778,23 +790,22 @@ export function AgentTable() {
               <TableCell>{a.name}</TableCell>
               <TableCell>{a.status}</TableCell>
               <TableCell>{formatDate(a.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <DropdownMenuItem onClick={() => openEdit(a)}>
+                    <Pencil />
+                    {t("edit")}
+                  </DropdownMenuItem>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        name: a.name,
-                        description: a.description,
-                        status: a.status as AgentStatus,
-                        subAgents: deserializeSubAgents(a.subAgents),
-                        allowedApis: a.allowedApis ?? [],
-                      });
-                      setEi(a);
-                    }}
+                    onClick={() => openEdit(a)}
                   >
                     <Pencil />
                   </TooltipButton>

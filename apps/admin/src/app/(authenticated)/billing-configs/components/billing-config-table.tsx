@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -160,7 +161,17 @@ export function BillingConfigTable() {
                 {item.priceAmount} {item.priceUnit}
               </TableCell>
               <TableCell>{item.status}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  canUpdate ? (
+                    <DropdownMenuItem onClick={() => openEdit(item)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                  ) : undefined
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   {canUpdate && (
                     <TooltipButton

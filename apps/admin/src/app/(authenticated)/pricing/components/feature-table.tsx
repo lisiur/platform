@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -92,6 +93,15 @@ export function FeatureTable() {
     }, 300);
   }
 
+  function openEdit(f: FeatureRow) {
+    updateForm.reset({
+      name: f.name,
+      description: f.description,
+      status: f.status,
+    });
+    setEi(f);
+  }
+
   async function hu() {
     if (!ei) return;
     setSaving(true);
@@ -158,21 +168,22 @@ export function FeatureTable() {
               <TableCell>{f.name}</TableCell>
               <TableCell>{f.description}</TableCell>
               <TableCell>{f.status}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <DropdownMenuItem onClick={() => openEdit(f)}>
+                    <Pencil />
+                    {t("edit")}
+                  </DropdownMenuItem>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        name: f.name,
-                        description: f.description,
-                        status: f.status,
-                      });
-                      setEi(f);
-                    }}
+                    onClick={() => openEdit(f)}
                   >
                     <Pencil />
                   </TooltipButton>

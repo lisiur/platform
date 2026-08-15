@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -136,6 +137,15 @@ export function RedeemCodeTable() {
     }
   }
 
+  function openEdit(item: RedeemCodeRow) {
+    updateForm.reset({
+      credit: item.credit,
+      enabled: item.enabled,
+      expiresAt: isoToLocalInput(item.expiresAt),
+    });
+    setEditItem(item);
+  }
+
   async function handleUpdate() {
     if (!editItem) return;
     setSaving(true);
@@ -237,7 +247,30 @@ export function RedeemCodeTable() {
                   {c.enabled ? t("yes") : t("no")}
                 </Badge>
               </TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  canUpdate || canDelete ? (
+                    <>
+                      {canUpdate && (
+                        <DropdownMenuItem onClick={() => openEdit(c)}>
+                          <Pencil />
+                          {t("edit")}
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => handleDelete(c)}
+                        >
+                          <Trash2 />
+                          {t("delete")}
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  ) : undefined
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   {canUpdate && (
                     <TooltipButton
@@ -245,14 +278,7 @@ export function RedeemCodeTable() {
                       size="icon-sm"
                       aria-label={t("edit")}
                       tooltip={t("edit")}
-                      onClick={() => {
-                        updateForm.reset({
-                          credit: c.credit,
-                          enabled: c.enabled,
-                          expiresAt: isoToLocalInput(c.expiresAt),
-                        });
-                        setEditItem(c);
-                      }}
+                      onClick={() => openEdit(c)}
                     >
                       <Pencil />
                     </TooltipButton>

@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   Field,
   FieldError,
@@ -473,6 +474,16 @@ export function ModelPricingTable({
       setSaving(false);
     }
   }
+  function openEdit(p: PricingRow) {
+    updateForm.reset({
+      timeZone: p.timeZone,
+      policy: policyToFormItems(p.policy),
+      effectiveFrom: p.effectiveFrom.substring(0, 10),
+      effectiveTo: p.effectiveTo?.substring(0, 10) ?? "",
+    });
+    setEi(p);
+  }
+
   async function hu() {
     if (!ei) return;
     setSaving(true);
@@ -692,22 +703,31 @@ export function ModelPricingTable({
                 {p.effectiveTo ? formatDate(p.effectiveTo) : "-"}
               </TableCell>
               <TableCell>{formatDate(p.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => openEdit(p)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDi(p)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        timeZone: p.timeZone,
-                        policy: policyToFormItems(p.policy),
-                        effectiveFrom: p.effectiveFrom.substring(0, 10),
-                        effectiveTo: p.effectiveTo?.substring(0, 10) ?? "",
-                      });
-                      setEi(p);
-                    }}
+                    onClick={() => openEdit(p)}
                   >
                     <Pencil />
                   </TooltipButton>

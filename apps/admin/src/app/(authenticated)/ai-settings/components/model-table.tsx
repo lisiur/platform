@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -163,6 +164,18 @@ export function ModelTable() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function openEdit(m: AiModel) {
+    updateForm.reset({
+      displayName: m.displayName,
+      capabilities: (m.capabilities ?? []).join(", "),
+      contextWindow: m.contextWindow ?? ("" as unknown as number),
+      supportsReasoning: m.supportsReasoning,
+      supportsCaching: m.supportsCaching,
+      enabled: m.enabled,
+    });
+    setEditItem(m);
   }
 
   async function handleUpdate() {
@@ -392,25 +405,31 @@ export function ModelTable() {
                 {m.enabled ? t("yes") : t("no")}
               </TableCell>
               <TableCell>{formatDate(m.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => openEdit(m)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDeleteItem(m)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        displayName: m.displayName,
-                        capabilities: (m.capabilities ?? []).join(", "),
-                        contextWindow:
-                          m.contextWindow ?? ("" as unknown as number),
-                        supportsReasoning: m.supportsReasoning,
-                        supportsCaching: m.supportsCaching,
-                        enabled: m.enabled,
-                      });
-                      setEditItem(m);
-                    }}
+                    onClick={() => openEdit(m)}
                   >
                     <Pencil />
                   </TooltipButton>

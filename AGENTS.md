@@ -20,6 +20,11 @@
 - `API_ORIGIN` in production is derived from the manifest's gateway port by `ecosystem.config.js`. Explicit values in `.env.production` (`API_ORIGIN` for a custom domain) override the manifest.
 - Never put secrets in a committed `.env`; keep them in deployment env or a gitignored `.env.local` / `.env.production`.
 
+## Tables
+- Every `TableActionCell` (from `@repo/ui`) must pass a `menu` prop with `DropdownMenuItem`s mirroring the inline action buttons. Inline buttons only appear on desktop hover (`md:` + hover); without `menu`, mobile/touch users get an empty action column.
+- Keep permission gating (`canUpdate`/`canDelete`) consistent between inline buttons and menu items; use `variant="destructive"` on destructive menu items.
+- Extract row actions into named handlers (e.g. `openEdit(row)` defined at the component level) and reference them from both the inline button and the menu item — never duplicate the `onClick` body in both places. When actions are permission-gated, pass `menu={canX || canY ? (...) : undefined}` so users without any permitted action get no dropdown at all.
+
 ## Tooling
 - Biome is the linter/formatter, not ESLint. 2-space indentation, recommended Next/React domains.
 - Zod 4 is installed. Prefer `z.email()` / `z.url()` over `z.string().email()`.

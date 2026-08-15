@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Input,
   TableActionCell,
   TableActionHead,
@@ -114,6 +115,11 @@ export function UserCreditTable() {
     }, 300);
   }
 
+  function openLedger(c: UserCreditRow) {
+    setLedgerPage(1);
+    setLedgerItem(c);
+  }
+
   return (
     <>
       <PaginatedTableFrame
@@ -161,17 +167,22 @@ export function UserCreditTable() {
               <TableCell>
                 {new Date(c.updatedAt).toLocaleDateString()}
               </TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <DropdownMenuItem onClick={() => openLedger(c)}>
+                    <FileText />
+                    {t("ledger")}
+                  </DropdownMenuItem>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("ledger")}
                     tooltip={t("ledger")}
-                    onClick={() => {
-                      setLedgerPage(1);
-                      setLedgerItem(c);
-                    }}
+                    onClick={() => openLedger(c)}
                   >
                     <FileText />
                   </TooltipButton>

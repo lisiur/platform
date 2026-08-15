@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldError,
   FieldGroup,
@@ -154,6 +155,11 @@ export function AccountTable() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function openEdit(a: AiAccount) {
+    updateForm.reset(a);
+    setEditItem(a);
   }
 
   async function handleUpdate() {
@@ -306,7 +312,28 @@ export function AccountTable() {
               <TableCell align="center">{a.concurrencyLimit}</TableCell>
               <TableCell>{a.status}</TableCell>
               <TableCell>{formatDate(a.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => setKeyItem(a)}>
+                      <KeyRound />
+                      {t("manageKeys")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(a)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDeleteItem(a)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
@@ -322,10 +349,7 @@ export function AccountTable() {
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset(a);
-                      setEditItem(a);
-                    }}
+                    onClick={() => openEdit(a)}
                   >
                     <Pencil />
                   </TooltipButton>

@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -91,6 +92,14 @@ export function QuotaTable() {
     }, 300);
   }
 
+  function openEdit(q: QuotaRow) {
+    updateForm.reset({
+      allocated: q.allocated,
+      used: q.used,
+    });
+    setEi(q);
+  }
+
   async function hu() {
     if (!ei) return;
     setSaving(true);
@@ -159,20 +168,22 @@ export function QuotaTable() {
               </TableCell>
               <TableCell align="center">{q.allocated}</TableCell>
               <TableCell align="center">{q.used}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <DropdownMenuItem onClick={() => openEdit(q)}>
+                    <Pencil />
+                    {t("edit")}
+                  </DropdownMenuItem>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        allocated: q.allocated,
-                        used: q.used,
-                      });
-                      setEi(q);
-                    }}
+                    onClick={() => openEdit(q)}
                   >
                     <Pencil />
                   </TooltipButton>

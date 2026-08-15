@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -147,6 +148,20 @@ export function PlanTable() {
       setSaving(false);
     }
   }
+  function openEdit(p: Plan) {
+    loadFeatures();
+    updateForm.reset({
+      name: p.name,
+      price: p.price,
+      currency: p.currency,
+      status: p.status,
+      features: p.features.map((f) => ({
+        featureId: f.featureId,
+      })),
+    });
+    setEi(p);
+  }
+
   async function hu() {
     if (!ei) return;
     setSaving(true);
@@ -302,26 +317,31 @@ export function PlanTable() {
               </TableCell>
               <TableCell>{p.features.map((f) => f.name).join(", ")}</TableCell>
               <TableCell>{p.status}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => openEdit(p)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDi(p)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      loadFeatures();
-                      updateForm.reset({
-                        name: p.name,
-                        price: p.price,
-                        currency: p.currency,
-                        status: p.status,
-                        features: p.features.map((f) => ({
-                          featureId: f.featureId,
-                        })),
-                      });
-                      setEi(p);
-                    }}
+                    onClick={() => openEdit(p)}
                   >
                     <Pencil />
                   </TooltipButton>

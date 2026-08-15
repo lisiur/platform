@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -134,6 +135,17 @@ export function ProviderTable() {
     }
   }
 
+  function openEdit(provider: AiProvider) {
+    updateForm.reset({
+      name: provider.name,
+      baseUrl: provider.baseUrl,
+      aiAdapter: provider.aiAdapter as (typeof AI_ADAPTER_OPTIONS)[number],
+      enabled: provider.enabled,
+      description: provider.description ?? null,
+    });
+    setEditItem(provider);
+  }
+
   async function handleUpdate() {
     if (!editItem) return;
     setSaving(true);
@@ -243,24 +255,31 @@ export function ProviderTable() {
                 {provider.enabled ? t("yes") : t("no")}
               </TableCell>
               <TableCell>{formatDate(provider.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => openEdit(provider)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDeleteItem(provider)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        name: provider.name,
-                        baseUrl: provider.baseUrl,
-                        aiAdapter:
-                          provider.aiAdapter as (typeof AI_ADAPTER_OPTIONS)[number],
-                        enabled: provider.enabled,
-                        description: provider.description ?? null,
-                      });
-                      setEditItem(provider);
-                    }}
+                    onClick={() => openEdit(provider)}
                   >
                     <Pencil />
                   </TooltipButton>

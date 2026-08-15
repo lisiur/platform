@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenuItem,
   Field,
   FieldGroup,
   FieldLabel,
@@ -138,6 +139,14 @@ export function SubscriptionTable() {
       setSaving(false);
     }
   }
+  function openEdit(s: Sub) {
+    updateForm.reset({
+      status: s.status,
+      endsAt: s.endsAt?.substring(0, 10) ?? "",
+    });
+    setEi(s);
+  }
+
   async function hu() {
     if (!ei) return;
     setSaving(true);
@@ -272,20 +281,31 @@ export function SubscriptionTable() {
               <TableCell>{formatDate(s.startsAt)}</TableCell>
               <TableCell>{s.endsAt ? formatDate(s.endsAt) : "-"}</TableCell>
               <TableCell>{formatDate(s.createdAt)}</TableCell>
-              <TableActionCell menuLabel={t("actions")}>
+              <TableActionCell
+                menuLabel={t("actions")}
+                menu={
+                  <>
+                    <DropdownMenuItem onClick={() => openEdit(s)}>
+                      <Pencil />
+                      {t("edit")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => setDi(s)}
+                    >
+                      <Trash2 />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </>
+                }
+              >
                 <ButtonGroup className="ml-auto">
                   <TooltipButton
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t("edit")}
                     tooltip={t("edit")}
-                    onClick={() => {
-                      updateForm.reset({
-                        status: s.status,
-                        endsAt: s.endsAt?.substring(0, 10) ?? "",
-                      });
-                      setEi(s);
-                    }}
+                    onClick={() => openEdit(s)}
                   >
                     <Pencil />
                   </TooltipButton>
