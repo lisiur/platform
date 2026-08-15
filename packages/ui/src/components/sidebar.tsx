@@ -160,6 +160,79 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const mobileSidebarRef = React.useRef<HTMLDivElement>(null);
+
+  // When the mobile sheet opens, scroll the active menu item into view. Menu
+  // data may render after the sheet mounts, so watch for DOM mutations until
+  // the active item appears. Abandon if the user scrolls first.
+  React.useEffect(() => {
+    if (!isMobile || !openMobile || collapsible === "none") return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    let observer: MutationObserver | undefined;
+
+    const tryScroll = () => {
+      const activeItem = mobileSidebarRef.current?.querySelector<HTMLElement>(
+        '[data-sidebar="menu-button"][data-active], [data-sidebar="menu-sub-button"][data-active]',
+      );
+      if (activeItem && activeItem.offsetHeight > 0) {
+        const scrollActive = () =>
+          activeItem.scrollIntoView({ block: "center" });
+        scrollActive();
+        // Base UI moves focus into the sheet on the frame after it opens. That
+        // focus() call (preventScroll: false) scrolls the focused element back
+        // into view, resetting our scroll — re-scroll once after it lands.
+        const rescrollAfterFocus = () => {
+          document.removeEventListener("focusin", rescrollAfterFocus, true);
+          requestAnimationFrame(() => {
+            if (!signal.aborted) scrollActive();
+          });
+        };
+        document.addEventListener("focusin", rescrollAfterFocus, {
+          capture: true,
+          signal,
+        });
+        return true;
+      }
+      return false;
+    };
+
+    const attach = () => {
+      if (signal.aborted) return;
+      const wrapper = mobileSidebarRef.current;
+      // The sheet content mounts via portal, so wait a frame if needed.
+      if (!wrapper) {
+        requestAnimationFrame(attach);
+        return;
+      }
+      if (tryScroll()) return;
+      observer = new MutationObserver(() => {
+        if (tryScroll()) observer?.disconnect();
+      });
+      observer.observe(wrapper, { childList: true, subtree: true });
+    };
+
+    const stop = () => {
+      controller.abort();
+      observer?.disconnect();
+    };
+
+    document.addEventListener("wheel", stop, {
+      capture: true,
+      passive: true,
+      signal,
+    });
+    document.addEventListener("touchmove", stop, {
+      capture: true,
+      passive: true,
+      signal,
+    });
+
+    requestAnimationFrame(attach);
+
+    return stop;
+  }, [isMobile, openMobile, collapsible]);
 
   if (collapsible === "none") {
     return (
@@ -197,7 +270,9 @@ function Sidebar({
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
           <SheetBody className="gap-0 p-0">
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <div ref={mobileSidebarRef} className="flex h-full w-full flex-col">
+              {children}
+            </div>
           </SheetBody>
         </SheetContent>
       </Sheet>
