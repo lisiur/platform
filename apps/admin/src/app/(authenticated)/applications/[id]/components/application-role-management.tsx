@@ -127,7 +127,12 @@ export function ApplicationRoleManagement({
 
   if (loading) {
     return (
-      <div className="flex min-h-64 items-center justify-center py-8">
+      <div
+        className={cn(
+          "flex min-h-64 items-center justify-center py-8",
+          className,
+        )}
+      >
         <Spinner />
       </div>
     );

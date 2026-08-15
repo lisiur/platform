@@ -9,9 +9,7 @@ export default function RolesPage() {
 
   return (
     <ManagementPageShell title={t("title")} description={t("description")}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ApplicationRoleManagement />
-      </div>
+      <ApplicationRoleManagement className="max-h-full" />
     </ManagementPageShell>
   );
 }
