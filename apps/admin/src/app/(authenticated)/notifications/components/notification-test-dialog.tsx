@@ -201,11 +201,11 @@ export function NotificationTestDialog({
                 <div className="space-y-3">
                   {variables.map((variable) => (
                     <Field key={variable.name}>
-                      <FieldLabel htmlFor={`test-var-${variable.name}`}>
+                      <FieldLabel
+                        htmlFor={`test-var-${variable.name}`}
+                        required={variable.required}
+                      >
                         {variable.name}
-                        {variable.required && (
-                          <span className="text-destructive"> *</span>
-                        )}
                       </FieldLabel>
                       <Input
                         id={`test-var-${variable.name}`}

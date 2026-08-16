@@ -1355,6 +1355,7 @@
     "currency": "Currency",
     "provider": "Provider",
     "selectProviders": "Select providers...",
+    "selectAccount": "Please select an account",
     "balance": "Balance",
     "concurrencyLimit": "Concurrency",
     "account": "Account",

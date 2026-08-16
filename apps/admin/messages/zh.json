@@ -1356,6 +1356,7 @@
     "currency": "货币",
     "provider": "提供商",
     "selectProviders": "选择提供商...",
+    "selectAccount": "请选择账户",
     "balance": "余额",
     "concurrencyLimit": "并发限制",
     "account": "账户",

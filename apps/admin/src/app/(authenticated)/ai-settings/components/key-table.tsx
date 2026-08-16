@@ -35,27 +35,18 @@ import {
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import {
+  type Control,
+  type UseFormRegister,
+  useForm,
+  useWatch,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
-
-const createSchema = z.object({
-  accountId: z.string().min(1),
-  name: z.string().min(1),
-  secret: z.string().min(1),
-  status: z.string().optional(),
-  expiresAt: z.string().optional(),
-});
-const updateSchema = z.object({
-  name: z.string().min(1).optional(),
-  secret: z.string().min(1).optional(),
-  status: z.string().optional(),
-  expiresAt: z.string().optional(),
-});
 
 interface AiKey {
   id: string;
@@ -67,6 +58,37 @@ interface AiKey {
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+type CreateKeyFormValues = {
+  accountId: string;
+  name?: string | undefined;
+  secret: string;
+  status?: string | undefined;
+  expiresAt?: string | undefined;
+};
+
+function KeyNameInput({
+  control,
+  register,
+  accountName,
+  accountFallback,
+}: {
+  control: Control<CreateKeyFormValues>;
+  register: UseFormRegister<CreateKeyFormValues>;
+  accountName: (id: string) => string;
+  accountFallback: string;
+}) {
+  const accountId = useWatch({ control, name: "accountId" }) ?? "";
+  const secret = useWatch({ control, name: "secret" }) ?? "";
+  return (
+    <Input
+      id="ck-name"
+      autoComplete="off"
+      placeholder={`${accountName(accountId) || accountFallback}-${secret.slice(-4) || "****"}`}
+      {...register("name")}
+    />
+  );
 }
 
 export function KeyTable({
@@ -143,6 +165,9 @@ export function KeyTable({
       await withApiFeedback(appClient.api.ai.keys.$post)({
         json: {
           ...body,
+          name:
+            body.name?.trim() ||
+            `${an(body.accountId)}-${body.secret.slice(-4)}`,
           expiresAt: body.expiresAt
             ? new Date(body.expiresAt).toISOString()
             : null,
@@ -205,6 +230,20 @@ export function KeyTable({
     }
   }
 
+  const createSchema = z.object({
+    accountId: z.string().min(1, t("selectAccount")),
+    name: z.string().optional(),
+    secret: z.string().min(1, t("required")),
+    status: z.string().optional(),
+    expiresAt: z.string().optional(),
+  });
+  const updateSchema = z.object({
+    name: z.string().min(1, t("required")).optional(),
+    secret: z.string().min(1, t("required")).optional(),
+    status: z.string().optional(),
+    expiresAt: z.string().optional(),
+  });
+
   const createForm = useForm({
     resolver: zodResolver(createSchema),
     defaultValues: {
@@ -224,10 +263,11 @@ export function KeyTable({
       <Select
         value={value}
         onValueChange={(v) => {
-          if (v != null) form.setValue("accountId", v);
+          if (v != null)
+            form.setValue("accountId", v, { shouldValidate: true });
         }}
       >
-        <SelectTrigger>
+        <SelectTrigger aria-invalid={!!form.formState.errors.accountId}>
           <SelectValue>{value ? an(value) : ""}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -345,7 +385,7 @@ export function KeyTable({
               <FieldGroup>
                 {!account && (
                   <Field>
-                    <FieldLabel>{t("account")}</FieldLabel>
+                    <FieldLabel required>{t("account")}</FieldLabel>
                     {acctSelect(createForm)}
                     <FieldError
                       errors={
@@ -357,23 +397,9 @@ export function KeyTable({
                   </Field>
                 )}
                 <Field>
-                  <FieldLabel htmlFor="ck-name">{t("name")}</FieldLabel>
-                  <Input
-                    id="ck-name"
-                    autoComplete="off"
-                    aria-invalid={!!createForm.formState.errors.name}
-                    {...createForm.register("name")}
-                  />
-                  <FieldError
-                    errors={
-                      createForm.formState.errors.name
-                        ? [createForm.formState.errors.name]
-                        : undefined
-                    }
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="ck-secret">{t("secret")}</FieldLabel>
+                  <FieldLabel htmlFor="ck-secret" required>
+                    {t("secret")}
+                  </FieldLabel>
                   <Input
                     id="ck-secret"
                     autoComplete="off"
@@ -386,6 +412,15 @@ export function KeyTable({
                         ? [createForm.formState.errors.secret]
                         : undefined
                     }
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="ck-name">{t("name")}</FieldLabel>
+                  <KeyNameInput
+                    control={createForm.control}
+                    register={createForm.register}
+                    accountName={an}
+                    accountFallback={t("account")}
                   />
                 </Field>
                 <Field>
