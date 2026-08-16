@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -224,13 +225,32 @@ export function PlanTable() {
             <FieldLabel htmlFor={`${prefix}-code`}>{t("code")}</FieldLabel>
             <Input
               id={`${prefix}-code`}
+              aria-invalid={!!form.formState.errors.code}
               {...(form.register("code") as object)}
+            />
+            <FieldError
+              errors={
+                form.formState.errors.code
+                  ? [form.formState.errors.code]
+                  : undefined
+              }
             />
           </Field>
         )}
         <Field>
           <FieldLabel htmlFor={`${prefix}-name`}>{t("name")}</FieldLabel>
-          <Input id={`${prefix}-name`} {...(form.register("name") as object)} />
+          <Input
+            id={`${prefix}-name`}
+            aria-invalid={!!form.formState.errors.name}
+            {...(form.register("name") as object)}
+          />
+          <FieldError
+            errors={
+              form.formState.errors.name
+                ? [form.formState.errors.name]
+                : undefined
+            }
+          />
         </Field>
         <Field>
           <FieldLabel htmlFor={`${prefix}-curr`}>{t("currency")}</FieldLabel>

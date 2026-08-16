@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -346,6 +347,13 @@ export function KeyTable({
                   <Field>
                     <FieldLabel>{t("account")}</FieldLabel>
                     {acctSelect(createForm)}
+                    <FieldError
+                      errors={
+                        createForm.formState.errors.accountId
+                          ? [createForm.formState.errors.accountId]
+                          : undefined
+                      }
+                    />
                   </Field>
                 )}
                 <Field>
@@ -353,7 +361,15 @@ export function KeyTable({
                   <Input
                     id="ck-name"
                     autoComplete="off"
+                    aria-invalid={!!createForm.formState.errors.name}
                     {...createForm.register("name")}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.name
+                        ? [createForm.formState.errors.name]
+                        : undefined
+                    }
                   />
                 </Field>
                 <Field>
@@ -361,7 +377,15 @@ export function KeyTable({
                   <Input
                     id="ck-secret"
                     autoComplete="off"
+                    aria-invalid={!!createForm.formState.errors.secret}
                     {...createForm.register("secret")}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.secret
+                        ? [createForm.formState.errors.secret]
+                        : undefined
+                    }
                   />
                 </Field>
                 <Field>
@@ -420,7 +444,15 @@ export function KeyTable({
                     <Input
                       id="ek-name"
                       autoComplete="off"
+                      aria-invalid={!!updateForm.formState.errors.name}
                       {...updateForm.register("name")}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.name
+                          ? [updateForm.formState.errors.name]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>
@@ -428,7 +460,15 @@ export function KeyTable({
                     <Input
                       id="ek-secret"
                       autoComplete="off"
+                      aria-invalid={!!updateForm.formState.errors.secret}
                       {...updateForm.register("secret")}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.secret
+                          ? [updateForm.formState.errors.secret]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>

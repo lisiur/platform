@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -351,11 +352,29 @@ export function SubscriptionTable() {
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="cs-pid">{t("principalId")}</FieldLabel>
-                  <Input id="cs-pid" {...createForm.register("principalId")} />
+                  <Input
+                    id="cs-pid"
+                    aria-invalid={!!createForm.formState.errors.principalId}
+                    {...createForm.register("principalId")}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.principalId
+                        ? [createForm.formState.errors.principalId]
+                        : undefined
+                    }
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>{t("plan")}</FieldLabel>
                   {planSelect(createForm)}
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.planId
+                        ? [createForm.formState.errors.planId]
+                        : undefined
+                    }
+                  />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="cs-st">{t("status")}</FieldLabel>

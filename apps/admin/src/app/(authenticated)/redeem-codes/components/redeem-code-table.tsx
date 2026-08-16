@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -322,7 +323,15 @@ export function RedeemCodeTable() {
                   <Input
                     id="rc-credit"
                     type="number"
+                    aria-invalid={!!createForm.formState.errors.credit}
                     {...(createForm.register("credit") as object)}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.credit
+                        ? [createForm.formState.errors.credit]
+                        : undefined
+                    }
                   />
                 </Field>
                 <Field>
@@ -373,7 +382,15 @@ export function RedeemCodeTable() {
                     <Input
                       id="rc-edit-credit"
                       type="number"
+                      aria-invalid={!!updateForm.formState.errors.credit}
                       {...(updateForm.register("credit") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.credit
+                          ? [updateForm.formState.errors.credit]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>

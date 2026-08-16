@@ -12,6 +12,7 @@ import {
   DialogTitle,
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -106,7 +107,7 @@ export function OverrideDialog({
     reset,
     watch,
     setValue,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -231,7 +232,11 @@ export function OverrideDialog({
                         ? t("dialog.valueIpPlaceholder")
                         : t("dialog.valueUserPlaceholder")
                     }
+                    aria-invalid={!!errors.value}
                     {...register("value")}
+                  />
+                  <FieldError
+                    errors={errors.value ? [errors.value] : undefined}
                   />
                 </Field>
               )}

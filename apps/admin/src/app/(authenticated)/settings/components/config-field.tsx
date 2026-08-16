@@ -3,6 +3,7 @@
 import {
   Button,
   Field,
+  FieldError,
   FieldLabel,
   Input,
   Select,
@@ -81,7 +82,11 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
       <Controller
         name={item.key}
         control={control}
-        render={({ field }) => {
+        render={({ field, fieldState }) => {
+          const fieldError = fieldState.error ? (
+            <FieldError errors={[fieldState.error]} />
+          ) : null;
+
           if (item.type === "boolean") {
             return (
               <Field orientation="horizontal" className="gap-2">
@@ -92,11 +97,13 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                   onChange={(e) =>
                     field.onChange(e.target.checked ? "true" : "false")
                   }
+                  aria-invalid={!!fieldState.error}
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <FieldLabel htmlFor={item.key} className="font-normal">
                   {item.description ? tr(item.description) : t("enable")}
                 </FieldLabel>
+                {fieldError}
               </Field>
             );
           }
@@ -111,43 +118,51 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                     schema={item.schema}
                     onChange={field.onChange}
                   />
+                  {fieldError}
                 </div>
               );
             }
             return (
-              <Textarea
-                id={item.key}
-                value={field.value ?? ""}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                ref={field.ref}
-                rows={4}
-                placeholder={t("jsonPlaceholder")}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id={item.key}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                  rows={4}
+                  aria-invalid={!!fieldState.error}
+                  placeholder={t("jsonPlaceholder")}
+                />
+                {fieldError}
+              </div>
             );
           }
 
           if (item.type === "select" && isSelectConfigSchema(item.schema)) {
             return (
-              <Select
-                value={field.value ?? ""}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  field.onBlur();
-                }}
-              >
-                <SelectTrigger id={item.key} className="w-full">
-                  <SelectValue placeholder={t("selectPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {item.schema.options.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {tr(opt.label)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    field.onBlur();
+                  }}
+                >
+                  <SelectTrigger id={item.key} className="w-full">
+                    <SelectValue placeholder={t("selectPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {item.schema.options.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {tr(opt.label)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldError}
+              </>
             );
           }
 
@@ -161,6 +176,7 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                 onBlur={field.onBlur}
                 name={field.name}
                 ref={field.ref}
+                aria-invalid={!!fieldState.error}
               />
               {item.group === "auth" && item.key === "session.maxAge" ? (
                 <div className="flex flex-wrap gap-2">
@@ -185,6 +201,7 @@ export function ConfigField({ item, control }: ConfigFieldProps) {
                   })}
                 </div>
               ) : null}
+              {fieldError}
             </div>
           );
         }}

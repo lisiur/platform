@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -213,7 +214,15 @@ export function QuotaTable() {
                     <Input
                       id="eq-allocated"
                       type="number"
+                      aria-invalid={!!updateForm.formState.errors.allocated}
                       {...(updateForm.register("allocated") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.allocated
+                          ? [updateForm.formState.errors.allocated]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>
@@ -221,7 +230,15 @@ export function QuotaTable() {
                     <Input
                       id="eq-used"
                       type="number"
+                      aria-invalid={!!updateForm.formState.errors.used}
                       {...(updateForm.register("used") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.used
+                          ? [updateForm.formState.errors.used]
+                          : undefined
+                      }
                     />
                   </Field>
                 </FieldGroup>

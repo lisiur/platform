@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -212,7 +213,15 @@ export function FeatureTable() {
                     <FieldLabel htmlFor="eff-name">{t("name")}</FieldLabel>
                     <Input
                       id="eff-name"
+                      aria-invalid={!!updateForm.formState.errors.name}
                       {...(updateForm.register("name") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.name
+                          ? [updateForm.formState.errors.name]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>

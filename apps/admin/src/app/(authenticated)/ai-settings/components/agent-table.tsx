@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -441,6 +442,17 @@ function AllowedApisSelector({
   );
 }
 
+function FormFieldError({
+  form,
+  name,
+}: {
+  form: UseFormReturn<FieldValues>;
+  name: string;
+}) {
+  const error = form.getFieldState(name).error;
+  return <FieldError errors={error ? [error] : undefined} />;
+}
+
 function SubAgentFields({
   form,
   prefix,
@@ -505,6 +517,7 @@ function SubAgentFields({
                     }
                     disabled
                   />
+                  <FormFieldError form={form} name={`subAgents.${index}.key`} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-label`}>
@@ -512,7 +525,14 @@ function SubAgentFields({
                   </FieldLabel>
                   <Input
                     id={`${prefix}-sub-agent-${index}-label`}
+                    aria-invalid={
+                      !!form.getFieldState(`subAgents.${index}.label`).error
+                    }
                     {...(form.register(`subAgents.${index}.label`) as object)}
+                  />
+                  <FormFieldError
+                    form={form}
+                    name={`subAgents.${index}.label`}
                   />
                 </Field>
               </div>
@@ -533,7 +553,14 @@ function SubAgentFields({
                 </FieldLabel>
                 <Input
                   id={`${prefix}-sub-agent-${index}-model`}
+                  aria-invalid={
+                    !!form.getFieldState(`subAgents.${index}.modelId`).error
+                  }
                   {...(form.register(`subAgents.${index}.modelId`) as object)}
+                />
+                <FormFieldError
+                  form={form}
+                  name={`subAgents.${index}.modelId`}
                 />
               </Field>
               <Field>
@@ -580,9 +607,17 @@ function SubAgentFields({
                     id={`${prefix}-sub-agent-${index}-temp`}
                     type="number"
                     step="0.1"
+                    aria-invalid={
+                      !!form.getFieldState(`subAgents.${index}.temperature`)
+                        .error
+                    }
                     {...(form.register(
                       `subAgents.${index}.temperature`,
                     ) as object)}
+                  />
+                  <FormFieldError
+                    form={form}
+                    name={`subAgents.${index}.temperature`}
                   />
                 </Field>
                 <Field>
@@ -592,9 +627,16 @@ function SubAgentFields({
                   <Input
                     id={`${prefix}-sub-agent-${index}-steps`}
                     type="number"
+                    aria-invalid={
+                      !!form.getFieldState(`subAgents.${index}.maxSteps`).error
+                    }
                     {...(form.register(
                       `subAgents.${index}.maxSteps`,
                     ) as object)}
+                  />
+                  <FormFieldError
+                    form={form}
+                    name={`subAgents.${index}.maxSteps`}
                   />
                 </Field>
                 <Field>
@@ -604,9 +646,17 @@ function SubAgentFields({
                   <Input
                     id={`${prefix}-sub-agent-${index}-tokens`}
                     type="number"
+                    aria-invalid={
+                      !!form.getFieldState(`subAgents.${index}.maxOutputTokens`)
+                        .error
+                    }
                     {...(form.register(
                       `subAgents.${index}.maxOutputTokens`,
                     ) as object)}
+                  />
+                  <FormFieldError
+                    form={form}
+                    name={`subAgents.${index}.maxOutputTokens`}
                   />
                 </Field>
               </div>
@@ -728,7 +778,12 @@ export function AgentTable() {
       )}
       <Field>
         <FieldLabel htmlFor={`${prefix}-name`}>{t("name")}</FieldLabel>
-        <Input id={`${prefix}-name`} {...(form.register("name") as object)} />
+        <Input
+          id={`${prefix}-name`}
+          aria-invalid={!!form.getFieldState("name").error}
+          {...(form.register("name") as object)}
+        />
+        <FormFieldError form={form} name="name" />
       </Field>
       <Field>
         <FieldLabel htmlFor={`${prefix}-desc`}>

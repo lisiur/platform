@@ -20,6 +20,10 @@
 - `API_ORIGIN` in production is derived from the manifest's gateway port by `ecosystem.config.js`. Explicit values in `.env.production` (`API_ORIGIN` for a custom domain) override the manifest.
 - Never put secrets in a committed `.env`; keep them in deployment env or a gitignored `.env.local` / `.env.production`.
 
+## Forms
+- Every form field backed by a schema (e.g. `zodResolver`) must render its validation error via `FieldError` (from `@repo/ui`) — validation that fails silently is a bug. Use `<FieldError errors={errors.x ? [errors.x] : undefined} />` and set `aria-invalid={!!errors.x}` on the input.
+- When a component wraps `react-hook-form` (e.g. shared field components using `Controller`), read errors from `fieldState.error` / `form.getFieldState(name).error` so field-array and nested paths work.
+
 ## Tables
 - Every `TableActionCell` (from `@repo/ui`) must pass a `menu` prop with `DropdownMenuItem`s mirroring the inline action buttons. Inline buttons only appear on desktop hover (`md:` + hover); without `menu`, mobile/touch users get an empty action column.
 - Keep permission gating (`canUpdate`/`canDelete`) consistent between inline buttons and menu items; use `variant="destructive"` on destructive menu items.

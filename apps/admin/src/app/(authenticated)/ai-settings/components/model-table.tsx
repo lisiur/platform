@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -268,6 +269,11 @@ export function ModelTable() {
     );
   };
 
+  const err = (form: UseFormReturn<FieldValues>, name: string) => {
+    const error = form.formState.errors[name];
+    return <FieldError errors={error ? [error] : undefined} />;
+  };
+
   const formFields = (
     form: UseFormReturn<FieldValues>,
     prefix: string,
@@ -279,6 +285,7 @@ export function ModelTable() {
           <Field>
             <FieldLabel>{t("provider")}</FieldLabel>
             {provSelect(form)}
+            {err(form, "providerId")}
           </Field>
           <Field>
             <FieldLabel htmlFor={`${prefix}-modelId`}>
@@ -286,8 +293,10 @@ export function ModelTable() {
             </FieldLabel>
             <Input
               id={`${prefix}-modelId`}
+              aria-invalid={!!form.formState.errors.modelId}
               {...(form.register("modelId") as object)}
             />
+            {err(form, "modelId")}
           </Field>
         </>
       )}
@@ -297,8 +306,10 @@ export function ModelTable() {
         </FieldLabel>
         <Input
           id={`${prefix}-displayName`}
+          aria-invalid={!!form.formState.errors.displayName}
           {...(form.register("displayName") as object)}
         />
+        {err(form, "displayName")}
       </Field>
       <Field>
         <FieldLabel htmlFor={`${prefix}-cap`}>{t("capabilities")}</FieldLabel>
@@ -313,8 +324,10 @@ export function ModelTable() {
         <Input
           id={`${prefix}-ctx`}
           type="number"
+          aria-invalid={!!form.formState.errors.contextWindow}
           {...(form.register("contextWindow") as object)}
         />
+        {err(form, "contextWindow")}
       </Field>
       <Field>
         <div className="flex items-center gap-2">

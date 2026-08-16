@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldError,
   FieldGroup,
   FieldLabel,
   Input,
@@ -314,11 +315,33 @@ export function ProviderTable() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="cp-name">{t("name")}</FieldLabel>
-                  <Input id="cp-name" {...createForm.register("name")} />
+                  <Input
+                    id="cp-name"
+                    aria-invalid={!!createForm.formState.errors.name}
+                    {...createForm.register("name")}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.name
+                        ? [createForm.formState.errors.name]
+                        : undefined
+                    }
+                  />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="cp-baseUrl">{t("baseUrl")}</FieldLabel>
-                  <Input id="cp-baseUrl" {...createForm.register("baseUrl")} />
+                  <Input
+                    id="cp-baseUrl"
+                    aria-invalid={!!createForm.formState.errors.baseUrl}
+                    {...createForm.register("baseUrl")}
+                  />
+                  <FieldError
+                    errors={
+                      createForm.formState.errors.baseUrl
+                        ? [createForm.formState.errors.baseUrl]
+                        : undefined
+                    }
+                  />
                 </Field>
                 <Field>
                   <FieldLabel>{t("aiAdapter")}</FieldLabel>
@@ -394,13 +417,32 @@ export function ProviderTable() {
                 <FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="ep-name">{t("name")}</FieldLabel>
-                    <Input id="ep-name" {...updateForm.register("name")} />
+                    <Input
+                      id="ep-name"
+                      aria-invalid={!!updateForm.formState.errors.name}
+                      {...updateForm.register("name")}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.name
+                          ? [updateForm.formState.errors.name]
+                          : undefined
+                      }
+                    />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="ep-baseUrl">{t("baseUrl")}</FieldLabel>
                     <Input
                       id="ep-baseUrl"
+                      aria-invalid={!!updateForm.formState.errors.baseUrl}
                       {...updateForm.register("baseUrl")}
+                    />
+                    <FieldError
+                      errors={
+                        updateForm.formState.errors.baseUrl
+                          ? [updateForm.formState.errors.baseUrl]
+                          : undefined
+                      }
                     />
                   </Field>
                   <Field>
