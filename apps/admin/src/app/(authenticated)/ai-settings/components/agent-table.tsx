@@ -503,7 +503,10 @@ function SubAgentFields({
             <FieldGroup>
               <div className="grid gap-3 md:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-key`}>
+                  <FieldLabel
+                    required
+                    htmlFor={`${prefix}-sub-agent-${index}-key`}
+                  >
                     {t("subAgentKey")}
                   </FieldLabel>
                   <input
@@ -520,7 +523,10 @@ function SubAgentFields({
                   <FormFieldError form={form} name={`subAgents.${index}.key`} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-label`}>
+                  <FieldLabel
+                    required
+                    htmlFor={`${prefix}-sub-agent-${index}-label`}
+                  >
                     {t("subAgentLabel")}
                   </FieldLabel>
                   <Input
@@ -548,7 +554,10 @@ function SubAgentFields({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-model`}>
+                <FieldLabel
+                  required
+                  htmlFor={`${prefix}-sub-agent-${index}-model`}
+                >
                   {t("modelId")}
                 </FieldLabel>
                 <Input

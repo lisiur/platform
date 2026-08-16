@@ -155,7 +155,7 @@ export function NotificationTestDialog({
         <DialogBody>
           <div className="space-y-4">
             <Field>
-              <FieldLabel htmlFor="test-recipient">
+              <FieldLabel htmlFor="test-recipient" required>
                 {t("fields.recipient")}
               </FieldLabel>
               {loadingUsers ? (

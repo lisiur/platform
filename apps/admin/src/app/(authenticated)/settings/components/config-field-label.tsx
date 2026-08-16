@@ -9,6 +9,7 @@ interface ConfigFieldLabelProps {
   description?: ReactNode;
   htmlFor?: string;
   className?: string;
+  required?: boolean;
 }
 
 export function ConfigFieldLabel({
@@ -16,10 +17,11 @@ export function ConfigFieldLabel({
   description,
   htmlFor,
   className,
+  required,
 }: ConfigFieldLabelProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <FieldLabel htmlFor={htmlFor} className={className}>
+      <FieldLabel htmlFor={htmlFor} className={className} required={required}>
         {label}
       </FieldLabel>
       {description && (

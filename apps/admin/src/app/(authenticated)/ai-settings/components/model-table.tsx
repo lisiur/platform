@@ -283,12 +283,12 @@ export function ModelTable() {
       {isCreate && (
         <>
           <Field>
-            <FieldLabel>{t("provider")}</FieldLabel>
+            <FieldLabel required>{t("provider")}</FieldLabel>
             {provSelect(form)}
             {err(form, "providerId")}
           </Field>
           <Field>
-            <FieldLabel htmlFor={`${prefix}-modelId`}>
+            <FieldLabel required htmlFor={`${prefix}-modelId`}>
               {t("modelId")}
             </FieldLabel>
             <Input
@@ -301,7 +301,7 @@ export function ModelTable() {
         </>
       )}
       <Field>
-        <FieldLabel htmlFor={`${prefix}-displayName`}>
+        <FieldLabel required={isCreate} htmlFor={`${prefix}-displayName`}>
           {t("displayName")}
         </FieldLabel>
         <Input

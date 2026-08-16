@@ -222,7 +222,9 @@ export function PlanTable() {
       <FieldGroup>
         {isCreate && (
           <Field>
-            <FieldLabel htmlFor={`${prefix}-code`}>{t("code")}</FieldLabel>
+            <FieldLabel htmlFor={`${prefix}-code`} required>
+              {t("code")}
+            </FieldLabel>
             <Input
               id={`${prefix}-code`}
               aria-invalid={!!form.formState.errors.code}
@@ -238,7 +240,9 @@ export function PlanTable() {
           </Field>
         )}
         <Field>
-          <FieldLabel htmlFor={`${prefix}-name`}>{t("name")}</FieldLabel>
+          <FieldLabel required htmlFor={`${prefix}-name`}>
+            {t("name")}
+          </FieldLabel>
           <Input
             id={`${prefix}-name`}
             aria-invalid={!!form.formState.errors.name}

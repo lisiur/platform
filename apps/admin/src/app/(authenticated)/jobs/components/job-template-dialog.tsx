@@ -170,7 +170,9 @@ export function JobTemplateDialog({
           <form id="job-template-form" onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="tpl-name">{t("form.name")}</FieldLabel>
+                <FieldLabel htmlFor="tpl-name" required>
+                  {t("form.name")}
+                </FieldLabel>
                 <Input
                   id="tpl-name"
                   placeholder={t("form.namePlaceholder")}
@@ -183,7 +185,9 @@ export function JobTemplateDialog({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="tpl-type">{t("form.type")}</FieldLabel>
+                <FieldLabel htmlFor="tpl-type" required>
+                  {t("form.type")}
+                </FieldLabel>
                 <Input
                   id="tpl-type"
                   placeholder={t("form.typePlaceholder")}

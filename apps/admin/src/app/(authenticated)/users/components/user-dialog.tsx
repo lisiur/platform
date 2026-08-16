@@ -206,7 +206,9 @@ export function UserDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+                <FieldLabel htmlFor="name" required>
+                  {t("name")}
+                </FieldLabel>
                 <Input
                   id="name"
                   aria-invalid={!!errors.name}
@@ -215,7 +217,9 @@ export function UserDialog({
                 <FieldError errors={errors.name ? [errors.name] : undefined} />
               </Field>
               <Field data-invalid={!!errors.email}>
-                <FieldLabel htmlFor="email">{t("email")}</FieldLabel>
+                <FieldLabel htmlFor="email" required>
+                  {t("email")}
+                </FieldLabel>
                 <Input
                   id="email"
                   type="email"
@@ -228,7 +232,9 @@ export function UserDialog({
               </Field>
               {!isEdit && (
                 <Field data-invalid={!!errors.password}>
-                  <FieldLabel htmlFor="password">{t("password")}</FieldLabel>
+                  <FieldLabel htmlFor="password" required>
+                    {t("password")}
+                  </FieldLabel>
                   <Input
                     id="password"
                     type="password"

@@ -90,6 +90,7 @@ export function CreateTokenDialog({
 
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (selectedIds.length === 0) return;
     setSaving(true);
     try {
       const res = await withApiFeedback(appClient.api["api-tokens"].$post)({
@@ -127,7 +128,9 @@ export function CreateTokenDialog({
             className="space-y-4"
           >
             <Field>
-              <FieldLabel htmlFor="token-name">{t("fields.name")}</FieldLabel>
+              <FieldLabel htmlFor="token-name" required>
+                {t("fields.name")}
+              </FieldLabel>
               <Input
                 id="token-name"
                 value={name}
@@ -148,7 +151,7 @@ export function CreateTokenDialog({
               <FieldDescription>{t("fields.expiryHint")}</FieldDescription>
             </Field>
             <Field>
-              <FieldLabel>{t("fields.scopes")}</FieldLabel>
+              <FieldLabel required>{t("fields.scopes")}</FieldLabel>
               <div className="h-[320px]">
                 {allScopes ? (
                   <PermissionSelector

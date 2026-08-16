@@ -75,7 +75,9 @@ export function OrgInfoForm({
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <FieldGroup>
         <Field data-invalid={!!errors.name}>
-          <FieldLabel htmlFor="org-name">{t("name")}</FieldLabel>
+          <FieldLabel htmlFor="org-name" required>
+            {t("name")}
+          </FieldLabel>
           <Input
             id="org-name"
             aria-invalid={!!errors.name}
@@ -84,7 +86,9 @@ export function OrgInfoForm({
           <FieldError errors={errors.name ? [errors.name] : undefined} />
         </Field>
         <Field data-invalid={!!errors.slug}>
-          <FieldLabel htmlFor="org-slug">{t("slug")}</FieldLabel>
+          <FieldLabel htmlFor="org-slug" required>
+            {t("slug")}
+          </FieldLabel>
           <Input
             id="org-slug"
             aria-invalid={!!errors.slug}

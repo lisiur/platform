@@ -757,12 +757,12 @@ export function ModelPricingTable({
               <FieldGroup>
                 {!model && (
                   <Field>
-                    <FieldLabel>{t("model")}</FieldLabel>
+                    <FieldLabel required>{t("model")}</FieldLabel>
                     {modelSelect(createForm)}
                   </Field>
                 )}
                 <Field>
-                  <FieldLabel>{t("account")}</FieldLabel>
+                  <FieldLabel required>{t("account")}</FieldLabel>
                   <Select
                     value={createForm.watch("accountId") ?? ""}
                     onValueChange={(v) =>
@@ -788,7 +788,9 @@ export function ModelPricingTable({
                   </Select>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="cp-tz">{t("timeZone")}</FieldLabel>
+                  <FieldLabel htmlFor="cp-tz" required>
+                    {t("timeZone")}
+                  </FieldLabel>
                   <Input
                     id="cp-tz"
                     placeholder="UTC"
@@ -894,7 +896,10 @@ export function ModelPricingTable({
                         className="space-y-3"
                       >
                         <Field>
-                          <FieldLabel htmlFor={`cp-policy-${index}-start`}>
+                          <FieldLabel
+                            required
+                            htmlFor={`cp-policy-${index}-start`}
+                          >
                             {t("timeStart")}
                           </FieldLabel>
                           <Input
@@ -914,7 +919,10 @@ export function ModelPricingTable({
                           />
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor={`cp-policy-${index}-end`}>
+                          <FieldLabel
+                            required
+                            htmlFor={`cp-policy-${index}-end`}
+                          >
                             {t("timeEnd")}
                           </FieldLabel>
                           <Input
@@ -932,7 +940,10 @@ export function ModelPricingTable({
                           />
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor={`cp-policy-${index}-input`}>
+                          <FieldLabel
+                            required
+                            htmlFor={`cp-policy-${index}-input`}
+                          >
                             {t("input")}
                           </FieldLabel>
                           <Input
@@ -951,7 +962,10 @@ export function ModelPricingTable({
                           />
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor={`cp-policy-${index}-cached`}>
+                          <FieldLabel
+                            required
+                            htmlFor={`cp-policy-${index}-cached`}
+                          >
                             {t("cachedInput")}
                           </FieldLabel>
                           <Input
@@ -972,7 +986,10 @@ export function ModelPricingTable({
                           />
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor={`cp-policy-${index}-output`}>
+                          <FieldLabel
+                            required
+                            htmlFor={`cp-policy-${index}-output`}
+                          >
                             {t("output")}
                           </FieldLabel>
                           <Input
@@ -995,7 +1012,9 @@ export function ModelPricingTable({
                   </Tabs>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="cp-ef">{t("effectiveFrom")}</FieldLabel>
+                  <FieldLabel htmlFor="cp-ef" required>
+                    {t("effectiveFrom")}
+                  </FieldLabel>
                   <Input
                     id="cp-ef"
                     type="date"
@@ -1053,7 +1072,9 @@ export function ModelPricingTable({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="ep-tz">{t("timeZone")}</FieldLabel>
+                    <FieldLabel htmlFor="ep-tz" required>
+                      {t("timeZone")}
+                    </FieldLabel>
                     <Input
                       id="ep-tz"
                       placeholder="UTC"
@@ -1159,7 +1180,10 @@ export function ModelPricingTable({
                           className="space-y-3"
                         >
                           <Field>
-                            <FieldLabel htmlFor={`ep-policy-${index}-start`}>
+                            <FieldLabel
+                              required
+                              htmlFor={`ep-policy-${index}-start`}
+                            >
                               {t("timeStart")}
                             </FieldLabel>
                             <Input
@@ -1179,7 +1203,10 @@ export function ModelPricingTable({
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor={`ep-policy-${index}-end`}>
+                            <FieldLabel
+                              required
+                              htmlFor={`ep-policy-${index}-end`}
+                            >
                               {t("timeEnd")}
                             </FieldLabel>
                             <Input
@@ -1199,7 +1226,10 @@ export function ModelPricingTable({
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor={`ep-policy-${index}-input`}>
+                            <FieldLabel
+                              required
+                              htmlFor={`ep-policy-${index}-input`}
+                            >
                               {t("input")}
                             </FieldLabel>
                             <Input
@@ -1218,7 +1248,10 @@ export function ModelPricingTable({
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor={`ep-policy-${index}-cached`}>
+                            <FieldLabel
+                              required
+                              htmlFor={`ep-policy-${index}-cached`}
+                            >
                               {t("cachedInput")}
                             </FieldLabel>
                             <Input
@@ -1239,7 +1272,10 @@ export function ModelPricingTable({
                             />
                           </Field>
                           <Field>
-                            <FieldLabel htmlFor={`ep-policy-${index}-output`}>
+                            <FieldLabel
+                              required
+                              htmlFor={`ep-policy-${index}-output`}
+                            >
                               {t("output")}
                             </FieldLabel>
                             <Input
@@ -1262,7 +1298,7 @@ export function ModelPricingTable({
                     </Tabs>
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="ep-ef">
+                    <FieldLabel htmlFor="ep-ef" required>
                       {t("effectiveFrom")}
                     </FieldLabel>
                     <Input

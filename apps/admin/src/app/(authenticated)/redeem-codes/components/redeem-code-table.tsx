@@ -319,7 +319,9 @@ export function RedeemCodeTable() {
             >
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="rc-credit">{t("credit")}</FieldLabel>
+                  <FieldLabel htmlFor="rc-credit" required>
+                    {t("credit")}
+                  </FieldLabel>
                   <Input
                     id="rc-credit"
                     type="number"

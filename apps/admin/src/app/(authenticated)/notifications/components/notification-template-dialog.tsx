@@ -173,7 +173,7 @@ export function NotificationTemplateDialog({
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="template-name">
+                  <FieldLabel htmlFor="template-name" required>
                     {t("fields.name")}
                   </FieldLabel>
                   <Input
@@ -184,7 +184,7 @@ export function NotificationTemplateDialog({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="template-key">
+                  <FieldLabel htmlFor="template-key" required>
                     {t("fields.key")}
                   </FieldLabel>
                   <Input
@@ -234,7 +234,7 @@ export function NotificationTemplateDialog({
               </Field>
               {headlineField === "subject" && (
                 <Field>
-                  <FieldLabel htmlFor="template-subject">
+                  <FieldLabel htmlFor="template-subject" required>
                     {t("fields.subjectTemplate")}
                   </FieldLabel>
                   <Input
@@ -247,7 +247,7 @@ export function NotificationTemplateDialog({
               )}
               {headlineField === "title" && (
                 <Field>
-                  <FieldLabel htmlFor="template-title">
+                  <FieldLabel htmlFor="template-title" required>
                     {t("fields.titleTemplate")}
                   </FieldLabel>
                   <Input
@@ -259,7 +259,7 @@ export function NotificationTemplateDialog({
                 </Field>
               )}
               <Field>
-                <FieldLabel htmlFor="template-body">
+                <FieldLabel htmlFor="template-body" required>
                   {t("fields.bodyTemplate")}
                 </FieldLabel>
                 {selectedProviderKey === "smtp-email" ? (

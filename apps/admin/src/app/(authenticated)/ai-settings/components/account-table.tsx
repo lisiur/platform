@@ -399,7 +399,7 @@ export function AccountTable() {
             >
               <FieldGroup>
                 <Field>
-                  <FieldLabel>{t("providers")}</FieldLabel>
+                  <FieldLabel required>{t("providers")}</FieldLabel>
                   <MultiSelect
                     options={providerOptions}
                     value={createForm.watch("providerIds") ?? []}
@@ -420,7 +420,9 @@ export function AccountTable() {
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="ca-name">{t("name")}</FieldLabel>
+                  <FieldLabel htmlFor="ca-name" required>
+                    {t("name")}
+                  </FieldLabel>
                   <Input id="ca-name" {...createForm.register("name")} />
                 </Field>
                 <Field>

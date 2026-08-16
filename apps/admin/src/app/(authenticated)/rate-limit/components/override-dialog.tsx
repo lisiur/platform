@@ -222,7 +222,7 @@ export function OverrideDialog({
 
               {!isEdit && (
                 <Field>
-                  <FieldLabel htmlFor="override-value">
+                  <FieldLabel htmlFor="override-value" required>
                     {t("dialog.value")}
                   </FieldLabel>
                   <Input

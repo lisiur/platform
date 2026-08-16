@@ -108,7 +108,9 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field orientation="vertical">
-            <FieldLabel htmlFor="menu-name">{t("name")} *</FieldLabel>
+            <FieldLabel htmlFor="menu-name" required>
+              {t("name")}
+            </FieldLabel>
             <FieldContent>
               <Input id="menu-name" {...register("name")} />
               <FieldError errors={errors.name ? [errors.name] : undefined} />
@@ -116,7 +118,9 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
           </Field>
 
           <Field orientation="vertical">
-            <FieldLabel htmlFor="menu-code">{t("code")} *</FieldLabel>
+            <FieldLabel htmlFor="menu-code" required>
+              {t("code")}
+            </FieldLabel>
             <FieldContent>
               <Input id="menu-code" {...register("code")} />
               <FieldError errors={errors.code ? [errors.code] : undefined} />
@@ -167,7 +171,9 @@ export const MenuForm = forwardRef<MenuFormRef, MenuFormProps>(
 
         {linkType !== "GROUP" && (
           <Field orientation="vertical">
-            <FieldLabel htmlFor="menu-url">{t("url")} *</FieldLabel>
+            <FieldLabel htmlFor="menu-url" required>
+              {t("url")}
+            </FieldLabel>
             <FieldContent>
               <Input
                 id="menu-url"

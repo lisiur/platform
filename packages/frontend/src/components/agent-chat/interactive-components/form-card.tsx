@@ -337,11 +337,8 @@ export function FormCard({ part, submitToolResult }: FormCardProps) {
                 />
               ) : null}
               <div className="min-w-0 flex-1 space-y-1">
-                <FieldLabel htmlFor={fieldId}>
+                <FieldLabel htmlFor={fieldId} required={field.required}>
                   {field.label}
-                  {field.required ? (
-                    <span className="text-destructive">*</span>
-                  ) : null}
                 </FieldLabel>
                 {field.description ? (
                   <FieldDescription>{field.description}</FieldDescription>

@@ -210,7 +210,9 @@ export function QuotaTable() {
               <form id="eq-form" onSubmit={updateForm.handleSubmit(hu)}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="eq-allocated">Allocated</FieldLabel>
+                    <FieldLabel htmlFor="eq-allocated" required>
+                      Allocated
+                    </FieldLabel>
                     <Input
                       id="eq-allocated"
                       type="number"
@@ -226,7 +228,9 @@ export function QuotaTable() {
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="eq-used">Used</FieldLabel>
+                    <FieldLabel htmlFor="eq-used" required>
+                      Used
+                    </FieldLabel>
                     <Input
                       id="eq-used"
                       type="number"

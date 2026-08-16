@@ -61,7 +61,9 @@ export function RegisterForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="name">{tc("name")}</FieldLabel>
+          <FieldLabel htmlFor="name" required>
+            {tc("name")}
+          </FieldLabel>
           <Input
             id="name"
             type="text"
@@ -72,7 +74,9 @@ export function RegisterForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="email">{tc("email")}</FieldLabel>
+          <FieldLabel htmlFor="email" required>
+            {tc("email")}
+          </FieldLabel>
           <Input
             id="email"
             type="email"
@@ -83,7 +87,9 @@ export function RegisterForm({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="password">{tc("password")}</FieldLabel>
+          <FieldLabel htmlFor="password" required>
+            {tc("password")}
+          </FieldLabel>
           <Input
             id="password"
             type="password"

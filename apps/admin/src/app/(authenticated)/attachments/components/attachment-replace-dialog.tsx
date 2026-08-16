@@ -78,7 +78,9 @@ export function AttachmentReplaceDialog({
         <form id="attachment-replace-form" onSubmit={handleSubmit}>
           <DialogBody>
             <Field>
-              <FieldLabel htmlFor="replace-file">{t("chooseFile")}</FieldLabel>
+              <FieldLabel htmlFor="replace-file" required>
+                {t("chooseFile")}
+              </FieldLabel>
               <input
                 ref={fileInputRef}
                 id="replace-file"

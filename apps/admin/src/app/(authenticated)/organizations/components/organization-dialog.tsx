@@ -223,14 +223,18 @@ export function OrganizationDialog({
             >
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+                  <FieldLabel htmlFor="name" required>
+                    {t("name")}
+                  </FieldLabel>
                   <Input id="name" {...register("name")} />
                   <FieldError
                     errors={errors.name ? [errors.name] : undefined}
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="slug">{t("slug")}</FieldLabel>
+                  <FieldLabel htmlFor="slug" required>
+                    {t("slug")}
+                  </FieldLabel>
                   <Input id="slug" {...register("slug")} />
                   <FieldError
                     errors={errors.slug ? [errors.slug] : undefined}

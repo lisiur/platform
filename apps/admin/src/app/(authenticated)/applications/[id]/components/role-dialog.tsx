@@ -113,7 +113,9 @@ export function RoleDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="role-name">{t("name")}</FieldLabel>
+                <FieldLabel htmlFor="role-name" required>
+                  {t("name")}
+                </FieldLabel>
                 <Input
                   id="role-name"
                   aria-invalid={!!errors.name}
@@ -122,7 +124,9 @@ export function RoleDialog({
                 <FieldError errors={errors.name ? [errors.name] : undefined} />
               </Field>
               <Field data-invalid={!!errors.code}>
-                <FieldLabel htmlFor="role-code">{t("code")}</FieldLabel>
+                <FieldLabel htmlFor="role-code" required>
+                  {t("code")}
+                </FieldLabel>
                 <Input
                   id="role-code"
                   aria-invalid={!!errors.code}

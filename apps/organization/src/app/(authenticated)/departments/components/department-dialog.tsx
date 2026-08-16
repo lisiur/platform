@@ -120,7 +120,9 @@ export function DepartmentDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!form.formState.errors.name}>
-                <FieldLabel htmlFor="dept-name">{t("name")}</FieldLabel>
+                <FieldLabel htmlFor="dept-name" required>
+                  {t("name")}
+                </FieldLabel>
                 <Input
                   id="dept-name"
                   aria-invalid={!!form.formState.errors.name}
@@ -136,7 +138,9 @@ export function DepartmentDialog({
                 />
               </Field>
               <Field data-invalid={!!form.formState.errors.code}>
-                <FieldLabel htmlFor="dept-code">{t("code")}</FieldLabel>
+                <FieldLabel htmlFor="dept-code" required>
+                  {t("code")}
+                </FieldLabel>
                 <Input
                   id="dept-code"
                   aria-invalid={!!form.formState.errors.code}

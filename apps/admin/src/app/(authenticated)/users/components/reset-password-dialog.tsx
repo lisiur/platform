@@ -103,7 +103,7 @@ export function ResetPasswordDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!errors.newPassword}>
-                <FieldLabel htmlFor="newPassword">
+                <FieldLabel htmlFor="newPassword" required>
                   {t("newPassword")}
                 </FieldLabel>
                 <InputPassword
@@ -116,7 +116,7 @@ export function ResetPasswordDialog({
                 />
               </Field>
               <Field data-invalid={!!errors.confirmPassword}>
-                <FieldLabel htmlFor="confirmPassword">
+                <FieldLabel htmlFor="confirmPassword" required>
                   {t("confirmPassword")}
                 </FieldLabel>
                 <InputPassword

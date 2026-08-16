@@ -125,7 +125,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="email">{tc("email")}</FieldLabel>
+          <FieldLabel htmlFor="email" required>
+            {tc("email")}
+          </FieldLabel>
           <Input
             id="email"
             type="email"
@@ -136,7 +138,9 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="password">{tc("password")}</FieldLabel>
+          <FieldLabel htmlFor="password" required>
+            {tc("password")}
+          </FieldLabel>
           <InputPassword
             id="password"
             placeholder="••••••••"

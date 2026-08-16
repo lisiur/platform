@@ -25,6 +25,7 @@ export const createApiTokenBodySchema = z.object({
   name: z.string().min(1).openapi({ example: "Production server" }),
   scopes: z
     .array(z.string().min(1))
+    .min(1)
     .openapi({ example: ["system/member:read", "system/department:read"] }),
   scope: z.string().optional(),
   expiresAt: z.string().datetime().optional().openapi({
@@ -46,7 +47,7 @@ export const createApiTokenResponseSchema = z
 export const updateApiTokenBodySchema = z.object({
   name: z.string().min(1).optional(),
   enabled: z.boolean().optional(),
-  scopes: z.array(z.string().min(1)).optional(),
+  scopes: z.array(z.string().min(1)).min(1).optional(),
 });
 
 export const listApiTokensResponseSchema = z

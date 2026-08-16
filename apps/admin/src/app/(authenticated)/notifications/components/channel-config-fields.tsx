@@ -53,7 +53,7 @@ export function ChannelConfigFields({
       </div>
       {Object.entries(schema.properties ?? {}).map(([key, property]) => {
         const label = getLabel(key, schema);
-        const requiredMarker = required.has(key) ? " *" : "";
+        const isRequired = required.has(key);
         const description = isRecord(property)
           ? property.description
           : undefined;
@@ -66,9 +66,11 @@ export function ChannelConfigFields({
               className="justify-between"
             >
               <div className="space-y-1">
-                <FieldLabel htmlFor={`channel-config-${key}`}>
+                <FieldLabel
+                  htmlFor={`channel-config-${key}`}
+                  required={isRequired}
+                >
                   {label}
-                  {requiredMarker}
                 </FieldLabel>
                 {typeof description === "string" && (
                   <FieldDescription>{description}</FieldDescription>
@@ -85,9 +87,8 @@ export function ChannelConfigFields({
 
         return (
           <Field key={key}>
-            <FieldLabel htmlFor={`channel-config-${key}`}>
+            <FieldLabel htmlFor={`channel-config-${key}`} required={isRequired}>
               {label}
-              {requiredMarker}
             </FieldLabel>
             <Input
               id={`channel-config-${key}`}

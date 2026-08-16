@@ -351,7 +351,9 @@ export function SubscriptionTable() {
                   </Select>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="cs-pid">{t("principalId")}</FieldLabel>
+                  <FieldLabel htmlFor="cs-pid" required>
+                    {t("principalId")}
+                  </FieldLabel>
                   <Input
                     id="cs-pid"
                     aria-invalid={!!createForm.formState.errors.principalId}
@@ -366,7 +368,7 @@ export function SubscriptionTable() {
                   />
                 </Field>
                 <Field>
-                  <FieldLabel>{t("plan")}</FieldLabel>
+                  <FieldLabel required>{t("plan")}</FieldLabel>
                   {planSelect(createForm)}
                   <FieldError
                     errors={

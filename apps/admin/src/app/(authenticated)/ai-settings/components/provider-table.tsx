@@ -314,7 +314,9 @@ export function ProviderTable() {
             >
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="cp-name">{t("name")}</FieldLabel>
+                  <FieldLabel htmlFor="cp-name" required>
+                    {t("name")}
+                  </FieldLabel>
                   <Input
                     id="cp-name"
                     aria-invalid={!!createForm.formState.errors.name}
@@ -329,7 +331,9 @@ export function ProviderTable() {
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="cp-baseUrl">{t("baseUrl")}</FieldLabel>
+                  <FieldLabel htmlFor="cp-baseUrl" required>
+                    {t("baseUrl")}
+                  </FieldLabel>
                   <Input
                     id="cp-baseUrl"
                     aria-invalid={!!createForm.formState.errors.baseUrl}

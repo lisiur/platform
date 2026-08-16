@@ -71,7 +71,7 @@ export function PasswordForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="currentPassword">
+          <FieldLabel htmlFor="currentPassword" required>
             {t("currentPassword")}
           </FieldLabel>
           <Input
@@ -87,7 +87,9 @@ export function PasswordForm() {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="newPassword">{t("newPassword")}</FieldLabel>
+          <FieldLabel htmlFor="newPassword" required>
+            {t("newPassword")}
+          </FieldLabel>
           <Input
             id="newPassword"
             type="password"
@@ -99,7 +101,7 @@ export function PasswordForm() {
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="confirmPassword">
+          <FieldLabel htmlFor="confirmPassword" required>
             {t("confirmPassword")}
           </FieldLabel>
           <Input

@@ -60,7 +60,9 @@ export function ProfileForm({ initialName, onNameUpdate }: ProfileFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+          <FieldLabel htmlFor="name" required>
+            {t("name")}
+          </FieldLabel>
           <Input id="name" {...register("name")} />
           <FieldError errors={errors.name ? [errors.name] : undefined} />
         </Field>

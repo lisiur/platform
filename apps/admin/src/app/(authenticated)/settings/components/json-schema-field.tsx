@@ -91,6 +91,7 @@ export function JsonSchemaField({
         const description = property.description
           ? tr(property.description)
           : null;
+        const isRequired = schema.required?.includes(key) ?? false;
 
         if (property.type === "boolean") {
           const checkboxLabel = description ?? label;
@@ -100,6 +101,7 @@ export function JsonSchemaField({
                 <ConfigFieldLabel
                   label={label}
                   className="font-normal text-sm"
+                  required={isRequired}
                 />
               )}
               <Field orientation="horizontal" className="gap-2">
@@ -113,6 +115,7 @@ export function JsonSchemaField({
                 <FieldLabel
                   htmlFor={`${id}-${key}`}
                   className="font-normal text-sm"
+                  required={isRequired}
                 >
                   {checkboxLabel}
                 </FieldLabel>
@@ -151,6 +154,7 @@ export function JsonSchemaField({
                 label={label}
                 description={description}
                 className="font-normal text-sm"
+                required={isRequired}
               />
               <div className="space-y-2">
                 {values.map((item) => (
@@ -207,6 +211,7 @@ export function JsonSchemaField({
               label={label}
               description={description}
               className="font-normal text-sm"
+              required={isRequired}
             />
             <Input
               type={property.type === "number" ? "number" : "text"}

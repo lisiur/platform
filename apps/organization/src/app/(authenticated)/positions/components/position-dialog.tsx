@@ -118,7 +118,9 @@ export function PositionDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!form.formState.errors.name}>
-                <FieldLabel htmlFor="pos-name">{t("name")}</FieldLabel>
+                <FieldLabel htmlFor="pos-name" required>
+                  {t("name")}
+                </FieldLabel>
                 <Input
                   id="pos-name"
                   aria-invalid={!!form.formState.errors.name}
@@ -134,7 +136,9 @@ export function PositionDialog({
                 />
               </Field>
               <Field data-invalid={!!form.formState.errors.code}>
-                <FieldLabel htmlFor="pos-code">{t("code")}</FieldLabel>
+                <FieldLabel htmlFor="pos-code" required>
+                  {t("code")}
+                </FieldLabel>
                 <Input
                   id="pos-code"
                   aria-invalid={!!form.formState.errors.code}

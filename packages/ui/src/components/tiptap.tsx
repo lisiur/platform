@@ -391,7 +391,9 @@ export function Tiptap({
                 />
               </div>
               <div className="space-y-1">
-                <FieldLabel htmlFor="tiptap-link-url">URL</FieldLabel>
+                <FieldLabel htmlFor="tiptap-link-url" required>
+                  URL
+                </FieldLabel>
                 <Input
                   id="tiptap-link-url"
                   type="url"

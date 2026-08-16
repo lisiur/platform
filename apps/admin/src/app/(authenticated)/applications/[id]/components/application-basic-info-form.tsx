@@ -78,12 +78,16 @@ export function ApplicationBasicInfoForm({
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
+          <FieldLabel htmlFor="name" required>
+            {t("name")}
+          </FieldLabel>
           <Input id="name" {...register("name")} />
           <FieldError errors={errors.name ? [errors.name] : undefined} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="code">{t("code")}</FieldLabel>
+          <FieldLabel htmlFor="code" required>
+            {t("code")}
+          </FieldLabel>
           <Input id="code" {...register("code")} />
           <FieldError errors={errors.code ? [errors.code] : undefined} />
         </Field>

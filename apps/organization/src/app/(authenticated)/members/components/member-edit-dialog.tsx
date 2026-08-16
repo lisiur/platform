@@ -102,7 +102,9 @@ export function MemberEditDialog({
           >
             <FieldGroup>
               <Field data-invalid={!!form.formState.errors.name}>
-                <FieldLabel htmlFor="member-name">{t("name")}</FieldLabel>
+                <FieldLabel htmlFor="member-name" required>
+                  {t("name")}
+                </FieldLabel>
                 <Input
                   id="member-name"
                   aria-invalid={!!form.formState.errors.name}

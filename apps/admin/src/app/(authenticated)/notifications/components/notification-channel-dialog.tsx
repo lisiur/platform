@@ -114,7 +114,9 @@ export function NotificationChannelDialog({
             className="space-y-4"
           >
             <Field>
-              <FieldLabel htmlFor="channel-name">{t("fields.name")}</FieldLabel>
+              <FieldLabel htmlFor="channel-name" required>
+                {t("fields.name")}
+              </FieldLabel>
               <Input
                 id="channel-name"
                 value={name}
@@ -123,7 +125,9 @@ export function NotificationChannelDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="channel-key">{t("fields.key")}</FieldLabel>
+              <FieldLabel htmlFor="channel-key" required>
+                {t("fields.key")}
+              </FieldLabel>
               <Input
                 id="channel-key"
                 value={key}

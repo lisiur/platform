@@ -90,7 +90,9 @@ export function OrganizationRegistrationForm({
         <CardContent>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="organization-name">{t("name")}</FieldLabel>
+              <FieldLabel htmlFor="organization-name" required>
+                {t("name")}
+              </FieldLabel>
               <Input
                 id="organization-name"
                 placeholder={t("namePlaceholder")}
@@ -100,7 +102,9 @@ export function OrganizationRegistrationForm({
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="organization-slug">{t("slug")}</FieldLabel>
+              <FieldLabel htmlFor="organization-slug" required>
+                {t("slug")}
+              </FieldLabel>
               <Input
                 id="organization-slug"
                 placeholder="acme-corp"
