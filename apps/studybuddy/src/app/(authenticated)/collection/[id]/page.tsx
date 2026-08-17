@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@repo/ui";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { use } from "react";
 import { ManagementPageShell } from "@/components/management-page-shell";
@@ -16,6 +19,17 @@ export default function CollectionDetailPage({
   const { id } = use(params);
   return (
     <ManagementPageShell
+      header={
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href="/collection" />}
+        >
+          <ArrowLeft className="size-4" />
+          {t("back")}
+        </Button>
+      }
       title={t("detailTitle")}
       description={t("detailDescription")}
     >

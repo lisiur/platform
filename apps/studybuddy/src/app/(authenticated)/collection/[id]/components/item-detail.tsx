@@ -2,15 +2,8 @@
 
 import { Badge, Button, Spinner } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ExternalLink,
-  Pencil,
-  RefreshCw,
-  Trash2,
-} from "lucide-react";
+import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -143,19 +136,7 @@ export function ItemDetail({ id }: ItemDetailProps) {
   const canEnrich = applicableKinds.length > 0;
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/collection" />}
-        >
-          <ArrowLeft className="size-4" />
-          {t("back")}
-        </Button>
-      </div>
-
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
       <div className="rounded-lg border p-5">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Badge variant={TYPE_VARIANT[item.type] ?? "outline"}>
