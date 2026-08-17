@@ -47,7 +47,6 @@ type UserMenuItem =
   | "switchOrganization"
   | "theme"
   | "locale"
-  | "registerOrganization"
   | "version"
   | "signOut";
 
@@ -81,7 +80,6 @@ export function UserMenu({ full, items }: UserMenuProps) {
       "switchOrganization",
       "theme",
       "locale",
-      "registerOrganization",
       "version",
       "signOut",
     ],
@@ -116,7 +114,6 @@ export function UserMenu({ full, items }: UserMenuProps) {
   const showProfile = visible.has("profile");
   const showTokens = visible.has("tokens");
   const showSwitch = visible.has("switchOrganization");
-  const showRegisterOrg = visible.has("registerOrganization");
   const showUtilities = visible.has("theme") || visible.has("locale");
   const showVersion = visible.has("version");
   const showSignOut = visible.has("signOut");
@@ -221,7 +218,6 @@ export function UserMenu({ full, items }: UserMenuProps) {
             (showProfile ||
               showTokens ||
               canSwitch ||
-              showRegisterOrg ||
               showUtilities ||
               showSignOut) && <DropdownMenuSeparator />}
           {showProfile && (
@@ -272,17 +268,9 @@ export function UserMenu({ full, items }: UserMenuProps) {
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}
-          {(showProfile || showTokens || canSwitch) && showRegisterOrg && (
+          {(showProfile || showTokens || canSwitch) && showUtilities && (
             <DropdownMenuSeparator />
           )}
-          {showRegisterOrg && (
-            <DropdownMenuItem render={<Link href="/register-organization" />}>
-              <Building2 />
-              {t("registerOrganization")}
-            </DropdownMenuItem>
-          )}
-          {(showProfile || showTokens || canSwitch || showRegisterOrg) &&
-            showUtilities && <DropdownMenuSeparator />}
           {showUtilities && (
             <Fragment>
               {visible.has("theme") && (
@@ -342,7 +330,6 @@ export function UserMenu({ full, items }: UserMenuProps) {
             showProfile ||
             showTokens ||
             canSwitch ||
-            showRegisterOrg ||
             showUtilities ||
             showVersion) &&
             showSignOut && <DropdownMenuSeparator />}

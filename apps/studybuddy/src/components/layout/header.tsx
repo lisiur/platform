@@ -1,20 +1,18 @@
 "use client";
 
-import { Building2, PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useCurrentApp } from "@/hooks/use-current-app";
-import { useCurrentOrganization } from "@/hooks/use-current-organization";
 import { useSession } from "@/lib/api/use-session";
 import { NotificationBell } from "./notification-bell";
 import { UserMenu } from "./user-menu";
 
 export function Header({ className }: { className?: string }) {
   const { app } = useCurrentApp();
-  const { organization } = useCurrentOrganization();
   const { data: session } = useSession();
 
-  const label = organization?.name ?? app?.name ?? "";
-  const logo = organization?.logo ?? app?.logo ?? null;
+  const label = app?.name ?? "";
+  const logo = app?.logo ?? null;
 
   return (
     <header
@@ -41,7 +39,7 @@ export function Header({ className }: { className?: string }) {
           />
         ) : (
           <div className="flex h-6 w-6 items-center justify-center rounded bg-muted">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
           </div>
         )}
         <span className="font-semibold text-lg">{label}</span>

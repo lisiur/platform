@@ -14,11 +14,14 @@ import { useEffect, useRef } from "react";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { RegisterForm } from "@/components/auth/register-form";
 import { appClient, useSession } from "@/lib/api";
+import { redirectToFirstMenuOrProfile } from "@/lib/navigation/menu-redirect";
+import { useMenuStore } from "@/stores/menu-store";
 
 export default function RegisterPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
   const { data: session, isPending, refetch } = useSession();
+  const refetchMenus = useMenuStore((state) => state.refetchMenus);
   const handledValidSessionRef = useRef(false);
   const { registrationEnabled, isLoading: isRegistrationLoading } =
     useRegistrationEnabled(async () => {
@@ -28,14 +31,14 @@ export default function RegisterPage() {
 
   async function handleRegisterSuccess() {
     await refetch();
-    router.push("/register-organization");
+    await redirectToFirstMenuOrProfile(router, refetchMenus);
   }
 
   useEffect(() => {
     if (!session || handledValidSessionRef.current) return;
     handledValidSessionRef.current = true;
-    router.push("/register-organization");
-  }, [session, router]);
+    void redirectToFirstMenuOrProfile(router, refetchMenus);
+  }, [session, router, refetchMenus]);
 
   useEffect(() => {
     if (!isRegistrationLoading && !registrationEnabled)
