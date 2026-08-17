@@ -29,6 +29,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
   ChevronsUpDown,
+  History,
   KeyRound,
   LanguagesIcon,
   LogOut,
@@ -53,6 +54,7 @@ type UserMenuItem =
   | "userInfo"
   | "profile"
   | "tokens"
+  | "creditUsage"
   | "redeem"
   | "switchOrganization"
   | "theme"
@@ -90,6 +92,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
       "userInfo",
       "profile",
       "tokens",
+      "creditUsage",
       "redeem",
       "switchOrganization",
       "theme",
@@ -142,6 +145,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
   const showLabel = visible.has("userInfo");
   const showProfile = visible.has("profile");
   const showTokens = visible.has("tokens");
+  const showCreditUsage = visible.has("creditUsage");
   const showRedeem = visible.has("redeem");
   const showSwitch = visible.has("switchOrganization");
   const showUtilities = visible.has("theme") || visible.has("locale");
@@ -247,6 +251,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
           {showLabel &&
             (showProfile ||
               showTokens ||
+              showCreditUsage ||
               showRedeem ||
               canSwitch ||
               showUtilities ||
@@ -263,7 +268,15 @@ export function UserMenu({ full, items }: UserMenuProps) {
               {t("tokens")}
             </DropdownMenuItem>
           )}
-          {showTokens && showRedeem && <DropdownMenuSeparator />}
+          {showTokens && (showCreditUsage || showRedeem) && (
+            <DropdownMenuSeparator />
+          )}
+          {showCreditUsage && (
+            <DropdownMenuItem render={<Link href="/credit-usage" />}>
+              <History />
+              {t("creditUsage")}
+            </DropdownMenuItem>
+          )}
           {showRedeem && (
             <DropdownMenuItem onClick={() => setRedeemOpen(true)}>
               <Ticket />
@@ -306,7 +319,11 @@ export function UserMenu({ full, items }: UserMenuProps) {
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}
-          {(showProfile || showTokens || showRedeem || canSwitch) &&
+          {(showProfile ||
+            showTokens ||
+            showCreditUsage ||
+            showRedeem ||
+            canSwitch) &&
             showUtilities && <DropdownMenuSeparator />}
           {showUtilities && (
             <Fragment>
@@ -366,6 +383,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
           {(showLabel ||
             showProfile ||
             showTokens ||
+            showCreditUsage ||
             showRedeem ||
             canSwitch ||
             showUtilities ||

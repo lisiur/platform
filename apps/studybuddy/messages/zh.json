@@ -222,6 +222,23 @@
     "appearance": "外观",
     "language": "语言"
   },
+  "CreditUsage": {
+    "title": "积分明细",
+    "description": "查看您的积分余额和使用记录",
+    "balance": "余额",
+    "frozen": "冻结",
+    "createdAt": "时间",
+    "type": "类型",
+    "amount": "变动",
+    "balanceBefore": "变动前余额",
+    "balanceAfter": "变动后余额",
+    "descriptionLabel": "描述",
+    "noEntries": "暂无积分记录",
+    "typeRedeem": "兑换",
+    "typeAiUsage": "AI 用量",
+    "typeAiUsageReserve": "AI 用量预扣",
+    "typeAiUsageRefund": "AI 用量退还"
+  },
   "Members": {
     "title": "成员",
     "description": "管理本组织的成员",
@@ -399,6 +416,7 @@
     "tokens": "API 令牌",
     "redeem": "兑换码",
     "redeemPlaceholder": "输入兑换码",
+    "creditUsage": "积分明细",
     "cancel": "取消",
     "switchOrganization": "切换组织",
     "switchSuccess": "已切换组织",

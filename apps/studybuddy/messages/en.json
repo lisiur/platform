@@ -222,6 +222,23 @@
     "appearance": "Appearance",
     "language": "Language"
   },
+  "CreditUsage": {
+    "title": "Credit Usage",
+    "description": "View your credit balance and usage history",
+    "balance": "Balance",
+    "frozen": "Frozen",
+    "createdAt": "Time",
+    "type": "Type",
+    "amount": "Amount",
+    "balanceBefore": "Balance Before",
+    "balanceAfter": "Balance After",
+    "descriptionLabel": "Description",
+    "noEntries": "No credit usage yet",
+    "typeRedeem": "Redeem",
+    "typeAiUsage": "AI Usage",
+    "typeAiUsageReserve": "AI Usage Reserve",
+    "typeAiUsageRefund": "AI Usage Refund"
+  },
   "Members": {
     "title": "Members",
     "description": "Manage the members of this organization",
@@ -399,6 +416,7 @@
     "tokens": "API Tokens",
     "redeem": "Redeem Code",
     "redeemPlaceholder": "Enter redeem code",
+    "creditUsage": "Credit Usage",
     "cancel": "Cancel",
     "switchOrganization": "Switch Organization",
     "switchSuccess": "Organization switched",
