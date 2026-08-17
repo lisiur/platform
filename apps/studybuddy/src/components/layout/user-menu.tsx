@@ -3,6 +3,13 @@
 import { VersionDialog } from "@repo/frontend";
 import { APP_VERSION } from "@repo/shared";
 import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -14,6 +21,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  Input,
   SidebarMenuButton,
   Switch,
 } from "@repo/ui";
@@ -28,6 +36,7 @@ import {
   Moon,
   Settings,
   Sun,
+  Ticket,
   UserIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -44,6 +53,7 @@ type UserMenuItem =
   | "userInfo"
   | "profile"
   | "tokens"
+  | "redeem"
   | "switchOrganization"
   | "theme"
   | "locale"
@@ -71,12 +81,16 @@ export function UserMenu({ full, items }: UserMenuProps) {
   const th = useTranslations("Header");
 
   const [versionOpen, setVersionOpen] = useState(false);
+  const [redeemOpen, setRedeemOpen] = useState(false);
+  const [redeemCode, setRedeemCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
 
   const visible = new Set(
     items ?? [
       "userInfo",
       "profile",
       "tokens",
+      "redeem",
       "switchOrganization",
       "theme",
       "locale",
@@ -110,9 +124,25 @@ export function UserMenu({ full, items }: UserMenuProps) {
     router.refresh();
   }
 
+  async function handleRedeem() {
+    if (!redeemCode.trim()) return;
+    setRedeeming(true);
+    try {
+      await withApiFeedback(appClient.api["redeem-codes"].redeem.$post)({
+        json: { code: redeemCode.trim() },
+      });
+      setRedeemOpen(false);
+      setRedeemCode("");
+    } catch {
+    } finally {
+      setRedeeming(false);
+    }
+  }
+
   const showLabel = visible.has("userInfo");
   const showProfile = visible.has("profile");
   const showTokens = visible.has("tokens");
+  const showRedeem = visible.has("redeem");
   const showSwitch = visible.has("switchOrganization");
   const showUtilities = visible.has("theme") || visible.has("locale");
   const showVersion = visible.has("version");
@@ -217,6 +247,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
           {showLabel &&
             (showProfile ||
               showTokens ||
+              showRedeem ||
               canSwitch ||
               showUtilities ||
               showSignOut) && <DropdownMenuSeparator />}
@@ -230,6 +261,13 @@ export function UserMenu({ full, items }: UserMenuProps) {
             <DropdownMenuItem render={<Link href="/tokens" />}>
               <KeyRound />
               {t("tokens")}
+            </DropdownMenuItem>
+          )}
+          {showTokens && showRedeem && <DropdownMenuSeparator />}
+          {showRedeem && (
+            <DropdownMenuItem onClick={() => setRedeemOpen(true)}>
+              <Ticket />
+              {t("redeem")}
             </DropdownMenuItem>
           )}
           {canSwitch && (
@@ -268,9 +306,8 @@ export function UserMenu({ full, items }: UserMenuProps) {
               </DropdownMenuSubContent>
             </DropdownMenuSub>
           )}
-          {(showProfile || showTokens || canSwitch) && showUtilities && (
-            <DropdownMenuSeparator />
-          )}
+          {(showProfile || showTokens || showRedeem || canSwitch) &&
+            showUtilities && <DropdownMenuSeparator />}
           {showUtilities && (
             <Fragment>
               {visible.has("theme") && (
@@ -329,6 +366,7 @@ export function UserMenu({ full, items }: UserMenuProps) {
           {(showLabel ||
             showProfile ||
             showTokens ||
+            showRedeem ||
             canSwitch ||
             showUtilities ||
             showVersion) &&
@@ -353,6 +391,28 @@ export function UserMenu({ full, items }: UserMenuProps) {
           appCode={APP_CODE}
         />
       )}
+      <Dialog open={redeemOpen} onOpenChange={setRedeemOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("redeem")}</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Input
+              placeholder={t("redeemPlaceholder")}
+              value={redeemCode}
+              onChange={(e) => setRedeemCode(e.target.value)}
+            />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRedeemOpen(false)}>
+              {t("cancel")}
+            </Button>
+            <Button disabled={redeeming} onClick={handleRedeem}>
+              {redeeming ? "..." : t("redeem")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
