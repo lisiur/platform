@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Pencil,
-  Sparkles,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
@@ -21,7 +21,6 @@ import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import {
   type EnrichmentData,
-  type EnrichmentKind,
   EnrichmentSection,
   KINDS_BY_TYPE,
 } from "./enrichment-section";
@@ -35,6 +34,26 @@ const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   LINK: "secondary",
 };
 
+const AUTO_ENRICH_POLL_INTERVAL_MS = 5_000;
+
+interface ItemDetailData {
+  id: string;
+  type: string;
+  source: string;
+  url: string | null;
+  title: string | null;
+  note: string | null;
+  tags: string[];
+  status: string;
+  mastery: number;
+  enrichStatus: "none" | "pending" | "ok" | "failed";
+  enrichError: string | null;
+  createdAt: string;
+  updatedAt: string;
+  enrichments: EnrichmentData[];
+  attachments: Array<{ id: string; url: string }>;
+}
+
 interface ItemDetailProps {
   id: string;
 }
@@ -45,56 +64,41 @@ export function ItemDetail({ id }: ItemDetailProps) {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
-  const [busyKind, setBusyKind] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const queryKey = ["collection-item", id] as const;
 
   const query = useQuery({
     queryKey,
-    queryFn: async () => {
+    queryFn: async (): Promise<ItemDetailData> => {
       const res = await appClient.api.collection.items[":id"].$get({
         param: { id },
       });
       if (!res.ok) throw new Error("Failed to load item");
-      const data = (await res.json()) as {
-        id: string;
-        type: string;
-        source: string;
-        url: string | null;
-        title: string | null;
-        note: string | null;
-        tags: string[];
-        status: string;
-        mastery: number;
-        createdAt: string;
-        updatedAt: string;
-        enrichments: EnrichmentData[];
-        attachments: Array<{ id: string; url: string }>;
-      };
-      return data;
+      return (await res.json()) as ItemDetailData;
     },
+    refetchInterval: (q) =>
+      q.state.data?.enrichStatus === "pending"
+        ? AUTO_ENRICH_POLL_INTERVAL_MS
+        : false,
   });
 
   function refresh() {
     void queryClient.invalidateQueries({ queryKey });
   }
 
-  async function handleRegenerate(kind: EnrichmentKind | "all") {
-    setBusyKind(kind);
+  async function handleRetryEnrich() {
+    setRetrying(true);
     try {
       const res = await withApiFeedback(
-        appClient.api.collection.items[":id"].enrich.$post,
-      )({
-        param: { id },
-        json: kind === "all" ? {} : { kinds: [kind] },
-      });
+        appClient.api.collection.items[":id"].enrich.retry.$post,
+      )({ param: { id } });
       if (!res.ok) return;
       refresh();
-      toast.success(t("enrichSuccess"));
     } catch {
       // Error handled by API feedback.
     } finally {
-      setBusyKind(null);
+      setRetrying(false);
     }
   }
 
@@ -219,20 +223,6 @@ export function ItemDetail({ id }: ItemDetailProps) {
             <Pencil className="size-4" />
             {t("edit")}
           </Button>
-          {canEnrich && (
-            <Button
-              size="sm"
-              disabled={busyKind !== null}
-              onClick={() => handleRegenerate("all")}
-            >
-              <Sparkles
-                className={
-                  busyKind === "all" ? "size-4 animate-spin" : "size-4"
-                }
-              />
-              {t("enrichAll")}
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="sm"
@@ -246,17 +236,37 @@ export function ItemDetail({ id }: ItemDetailProps) {
       </div>
 
       {canEnrich ? (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {applicableKinds.map((kind) => (
-            <EnrichmentSection
-              key={kind}
-              kind={kind}
-              data={enrichmentsByKind.get(kind) ?? null}
-              busy={busyKind === kind || busyKind === "all"}
-              onRegenerate={(k) => handleRegenerate(k)}
-            />
-          ))}
-        </div>
+        <>
+          {item.enrichStatus === "failed" && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">{t("enrichFailed")}</span>
+                {item.enrichError && <span>: {item.enrichError}</span>}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={retrying}
+                onClick={handleRetryEnrich}
+              >
+                <RefreshCw
+                  className={retrying ? "size-4 animate-spin" : "size-4"}
+                />
+                {t("retryEnrich")}
+              </Button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {applicableKinds.map((kind) => (
+              <EnrichmentSection
+                key={kind}
+                kind={kind}
+                data={enrichmentsByKind.get(kind) ?? null}
+                pending={item.enrichStatus === "pending"}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           {t("noEnrichmentForType")}

@@ -29,7 +29,6 @@ import { useHasPermission } from "@/lib/api/use-has-permission";
 import { withApiFeedback } from "@/lib/api/utils";
 
 interface CurrencyRateRow {
-  id: string;
   currency: string;
   rate: number;
   status: string;
@@ -87,8 +86,8 @@ export function CurrencyRateTable() {
 
   async function remove(item: CurrencyRateRow) {
     await withApiFeedback(
-      appClient.api.billing["currency-rates"][":id"].$delete,
-    )({ param: { id: item.id } });
+      appClient.api.billing["currency-rates"][":currency"].$delete,
+    )({ param: { currency: item.currency } });
     refresh();
     toast.success(t("deleted"));
   }
@@ -163,7 +162,7 @@ export function CurrencyRateTable() {
         </TableHeader>
         <TableBody>
           {items.map((item) => (
-            <TableRow key={item.id}>
+            <TableRow key={item.currency}>
               <TableCell className="font-mono">{item.currency}</TableCell>
               <TableCell className="font-mono">{item.rate}</TableCell>
               <TableActionCell

@@ -5,6 +5,7 @@ import {
   enrichItem,
   getItem,
   listItems,
+  retryEnrichItem,
   updateItem,
 } from "./collection";
 
@@ -17,6 +18,7 @@ const routes = collectionRoutes.openapiRoutes([
   updateItem,
   deleteItem,
   enrichItem,
+  retryEnrichItem,
 ] as const);
 
 export { routes as collectionRoutes };

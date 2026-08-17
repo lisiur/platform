@@ -12,7 +12,7 @@
 - Install/run with pnpm. Root `pnpm dev` runs only apps (`pnpm --filter './apps/*' dev`) with `NODE_OPTIONS='--max-old-space-size=8192'`; the service is consumed by Next under `/api`.
 - Build apps: `pnpm build`.
 - Lint/format: `pnpm lint` (`biome check .`), `pnpm lint:fix` (`biome check --write --unsafe .`), `pnpm format`.
-- Prisma: `pnpm db:generate`, `pnpm db:push`, `pnpm db:migrate` (dev), `pnpm db:migrate:deploy` (prod), `pnpm db:seed`, `pnpm db:reset` all forward to `@repo/service`.
+- Prisma: `pnpm db:generate`, `pnpm db:push`, `pnpm db:migrate` (dev), `pnpm db:migrate:deploy` (prod), `pnpm db:reset` all forward to `@repo/service`. Seeding runs automatically on first service boot (`packages/service/src/app.ts`); `pnpm db:reset` + next boot re-seeds a fresh DB.
 
 ## Environment
 - Bare `.env` files hold non-sensitive shared defaults and are committed by default; `.gitignore` ignores only secret variants like `.env.local` / `.env.production`. The one exception is `packages/service/.env`, which holds local dev secrets and is explicitly ignored.

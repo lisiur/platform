@@ -23,8 +23,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.run.ts"
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.38",

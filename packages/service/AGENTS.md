@@ -33,13 +33,13 @@
 
 ## Permissions
 - Permission codes follow `group::action` format, e.g. `department::create`, `organization-member::list`.
-- Platform permissions (admin app) are in `systemPermissions` array in `prisma/seed.ts`.
-- Organization permissions (org app) are in `organizationPermissions` array in `prisma/seed.ts`.
+- Platform permissions (admin app) are in `systemPermissions` array in `src/seed.ts`.
+- Organization permissions (org app) are in `organizationPermissions` array in `src/seed.ts`.
 - Use `assertPermission(userId, "permission::code", { appId, organizationId })` in route handlers to enforce permissions.
 - Import `assertPermission` from `#modules/access-control/public`.
 - For org-scoped permissions, pass `{ appId: "organization", organizationId }` as the scope.
 - Platform permissions need no scope (defaults to PLATFORM).
-- When adding new permissions, add them to the appropriate array in `seed.ts` and run `pnpm db:seed`.
+- When adding new permissions, add them to the appropriate array in `src/seed.ts`; seeding runs automatically on first boot (`src/app.ts`), so `pnpm db:reset` to re-seed.
 - Role-permission mappings are in `adminRolePermissions` and `organizationRolePermissions` objects in `seed.ts`.
 - `ORG_OWNER_ROLE_CODE` gets ALL `organizationPermissions` automatically via `.map()`.
 - `ORG_MEMBER_ROLE_CODE` must be explicitly granted permissions (e.g. `["organization-member::list", "department::list"]`).

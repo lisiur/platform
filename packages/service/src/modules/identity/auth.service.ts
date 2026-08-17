@@ -15,6 +15,7 @@ import {
 } from "#lib/session";
 import { code2Session } from "#lib/wechat";
 import { createNotificationsFromTemplate } from "#modules/notification/services/notification.service";
+import { subscribeUserToBasicPlan } from "#modules/pricing/public";
 import { getMergedConfigRows } from "#modules/system/public";
 import { eventBus } from "#states";
 
@@ -199,6 +200,15 @@ export async function signUpWithEmail(params: {
   });
 
   await enqueueWelcomeNotifications(user.id, user.name, params.appId);
+
+  try {
+    await subscribeUserToBasicPlan(user.id);
+  } catch (err) {
+    console.error(
+      `[signup] Failed to subscribe ${user.id} to basic plan:`,
+      err,
+    );
+  }
 
   const session = await createSession({
     userId: user.id,
@@ -422,6 +432,15 @@ export async function signInWithWechat(params: {
         },
       },
     });
+
+    try {
+      await subscribeUserToBasicPlan(user.id);
+    } catch (err) {
+      console.error(
+        `[signup] Failed to subscribe ${user.id} to basic plan:`,
+        err,
+      );
+    }
 
     const session = await createSession({
       userId: user.id,

@@ -26,7 +26,7 @@ const jsonValue = z.string().refine((s) => {
 
 /**
  * The single source of truth for system (global) config keys. Consumed by both
- * `prisma/seed.ts` (writes `defaultValue`) and the system-config API service
+ * `src/seed.ts` (writes `defaultValue`) and the system-config API service
  * (validates `valueSchema`, enforces registry-authoritative metadata).
  *
  * To add a config key: append one entry here. Seed will write it, the API will

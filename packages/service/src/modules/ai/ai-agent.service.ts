@@ -18,6 +18,16 @@ const subAgentSchema = z.object({
 });
 const subAgentsSchema = z.record(z.string(), subAgentSchema);
 
+export type AiAgentSubAgents = z.infer<typeof subAgentsSchema>;
+export type AiAgentInput = {
+  code: string;
+  name: string;
+  description?: string | null;
+  status?: string;
+  subAgents: AiAgentSubAgents;
+  allowedApis?: string[];
+};
+
 type AgentRow = AiAgent;
 
 function assertSubAgentKeysUnchanged(
@@ -89,14 +99,7 @@ export async function getAiAgent(id: string) {
   return serialize(agent);
 }
 
-export async function createAiAgent(data: {
-  code: string;
-  name: string;
-  description?: string | null;
-  status?: string;
-  subAgents: z.infer<typeof subAgentsSchema>;
-  allowedApis?: string[];
-}) {
+export async function createAiAgent(data: AiAgentInput) {
   const existing = await prisma.aiAgent.findUnique({
     where: { code: data.code },
   });

@@ -11,6 +11,7 @@ export const paginationQuerySchema = z.object({
 });
 
 export const idParamSchema = z.object({ id: z.string().min(1) });
+export const currencyParamSchema = z.object({ currency: z.string().min(1) });
 
 export const billingConfigSchema = z
   .object({
@@ -57,7 +58,6 @@ export const updateBillingConfigBodySchema = z.object({
 
 export const currencyRateSchema = z
   .object({
-    id: z.string(),
     currency: z.string(),
     rate: z.number(),
     status: billingStatusSchema,

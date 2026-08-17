@@ -59,6 +59,22 @@ export async function createPricingSubscription(data: {
   return subscription;
 }
 
+export async function subscribeUserToBasicPlan(userId: string) {
+  const plan = await prisma.pricingPlan.findUnique({
+    where: { code: "basic" },
+  });
+  if (plan?.status !== "active") {
+    return null;
+  }
+  return createPricingSubscription({
+    principalType: "user",
+    principalId: userId,
+    planId: plan.id,
+    status: "active",
+    endsAt: null,
+  });
+}
+
 export async function updatePricingSubscription(
   id: string,
   data: {

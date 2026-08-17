@@ -24,6 +24,9 @@ export const itemEnrichmentSchema = z
   })
   .openapi("ItemEnrichment");
 
+export const ENRICH_STATUSES = ["none", "pending", "ok", "failed"] as const;
+export type EnrichStatus = (typeof ENRICH_STATUSES)[number];
+
 const itemCommon = {
   id: z.string().openapi({ example: "clx1234567890" }),
   ownerId: z.string().openapi({ example: "clx1234567890" }),
@@ -36,6 +39,14 @@ const itemCommon = {
   tags: z.array(z.string()).openapi({ example: ["adjective"] }),
   status: z.string().openapi({ example: "active" }),
   mastery: z.number().int().openapi({ example: 0 }),
+  enrichStatus: z.enum(ENRICH_STATUSES).openapi({
+    example: "ok",
+    description: "Auto-enrichment lifecycle status",
+  }),
+  enrichError: z.string().nullable().openapi({
+    example: null,
+    description: "Error message when enrichStatus is failed",
+  }),
   createdAt: z.date(),
   updatedAt: z.date(),
 };
@@ -63,6 +74,13 @@ export const collectionItemDetailSchema = z
   .openapi("CollectionItemDetail");
 
 export const itemIdParamSchema = idParamSchema();
+
+export const retryEnrichResponseSchema = z
+  .object({
+    itemId: z.string().openapi({ example: "clx1234567890" }),
+    enrichStatus: z.enum(ENRICH_STATUSES),
+  })
+  .openapi("RetryEnrichItemResponse");
 
 export const createItemBodySchema = z
   .object({
@@ -149,6 +167,8 @@ export function serializeItemDetail(item: {
   tags: string[];
   status: string;
   mastery: number;
+  enrichStatus: string;
+  enrichError: string | null;
   createdAt: Date;
   updatedAt: Date;
   enrichments: Array<{
@@ -172,6 +192,8 @@ export function serializeItemDetail(item: {
     tags: item.tags,
     status: item.status,
     mastery: item.mastery,
+    enrichStatus: item.enrichStatus as EnrichStatus,
+    enrichError: item.enrichError,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     enrichments: item.enrichments.map((e) => ({

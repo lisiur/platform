@@ -270,7 +270,7 @@ jobExecutor.enqueue(job); // notify the scheduler AFTER the tx commits
    ```
 
 3. (For recurring work) Seed a `Job` template with the matching `type` and a
-   `cronExpression` in `prisma/seed.ts` (`builtInJobTemplates`), or create one
+   `cronExpression` in `src/seed.ts` (`builtInJobTemplates`), or create one
    via the admin API/`JobTemplateService`.
 
 The handler is keyed by the string passed as the instance's `type`. Throwing
@@ -290,7 +290,7 @@ Six handlers ship today (`handlers/index.ts`):
   `deliverNotifications`, dispatching per provider (`in-app`, `smtp-email`, …).
 - **`session-sweep`** — deletes rows where `revokedAt IS NOT NULL` or
   `expiresAt < now()`. Seeded as a recurring template (cron `"0 * * * *"`,
-  hourly) in `prisma/seed.ts` (`builtInJobTemplates`).
+  hourly) in `src/seed.ts` (`builtInJobTemplates`).
 - **`job-instance-sweep`** — deletes `COMPLETED` and `FAILED` instances older
   than 30 days. Seeded with cron `"0 3 * * *"` (daily at 3:00 AM).
 - **`verification-sweep`** — deletes expired verification tokens. Seeded with
@@ -301,7 +301,7 @@ Six handlers ship today (`handlers/index.ts`):
   cron `"30 3 * * *"` (daily at 3:30 AM).
 
 All five recurring templates are seeded via `builtInJobTemplates` in
-`prisma/seed.ts`.
+`packages/service/src/seed.ts`.
 
 ---
 

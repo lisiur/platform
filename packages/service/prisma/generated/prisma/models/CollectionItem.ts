@@ -45,6 +45,8 @@ export type CollectionItemMinAggregateOutputType = {
   note: string | null
   status: string | null
   mastery: number | null
+  enrichStatus: string | null
+  enrichError: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +62,8 @@ export type CollectionItemMaxAggregateOutputType = {
   note: string | null
   status: string | null
   mastery: number | null
+  enrichStatus: string | null
+  enrichError: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -76,6 +80,8 @@ export type CollectionItemCountAggregateOutputType = {
   tags: number
   status: number
   mastery: number
+  enrichStatus: number
+  enrichError: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -101,6 +107,8 @@ export type CollectionItemMinAggregateInputType = {
   note?: true
   status?: true
   mastery?: true
+  enrichStatus?: true
+  enrichError?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -116,6 +124,8 @@ export type CollectionItemMaxAggregateInputType = {
   note?: true
   status?: true
   mastery?: true
+  enrichStatus?: true
+  enrichError?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -132,6 +142,8 @@ export type CollectionItemCountAggregateInputType = {
   tags?: true
   status?: true
   mastery?: true
+  enrichStatus?: true
+  enrichError?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -235,6 +247,8 @@ export type CollectionItemGroupByOutputType = {
   tags: string[]
   status: string
   mastery: number
+  enrichStatus: string
+  enrichError: string | null
   createdAt: Date
   updatedAt: Date
   _count: CollectionItemCountAggregateOutputType | null
@@ -274,6 +288,8 @@ export type CollectionItemWhereInput = {
   tags?: Prisma.StringNullableListFilter<"CollectionItem">
   status?: Prisma.StringFilter<"CollectionItem"> | string
   mastery?: Prisma.IntFilter<"CollectionItem"> | number
+  enrichStatus?: Prisma.StringFilter<"CollectionItem"> | string
+  enrichError?: Prisma.StringNullableFilter<"CollectionItem"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -292,6 +308,8 @@ export type CollectionItemOrderByWithRelationInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   mastery?: Prisma.SortOrder
+  enrichStatus?: Prisma.SortOrder
+  enrichError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   owner?: Prisma.UserOrderByWithRelationInput
@@ -313,6 +331,8 @@ export type CollectionItemWhereUniqueInput = Prisma.AtLeast<{
   tags?: Prisma.StringNullableListFilter<"CollectionItem">
   status?: Prisma.StringFilter<"CollectionItem"> | string
   mastery?: Prisma.IntFilter<"CollectionItem"> | number
+  enrichStatus?: Prisma.StringFilter<"CollectionItem"> | string
+  enrichError?: Prisma.StringNullableFilter<"CollectionItem"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -331,6 +351,8 @@ export type CollectionItemOrderByWithAggregationInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   mastery?: Prisma.SortOrder
+  enrichStatus?: Prisma.SortOrder
+  enrichError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CollectionItemCountOrderByAggregateInput
@@ -355,6 +377,8 @@ export type CollectionItemScalarWhereWithAggregatesInput = {
   tags?: Prisma.StringNullableListFilter<"CollectionItem">
   status?: Prisma.StringWithAggregatesFilter<"CollectionItem"> | string
   mastery?: Prisma.IntWithAggregatesFilter<"CollectionItem"> | number
+  enrichStatus?: Prisma.StringWithAggregatesFilter<"CollectionItem"> | string
+  enrichError?: Prisma.StringNullableWithAggregatesFilter<"CollectionItem"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CollectionItem"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CollectionItem"> | Date | string
 }
@@ -370,6 +394,8 @@ export type CollectionItemCreateInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutCollectionItemsInput
@@ -388,6 +414,8 @@ export type CollectionItemUncheckedCreateInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   enrichments?: Prisma.ItemEnrichmentUncheckedCreateNestedManyWithoutItemInput
@@ -404,6 +432,8 @@ export type CollectionItemUpdateInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutCollectionItemsNestedInput
@@ -422,6 +452,8 @@ export type CollectionItemUncheckedUpdateInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrichments?: Prisma.ItemEnrichmentUncheckedUpdateManyWithoutItemNestedInput
@@ -439,6 +471,8 @@ export type CollectionItemCreateManyInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -454,6 +488,8 @@ export type CollectionItemUpdateManyMutationInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -470,6 +506,8 @@ export type CollectionItemUncheckedUpdateManyInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -496,6 +534,8 @@ export type CollectionItemCountOrderByAggregateInput = {
   tags?: Prisma.SortOrder
   status?: Prisma.SortOrder
   mastery?: Prisma.SortOrder
+  enrichStatus?: Prisma.SortOrder
+  enrichError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -515,6 +555,8 @@ export type CollectionItemMaxOrderByAggregateInput = {
   note?: Prisma.SortOrder
   status?: Prisma.SortOrder
   mastery?: Prisma.SortOrder
+  enrichStatus?: Prisma.SortOrder
+  enrichError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -530,6 +572,8 @@ export type CollectionItemMinOrderByAggregateInput = {
   note?: Prisma.SortOrder
   status?: Prisma.SortOrder
   mastery?: Prisma.SortOrder
+  enrichStatus?: Prisma.SortOrder
+  enrichError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -623,6 +667,8 @@ export type CollectionItemCreateWithoutOwnerInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   enrichments?: Prisma.ItemEnrichmentCreateNestedManyWithoutItemInput
@@ -639,6 +685,8 @@ export type CollectionItemUncheckedCreateWithoutOwnerInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   enrichments?: Prisma.ItemEnrichmentUncheckedCreateNestedManyWithoutItemInput
@@ -685,6 +733,8 @@ export type CollectionItemScalarWhereInput = {
   tags?: Prisma.StringNullableListFilter<"CollectionItem">
   status?: Prisma.StringFilter<"CollectionItem"> | string
   mastery?: Prisma.IntFilter<"CollectionItem"> | number
+  enrichStatus?: Prisma.StringFilter<"CollectionItem"> | string
+  enrichError?: Prisma.StringNullableFilter<"CollectionItem"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CollectionItem"> | Date | string
 }
@@ -700,6 +750,8 @@ export type CollectionItemCreateWithoutEnrichmentsInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   owner: Prisma.UserCreateNestedOneWithoutCollectionItemsInput
@@ -717,6 +769,8 @@ export type CollectionItemUncheckedCreateWithoutEnrichmentsInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -748,6 +802,8 @@ export type CollectionItemUpdateWithoutEnrichmentsInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   owner?: Prisma.UserUpdateOneRequiredWithoutCollectionItemsNestedInput
@@ -765,6 +821,8 @@ export type CollectionItemUncheckedUpdateWithoutEnrichmentsInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -780,6 +838,8 @@ export type CollectionItemCreateManyOwnerInput = {
   tags?: Prisma.CollectionItemCreatetagsInput | string[]
   status?: string
   mastery?: number
+  enrichStatus?: string
+  enrichError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -795,6 +855,8 @@ export type CollectionItemUpdateWithoutOwnerInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrichments?: Prisma.ItemEnrichmentUpdateManyWithoutItemNestedInput
@@ -811,6 +873,8 @@ export type CollectionItemUncheckedUpdateWithoutOwnerInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrichments?: Prisma.ItemEnrichmentUncheckedUpdateManyWithoutItemNestedInput
@@ -827,6 +891,8 @@ export type CollectionItemUncheckedUpdateManyWithoutOwnerInput = {
   tags?: Prisma.CollectionItemUpdatetagsInput | string[]
   status?: Prisma.StringFieldUpdateOperationsInput | string
   mastery?: Prisma.IntFieldUpdateOperationsInput | number
+  enrichStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  enrichError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -874,6 +940,8 @@ export type CollectionItemSelect<ExtArgs extends runtime.Types.Extensions.Intern
   tags?: boolean
   status?: boolean
   mastery?: boolean
+  enrichStatus?: boolean
+  enrichError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -893,6 +961,8 @@ export type CollectionItemSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   tags?: boolean
   status?: boolean
   mastery?: boolean
+  enrichStatus?: boolean
+  enrichError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -910,6 +980,8 @@ export type CollectionItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   tags?: boolean
   status?: boolean
   mastery?: boolean
+  enrichStatus?: boolean
+  enrichError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -927,11 +999,13 @@ export type CollectionItemSelectScalar = {
   tags?: boolean
   status?: boolean
   mastery?: boolean
+  enrichStatus?: boolean
+  enrichError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CollectionItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "appId" | "type" | "source" | "url" | "title" | "note" | "tags" | "status" | "mastery" | "createdAt" | "updatedAt", ExtArgs["result"]["collectionItem"]>
+export type CollectionItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "appId" | "type" | "source" | "url" | "title" | "note" | "tags" | "status" | "mastery" | "enrichStatus" | "enrichError" | "createdAt" | "updatedAt", ExtArgs["result"]["collectionItem"]>
 export type CollectionItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   enrichments?: boolean | Prisma.CollectionItem$enrichmentsArgs<ExtArgs>
@@ -962,6 +1036,8 @@ export type $CollectionItemPayload<ExtArgs extends runtime.Types.Extensions.Inte
     tags: string[]
     status: string
     mastery: number
+    enrichStatus: string
+    enrichError: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["collectionItem"]>
@@ -1400,6 +1476,8 @@ export interface CollectionItemFieldRefs {
   readonly tags: Prisma.FieldRef<"CollectionItem", 'String[]'>
   readonly status: Prisma.FieldRef<"CollectionItem", 'String'>
   readonly mastery: Prisma.FieldRef<"CollectionItem", 'Int'>
+  readonly enrichStatus: Prisma.FieldRef<"CollectionItem", 'String'>
+  readonly enrichError: Prisma.FieldRef<"CollectionItem", 'String'>
   readonly createdAt: Prisma.FieldRef<"CollectionItem", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CollectionItem", 'DateTime'>
 }

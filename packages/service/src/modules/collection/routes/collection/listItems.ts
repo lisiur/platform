@@ -2,6 +2,7 @@ import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { listItems } from "#modules/collection/collection.service";
+import type { EnrichStatus } from "./schema";
 import { listItemsQuerySchema, listItemsResponseSchema } from "./schema";
 
 export const listItemsRoute = defineOpenAPIRoute({
@@ -36,9 +37,10 @@ export const listItemsRoute = defineOpenAPIRoute({
 
     return c.json(
       {
-        items: result.items.map((item) => ({
+        items: result.items.map(({ _count, ...item }) => ({
           ...item,
-          enrichmentsCount: item._count.enrichments,
+          enrichStatus: item.enrichStatus as EnrichStatus,
+          enrichmentsCount: _count.enrichments,
         })),
         total: result.total,
       },

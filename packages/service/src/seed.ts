@@ -3,22 +3,28 @@
  * SEED CONTRACT
  * ============================================================
  * This file defines the DESIRED STATE of all reference/config data.
- * Safe to run in production - only touches reference tables, never user data.
+ * Runs once on first boot against a fresh database (see src/app.ts).
  *
- * Tables managed by seed (idempotent):
- *   Application, Permission, Menu, MenuPermission, Role,
- *   RolePermission, SystemConfig, NotificationChannel,
- *   NotificationTemplate, PricingPlan, AiAgent
+ * Reference data is created through module services wherever one exists
+ * (configs, permissions, roles, menus, job templates, pricing, AI,
+ * billing) so business rules and validations apply to seeded rows the
+ * same as runtime-created ones. Local helpers only cover seed-only rows
+ * no service creates: applications, notification channels/templates,
+ * built-in users/credits, and the built-in organization.
  *
- * Tables NOT touched by seed (user-owned):
- *   User*, Account*, RoleAssignment, Organization, Member,
- *   Invitation, Upload, Notification, AuditLog, OperationLog
- *   (* except built-in admin user creation)
+ * Tables managed by seed:
+ *   Application, ApplicationConfig, Permission, Menu, MenuPermission,
+ *   Role, RolePermission, SystemConfig, Job, NotificationChannel,
+ *   NotificationTemplate, PricingPlan, Feature, PlanFeature,
+ *   PricingSubscription, UserQuota, AiProvider, AiAccount,
+ *   AiAccountProvider, AiModel, AiModelPricing, AiAgent, BillingConfig,
+ *   CurrencyRate, User, Account, RoleAssignment, UserCredit,
+ *   UserCreditLedger, Organization, Member
  *
  * To add new reference data:
  *   1. Add definition to the appropriate section below
- *   2. Use stable unique keys (code, slug, etc.)
- *   3. Run `pnpm db:seed`
+ *   2. Prefer the owning module's service (create*) over raw prisma
+ *   3. Reset the DB (pnpm db:reset) and reboot to re-seed
  * ============================================================
  */
 
@@ -32,13 +38,30 @@ import {
   STUDYBUDDY_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
-import type { ConfigRegistryEntry } from "#lib/config-registry";
-import { nextRunFromNow } from "#lib/cron";
+import { Prisma } from "#generated/prisma/client";
+import { prisma } from "#lib/db";
 import { provisionOrgRoles } from "#lib/org-role";
 import { hashPassword } from "#lib/password";
+import { createPermission } from "#modules/access-control/permission.service";
+import { assignPermissions, assignRole } from "#modules/access-control/public";
+import { createRole } from "#modules/access-control/role.service";
+import { createAiAccount } from "#modules/ai/ai-account.service";
+import { type AiAgentInput, createAiAgent } from "#modules/ai/ai-agent.service";
+import { createAiModel } from "#modules/ai/ai-model.service";
+import { createAiModelPricing } from "#modules/ai/ai-model-pricing.service";
+import { createAiProvider } from "#modules/ai/ai-provider.service";
 import { APPLICATION_CONFIG_REGISTRY } from "#modules/application/application-config.registry";
+import { createMenu, upsertAppConfig } from "#modules/application/public";
+import { createBillingConfig } from "#modules/billing/billing.service";
+import { upsertCurrencyRates } from "#modules/billing/currency-rate.service";
+import { jobTemplateService } from "#modules/jobs/public";
+import {
+  createFeature,
+  createPricingPlan,
+  subscribeUserToBasicPlan,
+} from "#modules/pricing/public";
+import { upsertConfig } from "#modules/system/public";
 import { SYSTEM_CONFIG_REGISTRY } from "#modules/system/system-config.registry";
-import { Prisma, type PrismaClient } from "./generated/prisma/client";
 
 // ============================================================
 // 1. REFERENCE DATA DEFINITIONS
@@ -1195,24 +1218,24 @@ const builtInJobTemplates = [
 // 2. DATABASE CLIENT
 // ============================================================
 
-// Assigned from the parameter passed to seed(). Kept at module scope so the
-// upsert helpers below can reference it without each needing a parameter.
-let prisma: PrismaClient;
+// The #lib/db singleton — the same client the app runtime uses, so seed can
+// reuse module services directly. Reference data is created through module
+// services (business logic, validation, side effects like quota allocation).
+// The remaining local helpers cover seed-only rows no service creates
+// (applications, notification channels/templates, built-in users/credits/org).
 
 // ============================================================
-// 3. GENERIC UPSERT HELPERS (idempotent)
+// 3. SEED-ONLY HELPERS (no service equivalent)
 // ============================================================
 
-async function upsertApplication(data: {
+async function seedApplication(data: {
   code: string;
   name: string;
   description: string;
 }) {
   console.log(`  Application: ${data.code}`);
-  return prisma.application.upsert({
-    where: { code: data.code },
-    update: { name: data.name, description: data.description },
-    create: {
+  return prisma.application.create({
+    data: {
       id: data.code,
       code: data.code,
       name: data.name,
@@ -1221,263 +1244,18 @@ async function upsertApplication(data: {
   });
 }
 
-async function upsertPermission(data: {
-  code: string;
-  name: string;
-  group: string;
-  description?: string;
-}) {
-  const existing = await prisma.permission.findUnique({
-    where: { code: data.code },
-  });
-
-  if (existing) {
-    return prisma.permission.update({
-      where: { id: existing.id },
-      data: {
-        name: data.name,
-        group: data.group,
-        description: data.description,
-      },
-    });
-  }
-
-  return prisma.permission.create({
-    data: {
-      code: data.code,
-      name: data.name,
-      group: data.group,
-      description: data.description,
-    },
-  });
-}
-
-async function upsertPermissions(
-  definitions: {
-    code: string;
-    name: string;
-    group: string;
-    description?: string;
-  }[],
-) {
-  const ids: Record<string, string> = {};
-  for (const def of definitions) {
-    const perm = await upsertPermission(def);
-    ids[def.code] = perm.id;
-  }
-  return ids;
-}
-
-async function upsertMenu(
-  appId: string,
-  data: {
-    id: string;
-    code: string;
-    name: string;
-    icon?: string | null;
-    linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
-    url?: string | null;
-    sortOrder: number;
-    parentId?: string | null;
-  },
-) {
-  return prisma.menu.upsert({
-    where: { id: data.id },
-    update: {
-      name: data.name,
-      icon: data.icon ?? null,
-      linkType: data.linkType,
-      url: data.url ?? null,
-      sortOrder: data.sortOrder,
-      parentId: data.parentId ?? null,
-    },
-    create: {
-      id: data.id,
-      appId,
-      code: data.code,
-      name: data.name,
-      icon: data.icon ?? null,
-      linkType: data.linkType,
-      url: data.url ?? null,
-      sortOrder: data.sortOrder,
-      parentId: data.parentId ?? null,
-    },
-  });
-}
-
-async function linkMenuPermissions(
-  menuId: string,
-  permissionCodes: string[],
-  permissionLookup: Record<string, string>,
-) {
-  for (const code of permissionCodes) {
-    const permissionId = permissionLookup[code];
-    if (!permissionId) {
-      console.warn(`  [seed] Permission not found for menu link: ${code}`);
-      continue;
-    }
-    await prisma.menuPermission.upsert({
-      where: { menuId_permissionId: { menuId, permissionId } },
-      update: {},
-      create: { menuId, permissionId },
-    });
-  }
-}
-
-async function upsertRole(data: {
-  code: string;
-  name: string;
-  flags: string[];
-}) {
-  return prisma.role.upsert({
-    where: { code: data.code },
-    update: { name: data.name, flags: data.flags },
-    create: { code: data.code, name: data.name, flags: data.flags },
-  });
-}
-
-async function upsertRolePermissions(roleId: string, permissionIds: string[]) {
-  for (const permissionId of permissionIds) {
-    await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId, permissionId } },
-      update: {},
-      create: { roleId, permissionId },
-    });
-  }
-}
-
-/** Maps a registry entry to the row shape expected by `upsertSystemConfig`. */
-function registryEntryToSystemRow(e: ConfigRegistryEntry) {
-  return {
-    group: e.group,
-    key: e.key,
-    value: e.defaultValue,
-    type: e.type,
-    label: e.label,
-    description: e.description ?? "",
-    isSecret: e.isSecret,
-    sortOrder: e.sortOrder,
-    schema: e.schema,
-    mask: e.mask,
-  };
-}
-
-/** Maps a registry entry to the row shape expected by `upsertApplicationConfig`. */
-function registryEntryToAppRow(e: ConfigRegistryEntry) {
-  return registryEntryToSystemRow(e);
-}
-
-async function upsertSystemConfig(data: {
-  group: string;
-  key: string;
-  value: string;
-  type: string;
-  label: string;
-  description: string;
-  isSecret: boolean;
-  sortOrder: number;
-  schema?: Prisma.InputJsonValue;
-  mask?: string | null;
-}) {
-  return prisma.systemConfig.upsert({
-    where: { group_key: { group: data.group, key: data.key } },
-    update: {
-      value: data.value,
-      type: data.type,
-      schema: data.schema,
-      label: data.label,
-      description: data.description,
-      isSecret: data.isSecret,
-      mask: data.mask,
-      sortOrder: data.sortOrder,
-    },
-    create: data,
-  });
-}
-
-async function upsertApplicationConfig(
-  appId: string,
-  data: {
-    group: string;
-    key: string;
-    value: string;
-    type: string;
-    label: string;
-    description: string;
-    isSecret: boolean;
-    sortOrder: number;
-    schema?: Prisma.InputJsonValue;
-    mask?: string | null;
-  },
-) {
-  return prisma.applicationConfig.upsert({
-    where: { appId_group_key: { appId, group: data.group, key: data.key } },
-    update: {
-      value: data.value,
-      type: data.type,
-      schema: data.schema,
-      label: data.label,
-      description: data.description,
-      isSecret: data.isSecret,
-      mask: data.mask,
-      sortOrder: data.sortOrder,
-    },
-    create: { appId, ...data },
-  });
-}
-
-async function upsertJobTemplate(data: {
-  name: string;
-  type: string;
-  description: string;
-  cronExpression: string;
-}) {
-  const nextRunAt = nextRunFromNow(data.cronExpression);
-  const existing = await prisma.job.findUnique({ where: { name: data.name } });
-  if (existing) {
-    return prisma.job.update({
-      where: { name: data.name },
-      data: {
-        type: data.type,
-        description: data.description,
-        cronExpression: data.cronExpression,
-        enabled: true,
-        nextRunAt: existing.enabled ? existing.nextRunAt : nextRunAt,
-      },
-    });
-  }
-  return prisma.job.create({
-    data: {
-      name: data.name,
-      type: data.type,
-      description: data.description,
-      cronExpression: data.cronExpression,
-      enabled: true,
-      nextRunAt,
-    },
-  });
-}
-
-async function upsertNotificationChannel(data: {
+async function seedNotificationChannel(data: {
   key: string;
   name: string;
   providerKey: string;
   enabled: boolean;
 }) {
-  return prisma.notificationChannel.upsert({
-    where: { key: data.key },
-    update: {
-      name: data.name,
-      providerKey: data.providerKey,
-      enabled: data.enabled,
-      config: Prisma.JsonNull,
-      flags: { set: [BUILTIN_NOTIFICATION_FLAG] },
-    },
-    create: { ...data, flags: [BUILTIN_NOTIFICATION_FLAG] },
+  return prisma.notificationChannel.create({
+    data: { ...data, flags: [BUILTIN_NOTIFICATION_FLAG] },
   });
 }
 
-async function upsertNotificationTemplate(
+async function seedNotificationTemplate(
   channelId: string,
   data: {
     key: string;
@@ -1491,9 +1269,9 @@ async function upsertNotificationTemplate(
     sampleVariables?: object;
   },
 ) {
-  return prisma.notificationTemplate.upsert({
-    where: { key: data.key },
-    update: {
+  return prisma.notificationTemplate.create({
+    data: {
+      key: data.key,
       channelId,
       name: data.name,
       description: data.description ?? null,
@@ -1503,25 +1281,12 @@ async function upsertNotificationTemplate(
       bodyTemplate: data.bodyTemplate,
       variablesSchema: data.variablesSchema,
       sampleVariables: (data.sampleVariables ?? Prisma.JsonNull) as object,
-      flags: { set: [BUILTIN_NOTIFICATION_FLAG] },
-    },
-    create: {
-      key: data.key,
-      channelId,
-      name: data.name,
-      description: data.description,
-      enabled: data.enabled,
-      subjectTemplate: data.subjectTemplate,
-      titleTemplate: data.titleTemplate,
-      bodyTemplate: data.bodyTemplate,
-      variablesSchema: data.variablesSchema,
-      sampleVariables: (data.sampleVariables ?? Prisma.JsonNull) as object,
       flags: [BUILTIN_NOTIFICATION_FLAG],
     },
   });
 }
 
-async function upsertUser(params: {
+async function seedUser(params: {
   id: string;
   name: string;
   email: string;
@@ -1529,10 +1294,8 @@ async function upsertUser(params: {
   flags: string[];
   roleCode?: string;
 }) {
-  const user = await prisma.user.upsert({
-    where: { email: params.email },
-    update: { flags: params.flags },
-    create: {
+  const user = await prisma.user.create({
+    data: {
       id: params.id,
       name: params.name,
       email: params.email,
@@ -1541,52 +1304,24 @@ async function upsertUser(params: {
     },
   });
 
-  const hashedPassword = await hashPassword(params.password);
-  const existingAccount = await prisma.account.findFirst({
-    where: { userId: user.id, providerId: "credential" },
+  await prisma.account.create({
+    data: {
+      accountId: params.email.toLowerCase(),
+      providerId: "credential",
+      userId: user.id,
+      providerData: { password: await hashPassword(params.password) },
+    },
   });
-
-  if (existingAccount) {
-    await prisma.account.update({
-      where: { id: existingAccount.id },
-      data: { providerData: { password: hashedPassword } },
-    });
-  } else {
-    await prisma.account.create({
-      data: {
-        accountId: params.email.toLowerCase(),
-        providerId: "credential",
-        userId: user.id,
-        providerData: { password: hashedPassword },
-      },
-    });
-  }
 
   console.log(`  User: ${params.email}`);
   return user;
 }
 
-async function upsertUserCredit(userId: string, balance: number) {
-  await prisma.$transaction(async (tx) => {
-    await tx.userCredit.upsert({
-      where: { userId },
-      update: { balance },
-      create: { userId, balance },
-    });
-    await tx.userCreditLedger.upsert({
-      where: { id: ADMIN_SEED_CREDIT_LEDGER_ID },
-      update: {
-        userId,
-        type: "seed",
-        amount: balance,
-        balanceBefore: 0,
-        balanceAfter: balance,
-        referenceType: "seed",
-        referenceId: ADMIN_SEED_CREDIT_LEDGER_ID,
-        description: "Built-in admin seed credits",
-        metadata: { source: "prisma.seed" },
-      },
-      create: {
+async function seedAdminCredits(userId: string, balance: number) {
+  await prisma.$transaction([
+    prisma.userCredit.create({ data: { userId, balance } }),
+    prisma.userCreditLedger.create({
+      data: {
         id: ADMIN_SEED_CREDIT_LEDGER_ID,
         userId,
         type: "seed",
@@ -1596,42 +1331,15 @@ async function upsertUserCredit(userId: string, balance: number) {
         referenceType: "seed",
         referenceId: ADMIN_SEED_CREDIT_LEDGER_ID,
         description: "Built-in admin seed credits",
-        metadata: { source: "prisma.seed" },
+        metadata: { source: "seed" },
       },
-    });
-  });
-}
-
-async function upsertRoleAssignment(params: {
-  userId: string;
-  roleCode: string;
-}) {
-  const role = await prisma.role.findUnique({
-    where: { code: params.roleCode },
-  });
-  if (!role) {
-    console.warn(
-      `  [seed] Role not found for assignment: code=${params.roleCode}`,
-    );
-    return;
-  }
-  await prisma.roleAssignment.upsert({
-    where: {
-      userId_roleId: {
-        userId: params.userId,
-        roleId: role.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: params.userId,
-      roleId: role.id,
-    },
-  });
+    }),
+  ]);
 }
 
 // ============================================================
-// 3b. FEATURES (reference data)
+// 3b/3c. PRICING (features, plans, plan-feature links) — created
+// via pricing module services (createFeature / createPricingPlan)
 // ============================================================
 
 const features = [
@@ -1654,37 +1362,6 @@ const planFeatures: { planCode: string; featureCode: string }[] = [
   { planCode: "basic", featureCode: "studybuddy_enrichment" },
 ];
 
-async function upsertFeature(data: {
-  code: string;
-  name: string;
-  description?: string | null;
-  status: string;
-}) {
-  return prisma.feature.upsert({
-    where: { code: data.code },
-    update: {
-      name: data.name,
-      description: data.description ?? null,
-      status: data.status,
-    },
-    create: data,
-  });
-}
-
-async function upsertPlanFeature(planId: string, featureId: string) {
-  await prisma.planFeature.upsert({
-    where: {
-      planId_featureId: { planId, featureId },
-    },
-    update: {},
-    create: { planId, featureId },
-  });
-}
-
-// ============================================================
-// 3c. PRICING PLANS (reference data)
-// ============================================================
-
 const pricingPlans = [
   {
     code: "basic",
@@ -1695,60 +1372,15 @@ const pricingPlans = [
   },
 ];
 
-async function upsertPricingPlan(data: {
-  code: string;
-  name: string;
-  price: number;
-  currency: string;
-  status: string;
-}) {
-  return prisma.pricingPlan.upsert({
-    where: { code: data.code },
-    update: {
-      name: data.name,
-      price: data.price,
-      currency: data.currency,
-      status: data.status,
-    },
-    create: data,
-  });
-}
-
-async function upsertBuiltinPricingSubscription(params: {
-  id: string;
-  principalType: string;
-  principalId: string;
-  planId: string;
-}) {
-  await prisma.pricingSubscription.upsert({
-    where: { id: params.id },
-    update: {
-      principalType: params.principalType,
-      principalId: params.principalId,
-      planId: params.planId,
-      status: "active",
-      startsAt: new Date(0),
-      endsAt: null,
-    },
-    create: {
-      id: params.id,
-      principalType: params.principalType,
-      principalId: params.principalId,
-      planId: params.planId,
-      status: "active",
-      startsAt: new Date(0),
-      endsAt: null,
-    },
-  });
-}
-
 // ============================================================
-// 3d. AI PROVIDERS (reference data)
+// 3d. AI PROVIDERS (reference data; `key` is a seed-local
+// reference used by accounts/models below — DB ids are generated
+// by the service and threaded through id maps)
 // ============================================================
 
 const aiProviders = [
   {
-    id: "builtin-ai-provider-deepseek",
+    key: "deepseek",
     name: "DeepSeek",
     baseUrl: "https://api.deepseek.com",
     aiAdapter: "openai_compatible",
@@ -1756,7 +1388,7 @@ const aiProviders = [
     description: "DeepSeek OpenAI-compatible API provider.",
   },
   {
-    id: "builtin-ai-provider-openai",
+    key: "openai",
     name: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
     aiAdapter: "openai",
@@ -1764,7 +1396,7 @@ const aiProviders = [
     description: "OpenAI chat completions API provider.",
   },
   {
-    id: "builtin-ai-provider-anthropic",
+    key: "anthropic",
     name: "Anthropic",
     baseUrl: "https://api.anthropic.com/v1",
     aiAdapter: "anthropic",
@@ -1772,7 +1404,7 @@ const aiProviders = [
     description: "Anthropic Messages API provider.",
   },
   {
-    id: "builtin-ai-provider-qwen",
+    key: "qwen",
     name: "Qwen",
     baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     aiAdapter: "openai_compatible",
@@ -1781,89 +1413,25 @@ const aiProviders = [
   },
 ];
 
-async function upsertAiProvider(data: {
-  id: string;
-  name: string;
-  baseUrl: string;
-  aiAdapter: string;
-  enabled: boolean;
-  description?: string | null;
-}) {
-  return prisma.aiProvider.upsert({
-    where: { id: data.id },
-    update: {
-      name: data.name,
-      baseUrl: data.baseUrl,
-      aiAdapter: data.aiAdapter,
-      enabled: data.enabled,
-      description: data.description ?? null,
-    },
-    create: data,
-  });
-}
-
 // ============================================================
 // 3d2. AI ACCOUNTS (reference data)
 // ============================================================
 
 const aiAccounts = [
   {
-    id: "builtin-ai-account-deepseek-official",
+    key: "deepseek-official",
     name: "DeepSeek (Official)",
     balance: 0,
     currency: "CNY",
     concurrencyLimit: 2500,
     status: "active",
-    providerIds: ["builtin-ai-provider-deepseek"],
+    providerKeys: ["deepseek"],
   },
 ];
 
-async function upsertAiAccount(data: {
-  id: string;
-  name: string;
-  balance: number;
-  currency: string;
-  concurrencyLimit: number;
-  status: string;
-  providerIds: string[];
-}) {
-  const account = await prisma.aiAccount.upsert({
-    where: { id: data.id },
-    update: {
-      name: data.name,
-      balance: data.balance,
-      currency: data.currency,
-      concurrencyLimit: data.concurrencyLimit,
-      status: data.status,
-    },
-    create: {
-      id: data.id,
-      name: data.name,
-      balance: data.balance,
-      currency: data.currency,
-      concurrencyLimit: data.concurrencyLimit,
-      status: data.status,
-    },
-  });
-
-  await prisma.aiAccountProvider.deleteMany({
-    where: { accountId: account.id },
-  });
-  if (data.providerIds.length > 0) {
-    await prisma.aiAccountProvider.createMany({
-      data: data.providerIds.map((providerId) => ({
-        accountId: account.id,
-        providerId,
-      })),
-    });
-  }
-
-  return account;
-}
-
 const aiModels = [
   {
-    providerId: "builtin-ai-provider-deepseek",
+    providerKey: "deepseek",
     modelId: "deepseek-v4-flash",
     displayName: "deepseek-v4-flash",
     capabilities: [],
@@ -1873,7 +1441,7 @@ const aiModels = [
     enabled: true,
   },
   {
-    providerId: "builtin-ai-provider-deepseek",
+    providerKey: "deepseek",
     modelId: "deepseek-v4-pro",
     displayName: "deepseek-v4-pro",
     capabilities: [],
@@ -1884,35 +1452,6 @@ const aiModels = [
   },
 ];
 
-async function upsertAiModel(data: {
-  providerId: string;
-  modelId: string;
-  displayName: string;
-  capabilities: string[];
-  contextWindow: number | null;
-  supportsReasoning: boolean;
-  supportsCaching: boolean;
-  enabled: boolean;
-}) {
-  return prisma.aiModel.upsert({
-    where: {
-      providerId_modelId: {
-        providerId: data.providerId,
-        modelId: data.modelId,
-      },
-    },
-    update: {
-      displayName: data.displayName,
-      capabilities: data.capabilities,
-      contextWindow: data.contextWindow,
-      supportsReasoning: data.supportsReasoning,
-      supportsCaching: data.supportsCaching,
-      enabled: data.enabled,
-    },
-    create: data,
-  });
-}
-
 // ============================================================
 // 3d3. AI MODEL PRICING (reference data)
 // ============================================================
@@ -1922,9 +1461,8 @@ async function upsertAiModel(data: {
 // Effective from 2026-08-17 00:00 Beijing time (2026-08-16 16:00 UTC).
 const aiModelPricing = [
   {
-    id: "builtin-ai-pricing-deepseek-v4-flash",
     modelId: "deepseek-v4-flash",
-    accountId: "builtin-ai-account-deepseek-official",
+    accountKey: "deepseek-official",
     timeZone: "Asia/Shanghai",
     policy: [
       {
@@ -1960,9 +1498,8 @@ const aiModelPricing = [
     effectiveTo: null,
   },
   {
-    id: "builtin-ai-pricing-deepseek-v4-pro",
     modelId: "deepseek-v4-pro",
-    accountId: "builtin-ai-account-deepseek-official",
+    accountKey: "deepseek-official",
     timeZone: "Asia/Shanghai",
     policy: [
       {
@@ -2001,9 +1538,8 @@ const aiModelPricing = [
   // Effective 2026-08-01 00:00 to 2026-08-17 00:00 Beijing time (handoff at
   // the moment the peak/off-peak rows above become effective).
   {
-    id: "builtin-ai-pricing-deepseek-v4-flash-0801",
     modelId: "deepseek-v4-flash",
-    accountId: "builtin-ai-account-deepseek-official",
+    accountKey: "deepseek-official",
     timeZone: "Asia/Shanghai",
     policy: [
       {
@@ -2018,9 +1554,8 @@ const aiModelPricing = [
     effectiveTo: new Date("2026-08-16T16:00:00.000Z"),
   },
   {
-    id: "builtin-ai-pricing-deepseek-v4-pro-0801",
     modelId: "deepseek-v4-pro",
-    accountId: "builtin-ai-account-deepseek-official",
+    accountKey: "deepseek-official",
     timeZone: "Asia/Shanghai",
     policy: [
       {
@@ -2036,35 +1571,6 @@ const aiModelPricing = [
   },
 ];
 
-async function upsertAiModelPricing(data: {
-  id: string;
-  modelId: string;
-  accountId: string;
-  timeZone: string;
-  policy: Array<{
-    input: number;
-    cachedInput: number;
-    output: number;
-    startMinutes: number;
-    endMinutes: number;
-  }>;
-  effectiveFrom: Date;
-  effectiveTo: Date | null;
-}) {
-  return prisma.aiModelPricing.upsert({
-    where: { id: data.id },
-    update: {
-      modelId: data.modelId,
-      accountId: data.accountId,
-      timeZone: data.timeZone,
-      policy: data.policy,
-      effectiveFrom: data.effectiveFrom,
-      effectiveTo: data.effectiveTo,
-    },
-    create: data,
-  });
-}
-
 // ============================================================
 // 3e. AI AGENTS (reference data)
 // ============================================================
@@ -2075,7 +1581,7 @@ const platformAssistantSystemPrompt = [
   'When users ask about your capabilities, such as "What can you do?", respond only with the supplied Available API endpoints, presented in a generic, user-friendly tone. Do not reveal anything else, including tool names, parameters, internal functions, or any non-business details.',
 ].join("\n");
 
-const aiAgents = [
+const aiAgents: AiAgentInput[] = [
   {
     code: "platform_assistant",
     name: "Platform Assistant",
@@ -2088,7 +1594,7 @@ const aiAgents = [
         description: "Main user conversation model. Handles tool calling.",
         modelId: "deepseek-v4-flash",
         systemPrompt: platformAssistantSystemPrompt,
-        reasoning: "none",
+        reasoning: "none" as const,
         maxSteps: 8,
       },
       title: {
@@ -2097,7 +1603,7 @@ const aiAgents = [
         modelId: "deepseek-v4-flash",
         systemPrompt:
           "Generate a short title (5-6 words max) summarizing the user's first message below. Return only the title, no quotes or punctuation.",
-        reasoning: "none",
+        reasoning: "none" as const,
         maxOutputTokens: 1000,
       },
     },
@@ -2115,40 +1621,11 @@ const aiAgents = [
         modelId: "deepseek-v4-flash",
         systemPrompt:
           "You are StudyBuddy's enrichment agent for English learners. Follow the task-specific instructions exactly and keep explanatory prose suitable for Chinese-speaking learners.",
-        reasoning: "none",
+        reasoning: "none" as const,
       },
     },
   },
 ];
-
-async function upsertAiAgent(data: {
-  code: string;
-  name: string;
-  description: string;
-  status: string;
-  allowedApis: string[];
-  subAgents: Prisma.InputJsonValue;
-}) {
-  const agent = await prisma.aiAgent.upsert({
-    where: { code: data.code },
-    update: {
-      name: data.name,
-      description: data.description,
-      status: data.status,
-      allowedApis: data.allowedApis,
-      subAgents: data.subAgents,
-    },
-    create: {
-      code: data.code,
-      name: data.name,
-      description: data.description,
-      status: data.status,
-      allowedApis: data.allowedApis,
-      subAgents: data.subAgents,
-    },
-  });
-  return agent;
-}
 
 const billingConfigs = [
   {
@@ -2171,83 +1648,66 @@ const billingConfigs = [
   },
 ];
 
-async function upsertBillingConfig(data: {
-  resourceType: string;
-  resourceId: string;
-  billingType: string;
-  priceUnit: string;
-  priceAmount: number;
-  status: string;
-  description: string;
-}) {
-  return prisma.billingConfig.upsert({
-    where: {
-      resourceType_resourceId: {
-        resourceType: data.resourceType,
-        resourceId: data.resourceId,
-      },
-    },
-    update: data,
-    create: data,
-  });
-}
-
 const currencyRates = [
-  { currency: "USD", rate: 1, status: "active" },
-  { currency: "CNY", rate: 6.75, status: "active" },
+  { currency: "USD", rate: 1 },
+  { currency: "CNY", rate: 6.75 },
 ];
-
-async function upsertCurrencyRate(data: {
-  currency: string;
-  rate: number;
-  status: string;
-}) {
-  return prisma.currencyRate.upsert({
-    where: { currency: data.currency },
-    update: { rate: data.rate, status: data.status },
-    create: data,
-  });
-}
 
 // ============================================================
 // 4. MAIN SEED (orchestrates desired state)
 // ============================================================
 
-export async function seed(client: PrismaClient) {
-  prisma = client;
+/** Creates permission definitions via the service, returning code → id map. */
+async function createPermissions(
+  definitions: {
+    code: string;
+    name: string;
+    group: string;
+    description?: string;
+  }[],
+) {
+  const ids: Record<string, string> = {};
+  for (const def of definitions) {
+    const perm = await createPermission(def);
+    ids[def.code] = perm.id;
+  }
+  return ids;
+}
 
-  // 1. System Configs (driven by the registry — single source of truth)
+export async function seed() {
+  // 1. System Configs (registry-driven; upsertConfig validates values against
+  // the registry schema and writes registry-authoritative metadata)
   console.log("System configs:");
   for (const entry of SYSTEM_CONFIG_REGISTRY) {
-    await upsertSystemConfig(registryEntryToSystemRow(entry));
+    await upsertConfig(entry.group, entry.key, { value: entry.defaultValue });
   }
   console.log(`  ${SYSTEM_CONFIG_REGISTRY.length} configs ready.\n`);
 
   // 2. Notification Channels
   console.log("Notification channels:");
+  const channelIds: Record<string, string> = {};
   for (const ch of notificationChannels) {
-    await upsertNotificationChannel(ch);
+    const record = await seedNotificationChannel(ch);
+    channelIds[ch.key] = record.id;
   }
   console.log(`  ${notificationChannels.length} channels ready.\n`);
 
   // 3. Notification Templates
   console.log("Notification templates:");
   for (const tpl of notificationTemplates) {
-    const channel = await prisma.notificationChannel.findUnique({
-      where: { key: tpl.channelKey },
-    });
-    if (!channel) {
+    const channelId = channelIds[tpl.channelKey];
+    if (!channelId) {
       console.warn(`  [seed] Channel not found: ${tpl.channelKey}`);
       continue;
     }
-    await upsertNotificationTemplate(channel.id, tpl);
+    await seedNotificationTemplate(channelId, tpl);
   }
   console.log(`  ${notificationTemplates.length} templates ready.\n`);
 
-  // 4. Built-in Job Templates
+  // 4. Built-in Job Templates (service validates cron + arms the scheduler)
   console.log("Job templates:");
   for (const tpl of builtInJobTemplates) {
-    await upsertJobTemplate(tpl);
+    await jobTemplateService.createTemplate({ ...tpl, enabled: true });
   }
   console.log(`  ${builtInJobTemplates.length} job templates ready.\n`);
 
@@ -2255,22 +1715,23 @@ export async function seed(client: PrismaClient) {
   console.log("Applications:");
   const appRecords: Record<string, string> = {};
   for (const app of applications) {
-    const record = await upsertApplication(app);
+    const record = await seedApplication(app);
     appRecords[app.code] = record.id;
   }
   console.log(`  ${applications.length} applications ready.\n`);
 
-  // 5b. Per-application config (driven by the registry — single source of
-  // truth). Covers ai-agent (functional) and ai-agent-ui (visual) groups.
+  // 5b. Per-application config (registry-driven; upsertAppConfig validates
+  // values and writes registry-authoritative metadata).
   // `seed: false` entries (e.g. ai-agent.allowedApis) are skipped here.
   console.log("Application configs (ai-agent, ai-agent-ui):");
   const seedableAppConfig = APPLICATION_CONFIG_REGISTRY.filter(
     (e) => e.seed !== false,
   );
-  for (const code of Object.keys(appRecords)) {
-    const appId = appRecords[code];
+  for (const appId of Object.values(appRecords)) {
     for (const field of seedableAppConfig) {
-      await upsertApplicationConfig(appId, registryEntryToAppRow(field));
+      await upsertAppConfig(appId, field.group, field.key, {
+        value: field.defaultValue,
+      });
     }
   }
   console.log(
@@ -2279,55 +1740,85 @@ export async function seed(client: PrismaClient) {
 
   // 6. System Permissions (platform)
   console.log("System permissions:");
-  const systemPermIds = await upsertPermissions(systemPermissions);
+  const systemPermIds = await createPermissions(systemPermissions);
   console.log(`  ${systemPermissions.length} system permissions ready.\n`);
 
   // 7. Organization App Permissions
   console.log("Organization app permissions:");
-  const orgPermIds = await upsertPermissions(organizationPermissions);
+  const orgPermIds = await createPermissions(organizationPermissions);
   console.log(
     `  ${organizationPermissions.length} organization permissions ready.\n`,
   );
 
   // 7b. StudyBuddy App Permissions (org-scoped)
   console.log("StudyBuddy app permissions:");
-  const studybuddyPermIds = await upsertPermissions(studybuddyPermissions);
+  const studybuddyPermIds = await createPermissions(studybuddyPermissions);
   console.log(
     `  ${studybuddyPermissions.length} studybuddy permissions ready.\n`,
   );
 
-  // 8. Admin Menus + Permissions
-  console.log("Admin menus:");
-  for (const menu of adminMenus) {
-    await upsertMenu(appRecords[ADMIN_APP_CODE], menu);
-    await linkMenuPermissions(menu.id, menu.permissions, systemPermIds);
+  // 8-9b. Menus (createMenu validates parent groups, permission scope per
+  // app, and computes sortOrder; menu defs reference parents by their seed
+  // id, resolved through a per-app id map)
+  async function seedMenus(
+    label: string,
+    appId: string,
+    menus: {
+      id: string;
+      code: string;
+      name: string;
+      icon?: string | null;
+      linkType: "GROUP" | "INTERNAL" | "EXTERNAL";
+      url?: string | null;
+      sortOrder: number;
+      parentId?: string | null;
+      permissions: string[];
+    }[],
+    permissionLookup: Record<string, string>,
+  ) {
+    console.log(label);
+    const menuIds: Record<string, string> = {};
+    for (const menu of menus) {
+      const created = await createMenu({
+        appId,
+        name: menu.name,
+        code: menu.code,
+        parentId: menu.parentId ? menuIds[menu.parentId] : null,
+        icon: menu.icon ?? null,
+        linkType: menu.linkType,
+        url: menu.url ?? null,
+        permissionIds: menu.permissions
+          .map((code) => permissionLookup[code])
+          .filter(Boolean),
+      });
+      menuIds[menu.id] = created.id;
+    }
+    console.log(`  ${menus.length} menus ready.\n`);
   }
-  console.log(`  ${adminMenus.length} admin menus ready.\n`);
 
-  // 9. Organization Menus + Permissions
-  console.log("Organization menus:");
-  for (const menu of organizationMenus) {
-    await upsertMenu(appRecords[ORGANIZATION_APP_CODE], menu);
-    await linkMenuPermissions(menu.id, menu.permissions, orgPermIds);
-  }
-  console.log(`  ${organizationMenus.length} organization menus ready.\n`);
-
-  // 9b. StudyBuddy Menus + Permissions
+  await seedMenus("Admin menus:", appRecords[ADMIN_APP_CODE], adminMenus, {
+    ...systemPermIds,
+  });
+  await seedMenus(
+    "Organization menus:",
+    appRecords[ORGANIZATION_APP_CODE],
+    organizationMenus,
+    orgPermIds,
+  );
   // Dashboard reuses the shared "org/dashboard:view" permission (lives in
   // orgPermIds); exams/submissions use the studybuddy-specific codes.
-  console.log("StudyBuddy menus:");
-  const studybuddyMenuPermIds = { ...orgPermIds, ...studybuddyPermIds };
-  for (const menu of studybuddyMenus) {
-    await upsertMenu(appRecords[STUDYBUDDY_APP_CODE], menu);
-    await linkMenuPermissions(menu.id, menu.permissions, studybuddyMenuPermIds);
-  }
-  console.log(`  ${studybuddyMenus.length} studybuddy menus ready.\n`);
+  await seedMenus(
+    "StudyBuddy menus:",
+    appRecords[STUDYBUDDY_APP_CODE],
+    studybuddyMenus,
+    { ...orgPermIds, ...studybuddyPermIds },
+  );
 
   // 10. Platform Roles (system-scoped)
   console.log("Platform roles:");
   const adminRoleRecords: Record<string, string> = {};
   for (const role of adminRoles) {
-    const record = await upsertRole(role);
+    const record = await createRole(role);
     adminRoleRecords[role.code] = record.id;
   }
   console.log(`  ${adminRoles.length} platform roles ready.\n`);
@@ -2336,7 +1827,8 @@ export async function seed(client: PrismaClient) {
   // provisioned when an organization is created (see provisionOrgRoles and
   // step 16 below), not as global templates.
 
-  // 12. Platform Role -> Permission assignments
+  // 12. Platform Role -> Permission assignments (assignPermissions validates
+  // scope and replaces the role's full permission set)
   console.log("Platform role permissions:");
   for (const [roleCode, permCodes] of Object.entries(adminRolePermissions)) {
     const roleId = adminRoleRecords[roleCode];
@@ -2344,22 +1836,22 @@ export async function seed(client: PrismaClient) {
     const permIds = permCodes
       .map((code) => systemPermIds[code])
       .filter(Boolean);
-    await upsertRolePermissions(roleId, permIds);
+    await assignPermissions(roleId, permIds);
     console.log(`  ${roleCode}: ${permIds.length} permissions`);
   }
   console.log();
 
-  // 14. Built-in Users (create user + account)
+  // 14. Built-in Users (create user + credential account)
   console.log("Built-in users:");
   const builtInUserRecords: Record<string, string> = {};
   for (const user of builtInUsers) {
-    const record = await upsertUser(user);
+    const record = await seedUser(user);
     builtInUserRecords[user.id] = record.id;
   }
   console.log(`  ${builtInUsers.length} users ready.\n`);
 
   if (builtInUserRecords.admin) {
-    await upsertUserCredit(builtInUserRecords.admin, ADMIN_SEED_CREDITS);
+    await seedAdminCredits(builtInUserRecords.admin, ADMIN_SEED_CREDITS);
     console.log(`  admin@system.local → ${ADMIN_SEED_CREDITS} credits\n`);
   }
 
@@ -2367,59 +1859,42 @@ export async function seed(client: PrismaClient) {
   console.log("Built-in user role assignments:");
   for (const user of builtInUsers) {
     if (user.roleCode) {
-      await upsertRoleAssignment({
-        userId: builtInUserRecords[user.id],
-        roleCode: user.roleCode,
-      });
+      const roleId = adminRoleRecords[user.roleCode];
+      if (!roleId) {
+        console.warn(
+          `  [seed] Role not found for assignment: code=${user.roleCode}`,
+        );
+        continue;
+      }
+      await assignRole({ userId: builtInUserRecords[user.id], roleId });
       console.log(`  ${user.email} → ${user.roleCode}`);
     }
   }
   console.log();
 
-  // 16. Built-in Organization (Hapaul owned by hapaul user)
-  // Always re-provisions org roles so newly added org-scoped permissions
-  // (e.g. studybuddy) are synced to the Hapaul owner on every seed run.
+  // 16. Built-in Organization (Hapaul owned by hapaul user; owner role gets
+  // all org-scoped permissions via provisionOrgRoles)
   console.log("Built-in organizations:");
   const hapaulUserId = builtInUserRecords.hapaul;
   if (hapaulUserId) {
     await prisma.$transaction(async (tx) => {
-      let org = await tx.organization.findUnique({
-        where: { slug: "hapaul" },
-      });
-      if (!org) {
-        org = await tx.organization.create({
-          data: {
-            name: "Hapaul",
-            slug: "hapaul",
-            createdAt: new Date(),
-          },
-        });
-      }
-      const orgId = org.id;
-      await tx.member.upsert({
-        where: {
-          organizationId_userId: {
-            organizationId: orgId,
-            userId: hapaulUserId,
-          },
+      const org = await tx.organization.create({
+        data: {
+          name: "Hapaul",
+          slug: "hapaul",
+          createdAt: new Date(),
         },
-        update: {},
-        create: {
-          organizationId: orgId,
+      });
+      await tx.member.create({
+        data: {
+          organizationId: org.id,
           userId: hapaulUserId,
           createdAt: new Date(),
         },
       });
-      const { ownerRoleId } = await provisionOrgRoles(tx, orgId);
-      await tx.roleAssignment.upsert({
-        where: {
-          userId_roleId: {
-            userId: hapaulUserId,
-            roleId: ownerRoleId,
-          },
-        },
-        update: {},
-        create: {
+      const { ownerRoleId } = await provisionOrgRoles(tx, org.id);
+      await tx.roleAssignment.create({
+        data: {
           userId: hapaulUserId,
           roleId: ownerRoleId,
         },
@@ -2429,103 +1904,113 @@ export async function seed(client: PrismaClient) {
   }
   console.log();
 
-  // 17. Pricing Plans (reference data; dev: Unlimited grants all categories)
-  console.log("Pricing plans:");
-  const pricingPlanRecords: Record<string, string> = {};
-  for (const plan of pricingPlans) {
-    const record = await upsertPricingPlan(plan);
-    pricingPlanRecords[plan.code] = record.id;
-  }
-  console.log(`  ${pricingPlans.length} pricing plans ready.\n`);
-
-  const adminUserId = builtInUserRecords.admin;
-  const basicPlanId = pricingPlanRecords.basic;
-  if (adminUserId && basicPlanId) {
-    await upsertBuiltinPricingSubscription({
-      id: "builtin-admin-basic-subscription",
-      principalType: "user",
-      principalId: adminUserId,
-      planId: basicPlanId,
-    });
-    console.log("  admin@system.local → Basic plan\n");
-  }
-
-  // 17b. Features (reference data)
+  // 17. Pricing: features, then plans with their feature links
   console.log("Features:");
   const featureRecords: Record<string, string> = {};
   for (const feature of features) {
-    const record = await upsertFeature(feature);
+    const record = await createFeature(feature);
     featureRecords[feature.code] = record.id;
   }
   console.log(`  ${features.length} features ready.\n`);
 
-  // 17c. Plan Features
-  console.log("Plan features:");
-  for (const pf of planFeatures) {
-    const planId = pricingPlanRecords[pf.planCode];
-    const featureId = featureRecords[pf.featureCode];
-    if (planId && featureId) {
-      await upsertPlanFeature(planId, featureId);
-      console.log(`  ${pf.planCode} → ${pf.featureCode}`);
-    }
+  console.log("Pricing plans:");
+  for (const plan of pricingPlans) {
+    await createPricingPlan({
+      ...plan,
+      features: planFeatures
+        .filter((pf) => pf.planCode === plan.code)
+        .map((pf) => ({ featureId: featureRecords[pf.featureCode] }))
+        .filter((f) => !!f.featureId),
+    });
+    console.log(
+      `  ${plan.code} → ${planFeatures.filter((pf) => pf.planCode === plan.code).length} features`,
+    );
   }
   console.log();
 
-  // 18. AI Providers (reference data)
+  // Built-in users are subscribed to the basic plan via the same service the
+  // registration flow uses (also allocates their quota row).
+  console.log("Pricing subscriptions:");
+  for (const user of builtInUsers) {
+    const userId = builtInUserRecords[user.id];
+    if (!userId) continue;
+    await subscribeUserToBasicPlan(userId);
+    console.log(`  ${user.email} → basic plan`);
+  }
+  console.log();
+
+  // 18. AI Providers (service-generated ids are captured for accounts/models)
   console.log("AI providers:");
+  const aiProviderIds: Record<string, string> = {};
   for (const provider of aiProviders) {
-    await upsertAiProvider(provider);
+    const { key, ...data } = provider;
+    const record = await createAiProvider(data);
+    aiProviderIds[key] = record.id;
   }
   console.log(`  ${aiProviders.length} AI providers ready.\n`);
 
-  // 18b. AI Accounts (reference data)
+  // 18b. AI Accounts
   console.log("AI accounts:");
+  const aiAccountIds: Record<string, string> = {};
   for (const account of aiAccounts) {
-    await upsertAiAccount(account);
+    const { key, providerKeys, ...data } = account;
+    const record = await createAiAccount({
+      ...data,
+      providerIds: providerKeys.map((k) => aiProviderIds[k]).filter(Boolean),
+    });
+    aiAccountIds[key] = record.id;
   }
   console.log(`  ${aiAccounts.length} AI accounts ready.\n`);
 
-  // 19. AI Models (reference data)
+  // 19. AI Models (keyed by logical modelId for pricing lookups)
   console.log("AI models:");
   const aiModelRecords: Record<string, string> = {};
   for (const model of aiModels) {
-    const record = await upsertAiModel(model);
+    const { providerKey, ...data } = model;
+    const record = await createAiModel({
+      ...data,
+      providerId: aiProviderIds[providerKey],
+    });
     aiModelRecords[model.modelId] = record.id;
   }
   console.log(`  ${aiModels.length} AI models ready.\n`);
 
-  // 19b. AI Model Pricing (reference data)
+  // 19b. AI Model Pricing (service validates policy shape + date overlap)
   console.log("AI model pricing:");
   for (const pricing of aiModelPricing) {
     const modelRowId = aiModelRecords[pricing.modelId];
-    if (!modelRowId) {
+    const accountRowId = aiAccountIds[pricing.accountKey];
+    if (!modelRowId || !accountRowId) {
       console.warn(
-        `  [seed] AI model not found for pricing: ${pricing.modelId}`,
+        `  [seed] Missing model/account for pricing: ${pricing.modelId}`,
       );
       continue;
     }
-    await upsertAiModelPricing({ ...pricing, modelId: modelRowId });
+    const { accountKey, ...data } = pricing;
+    await createAiModelPricing({
+      ...data,
+      modelId: modelRowId,
+      accountId: accountRowId,
+    });
   }
   console.log(`  ${aiModelPricing.length} pricing rows ready.\n`);
 
-  // 20. AI Agents (reference data; built-in platform_assistant)
+  // 20. AI Agents (service validates subAgents schema)
   console.log("AI agents:");
   for (const agent of aiAgents) {
-    await upsertAiAgent(agent);
+    await createAiAgent(agent);
   }
   console.log(`  ${aiAgents.length} AI agents ready.\n`);
 
   // 20b. Billing Configs and Currency Rates
   console.log("Billing configs:");
   for (const config of billingConfigs) {
-    await upsertBillingConfig(config);
+    await createBillingConfig(config);
   }
   console.log(`  ${billingConfigs.length} billing configs ready.\n`);
 
   console.log("Currency rates:");
-  for (const rate of currencyRates) {
-    await upsertCurrencyRate(rate);
-  }
+  await upsertCurrencyRates(currencyRates);
   console.log(`  ${currencyRates.length} currency rates ready.\n`);
 
   console.log("=== Seed complete ===");

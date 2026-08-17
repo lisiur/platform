@@ -59,7 +59,7 @@
 ### Seed & Migrations
 
 - [ ] **`seed.ts` is not wrapped in a transaction** [#3](https://github.com/lisiur/platform/issues/3) — only the built-in-org
-      block uses `$transaction` (`prisma/seed.ts:1449`); the other ~15
+      block uses `$transaction` (`packages/service/src/seed.ts`); the other ~15
       steps are independent writes. A mid-seed failure leaves reference
       data partially updated. Wrap the whole `seed()` body in one
       `$transaction`.

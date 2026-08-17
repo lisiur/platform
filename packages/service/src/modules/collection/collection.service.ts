@@ -9,6 +9,7 @@ import {
   deleteAttachmentsByBiz,
 } from "#modules/attachment/attachment.service";
 import { collectionRepository } from "./collection.repository";
+import { enrichItem } from "./enrich.service";
 
 const ATTACHMENT_BIZ_TYPE = "collection-item";
 const LINK_FETCH_TIMEOUT_MS = 6_000;
@@ -325,6 +326,56 @@ export async function fetchItemAttachments(
   });
 }
 
+/**
+ * Runs auto-enrichment in the background and persists its lifecycle status
+ * (ok/failed + error message) on the item so the UI can render it.
+ */
+async function runAutoEnrichment(ownerId: string, itemId: string) {
+  try {
+    const result = await enrichItem(ownerId, itemId);
+    const ok = result.generated.length > 0;
+    await collectionRepository.update(itemId, {
+      enrichStatus: ok ? "ok" : "failed",
+      enrichError: ok ? null : "AI enrichment returned no sections",
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[studybuddy] auto enrichment failed:", err);
+    await collectionRepository
+      .update(itemId, {
+        enrichStatus: "failed",
+        enrichError: message.slice(0, 500),
+      })
+      .catch(() => {});
+  }
+}
+
+/**
+ * Resets a failed auto-enrichment back to pending and re-runs it in the
+ * background. Returns immediately; the UI polls the item while pending.
+ */
+export async function retryItemEnrichment(ownerId: string, itemId: string) {
+  const item = await collectionRepository.findOwnedByIdLean(ownerId, itemId);
+  if (!item) {
+    throw new HTTPException(404, { message: "Collection item not found" });
+  }
+  if (item.type === "LINK") {
+    throw new HTTPException(400, {
+      message: "Link items do not support AI enrichment",
+    });
+  }
+
+  const { count } = await collectionRepository.markEnrichmentRetryable(itemId);
+  if (count === 0) {
+    throw new HTTPException(409, {
+      message: "Enrichment can only be retried after a failure",
+    });
+  }
+  void runAutoEnrichment(ownerId, itemId);
+
+  return { itemId, enrichStatus: "pending" as const };
+}
+
 export async function createItem(input: CreateItemInput) {
   const appId = input.appId ?? (await resolveStudybuddyAppId());
 
@@ -337,6 +388,7 @@ export async function createItem(input: CreateItemInput) {
     title: input.title ?? null,
     note: input.note ?? null,
     tags: input.tags ?? [],
+    enrichStatus: input.type === "LINK" ? "none" : "pending",
   });
 
   if (input.type === "LINK") {
@@ -352,6 +404,11 @@ export async function createItem(input: CreateItemInput) {
     if (meta.imageUrl) {
       await ingestOgImage(item.id, input.ownerId, meta.imageUrl);
     }
+  } else {
+    // Enrichments are generated automatically right after the item is added;
+    // failures never block item creation — they are persisted on the item so
+    // the UI can surface them.
+    void runAutoEnrichment(input.ownerId, item.id);
   }
 
   const detail = await collectionRepository.findOwnedById(

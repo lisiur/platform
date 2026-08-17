@@ -57,6 +57,7 @@ export const collectionRepository = {
       title?: string | null;
       note?: string | null;
       tags?: string[];
+      enrichStatus?: string;
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
@@ -70,8 +71,16 @@ export const collectionRepository = {
         title: data.title ?? null,
         note: data.note ?? null,
         tags: data.tags ?? [],
+        ...(data.enrichStatus ? { enrichStatus: data.enrichStatus } : {}),
       },
       include: { _count: { select: { enrichments: true } } },
+    });
+  },
+
+  markEnrichmentRetryable(id: string) {
+    return prisma.collectionItem.updateMany({
+      where: { id, enrichStatus: "failed" },
+      data: { enrichStatus: "pending", enrichError: null },
     });
   },
 
@@ -84,6 +93,8 @@ export const collectionRepository = {
       status?: string;
       mastery?: number;
       url?: string | null;
+      enrichStatus?: string;
+      enrichError?: string | null;
     },
   ) {
     return prisma.collectionItem.update({

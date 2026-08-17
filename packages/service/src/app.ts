@@ -26,8 +26,8 @@ import {
   initRateLimitOverrides,
 } from "#modules/system/rate-limit.service";
 import { resumeUpdateStatusStream } from "#modules/system/updater-client";
-import { seed } from "../prisma/seed";
 import { routes } from "./modules";
+import { seed } from "./seed";
 
 // Hard contract: NODE_ENV must be set explicitly. The CORS policy and many
 // libraries (incl. Next.js, which hosts this service) branch on it; a missing
@@ -56,7 +56,7 @@ if (process.env.NEXT_PHASE !== "phase-production-build") {
     });
     if (!adminApp) {
       console.log("Running seed...");
-      await seed(prisma);
+      await seed();
       console.log("Seed completed.");
     }
 

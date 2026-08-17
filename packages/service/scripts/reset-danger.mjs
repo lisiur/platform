@@ -155,7 +155,6 @@ run("pnpm", [
 console.log("[db:reset:danger] Resetting database from migration history...");
 run("pnpm", ["exec", "prisma", "migrate", "reset", "--force"]);
 
-console.log("[db:reset:danger] Seeding database...");
-run("pnpm", ["exec", "tsx", "prisma/seed.run.ts"]);
-
-console.log("[db:reset:danger] Done.");
+console.log(
+  "[db:reset:danger] Done. Seed runs automatically on next service boot.",
+);

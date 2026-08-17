@@ -1,7 +1,6 @@
 "use client";
 
-import { Badge, Button } from "@repo/ui";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { Badge, Spinner } from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { formatDateTime } from "@/utils/date";
 
@@ -34,8 +33,7 @@ export interface EnrichmentData {
 interface EnrichmentSectionProps {
   kind: EnrichmentKind;
   data: EnrichmentData | null;
-  busy: boolean;
-  onRegenerate: (kind: EnrichmentKind) => void;
+  pending?: boolean;
 }
 
 function EnrichContent({
@@ -163,8 +161,7 @@ function EnrichContent({
 export function EnrichmentSection({
   kind,
   data,
-  busy,
-  onRegenerate,
+  pending,
 }: EnrichmentSectionProps) {
   const t = useTranslations("Collection");
   const label = t(`enrichments.${kind}`);
@@ -172,24 +169,9 @@ export function EnrichmentSection({
 
   return (
     <section className="rounded-lg border p-4">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold">{label}</h3>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <Button
-          variant={data ? "outline" : "default"}
-          size="sm"
-          disabled={busy}
-          onClick={() => onRegenerate(kind)}
-        >
-          {data ? (
-            <RefreshCw className={busy ? "size-4 animate-spin" : "size-4"} />
-          ) : (
-            <Sparkles className="size-4" />
-          )}
-          {data ? t("regenerate") : t("generate")}
-        </Button>
+      <div className="mb-2">
+        <h3 className="text-sm font-semibold">{label}</h3>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       {data ? (
         <div className="space-y-2">
@@ -197,6 +179,11 @@ export function EnrichmentSection({
           <p className="text-[10px] text-muted-foreground">
             {data.model} · {formatDateTime(data.generatedAt)}
           </p>
+        </div>
+      ) : pending ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Spinner className="size-3.5" />
+          {t("autoEnrichPending")}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">{t("notGenerated")}</p>

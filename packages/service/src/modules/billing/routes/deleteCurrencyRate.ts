@@ -9,16 +9,16 @@ import {
 } from "#lib/openapi";
 import { assertAccess } from "#modules/access-control/public";
 import { deleteCurrencyRate as deleteCurrencyRateService } from "../currency-rate.service";
-import { idParamSchema } from "./schema";
+import { currencyParamSchema } from "./schema";
 
 export const deleteCurrencyRate = defineOpenAPIRoute({
   route: createRoute({
     operationId: "deleteCurrencyRate",
     method: "delete",
-    path: "/currency-rates/{id}",
+    path: "/currency-rates/{currency}",
     tags: ["Billing"],
     summary: "Delete a currency rate",
-    request: { params: idParamSchema },
+    request: { params: currencyParamSchema },
     responses: {
       ...unauthorizedResponse,
       ...forbiddenResponse,
@@ -28,8 +28,8 @@ export const deleteCurrencyRate = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     await assertAccess(principal, "system/billing-config:delete");
-    const { id } = c.req.valid("param");
-    const result = await deleteCurrencyRateService(id);
+    const { currency } = c.req.valid("param");
+    const result = await deleteCurrencyRateService(currency);
     logAudit({ event: "currencyRate.deleted", category: "billing", c });
     return c.json(result, 200);
   },

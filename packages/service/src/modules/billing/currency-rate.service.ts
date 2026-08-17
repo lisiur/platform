@@ -1,17 +1,48 @@
 import { HTTPException } from "hono/http-exception";
-import type { Prisma } from "#generated/prisma/client";
+import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { setLastCurrencySync } from "./billing.service";
 
 const API_VERSION = "v1";
 const MAX_STORABLE_RATE = 1e18;
 
+async function upsertMany(rows: { currency: string; rate: number }[]) {
+  if (rows.length === 0) return;
+  const now = new Date();
+  const values = rows.map(
+    (row) =>
+      Prisma.sql`(${row.currency}, ${row.rate}, 'active', ${now}, ${now})`,
+  );
+  await prisma.$executeRaw`
+    INSERT INTO currency_rate (currency, rate, status, "createdAt", "updatedAt")
+    VALUES ${Prisma.join(values)}
+    ON CONFLICT (currency) DO UPDATE
+    SET rate = EXCLUDED.rate,
+        status = EXCLUDED.status,
+        "updatedAt" = EXCLUDED."updatedAt"
+  `;
+}
+
 function normalizeCurrency(currency: string): string {
   return currency.trim().toUpperCase();
 }
 
+/**
+ * Upserts rate rows (active) using the same conflict path as `syncCurrencyRates`.
+ * Used by the seed to establish initial rates without hitting the external API.
+ */
+export async function upsertCurrencyRates(
+  rows: { currency: string; rate: number }[],
+) {
+  await upsertMany(
+    rows.map((row) => ({
+      currency: normalizeCurrency(row.currency),
+      rate: row.rate,
+    })),
+  );
+}
+
 function serializeCurrencyRate(row: {
-  id: string;
   currency: string;
   rate: unknown;
   status: string;
@@ -48,8 +79,10 @@ export async function listCurrencyRates(params: {
   return { rates: rates.map(serializeCurrencyRate), total };
 }
 
-export async function deleteCurrencyRate(id: string) {
-  await prisma.currencyRate.delete({ where: { id } });
+export async function deleteCurrencyRate(currency: string) {
+  await prisma.currencyRate.delete({
+    where: { currency: normalizeCurrency(currency) },
+  });
   return { success: true as const };
 }
 
@@ -94,23 +127,16 @@ export async function syncCurrencyRates() {
         row.rate > 0 &&
         row.rate <= MAX_STORABLE_RATE,
     );
-  rows.push({ currency: base, rate: 1 });
+  const uniqueRows = new Map(rows.map((row) => [row.currency, row] as const));
+  uniqueRows.set(base, { currency: base, rate: 1 });
 
-  await prisma.$transaction(
-    rows.map((row) =>
-      prisma.currencyRate.upsert({
-        where: { currency: row.currency },
-        create: { ...row, status: "active" },
-        update: { rate: row.rate, status: "active" },
-      }),
-    ),
-  );
+  await upsertMany([...uniqueRows.values()]);
 
   const syncedAt = new Date().toISOString();
   await setLastCurrencySync(syncedAt);
   return {
     baseCurrency: base,
-    synced: rows.length,
+    synced: uniqueRows.size,
     sourceDate: typeof raw.date === "string" ? raw.date : null,
     syncedAt,
   };

@@ -97,9 +97,10 @@ pnpm install
 # configure .env — see Environment variables below
 pnpm db:generate
 pnpm db:push
-pnpm db:seed
 pnpm dev
 ```
+
+The database is seeded automatically on first service boot (`packages/service/src/app.ts`).
 
 `CORS_ALLOWED_ORIGINS` controls which origins may call the API directly. The service is consumed by Next under `/api`, so it is not run standalone in dev.
 
@@ -150,7 +151,6 @@ Both frontends call the API through typed Hono RPC (`appClient` from `@/lib/api`
 | `pnpm db:push`             | Push the Prisma schema to the database.                   |
 | `pnpm db:migrate`          | Run Prisma migrations (dev; interactive).                 |
 | `pnpm db:migrate:deploy`   | Apply pending migrations in production (non-interactive).  |
-| `pnpm db:seed`             | Seed the database.                                        |
 | `pnpm db:reset:danger`     | Reset the database (destructive).                         |
 
 ## Architecture notes

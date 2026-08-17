@@ -29,12 +29,6 @@
       "#utils/*": ["./src/shared/utils/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "prisma/generated/**/*",
-    "prisma/seed.ts",
-    "prisma/seed.run.ts",
-    "prisma/load-env.ts"
-  ],
+  "include": ["src/**/*", "prisma/generated/**/*", "prisma/load-env.ts"],
   "exclude": ["node_modules"]
 }

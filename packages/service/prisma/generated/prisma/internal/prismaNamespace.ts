@@ -4878,6 +4878,8 @@ export const CollectionItemScalarFieldEnum = {
   tags: 'tags',
   status: 'status',
   mastery: 'mastery',
+  enrichStatus: 'enrichStatus',
+  enrichError: 'enrichError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -5032,7 +5034,6 @@ export type BillingConfigScalarFieldEnum = (typeof BillingConfigScalarFieldEnum)
 
 
 export const CurrencyRateScalarFieldEnum = {
-  id: 'id',
   currency: 'currency',
   rate: 'rate',
   status: 'status',

@@ -543,6 +543,8 @@ CREATE TABLE "studybuddy_collection_item" (
     "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "status" TEXT NOT NULL DEFAULT 'active',
     "mastery" INTEGER NOT NULL DEFAULT 0,
+    "enrichStatus" TEXT NOT NULL DEFAULT 'none',
+    "enrichError" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -697,14 +699,13 @@ CREATE TABLE "billing_config" (
 
 -- CreateTable
 CREATE TABLE "currency_rate" (
-    "id" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
     "rate" DECIMAL(36,18) NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'active',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "currency_rate_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "currency_rate_pkey" PRIMARY KEY ("currency")
 );
 
 -- CreateTable
@@ -1152,9 +1153,6 @@ CREATE INDEX "billing_config_resourceType_idx" ON "billing_config"("resourceType
 
 -- CreateIndex
 CREATE UNIQUE INDEX "billing_config_resourceType_resourceId_key" ON "billing_config"("resourceType", "resourceId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "currency_rate_currency_key" ON "currency_rate"("currency");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "pricing_plan_code_key" ON "pricing_plan"("code");

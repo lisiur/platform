@@ -720,6 +720,8 @@ model CollectionItem {
   tags      String[]           @default([])
   status    String             @default("active")
   mastery   Int                @default(0)
+  enrichStatus String          @default("none") // none | pending | ok | failed
+  enrichError String?
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
@@ -915,8 +917,7 @@ model BillingConfig {
 }
 
 model CurrencyRate {
-  id        String   @id @default(cuid())
-  currency  String   @unique
+  currency  String   @id
   rate      Decimal  @db.Decimal(36, 18)
   status    String   @default("active")
   createdAt DateTime @default(now())
