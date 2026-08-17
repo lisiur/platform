@@ -111,7 +111,7 @@
   },
   "Dashboard": {
     "welcome": "欢迎回来，{name}",
-    "welcomeDescription": "以下是你的组织近期动态。",
+    "welcomeDescription": "以下是你的近期学习动态。",
     "statUnread": "未读通知",
     "recentActivity": "近期动态",
     "viewAll": "查看全部",

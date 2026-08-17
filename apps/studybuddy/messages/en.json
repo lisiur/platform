@@ -111,7 +111,7 @@
   },
   "Dashboard": {
     "welcome": "Welcome back, {name}",
-    "welcomeDescription": "Here's what's happening in your organization.",
+    "welcomeDescription": "Here's what's happening in your studies.",
     "statUnread": "Unread Notifications",
     "recentActivity": "Recent Activity",
     "viewAll": "View all",
