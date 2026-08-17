@@ -1690,7 +1690,7 @@ const pricingPlans = [
     code: "basic",
     name: "Basic",
     price: 0,
-    currency: "USD",
+    currency: "CNY",
     status: "active",
   },
 ];
