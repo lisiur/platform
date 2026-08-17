@@ -534,7 +534,24 @@ const systemPermissions = [
   {
     code: "system/billing-config:delete",
     group: "billing-config",
-    name: "Delete Billing Config",
+    name: "Delete Billing Configs",
+  },
+];
+
+// --- StudyBuddy App Permissions (own "studybuddy" scope: independent of both
+// system and org permission scopes) ---
+const studybuddyPermissions = [
+  {
+    code: "studybuddy/dashboard:view",
+    group: "dashboard",
+    name: "View StudyBuddy Dashboard",
+    description: "View the StudyBuddy dashboard",
+  },
+  {
+    code: "studybuddy/collection:manage",
+    group: "collection",
+    name: "Manage StudyBuddy Collection",
+    description: "Create and manage personal English collection items",
   },
 ];
 
@@ -629,16 +646,6 @@ const organizationPermissions = [
     group: "position-permission",
     name: "Manage Position Permissions",
     description: "Assign permissions to positions in an organization",
-  },
-];
-
-// --- StudyBuddy App Permissions (org-scoped: granted to every org owner) ---
-const studybuddyPermissions = [
-  {
-    code: "org/studybuddy-collection:manage",
-    group: "studybuddy-collection",
-    name: "Manage Collection",
-    description: "Create and manage personal English collection items",
   },
 ];
 
@@ -1048,7 +1055,7 @@ const studybuddyMenus = [
     linkType: "INTERNAL" as const,
     url: "/studybuddy/dashboard",
     sortOrder: 0,
-    permissions: ["org/dashboard:view"],
+    permissions: ["studybuddy/dashboard:view"],
   },
   {
     id: "studybuddy-collection",
@@ -1058,7 +1065,7 @@ const studybuddyMenus = [
     linkType: "INTERNAL" as const,
     url: "/studybuddy/collection",
     sortOrder: 1,
-    permissions: ["org/studybuddy-collection:manage"],
+    permissions: ["studybuddy/collection:manage"],
   },
 ];
 
@@ -1074,9 +1081,14 @@ const adminRoles = [
 // ORG_MEMBER_PERMISSION_CODES (defined in lib/org-role.ts).
 
 // --- Role -> Permission mappings (by role code) ---
+const studybuddyPermissionCodes = studybuddyPermissions.map((p) => p.code);
+
 const adminRolePermissions: Record<string, string[]> = {
-  [ADMIN_ROLE_CODE]: systemPermissions.map((p) => p.code),
-  [USER_ROLE_CODE]: ["system/attachment:sign"],
+  [ADMIN_ROLE_CODE]: [
+    ...systemPermissions.map((p) => p.code),
+    ...studybuddyPermissionCodes,
+  ],
+  [USER_ROLE_CODE]: ["system/attachment:sign", ...studybuddyPermissionCodes],
 };
 
 // --- Notification Channels ---
@@ -1750,7 +1762,7 @@ export async function seed() {
     `  ${organizationPermissions.length} organization permissions ready.\n`,
   );
 
-  // 7b. StudyBuddy App Permissions (org-scoped)
+  // 7b. StudyBuddy App Permissions (own "studybuddy" scope)
   console.log("StudyBuddy app permissions:");
   const studybuddyPermIds = await createPermissions(studybuddyPermissions);
   console.log(
@@ -1805,13 +1817,12 @@ export async function seed() {
     organizationMenus,
     orgPermIds,
   );
-  // Dashboard reuses the shared "org/dashboard:view" permission (lives in
-  // orgPermIds); exams/submissions use the studybuddy-specific codes.
+  // StudyBuddy permissions live in their own "studybuddy" scope.
   await seedMenus(
     "StudyBuddy menus:",
     appRecords[STUDYBUDDY_APP_CODE],
     studybuddyMenus,
-    { ...orgPermIds, ...studybuddyPermIds },
+    studybuddyPermIds,
   );
 
   // 10. Platform Roles (system-scoped)
@@ -1833,8 +1844,9 @@ export async function seed() {
   for (const [roleCode, permCodes] of Object.entries(adminRolePermissions)) {
     const roleId = adminRoleRecords[roleCode];
     if (!roleId) continue;
+    const permissionIdLookup = { ...systemPermIds, ...studybuddyPermIds };
     const permIds = permCodes
-      .map((code) => systemPermIds[code])
+      .map((code) => permissionIdLookup[code])
       .filter(Boolean);
     await assignPermissions(roleId, permIds);
     console.log(`  ${roleCode}: ${permIds.length} permissions`);

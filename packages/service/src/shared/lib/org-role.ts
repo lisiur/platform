@@ -20,7 +20,6 @@ export const ORG_MEMBER_PERMISSION_CODES = [
   "org/organization-member:list",
   "org/department:list",
   "org/agent:chat",
-  "org/studybuddy-collection:manage",
 ];
 
 const ownerRoleCode = (organizationId: string) =>

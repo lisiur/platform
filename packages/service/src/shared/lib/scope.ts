@@ -31,6 +31,13 @@ export const ROLE_CODE_REGEX = /^(system|org:[^/\s]+)\/[^/\s]+$/;
  */
 export const ORG_PERMISSION_SCOPE = "org";
 
+/**
+ * Scope segment used in permission codes for StudyBuddy app permissions
+ * (e.g. "studybuddy/dashboard:view"). Independent of both the system and org
+ * permission scopes.
+ */
+export const STUDYBUDDY_PERMISSION_SCOPE = "studybuddy";
+
 export const orgScope = (organizationId: string): string =>
   `${ORG_SCOPE_PREFIX}${organizationId}`;
 
@@ -97,27 +104,30 @@ export function roleAssignmentWhereByRoleScope(scope: string) {
 }
 
 /**
- * Maps a role code to the scope used by the permissions that role may hold.
- * Org roles are per-instance ("org:123/owner") but org permissions share a
- * single "org" scope, so the permission scope differs from the role scope.
- *   "system/admin"   → "system"
- *   "org:123/owner"  → "org"
+ * Maps a role code to the permission scopes that role may hold. Org roles are
+ * per-instance ("org:123/owner") but org permissions share a single "org"
+ * scope, so the permission scope differs from the role scope. System roles may
+ * additionally hold the independent "studybuddy" scope.
+ *   "system/admin"   → ["system", "studybuddy"]
+ *   "org:123/owner"  → ["org"]
  */
-export function permissionScopeForRoleCode(roleCode: string): string {
+export function permissionScopesForRoleCode(roleCode: string): string[] {
   const parsed = parseScope(scopeOfRoleCode(roleCode));
-  if (parsed.kind === "system") return SYSTEM_SCOPE;
-  if (parsed.kind === "org") return ORG_PERMISSION_SCOPE;
-  return scopeOfRoleCode(roleCode);
+  if (parsed.kind === "system")
+    return [SYSTEM_SCOPE, STUDYBUDDY_PERMISSION_SCOPE];
+  if (parsed.kind === "org") return [ORG_PERMISSION_SCOPE];
+  return [scopeOfRoleCode(roleCode)];
 }
 
 /**
  * Maps an application code to the scope of the permissions its menus may use.
  *   "admin"        → "system"
  *   "organization" → "org"
+ *   "studybuddy"   → "studybuddy"
  */
 export function permissionScopeForAppCode(appCode: string): string {
   if (appCode === ADMIN_APP_CODE) return SYSTEM_SCOPE;
   if (appCode === ORGANIZATION_APP_CODE) return ORG_PERMISSION_SCOPE;
-  if (appCode === STUDYBUDDY_APP_CODE) return ORG_PERMISSION_SCOPE;
+  if (appCode === STUDYBUDDY_APP_CODE) return STUDYBUDDY_PERMISSION_SCOPE;
   throw new Error(`Unknown application code: ${appCode}`);
 }

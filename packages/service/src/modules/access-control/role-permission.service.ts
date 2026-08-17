@@ -4,7 +4,7 @@ import { prisma } from "#lib/db";
 import { throwPermissionDenied } from "#lib/http-error";
 import { logAudit } from "#lib/logger";
 import {
-  permissionScopeForRoleCode,
+  permissionScopesForRoleCode,
   permissionWhereByScope,
   roleAssignmentWhereByRoleScope,
   SYSTEM_SCOPE,
@@ -28,9 +28,12 @@ export async function assignPermissions(
   }
 
   if (permissionIds.length > 0) {
-    const scope = permissionScopeForRoleCode(role.code);
+    const scopes = permissionScopesForRoleCode(role.code);
     const perms = await prisma.permission.findMany({
-      where: { id: { in: permissionIds }, ...permissionWhereByScope(scope) },
+      where: {
+        id: { in: permissionIds },
+        OR: scopes.map((scope) => permissionWhereByScope(scope)),
+      },
       select: { id: true },
     });
     if (perms.length !== new Set(permissionIds).size) {
