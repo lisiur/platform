@@ -80,7 +80,7 @@ export async function createAttachment(params: {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  if (!verifyMagicBytes(buffer, file.type)) {
+  if (!(await verifyMagicBytes(buffer, file.type))) {
     throw new HTTPException(400, {
       message: "File content does not match its declared type",
     });
@@ -460,7 +460,7 @@ export async function replaceAttachment(params: {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  if (!verifyMagicBytes(buffer, file.type)) {
+  if (!(await verifyMagicBytes(buffer, file.type))) {
     throw new HTTPException(400, {
       message: "File content does not match its declared type",
     });
