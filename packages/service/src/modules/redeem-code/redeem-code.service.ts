@@ -128,6 +128,8 @@ export async function listUserCredits(limit?: number, offset?: number) {
   return { credits, total };
 }
 
+const USER_LEDGER_TYPES = ["ai_usage", "redeem", "seed"];
+
 export async function listUserCreditLedger(
   userId: string,
   limit?: number,
@@ -136,6 +138,23 @@ export async function listUserCreditLedger(
   const [entries, total] = await Promise.all([
     userCreditRepository.findLedgerByUserId(userId, limit, offset),
     userCreditRepository.countLedgerByUserId(userId),
+  ]);
+  return { entries, total };
+}
+
+export async function listMyCreditLedger(
+  userId: string,
+  limit?: number,
+  offset?: number,
+) {
+  const [entries, total] = await Promise.all([
+    userCreditRepository.findLedgerByUserId(
+      userId,
+      limit,
+      offset,
+      USER_LEDGER_TYPES,
+    ),
+    userCreditRepository.countLedgerByUserId(userId, USER_LEDGER_TYPES),
   ]);
   return { entries, total };
 }

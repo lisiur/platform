@@ -270,10 +270,11 @@ export async function reserveForAiUsage(params: {
 }
 
 /**
- * Settles a reservation after the request completes: charges the final amount,
- * refunding any excess back to balance or debiting any shortage (balance may go
- * negative). A missing currency rate releases the reservation and marks the
- * usage event `billing-failed` instead of throwing.
+ * Settles a reservation after the request completes: charges the final amount
+ * (consumed from the frozen reservation, any shortfall billed to the balance)
+ * and returns the excess as an `ai_usage_refund` entry. A missing currency
+ * rate releases the reservation and marks the usage event `billing-failed`
+ * instead of throwing.
  */
 export async function settleForAiUsage(params: {
   userId: string;
@@ -308,9 +309,11 @@ export async function settleForAiUsage(params: {
     reservedAmount: params.reservedAmount,
     chargeAmount,
     type: "ai_usage",
+    refundType: "ai_usage_refund",
     referenceType: "ai_usage_event",
     referenceId: params.usageEventId,
     description: `AI usage: ${params.billing.resourceType}/${params.billing.resourceId}`,
+    refundDescription: `AI usage refund: ${params.billing.resourceType}/${params.billing.resourceId}`,
     metadata: {
       billingType: params.billing.billingType,
       priceUnit: params.billing.priceUnit,

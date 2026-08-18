@@ -1,7 +1,7 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
-import { listUserCreditLedger as listUserCreditLedgerService } from "#modules/redeem-code/redeem-code.service";
+import { listMyCreditLedger as listMyCreditLedgerService } from "#modules/redeem-code/redeem-code.service";
 import {
   listRedeemCodesQuerySchema,
   listUserCreditLedgerResponseSchema,
@@ -29,7 +29,7 @@ export const getMyCreditLedger = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { limit, offset } = c.req.valid("query");
-    const result = await listUserCreditLedgerService(userId, limit, offset);
+    const result = await listMyCreditLedgerService(userId, limit, offset);
     return c.json(result, 200);
   },
 });

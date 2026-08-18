@@ -162,11 +162,14 @@ export const userCreditRepository = {
   },
 
   /**
-   * Releases `reservedAmount` from `frozen` and reconciles the balance against
-   * the final `chargeAmount`. The net balance delta is
-   * `reservedAmount - chargeAmount`: positive means a refund back to balance,
-   * negative means an additional charge (the balance may go negative).
-   * A `chargeAmount` of 0 fully refunds the reservation.
+   * Releases up to `reservedAmount` from `frozen` and reconciles it against
+   * the final `chargeAmount`, writing the cost and the refund as separate
+   * ledger entries. The cost entry (type `data.type`, amount `-chargeAmount`) is
+   * consumed from the reservation in `frozen` first, with any shortfall
+   * charged to the balance; the excess (type `refundType ?? data.type`,
+   * amount `+excess`) is returned to the balance. Zero-amount entries are
+   * skipped, so a full release (`chargeAmount` of 0) writes only the refund
+   * entry and a full charge writes only the cost entry.
    */
   settleCredits(
     userId: string,
@@ -174,9 +177,11 @@ export const userCreditRepository = {
       reservedAmount: number;
       chargeAmount: number;
       type: string;
+      refundType?: string;
       referenceType?: string;
       referenceId?: string;
       description?: string;
+      refundDescription?: string;
       metadata?: Prisma.InputJsonValue;
     },
     tx?: Prisma.TransactionClient,
@@ -186,41 +191,76 @@ export const userCreditRepository = {
       const balanceBefore = credit.balance;
       const frozenBefore = credit.frozen;
       const frozenAfter = Math.max(0, frozenBefore - data.reservedAmount);
-      const delta = data.reservedAmount - data.chargeAmount;
-      const balanceAfter = balanceBefore + delta;
+      const frozenReleased = frozenBefore - frozenAfter;
+      const costFromFrozen = Math.min(data.chargeAmount, frozenReleased);
+      const refundAmount = Math.max(0, frozenReleased - data.chargeAmount);
+      const shortfall = Math.max(0, data.chargeAmount - frozenReleased);
+      const balanceAfter = balanceBefore + frozenReleased - data.chargeAmount;
       const updated = await t.userCredit.update({
         where: { userId },
         data: { balance: balanceAfter, frozen: frozenAfter },
       });
-      await createLedgerEntry(t, {
-        userId,
-        type: data.type,
-        amount: delta,
-        referenceType: data.referenceType,
-        referenceId: data.referenceId,
-        description: data.description,
-        metadata: data.metadata,
-        balanceBefore,
-        balanceAfter,
-        frozenBefore,
-        frozenAfter,
-      });
+      const costBalanceAfter = balanceBefore - shortfall;
+      const costFrozenAfter = frozenBefore - costFromFrozen;
+      if (data.chargeAmount > 0) {
+        await createLedgerEntry(t, {
+          userId,
+          type: data.type,
+          amount: -data.chargeAmount,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          description: data.description,
+          metadata: data.metadata,
+          balanceBefore,
+          balanceAfter: costBalanceAfter,
+          frozenBefore,
+          frozenAfter: costFrozenAfter,
+        });
+      }
+      if (refundAmount > 0) {
+        await createLedgerEntry(t, {
+          userId,
+          type: data.refundType ?? data.type,
+          amount: refundAmount,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          description: data.refundDescription ?? data.description,
+          metadata: data.metadata,
+          balanceBefore: costBalanceAfter,
+          balanceAfter,
+          frozenBefore: costFrozenAfter,
+          frozenAfter,
+        });
+      }
       return updated;
     };
     return tx ? apply(tx) : prisma.$transaction((t) => apply(t));
   },
 
-  findLedgerByUserId(userId: string, limit?: number, offset?: number) {
+  findLedgerByUserId(
+    userId: string,
+    limit?: number,
+    offset?: number,
+    types?: string[],
+  ) {
     return prisma.userCreditLedger.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(types ? { type: { in: types } } : {}),
+      },
       take: limit,
       skip: offset,
       orderBy: { createdAt: "desc" },
     });
   },
 
-  countLedgerByUserId(userId: string) {
-    return prisma.userCreditLedger.count({ where: { userId } });
+  countLedgerByUserId(userId: string, types?: string[]) {
+    return prisma.userCreditLedger.count({
+      where: {
+        userId,
+        ...(types ? { type: { in: types } } : {}),
+      },
+    });
   },
 
   findManyWithUser(limit?: number, offset?: number) {
