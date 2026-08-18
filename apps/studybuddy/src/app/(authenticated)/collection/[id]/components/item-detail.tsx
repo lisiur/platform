@@ -1,5 +1,7 @@
 "use client";
 
+import { useEventStream } from "@repo/frontend";
+import type { CollectionItemEnrichedEvent } from "@repo/shared";
 import { Badge, Button, Spinner } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
@@ -9,7 +11,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useConfirm } from "@/hooks/use-confirm";
-import { appClient } from "@/lib/api";
+import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 import { formatDateTime } from "@/utils/date";
 import {
@@ -26,8 +28,6 @@ const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   ARTICLE: "outline",
   LINK: "secondary",
 };
-
-const AUTO_ENRICH_POLL_INTERVAL_MS = 5_000;
 
 interface ItemDetailData {
   id: string;
@@ -70,10 +70,18 @@ export function ItemDetail({ id }: ItemDetailProps) {
       if (!res.ok) throw new Error("Failed to load item");
       return (await res.json()) as ItemDetailData;
     },
-    refetchInterval: (q) =>
-      q.state.data?.enrichStatus === "pending"
-        ? AUTO_ENRICH_POLL_INTERVAL_MS
-        : false,
+  });
+
+  useEventStream({
+    origin: API_ORIGIN,
+    appCode: APP_CODE,
+    event: "collection.item.enriched",
+    handler: (e) => {
+      const payload = JSON.parse(e.data) as CollectionItemEnrichedEvent;
+      if (payload.itemId === id) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
+    },
   });
 
   function refresh() {

@@ -8,6 +8,7 @@ import {
   createAttachment,
   deleteAttachmentsByBiz,
 } from "#modules/attachment/attachment.service";
+import { eventBus } from "#states";
 import { collectionRepository } from "./collection.repository";
 import { enrichItem } from "./enrich.service";
 
@@ -475,6 +476,7 @@ async function runAutoEnrichment(ownerId: string, itemId: string) {
       enrichStatus: ok ? "ok" : "failed",
       enrichError: ok ? null : "AI enrichment returned no sections",
     });
+    publishItemEnriched(ownerId, itemId, ok ? "ok" : "failed");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[studybuddy] auto enrichment failed:", err);
@@ -484,12 +486,28 @@ async function runAutoEnrichment(ownerId: string, itemId: string) {
         enrichError: message.slice(0, 500),
       })
       .catch(() => {});
+    publishItemEnriched(ownerId, itemId, "failed");
   }
+}
+
+function publishItemEnriched(
+  ownerId: string,
+  itemId: string,
+  enrichStatus: "ok" | "failed",
+) {
+  eventBus.publish({
+    type: "collection.item.enriched",
+    target: `sse:${STUDYBUDDY_APP_CODE}:${ownerId}:*`,
+    itemId,
+    ownerId,
+    enrichStatus,
+  });
 }
 
 /**
  * Resets a failed auto-enrichment back to pending and re-runs it in the
- * background. Returns immediately; the UI polls the item while pending.
+ * background. Returns immediately; a `collection.item.enriched` SSE event
+ * invalidates the item in the UI once enrichment finishes.
  */
 export async function retryItemEnrichment(ownerId: string, itemId: string) {
   const item = await collectionRepository.findOwnedByIdLean(ownerId, itemId);

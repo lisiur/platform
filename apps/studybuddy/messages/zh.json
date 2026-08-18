@@ -62,6 +62,7 @@
       "LINK": "链接"
     },
     "enriched": "{count} 条释义",
+    "enrichPending": "生成中…",
     "back": "返回",
     "edit": "编辑",
     "editDescription": "更新条目详情",

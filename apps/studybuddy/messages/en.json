@@ -62,6 +62,7 @@
       "LINK": "Link"
     },
     "enriched": "{count, plural, one {# enrichment} other {# enrichments}}",
+    "enrichPending": "Enriching…",
     "back": "Back",
     "edit": "Edit",
     "editDescription": "Update the item details",

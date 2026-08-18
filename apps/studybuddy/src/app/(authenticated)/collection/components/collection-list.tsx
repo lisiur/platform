@@ -1,12 +1,17 @@
 "use client";
 
-import { DataTablePagination, usePaginatedQuery } from "@repo/frontend";
+import {
+  DataTablePagination,
+  useEventStream,
+  usePaginatedQuery,
+} from "@repo/frontend";
 import { Button, Input, Spinner, Tabs, TabsList, TabsTrigger } from "@repo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { Download, Search, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-import { appClient } from "@/lib/api";
+import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
 import { ImportDialog } from "./import-dialog";
 import { ItemCard } from "./item-card";
 import { type CollectionItemRow, ItemQuickAdd } from "./item-quick-add";
@@ -23,6 +28,7 @@ type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 export function CollectionList() {
   const t = useTranslations("Collection");
+  const queryClient = useQueryClient();
   const [type, setType] = useState<TypeFilter>("ALL");
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -44,6 +50,15 @@ export function CollectionList() {
         return { items: data.items as CollectionItemRow[], total: data.total };
       },
     });
+
+  useEventStream({
+    origin: API_ORIGIN,
+    appCode: APP_CODE,
+    event: "collection.item.enriched",
+    handler: () => {
+      void queryClient.invalidateQueries({ queryKey: ["collection-items"] });
+    },
+  });
 
   async function handleExport() {
     setExporting(true);

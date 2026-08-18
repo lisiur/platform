@@ -15,6 +15,8 @@ export type CollectionItemType =
   | "ARTICLE"
   | "LINK";
 
+export type EnrichStatus = "none" | "pending" | "ok" | "failed";
+
 export interface CollectionItemRow {
   id: string;
   type: CollectionItemType;
@@ -24,6 +26,7 @@ export interface CollectionItemRow {
   note: string | null;
   tags: string[];
   status: string;
+  enrichStatus: EnrichStatus;
   enrichmentsCount: number;
   createdAt: string;
   updatedAt: string;

@@ -49,6 +49,14 @@ export interface UpdateStatus {
   updatedAt: string | null;
 }
 
+export interface CollectionItemEnrichedEvent {
+  type: "collection.item.enriched";
+  target: string;
+  itemId: string;
+  ownerId: string;
+  enrichStatus: "ok" | "failed";
+}
+
 export interface SelfUpdateStatusUpdatedEvent {
   type: "self_update.status.updated";
   target: string;
@@ -69,4 +77,5 @@ export type ServerEvent =
   | JobStatsUpdatedEvent
   | RateLimitUpdatedEvent
   | AgentSessionTitleUpdatedEvent
-  | SelfUpdateStatusUpdatedEvent;
+  | SelfUpdateStatusUpdatedEvent
+  | CollectionItemEnrichedEvent;

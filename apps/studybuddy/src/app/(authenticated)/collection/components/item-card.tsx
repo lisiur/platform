@@ -1,11 +1,11 @@
 "use client";
 
-import { Badge } from "@repo/ui";
+import { Badge, Spinner } from "@repo/ui";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { formatRelativeTime } from "@/utils/date";
-import type { CollectionItemType } from "./item-quick-add";
+import type { CollectionItemType, EnrichStatus } from "./item-quick-add";
 
 const TYPE_VARIANT: Record<
   CollectionItemType,
@@ -28,6 +28,7 @@ interface ItemCardProps {
     url: string | null;
     tags: string[];
     enrichmentsCount: number;
+    enrichStatus: EnrichStatus;
     createdAt: string;
   };
 }
@@ -50,6 +51,17 @@ export function ItemCard({ item }: ItemCardProps) {
         <Badge variant={TYPE_VARIANT[item.type]} className="shrink-0">
           {t(`types.${item.type}`)}
         </Badge>
+        {item.enrichStatus === "pending" && (
+          <Badge variant="secondary" className="shrink-0 gap-1 text-[10px]">
+            <Spinner className="size-3" />
+            {t("enrichPending")}
+          </Badge>
+        )}
+        {item.enrichStatus === "failed" && (
+          <Badge variant="destructive" className="shrink-0 text-[10px]">
+            {t("enrichFailed")}
+          </Badge>
+        )}
         {item.enrichmentsCount > 0 && (
           <Badge variant="outline" className="shrink-0 text-[10px]">
             {t("enriched", { count: item.enrichmentsCount })}
