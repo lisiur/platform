@@ -8,7 +8,7 @@ import {
 } from "#lib/openapi";
 import { assertAccess } from "#modules/access-control/public";
 import { getAiUsageEvent as getAiUsageEventService } from "#modules/ai/ai-usage-event.service";
-import { aiUsageEventIdParamSchema, aiUsageEventSchema } from "./schema";
+import { aiUsageEventDetailSchema, aiUsageEventIdParamSchema } from "./schema";
 
 export const getAiUsageEventRoute = defineOpenAPIRoute({
   route: createRoute({
@@ -22,7 +22,7 @@ export const getAiUsageEventRoute = defineOpenAPIRoute({
       ...unauthorizedResponse,
       ...forbiddenResponse,
       ...notFoundResponse,
-      ...okResponseFn(aiUsageEventSchema, "The AI usage event"),
+      ...okResponseFn(aiUsageEventDetailSchema, "The AI usage event"),
     },
   }),
   handler: async (c) => {

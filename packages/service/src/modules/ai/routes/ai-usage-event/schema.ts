@@ -61,6 +61,32 @@ export const aiUsageEventSchema = z
   })
   .openapi("AiUsageEvent");
 
+// Detail view additionally carries the recorded content audit trail for
+// non-conversation calls (conversation messages live in ai_message instead).
+// The columns are Prisma JsonValue, so they are typed loosely here and their
+// shape is documented via examples.
+export const aiUsageEventDetailSchema = aiUsageEventSchema
+  .extend({
+    input: z
+      .unknown()
+      .nullable()
+      .openapi({
+        example: {
+          systemPrompt: "You are an assistant.",
+          prompt: "Translate: check",
+          params: { temperature: 0.7 },
+        },
+      }),
+    output: z
+      .unknown()
+      .nullable()
+      .openapi({
+        example: { text: '{"translation":"检查"}', finishReason: "stop" },
+      }),
+    error: z.string().nullable().openapi({ example: null }),
+  })
+  .openapi("AiUsageEventDetail");
+
 export const listAiUsageEventsQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   userId: z.string().optional(),

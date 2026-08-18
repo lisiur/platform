@@ -885,6 +885,12 @@ model AiUsageEvent {
   currency          String   @default("USD")
   latencyMs         Int?
   status            String   @default("ok")
+  // Content audit trail for non-conversation calls (conversation messages
+  // live in ai_message). input is written at event creation, output/error at
+  // settlement.
+  input             Json?
+  output            Json?
+  error             String?
   createdAt         DateTime @default(now())
 
   user    User?     @relation(fields: [userId], references: [id], onDelete: SetNull)

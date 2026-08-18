@@ -3,18 +3,11 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { CollectionItemType } from "#generated/prisma/client";
 import { createProviderModel } from "#lib/ai-agent/provider-adapter";
-import { prisma } from "#lib/db";
-import { accountConcurrencyTracker } from "#modules/agent/account-concurrency";
-import {
-  computeUsageCost,
-  resolveAgentModel,
-} from "#modules/agent/agent-resolution.service";
+import { resolveAgentModel } from "#modules/agent/agent-resolution.service";
+import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import {
   BILLING_RESOURCE_AI_AGENT,
-  releaseForAiUsage,
-  reserveForAiUsage,
   resolveBilling,
-  settleForAiUsage,
 } from "#modules/billing/billing.service";
 import { collectionRepository } from "./collection.repository";
 
@@ -267,133 +260,66 @@ export async function enrichItem(
     principal: { type: "user", id: ownerId },
   });
 
-  await accountConcurrencyTracker.acquire(
-    resolved.accountId,
-    resolved.accountConcurrencyLimit,
-  );
-  let released = false;
-  const releaseSlot = () => {
-    if (!released) {
-      released = true;
-      accountConcurrencyTracker.release(resolved.accountId);
-    }
+  const system = [resolved.agent.systemPrompt, COMMON_SYSTEM]
+    .filter(Boolean)
+    .join("\n\n");
+  const prompt = combinedPrompt(item.source, defs);
+  const params = {
+    temperature: resolved.agent.temperature ?? undefined,
+    reasoning: resolved.agent.reasoning ?? undefined,
   };
 
   const langModel = createProviderModel(resolved.endpoint) as LanguageModel;
-  const startTime = Date.now();
+  const generated: EnrichmentKind[] = [];
 
   try {
-    const usageEvent = await prisma.aiUsageEvent.create({
-      data: {
-        userId: ownerId,
-        agentId: resolved.agent.id,
-        modelId: resolved.aiModelId,
-        accountId: resolved.accountId,
-        status: "pending",
+    await executeTrackedAiCall({
+      userId: ownerId,
+      resolved,
+      billing,
+      input: { systemPrompt: system || null, prompt, params },
+      fn: async () => {
+        const result = await generateObject({
+          model: langModel,
+          system,
+          prompt,
+          schema: combinedSchema(defs),
+          temperature: params.temperature,
+          reasoning: params.reasoning,
+        });
+
+        const object = result.object as Partial<
+          Record<EnrichmentKind, Record<string, unknown>>
+        >;
+        for (const def of defs) {
+          const content = object[def.kind];
+          if (!content) continue;
+          await collectionRepository.upsertEnrichment({
+            itemId: item.id,
+            kind: def.kind,
+            content,
+            model: resolved.endpoint.modelId,
+          });
+          generated.push(def.kind);
+        }
+
+        return {
+          result,
+          output: {
+            text: JSON.stringify(result.object),
+            finishReason: result.finishReason,
+          },
+        };
       },
     });
-
-    let reservedAmount: number;
-    try {
-      ({ reservedAmount } = await reserveForAiUsage({
-        userId: ownerId,
-        billing,
-        usageEventId: usageEvent.id,
-      }));
-    } catch (err) {
-      await prisma.aiUsageEvent
-        .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
-        .catch(() => {});
-      throw err;
-    }
-
-    try {
-      const result = await generateObject({
-        model: langModel,
-        system: [resolved.agent.systemPrompt, COMMON_SYSTEM]
-          .filter(Boolean)
-          .join("\n\n"),
-        prompt: combinedPrompt(item.source, defs),
-        schema: combinedSchema(defs),
-        temperature: resolved.agent.temperature ?? undefined,
-        reasoning: resolved.agent.reasoning ?? undefined,
-      });
-
-      const object = result.object as Partial<
-        Record<EnrichmentKind, Record<string, unknown>>
-      >;
-      const generated: EnrichmentKind[] = [];
-      for (const def of defs) {
-        const content = object[def.kind];
-        if (!content) continue;
-        await collectionRepository.upsertEnrichment({
-          itemId: item.id,
-          kind: def.kind,
-          content,
-          model: resolved.endpoint.modelId,
-        });
-        generated.push(def.kind);
-      }
-
-      const usage = result.usage;
-      const inputTokens = usage.inputTokens ?? 0;
-      const cachedInputTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
-      const outputTokens = usage.outputTokens ?? 0;
-      const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
-      const cost = resolved.pricing
-        ? computeUsageCost(resolved.pricing, {
-            inputTokens,
-            cachedInputTokens,
-            outputTokens,
-          })
-        : 0;
-
-      await prisma.aiUsageEvent.update({
-        where: { id: usageEvent.id },
-        data: {
-          inputTokens,
-          cachedInputTokens,
-          outputTokens,
-          reasoningTokens,
-          cost,
-          currency: resolved.currency,
-          latencyMs: Date.now() - startTime,
-          status: "ok",
-        },
-      });
-
-      await settleForAiUsage({
-        userId: ownerId,
-        billing,
-        usageEventId: usageEvent.id,
-        reservedAmount,
-        cost,
-        currency: resolved.currency,
-      });
-
-      return { itemId, generated };
-    } catch (err) {
-      await prisma.aiUsageEvent
-        .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
-        .catch(() => {});
-      await releaseForAiUsage({
-        userId: ownerId,
-        billing,
-        usageEventId: usageEvent.id,
-        reservedAmount,
-      }).catch((releaseErr) => {
-        console.error(
-          "[studybuddy] failed to release reserved credits:",
-          releaseErr,
-        );
-      });
-      throw new HTTPException(502, {
-        message: `AI enrichment failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      });
-    }
-  } finally {
-    releaseSlot();
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
+    throw new HTTPException(502, {
+      message: `AI enrichment failed: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    });
   }
+
+  return { itemId, generated };
 }

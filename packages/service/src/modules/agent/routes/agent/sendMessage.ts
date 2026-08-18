@@ -25,6 +25,7 @@ import {
   AiConversationNotFoundError,
   aiConversationManager,
 } from "#modules/agent/ai-conversation.service";
+import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import {
   BILLING_RESOURCE_AI_AGENT,
   releaseForAiUsage,
@@ -77,131 +78,70 @@ async function generateAndSaveTitle(
   userId: string,
   appCode: string,
 ): Promise<void> {
-  await accountConcurrencyTracker.acquire(
-    resolved.accountId,
-    resolved.accountConcurrencyLimit,
+  const billing = await resolveBilling(
+    BILLING_RESOURCE_AI_AGENT,
+    PLATFORM_ASSISTANT_FEATURE_CODE,
   );
-  try {
-    const usageEvent = await prisma.aiUsageEvent.create({
-      data: {
-        userId,
-        agentId: resolved.agent.id,
-        modelId: resolved.aiModelId,
-        accountId: resolved.accountId,
-        status: "pending",
-      },
-    });
 
-    const billing = await resolveBilling(
-      BILLING_RESOURCE_AI_AGENT,
-      PLATFORM_ASSISTANT_FEATURE_CODE,
-    );
-
-    let reservedAmount: number;
-    try {
-      ({ reservedAmount } = await reserveForAiUsage({
-        userId,
-        billing,
-        usageEventId: usageEvent.id,
-      }));
-    } catch (err) {
-      await prisma.aiUsageEvent
-        .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
-        .catch(() => {});
-      throw err;
-    }
-
-    const timeoutController = new AbortController();
-    const timer = setTimeout(
-      () => timeoutController.abort(),
-      AGENT_STREAM_TIMEOUT_MS,
-    );
-    timer.unref?.();
-
-    let settled = false;
-    try {
-      const model = createProviderModel(resolved.endpoint);
-      const result = await generateText({
-        model,
-        system: resolved.agent.systemPrompt ?? undefined,
-        prompt: userPrompt,
-        // Reasoning models (e.g., DeepSeek-R1, QwQ) ignore `reasoning: "none"` and
-        // spend output tokens on <think> blocks. A tight cap starves the actual
-        // text output, so leave enough headroom for reasoning + the short title.
+  const result = await executeTrackedAiCall({
+    userId,
+    resolved,
+    billing,
+    input: {
+      systemPrompt: resolved.agent.systemPrompt,
+      prompt: userPrompt,
+      params: {
         maxOutputTokens: resolved.subAgent.maxOutputTokens ?? 1000,
-        reasoning: resolved.agent.reasoning ?? undefined,
         temperature: resolved.agent.temperature ?? undefined,
-        abortSignal: timeoutController.signal,
-      });
-
-      const title = result.text
-        .replace(/<think>[\s\S]*?<\/think>/gi, "")
-        .replace(/<\/?think>/gi, "")
-        .trim();
-
-      const usage = result.usage;
-      const inputTokens = usage.inputTokens ?? 0;
-      const cachedInputTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
-      const outputTokens = usage.outputTokens ?? 0;
-      const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
-      const cost = resolved.pricing
-        ? computeUsageCost(resolved.pricing, {
-            inputTokens,
-            cachedInputTokens,
-            outputTokens,
-          })
-        : 0;
-
-      await prisma.aiUsageEvent.update({
-        where: { id: usageEvent.id },
-        data: {
-          inputTokens,
-          cachedInputTokens,
-          outputTokens,
-          reasoningTokens,
-          cost,
-          currency: resolved.currency,
-          status: "ok",
-        },
-      });
-
-      await settleForAiUsage({
-        userId,
-        billing,
-        usageEventId: usageEvent.id,
-        reservedAmount,
-        cost,
-        currency: resolved.currency,
-      });
-      settled = true;
-
-      if (title) {
-        await aiConversationManager.updateName(sessionId, title);
-        eventBus.publish({
-          type: "agent.session.title.updated",
-          target: `sse:${appCode}:${userId}:*`,
-          sessionId,
-          name: title,
+        reasoning: resolved.agent.reasoning ?? undefined,
+      },
+    },
+    fn: async () => {
+      // Arm the timeout only once the slot is acquired and credits are
+      // reserved, so queue wait doesn't eat into the generation budget.
+      const timeoutController = new AbortController();
+      const timer = setTimeout(
+        () => timeoutController.abort(),
+        AGENT_STREAM_TIMEOUT_MS,
+      );
+      timer.unref?.();
+      try {
+        const model = createProviderModel(resolved.endpoint);
+        const result = await generateText({
+          model,
+          system: resolved.agent.systemPrompt ?? undefined,
+          prompt: userPrompt,
+          // Reasoning models (e.g., DeepSeek-R1, QwQ) ignore `reasoning: "none"` and
+          // spend output tokens on <think> blocks. A tight cap starves the actual
+          // text output, so leave enough headroom for reasoning + the short title.
+          maxOutputTokens: resolved.subAgent.maxOutputTokens ?? 1000,
+          reasoning: resolved.agent.reasoning ?? undefined,
+          temperature: resolved.agent.temperature ?? undefined,
+          abortSignal: timeoutController.signal,
         });
+        return {
+          result,
+          output: { text: result.text, finishReason: result.finishReason },
+        };
+      } finally {
+        clearTimeout(timer);
       }
-    } catch (err) {
-      if (!settled) {
-        await prisma.aiUsageEvent
-          .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
-          .catch(() => {});
-        await releaseForAiUsage({
-          userId,
-          billing,
-          usageEventId: usageEvent.id,
-          reservedAmount,
-        }).catch(() => {});
-      }
-      throw err;
-    } finally {
-      clearTimeout(timer);
-    }
-  } finally {
-    accountConcurrencyTracker.release(resolved.accountId);
+    },
+  });
+
+  const title = result.text
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<\/?think>/gi, "")
+    .trim();
+
+  if (title) {
+    await aiConversationManager.updateName(sessionId, title);
+    eventBus.publish({
+      type: "agent.session.title.updated",
+      target: `sse:${appCode}:${userId}:*`,
+      sessionId,
+      name: title,
+    });
   }
 }
 

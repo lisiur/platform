@@ -58,6 +58,7 @@ export type AiUsageEventMinAggregateOutputType = {
   currency: string | null
   latencyMs: number | null
   status: string | null
+  error: string | null
   createdAt: Date | null
 }
 
@@ -75,6 +76,7 @@ export type AiUsageEventMaxAggregateOutputType = {
   currency: string | null
   latencyMs: number | null
   status: string | null
+  error: string | null
   createdAt: Date | null
 }
 
@@ -92,6 +94,9 @@ export type AiUsageEventCountAggregateOutputType = {
   currency: number
   latencyMs: number
   status: number
+  input: number
+  output: number
+  error: number
   createdAt: number
   _all: number
 }
@@ -129,6 +134,7 @@ export type AiUsageEventMinAggregateInputType = {
   currency?: true
   latencyMs?: true
   status?: true
+  error?: true
   createdAt?: true
 }
 
@@ -146,6 +152,7 @@ export type AiUsageEventMaxAggregateInputType = {
   currency?: true
   latencyMs?: true
   status?: true
+  error?: true
   createdAt?: true
 }
 
@@ -163,6 +170,9 @@ export type AiUsageEventCountAggregateInputType = {
   currency?: true
   latencyMs?: true
   status?: true
+  input?: true
+  output?: true
+  error?: true
   createdAt?: true
   _all?: true
 }
@@ -267,6 +277,9 @@ export type AiUsageEventGroupByOutputType = {
   currency: string
   latencyMs: number | null
   status: string
+  input: runtime.JsonValue | null
+  output: runtime.JsonValue | null
+  error: string | null
   createdAt: Date
   _count: AiUsageEventCountAggregateOutputType | null
   _avg: AiUsageEventAvgAggregateOutputType | null
@@ -307,6 +320,9 @@ export type AiUsageEventWhereInput = {
   currency?: Prisma.StringFilter<"AiUsageEvent"> | string
   latencyMs?: Prisma.IntNullableFilter<"AiUsageEvent"> | number | null
   status?: Prisma.StringFilter<"AiUsageEvent"> | string
+  input?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  output?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  error?: Prisma.StringNullableFilter<"AiUsageEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiUsageEvent"> | Date | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   agent?: Prisma.XOR<Prisma.AiAgentNullableScalarRelationFilter, Prisma.AiAgentWhereInput> | null
@@ -328,6 +344,9 @@ export type AiUsageEventOrderByWithRelationInput = {
   currency?: Prisma.SortOrder
   latencyMs?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  input?: Prisma.SortOrderInput | Prisma.SortOrder
+  output?: Prisma.SortOrderInput | Prisma.SortOrder
+  error?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   agent?: Prisma.AiAgentOrderByWithRelationInput
@@ -352,6 +371,9 @@ export type AiUsageEventWhereUniqueInput = Prisma.AtLeast<{
   currency?: Prisma.StringFilter<"AiUsageEvent"> | string
   latencyMs?: Prisma.IntNullableFilter<"AiUsageEvent"> | number | null
   status?: Prisma.StringFilter<"AiUsageEvent"> | string
+  input?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  output?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  error?: Prisma.StringNullableFilter<"AiUsageEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiUsageEvent"> | Date | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   agent?: Prisma.XOR<Prisma.AiAgentNullableScalarRelationFilter, Prisma.AiAgentWhereInput> | null
@@ -373,6 +395,9 @@ export type AiUsageEventOrderByWithAggregationInput = {
   currency?: Prisma.SortOrder
   latencyMs?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  input?: Prisma.SortOrderInput | Prisma.SortOrder
+  output?: Prisma.SortOrderInput | Prisma.SortOrder
+  error?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.AiUsageEventCountOrderByAggregateInput
   _avg?: Prisma.AiUsageEventAvgOrderByAggregateInput
@@ -398,6 +423,9 @@ export type AiUsageEventScalarWhereWithAggregatesInput = {
   currency?: Prisma.StringWithAggregatesFilter<"AiUsageEvent"> | string
   latencyMs?: Prisma.IntNullableWithAggregatesFilter<"AiUsageEvent"> | number | null
   status?: Prisma.StringWithAggregatesFilter<"AiUsageEvent"> | string
+  input?: Prisma.JsonNullableWithAggregatesFilter<"AiUsageEvent">
+  output?: Prisma.JsonNullableWithAggregatesFilter<"AiUsageEvent">
+  error?: Prisma.StringNullableWithAggregatesFilter<"AiUsageEvent"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiUsageEvent"> | Date | string
 }
 
@@ -411,6 +439,9 @@ export type AiUsageEventCreateInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAiUsageEventsInput
   agent?: Prisma.AiAgentCreateNestedOneWithoutUsageEventsInput
@@ -432,6 +463,9 @@ export type AiUsageEventUncheckedCreateInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -445,6 +479,9 @@ export type AiUsageEventUpdateInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAiUsageEventsNestedInput
   agent?: Prisma.AiAgentUpdateOneWithoutUsageEventsNestedInput
@@ -466,6 +503,9 @@ export type AiUsageEventUncheckedUpdateInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -483,6 +523,9 @@ export type AiUsageEventCreateManyInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -496,6 +539,9 @@ export type AiUsageEventUpdateManyMutationInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -513,6 +559,9 @@ export type AiUsageEventUncheckedUpdateManyInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -540,6 +589,9 @@ export type AiUsageEventCountOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   latencyMs?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  input?: Prisma.SortOrder
+  output?: Prisma.SortOrder
+  error?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -566,6 +618,7 @@ export type AiUsageEventMaxOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   latencyMs?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  error?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -583,6 +636,7 @@ export type AiUsageEventMinOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   latencyMs?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  error?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -773,6 +827,9 @@ export type AiUsageEventCreateWithoutUserInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
   agent?: Prisma.AiAgentCreateNestedOneWithoutUsageEventsInput
   model: Prisma.AiModelCreateNestedOneWithoutUsageEventsInput
@@ -792,6 +849,9 @@ export type AiUsageEventUncheckedCreateWithoutUserInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -838,6 +898,9 @@ export type AiUsageEventScalarWhereInput = {
   currency?: Prisma.StringFilter<"AiUsageEvent"> | string
   latencyMs?: Prisma.IntNullableFilter<"AiUsageEvent"> | number | null
   status?: Prisma.StringFilter<"AiUsageEvent"> | string
+  input?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  output?: Prisma.JsonNullableFilter<"AiUsageEvent">
+  error?: Prisma.StringNullableFilter<"AiUsageEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AiUsageEvent"> | Date | string
 }
 
@@ -851,6 +914,9 @@ export type AiUsageEventCreateWithoutAccountInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAiUsageEventsInput
   agent?: Prisma.AiAgentCreateNestedOneWithoutUsageEventsInput
@@ -870,6 +936,9 @@ export type AiUsageEventUncheckedCreateWithoutAccountInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -909,6 +978,9 @@ export type AiUsageEventCreateWithoutModelInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAiUsageEventsInput
   agent?: Prisma.AiAgentCreateNestedOneWithoutUsageEventsInput
@@ -928,6 +1000,9 @@ export type AiUsageEventUncheckedCreateWithoutModelInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -967,6 +1042,9 @@ export type AiUsageEventCreateWithoutAgentInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAiUsageEventsInput
   model: Prisma.AiModelCreateNestedOneWithoutUsageEventsInput
@@ -986,6 +1064,9 @@ export type AiUsageEventUncheckedCreateWithoutAgentInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -1028,6 +1109,9 @@ export type AiUsageEventCreateManyUserInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -1041,6 +1125,9 @@ export type AiUsageEventUpdateWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AiAgentUpdateOneWithoutUsageEventsNestedInput
   model?: Prisma.AiModelUpdateOneRequiredWithoutUsageEventsNestedInput
@@ -1060,6 +1147,9 @@ export type AiUsageEventUncheckedUpdateWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1076,6 +1166,9 @@ export type AiUsageEventUncheckedUpdateManyWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1092,6 +1185,9 @@ export type AiUsageEventCreateManyAccountInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -1105,6 +1201,9 @@ export type AiUsageEventUpdateWithoutAccountInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAiUsageEventsNestedInput
   agent?: Prisma.AiAgentUpdateOneWithoutUsageEventsNestedInput
@@ -1124,6 +1223,9 @@ export type AiUsageEventUncheckedUpdateWithoutAccountInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1140,6 +1242,9 @@ export type AiUsageEventUncheckedUpdateManyWithoutAccountInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1156,6 +1261,9 @@ export type AiUsageEventCreateManyModelInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -1169,6 +1277,9 @@ export type AiUsageEventUpdateWithoutModelInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAiUsageEventsNestedInput
   agent?: Prisma.AiAgentUpdateOneWithoutUsageEventsNestedInput
@@ -1188,6 +1299,9 @@ export type AiUsageEventUncheckedUpdateWithoutModelInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1204,6 +1318,9 @@ export type AiUsageEventUncheckedUpdateManyWithoutModelInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1220,6 +1337,9 @@ export type AiUsageEventCreateManyAgentInput = {
   currency?: string
   latencyMs?: number | null
   status?: string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: string | null
   createdAt?: Date | string
 }
 
@@ -1233,6 +1353,9 @@ export type AiUsageEventUpdateWithoutAgentInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAiUsageEventsNestedInput
   model?: Prisma.AiModelUpdateOneRequiredWithoutUsageEventsNestedInput
@@ -1252,6 +1375,9 @@ export type AiUsageEventUncheckedUpdateWithoutAgentInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1268,6 +1394,9 @@ export type AiUsageEventUncheckedUpdateManyWithoutAgentInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   latencyMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  input?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  output?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1287,6 +1416,9 @@ export type AiUsageEventSelect<ExtArgs extends runtime.Types.Extensions.Internal
   currency?: boolean
   latencyMs?: boolean
   status?: boolean
+  input?: boolean
+  output?: boolean
+  error?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.AiUsageEvent$userArgs<ExtArgs>
   agent?: boolean | Prisma.AiUsageEvent$agentArgs<ExtArgs>
@@ -1308,6 +1440,9 @@ export type AiUsageEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   currency?: boolean
   latencyMs?: boolean
   status?: boolean
+  input?: boolean
+  output?: boolean
+  error?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.AiUsageEvent$userArgs<ExtArgs>
   agent?: boolean | Prisma.AiUsageEvent$agentArgs<ExtArgs>
@@ -1329,6 +1464,9 @@ export type AiUsageEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   currency?: boolean
   latencyMs?: boolean
   status?: boolean
+  input?: boolean
+  output?: boolean
+  error?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.AiUsageEvent$userArgs<ExtArgs>
   agent?: boolean | Prisma.AiUsageEvent$agentArgs<ExtArgs>
@@ -1350,10 +1488,13 @@ export type AiUsageEventSelectScalar = {
   currency?: boolean
   latencyMs?: boolean
   status?: boolean
+  input?: boolean
+  output?: boolean
+  error?: boolean
   createdAt?: boolean
 }
 
-export type AiUsageEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "agentId" | "modelId" | "accountId" | "inputTokens" | "cachedInputTokens" | "outputTokens" | "reasoningTokens" | "cost" | "currency" | "latencyMs" | "status" | "createdAt", ExtArgs["result"]["aiUsageEvent"]>
+export type AiUsageEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "agentId" | "modelId" | "accountId" | "inputTokens" | "cachedInputTokens" | "outputTokens" | "reasoningTokens" | "cost" | "currency" | "latencyMs" | "status" | "input" | "output" | "error" | "createdAt", ExtArgs["result"]["aiUsageEvent"]>
 export type AiUsageEventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.AiUsageEvent$userArgs<ExtArgs>
   agent?: boolean | Prisma.AiUsageEvent$agentArgs<ExtArgs>
@@ -1395,6 +1536,9 @@ export type $AiUsageEventPayload<ExtArgs extends runtime.Types.Extensions.Intern
     currency: string
     latencyMs: number | null
     status: string
+    input: runtime.JsonValue | null
+    output: runtime.JsonValue | null
+    error: string | null
     createdAt: Date
   }, ExtArgs["result"]["aiUsageEvent"]>
   composites: {}
@@ -1836,6 +1980,9 @@ export interface AiUsageEventFieldRefs {
   readonly currency: Prisma.FieldRef<"AiUsageEvent", 'String'>
   readonly latencyMs: Prisma.FieldRef<"AiUsageEvent", 'Int'>
   readonly status: Prisma.FieldRef<"AiUsageEvent", 'String'>
+  readonly input: Prisma.FieldRef<"AiUsageEvent", 'Json'>
+  readonly output: Prisma.FieldRef<"AiUsageEvent", 'Json'>
+  readonly error: Prisma.FieldRef<"AiUsageEvent", 'String'>
   readonly createdAt: Prisma.FieldRef<"AiUsageEvent", 'DateTime'>
 }
     

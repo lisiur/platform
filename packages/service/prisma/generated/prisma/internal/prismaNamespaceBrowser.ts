@@ -777,6 +777,9 @@ export const AiUsageEventScalarFieldEnum = {
   currency: 'currency',
   latencyMs: 'latencyMs',
   status: 'status',
+  input: 'input',
+  output: 'output',
+  error: 'error',
   createdAt: 'createdAt'
 } as const
 

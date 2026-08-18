@@ -676,6 +676,9 @@ CREATE TABLE "ai_usage_event" (
     "currency" TEXT NOT NULL DEFAULT 'USD',
     "latencyMs" INTEGER,
     "status" TEXT NOT NULL DEFAULT 'ok',
+    "input" JSONB,
+    "output" JSONB,
+    "error" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ai_usage_event_pkey" PRIMARY KEY ("id")

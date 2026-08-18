@@ -2,16 +2,22 @@ import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
-type UsageEventRow = Prisma.AiUsageEventGetPayload<{
-  include: {
-    user: { select: { id: true; name: true; email: true } };
-    agent: { select: { id: true; name: true; code: true } };
-    model: { select: { id: true; displayName: true; modelId: true } };
-    account: { select: { id: true; name: true } };
-  };
-}>;
+const usageEventInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  agent: { select: { id: true, name: true, code: true } },
+  model: { select: { id: true, displayName: true, modelId: true } },
+  account: { select: { id: true, name: true } },
+} as const;
 
-function serialize(event: UsageEventRow) {
+// Content audit columns (prompts/raw responses) are only fetched for the
+// detail endpoint; the list endpoint omits them to keep payloads lean.
+const usageEventContentOmit = {
+  input: true,
+  output: true,
+  error: true,
+} as const;
+
+function serialize<T extends { cost: Prisma.Decimal }>(event: T) {
   const { cost, ...rest } = event;
   return {
     ...rest,
@@ -70,12 +76,8 @@ export async function listAiUsageEvents(params: {
   const [events, total] = await Promise.all([
     prisma.aiUsageEvent.findMany({
       where,
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        agent: { select: { id: true, name: true, code: true } },
-        model: { select: { id: true, displayName: true, modelId: true } },
-        account: { select: { id: true, name: true } },
-      },
+      omit: usageEventContentOmit,
+      include: usageEventInclude,
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,
@@ -89,12 +91,7 @@ export async function listAiUsageEvents(params: {
 export async function getAiUsageEvent(id: string) {
   const event = await prisma.aiUsageEvent.findUnique({
     where: { id },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-      agent: { select: { id: true, name: true, code: true } },
-      model: { select: { id: true, displayName: true, modelId: true } },
-      account: { select: { id: true, name: true } },
-    },
+    include: usageEventInclude,
   });
   if (!event) {
     throw new HTTPException(404, { message: "AI usage event not found" });

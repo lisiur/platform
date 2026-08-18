@@ -1636,6 +1636,17 @@
     "description": "Browse and manage AI usage events",
     "noEvents": "No AI usage events found",
     "detailTitle": "AI Usage Event Detail",
+    "loadFailed": "Failed to load AI usage event detail",
+    "message": {
+      "title": "Message",
+      "systemPrompt": "System Prompt",
+      "prompt": "Prompt",
+      "params": "Parameters",
+      "output": "Output",
+      "finishReason": "Finish Reason",
+      "error": "Error",
+      "noContent": "No message recorded for this event (conversation messages are stored in the conversation)"
+    },
     "detail": "Detail",
     "delete": "Delete",
     "deleteSuccess": "AI usage events deleted successfully",
