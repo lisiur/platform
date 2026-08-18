@@ -1,5 +1,4 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import {
   forbiddenResponse,
@@ -30,9 +29,6 @@ export const signAttachment = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
-    if (!getPrincipalUserId(principal)) {
-      throw new HTTPException(401, { message: "Unauthorized" });
-    }
 
     const { id } = c.req.valid("param");
 

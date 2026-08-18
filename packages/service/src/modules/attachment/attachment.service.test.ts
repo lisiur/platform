@@ -44,6 +44,7 @@ import {
   getFileAccess,
   listAttachments,
   replaceAttachment,
+  signFile,
 } from "./attachment.service";
 
 const mockPrisma = prisma as unknown as {
@@ -445,6 +446,58 @@ describe("createAttachment validation", () => {
 });
 
 const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00];
+
+describe("signFile ownership", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.UPLOAD_SIGN_SECRET = "test-secret";
+  });
+
+  it("throws 404 when the attachment does not exist", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue(null);
+
+    await expect(
+      signFile({ id: "nonexistent", userId: "user1" }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 403 when the attachment belongs to another user", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...privateAttachment,
+      bizId: "other-user",
+    });
+
+    await expect(
+      signFile({ id: "attachment1", userId: "user1" }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when the attachment is not a user-owned resource", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...privateAttachment,
+      bizType: "org:logo",
+    });
+
+    await expect(
+      signFile({ id: "attachment1", userId: "user1" }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("returns a signed URL for the attachment owner", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue(privateAttachment);
+
+    const result = await signFile({ id: "attachment1", userId: "user1" });
+
+    const expires = result.expiresAt.getTime();
+    const token = createHmac("sha256", "test-secret")
+      .update(`attachment1:${expires}`)
+      .digest("hex");
+    expect(result.url).toBe(
+      `/api/attachment/attachment1?token=${token}&expires=${expires}`,
+    );
+    expect(expires).toBeGreaterThan(Date.now());
+  });
+});
 
 describe("attachment ownership scoping", () => {
   beforeEach(() => {
