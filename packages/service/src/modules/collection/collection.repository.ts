@@ -33,6 +33,76 @@ export const collectionRepository = {
     return prisma.collectionItem.count({ where: { ownerId, ...where } });
   },
 
+  findAllWithEnrichments(ownerId: string) {
+    return prisma.collectionItem.findMany({
+      where: { ownerId },
+      orderBy: { createdAt: "asc" },
+      include: { enrichments: { orderBy: { kind: "asc" } } },
+    });
+  },
+
+  async findExistingSources(ownerId: string, sources: string[]) {
+    if (sources.length === 0) return new Set<string>();
+    const rows = await prisma.collectionItem.findMany({
+      where: { ownerId, source: { in: sources } },
+      select: { source: true },
+    });
+    return new Set(rows.map((r) => r.source));
+  },
+
+  createImported(
+    data: {
+      ownerId: string;
+      appId: string;
+      type: CollectionItemType;
+      source: string;
+      url: string | null;
+      title: string | null;
+      note: string | null;
+      tags: string[];
+      status: string;
+      mastery: number;
+      enrichStatus: string;
+      createdAt?: Date;
+      enrichments: Array<{
+        kind: string;
+        content: EnrichmentContent;
+        model: string;
+        generatedAt?: Date;
+      }>;
+    },
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.collectionItem.create({
+      data: {
+        ownerId: data.ownerId,
+        appId: data.appId,
+        type: data.type,
+        source: data.source,
+        url: data.url,
+        title: data.title,
+        note: data.note,
+        tags: data.tags,
+        status: data.status,
+        mastery: data.mastery,
+        enrichStatus: data.enrichStatus,
+        ...(data.createdAt ? { createdAt: data.createdAt } : {}),
+        ...(data.enrichments.length > 0
+          ? {
+              enrichments: {
+                create: data.enrichments.map((e) => ({
+                  kind: e.kind,
+                  content: e.content as Prisma.InputJsonValue,
+                  model: e.model,
+                  ...(e.generatedAt ? { generatedAt: e.generatedAt } : {}),
+                })),
+              },
+            }
+          : {}),
+      },
+    });
+  },
+
   findOwnedById(ownerId: string, id: string) {
     return prisma.collectionItem.findFirst({
       where: { id, ownerId },

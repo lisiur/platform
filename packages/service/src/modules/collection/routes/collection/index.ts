@@ -1,7 +1,9 @@
 export { createItemRoute as createItem } from "./createItem";
 export { deleteItemRoute as deleteItem } from "./deleteItem";
 export { enrichItemRoute as enrichItem } from "./enrichItem";
+export { exportItemsRoute as exportItems } from "./exportItems";
 export { getItemRoute as getItem } from "./getItem";
+export { importItemsRoute as importItems } from "./importItems";
 export { listItemsRoute as listItems } from "./listItems";
 export { retryEnrichItemRoute as retryEnrichItem } from "./retryEnrich";
 export { updateItemRoute as updateItem } from "./updateItem";

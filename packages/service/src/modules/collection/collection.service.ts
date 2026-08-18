@@ -307,6 +307,143 @@ export async function listItems(
   return { items, total };
 }
 
+export const COLLECTION_EXPORT_VERSION = 1;
+
+const ITEM_STATUSES = COLLECTION_ITEM_STATUSES;
+const ENRICH_STATUSES = ["none", "pending", "ok", "failed"] as const;
+
+type ItemStatus = (typeof ITEM_STATUSES)[number];
+type EnrichStatusValue = (typeof ENRICH_STATUSES)[number];
+
+function asItemStatus(value: string): ItemStatus {
+  return (ITEM_STATUSES as readonly string[]).includes(value)
+    ? (value as ItemStatus)
+    : "active";
+}
+
+function asEnrichStatus(value: string): EnrichStatusValue {
+  return (ENRICH_STATUSES as readonly string[]).includes(value)
+    ? (value as EnrichStatusValue)
+    : "none";
+}
+
+function asImportedEnrichStatus(value: string | undefined): EnrichStatusValue {
+  const status = asEnrichStatus(value ?? "none");
+  return status === "pending" ? "none" : status;
+}
+
+export type ImportItemInput = {
+  type: CollectionItemType;
+  source: string;
+  url?: string | null;
+  title?: string | null;
+  note?: string | null;
+  tags: string[];
+  status?: string;
+  mastery?: number;
+  enrichStatus?: string;
+  createdAt?: Date;
+  enrichments: Array<{
+    kind: string;
+    content: Record<string, unknown>;
+    model: string;
+    generatedAt?: Date;
+  }>;
+};
+
+export async function exportItems(ownerId: string) {
+  const items = await collectionRepository.findAllWithEnrichments(ownerId);
+  return {
+    version: COLLECTION_EXPORT_VERSION,
+    exportedAt: new Date(),
+    items: items.map((item) => ({
+      type: item.type,
+      source: item.source,
+      url: item.url,
+      title: item.title,
+      note: item.note,
+      tags: item.tags,
+      status: asItemStatus(item.status),
+      mastery: item.mastery,
+      enrichStatus: asEnrichStatus(item.enrichStatus),
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      enrichments: item.enrichments.map((e) => ({
+        kind: e.kind,
+        content: e.content as Record<string, unknown>,
+        model: e.model,
+        generatedAt: e.generatedAt,
+      })),
+    })),
+  };
+}
+
+/**
+ * Creates collection items from an export file. Items whose `source` already
+ * exists in the owner's collection (or appears twice in the file) are skipped;
+ * returns how many were created and skipped. Enrichments bundled with an item
+ * are restored as-is; items without enrichments land in their imported status,
+ * except "pending" which is coerced to "none" — no auto-enrichment is
+ * triggered on import.
+ */
+export async function importItems(ownerId: string, input: ImportItemInput[]) {
+  const appId = await resolveStudybuddyAppId();
+
+  const seen = new Set<string>();
+  const unique: ImportItemInput[] = [];
+  let duplicatesInFile = 0;
+  for (const item of input) {
+    const key = item.source.trim();
+    if (seen.has(key)) {
+      duplicatesInFile++;
+      continue;
+    }
+    seen.add(key);
+    unique.push({ ...item, source: key });
+  }
+
+  const existing = await collectionRepository.findExistingSources(
+    ownerId,
+    unique.map((i) => i.source),
+  );
+
+  const toCreate = unique.filter((item) => !existing.has(item.source));
+  const skipped = duplicatesInFile + (unique.length - toCreate.length);
+
+  if (toCreate.length > 0) {
+    await prisma.$transaction(
+      async (tx) => {
+        for (const item of toCreate) {
+          await collectionRepository.createImported(
+            {
+              ownerId,
+              appId,
+              type: item.type,
+              source: item.source,
+              url: item.url ?? null,
+              title: item.title ?? null,
+              note: item.note ?? null,
+              tags: item.tags,
+              status: asItemStatus(item.status ?? "active"),
+              mastery: item.mastery ?? 0,
+              enrichStatus:
+                item.enrichments.length > 0
+                  ? "ok"
+                  : asImportedEnrichStatus(item.enrichStatus),
+              ...(item.createdAt ? { createdAt: item.createdAt } : {}),
+              enrichments: item.enrichments,
+            },
+            tx,
+          );
+        }
+      },
+      { timeout: 30_000, maxWait: 10_000 },
+    );
+  }
+
+  return { created: toCreate.length, skipped };
+}
+
 export async function getItem(ownerId: string, id: string) {
   const item = await collectionRepository.findOwnedById(ownerId, id);
   if (!item) {

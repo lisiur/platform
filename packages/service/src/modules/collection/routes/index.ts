@@ -3,7 +3,9 @@ import {
   createItem,
   deleteItem,
   enrichItem,
+  exportItems,
   getItem,
+  importItems,
   listItems,
   retryEnrichItem,
   updateItem,
@@ -14,6 +16,8 @@ const collectionRoutes = new OpenAPIHono();
 const routes = collectionRoutes.openapiRoutes([
   listItems,
   createItem,
+  exportItems,
+  importItems,
   getItem,
   updateItem,
   deleteItem,

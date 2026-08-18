@@ -145,6 +145,55 @@ export const enrichResponseSchema = z
   })
   .openapi("EnrichItemResponse");
 
+const exportedEnrichmentSchema = z.object({
+  kind: z.string().openapi({ example: "translation" }),
+  content: z.record(z.string(), z.any()).openapi({
+    example: { translation: "短暂的", pronunciation: "/ɪˈfemərəl/" },
+  }),
+  model: z.string().openapi({ example: "gpt-4o-mini" }),
+  generatedAt: z.coerce.date().openapi({ example: "2025-01-01T00:00:00Z" }),
+});
+
+export const exportedItemSchema = z
+  .object({
+    type: collectionItemTypeSchema,
+    source: z.string().min(1).openapi({ example: "ephemeral" }),
+    url: z.url().nullable().optional().openapi({ example: null }),
+    title: z.string().nullable().optional().openapi({ example: "Ephemeral" }),
+    note: z.string().nullable().optional().openapi({ example: null }),
+    tags: z.array(z.string().min(1)).openapi({ example: ["adjective"] }),
+    status: z.enum(["active", "archived", "learned"]).optional(),
+    mastery: z.number().int().min(0).max(5).optional(),
+    enrichStatus: z.enum(ENRICH_STATUSES).optional(),
+    createdAt: z.coerce.date().optional(),
+    enrichments: exportedEnrichmentSchema.array().max(20),
+  })
+  .refine((val) => val.type !== "LINK" || /^https?:\/\/.+/i.test(val.source), {
+    message: "source must be an http(s) URL for LINK type",
+  })
+  .openapi("ExportedCollectionItem");
+
+export const exportItemsResponseSchema = z
+  .object({
+    version: z.number().int().openapi({ example: 1 }),
+    exportedAt: z.date(),
+    items: exportedItemSchema.array(),
+  })
+  .openapi("ExportCollectionResponse");
+
+export const importItemsBodySchema = z
+  .object({
+    items: exportedItemSchema.array().min(1).max(1000),
+  })
+  .openapi("ImportCollectionItemsBody");
+
+export const importItemsResponseSchema = z
+  .object({
+    created: z.number().int().openapi({ example: 8 }),
+    skipped: z.number().int().openapi({ example: 2 }),
+  })
+  .openapi("ImportCollectionItemsResponse");
+
 export type CollectionItem = z.infer<typeof collectionItemSchema>;
 export type CreateItemBody = z.infer<typeof createItemBodySchema>;
 export type UpdateItemBody = z.infer<typeof updateItemBodySchema>;
