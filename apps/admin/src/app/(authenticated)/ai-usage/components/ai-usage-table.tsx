@@ -18,7 +18,7 @@ import {
   TableRow,
   TooltipButton,
 } from "@repo/ui";
-import { Info, Trash2 } from "lucide-react";
+import { Info, RefreshCw, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -166,12 +166,23 @@ export function AiUsageTable() {
             apply: t("apply"),
           }}
         />
-        {selectedIds.size > 0 && (
-          <Button variant="destructive" size="sm" onClick={handleBatchDelete}>
-            <Trash2 className="h-4 w-4" />
-            {t("batchDelete")} ({selectedIds.size})
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchEvents()}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? "animate-spin" : undefined} />
+            {t("refresh")}
           </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleBatchDelete}>
+              <Trash2 className="h-4 w-4" />
+              {t("batchDelete")} ({selectedIds.size})
+            </Button>
+          )}
+        </div>
       </div>
       {loading ? (
         <div className="flex min-h-0 flex-1 items-center justify-center py-8">

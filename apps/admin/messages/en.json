@@ -1651,6 +1651,7 @@
     "delete": "Delete",
     "deleteSuccess": "AI usage events deleted successfully",
     "batchDelete": "Batch Delete",
+    "refresh": "Refresh",
     "close": "Close",
     "clearFilters": "Clear Filters",
     "filtersButton": "Filters",

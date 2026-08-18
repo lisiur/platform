@@ -1652,6 +1652,7 @@
     "delete": "删除",
     "deleteSuccess": "AI 用量事件删除成功",
     "batchDelete": "批量删除",
+    "refresh": "刷新",
     "close": "关闭",
     "clearFilters": "清除筛选",
     "filtersButton": "筛选",
