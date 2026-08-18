@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { Readable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { minimalIco, minimalPdf, minimalPng } from "../../shared/lib/testfiles";
 
 vi.mock("node:fs", () => ({
   createReadStream: vi.fn(() => Readable.from([Buffer.from("file")])),
@@ -208,9 +209,7 @@ describe("createAttachment validation", () => {
   });
 
   it("accepts a valid PNG and uses the canonical .png extension", async () => {
-    const png = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
-    ]);
+    const png = minimalPng();
     mockPrisma.upload.findUnique.mockResolvedValue(null);
     mockPrisma.upload.create.mockResolvedValue({
       id: "up1",
@@ -234,9 +233,7 @@ describe("createAttachment validation", () => {
   });
 
   it("rejects a file exceeding the size limit", async () => {
-    const png = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
-    ]);
+    const png = minimalPng();
     const oversized = new File([new Uint8Array(png)], "big.png", {
       type: "image/png",
     });
@@ -253,7 +250,7 @@ describe("createAttachment validation", () => {
   });
 
   it("accepts a valid PDF and uses the .pdf extension", async () => {
-    const pdf = Buffer.from("%PDF-1.4\nstuff");
+    const pdf = minimalPdf();
     mockPrisma.upload.findUnique.mockResolvedValue(null);
     mockPrisma.upload.create.mockResolvedValue({
       id: "up2",
@@ -277,7 +274,7 @@ describe("createAttachment validation", () => {
   });
 
   it("accepts a valid ICO favicon and uses the .ico extension", async () => {
-    const ico = Buffer.from([0x00, 0x00, 0x01, 0x00, 0x01, 0x00]);
+    const ico = minimalIco();
     mockPrisma.upload.findUnique.mockResolvedValue(null);
     mockPrisma.upload.create.mockResolvedValue({
       id: "up3",
@@ -301,9 +298,7 @@ describe("createAttachment validation", () => {
   });
 
   it("returns existing upload if hash matches", async () => {
-    const png = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
-    ]);
+    const png = minimalPng();
     mockPrisma.upload.findUnique.mockResolvedValue(publicUpload);
     mockPrisma.attachment.create.mockResolvedValue({
       id: "att4",
@@ -413,9 +408,7 @@ describe("createAttachment validation", () => {
   });
 
   it("replaces attachment upload when hash changes", async () => {
-    const png = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00,
-    ]);
+    const png = minimalPng();
     mockPrisma.attachment.findUnique.mockResolvedValue(publicAttachment);
     mockPrisma.upload.findUnique.mockResolvedValue(null);
     mockPrisma.upload.create.mockResolvedValue({ id: "newUpload" });
@@ -445,7 +438,7 @@ describe("createAttachment validation", () => {
   });
 });
 
-const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00];
+const PNG_BYTES = new Uint8Array(minimalPng());
 
 describe("signFile ownership", () => {
   beforeEach(() => {
