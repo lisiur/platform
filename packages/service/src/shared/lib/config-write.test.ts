@@ -141,14 +141,6 @@ describe("validateConfigWrite", () => {
         validateConfigWrite(SYSTEM_CONFIG_INDEX, "self-update", "source", "")
           .value,
       ).toBe("");
-      expect(
-        validateConfigWrite(
-          APPLICATION_CONFIG_INDEX,
-          "ai-agent",
-          "reasoning",
-          "high",
-        ).value,
-      ).toBe("high");
     });
 
     it("rejects an option not in the registry", () => {
@@ -164,42 +156,25 @@ describe("validateConfigWrite", () => {
   });
 
   describe("json keys", () => {
-    it("validates ai-agent.allowedApis as a JSON array of strings", () => {
+    it("validates upload.hotlink as JSON", () => {
+      const value = JSON.stringify({
+        enabled: false,
+        allowedDomains: ["example.com"],
+        allowEmptyReferer: true,
+      });
       expect(
-        validateConfigWrite(
-          APPLICATION_CONFIG_INDEX,
-          "ai-agent",
-          "allowedApis",
-          JSON.stringify(["user::list", "user::create"]),
-        ).value,
-      ).toBe(JSON.stringify(["user::list", "user::create"]));
-
-      // empty array is valid (explicitly configured as empty)
-      expect(
-        validateConfigWrite(
-          APPLICATION_CONFIG_INDEX,
-          "ai-agent",
-          "allowedApis",
-          "[]",
-        ).value,
-      ).toBe("[]");
+        validateConfigWrite(SYSTEM_CONFIG_INDEX, "upload", "hotlink", value)
+          .value,
+      ).toBe(value);
     });
 
-    it("rejects malformed JSON and non-string elements", () => {
+    it("rejects malformed JSON", () => {
       expect400(() =>
         validateConfigWrite(
-          APPLICATION_CONFIG_INDEX,
-          "ai-agent",
-          "allowedApis",
+          SYSTEM_CONFIG_INDEX,
+          "upload",
+          "hotlink",
           "not json",
-        ),
-      );
-      expect400(() =>
-        validateConfigWrite(
-          APPLICATION_CONFIG_INDEX,
-          "ai-agent",
-          "allowedApis",
-          JSON.stringify([1, 2, 3]),
         ),
       );
     });

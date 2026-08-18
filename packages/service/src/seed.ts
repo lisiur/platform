@@ -1734,8 +1734,8 @@ export async function seed() {
 
   // 5b. Per-application config (registry-driven; upsertAppConfig validates
   // values and writes registry-authoritative metadata).
-  // `seed: false` entries (e.g. ai-agent.allowedApis) are skipped here.
-  console.log("Application configs (ai-agent, ai-agent-ui):");
+  // `seed: false` entries are skipped here.
+  console.log("Application configs (ai-agent-ui):");
   const seedableAppConfig = APPLICATION_CONFIG_REGISTRY.filter(
     (e) => e.seed !== false,
   );

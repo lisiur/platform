@@ -12,10 +12,6 @@ const boolValue = z.enum(["true", "false", ""]);
  * The single source of truth for per-application config keys (the
  * `application_config` table). Each app gets its own copy of every seeded
  * entry via `src/seed.ts`.
- *
- * `ai-agent.allowedApis` is `seed: false`: it is a valid write target (managed
- * by `replaceAllowedApis`) but is created on demand rather than seeded, so a
- * missing row still means "not configured" (`loadAiAgentConfig` → `null`).
  */
 export const APPLICATION_CONFIG_REGISTRY: ConfigRegistryEntry[] = [
   // --- ai-agent-ui (visual) ---

@@ -14,7 +14,7 @@ export type ConfigType = "string" | "number" | "boolean" | "json" | "select";
  *   - `valueSchema` validates the incoming string `value` on every write; its
  *     parsed output is stored verbatim (every schema below yields a string).
  *   - `seed: false` marks a key that is valid for writes but created on demand
- *     (not seeded) — e.g. `ai-agent.allowedApis`.
+ *     (not seeded).
  *
  * Both the seed script and the runtime API import the SAME registry, so the set
  * of valid keys cannot drift between "what seed writes" and "what the API
