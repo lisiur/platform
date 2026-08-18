@@ -2,7 +2,10 @@ import { generateObject, type LanguageModel } from "ai";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { CollectionItemType } from "#generated/prisma/client";
-import { createProviderModel } from "#lib/ai-agent/provider-adapter";
+import {
+  buildDisableThinkingOptions,
+  createProviderModel,
+} from "#lib/ai-agent/provider-adapter";
 import { resolveAgentModel } from "#modules/agent/agent-resolution.service";
 import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import {
@@ -286,6 +289,10 @@ export async function enrichItem(
           schema: combinedSchema(defs),
           temperature: params.temperature,
           reasoning: params.reasoning,
+          providerOptions: buildDisableThinkingOptions(
+            resolved.endpoint,
+            resolved.agent.reasoning,
+          ),
         });
 
         const object = result.object as Partial<

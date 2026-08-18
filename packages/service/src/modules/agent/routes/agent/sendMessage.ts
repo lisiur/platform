@@ -13,7 +13,10 @@ import { requireCurrentApp } from "#extractors/current-app";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import type { Prisma } from "#generated/prisma/client";
 import { streamAgent } from "#lib/ai-agent/agent";
-import { createProviderModel } from "#lib/ai-agent/provider-adapter";
+import {
+  buildDisableThinkingOptions,
+  createProviderModel,
+} from "#lib/ai-agent/provider-adapter";
 import { prisma } from "#lib/db";
 import { accountConcurrencyTracker } from "#modules/agent/account-concurrency";
 import {
@@ -117,6 +120,10 @@ async function generateAndSaveTitle(
           maxOutputTokens: resolved.subAgent.maxOutputTokens ?? 1000,
           reasoning: resolved.agent.reasoning ?? undefined,
           temperature: resolved.agent.temperature ?? undefined,
+          providerOptions: buildDisableThinkingOptions(
+            resolved.endpoint,
+            resolved.agent.reasoning,
+          ),
           abortSignal: timeoutController.signal,
         });
         return {

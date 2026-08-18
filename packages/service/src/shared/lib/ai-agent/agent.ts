@@ -2,7 +2,11 @@ import type { Context, ToolSet } from "@ai-sdk/provider-utils";
 import type { AiReasoningLevel } from "@repo/shared";
 import { type ModelMessage, stepCountIs, streamText } from "ai";
 import { findOperation } from "#modules/agent/openapi.service";
-import { createProviderModel, type ProviderEndpoint } from "./provider-adapter";
+import {
+  buildDisableThinkingOptions,
+  createProviderModel,
+  type ProviderEndpoint,
+} from "./provider-adapter";
 import {
   buildInteractionTools,
   buildTools,
@@ -98,5 +102,6 @@ export async function streamAgent({
     stopWhen: stepCountIs(maxSteps),
     abortSignal,
     reasoning: reasoning ?? undefined,
+    providerOptions: buildDisableThinkingOptions(endpoint, reasoning),
   });
 }
