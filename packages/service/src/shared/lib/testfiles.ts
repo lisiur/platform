@@ -36,16 +36,34 @@ export function minimalGif(): Buffer {
   ]);
 }
 
-export function minimalWebp(): Buffer {
+export function riffWebp(chunk: string, payload: Buffer): Buffer {
   const buf = Buffer.concat([
     Buffer.from("RIFF", "ascii"),
     Buffer.alloc(4),
     Buffer.from("WEBP", "ascii"),
-    Buffer.from("VP8 ", "ascii"),
-    Buffer.from([0x0a, 0x00, 0x00, 0x00, 0x00, 0x9d]),
+    Buffer.from(chunk, "ascii"),
+    Buffer.alloc(4),
+    payload,
+    payload.length % 2 ? Buffer.alloc(1) : Buffer.alloc(0),
   ]);
   buf.writeUInt32LE(buf.length - 8, 4);
+  buf.writeUInt32LE(payload.length, 16);
   return buf;
+}
+
+export function minimalWebp(): Buffer {
+  return riffWebp(
+    "VP8 ",
+    Buffer.from([0x30, 0x00, 0x00, 0x9d, 0x01, 0x2a, 0x01, 0x00, 0x01, 0x00]),
+  );
+}
+
+export function minimalWebpLossless(): Buffer {
+  return riffWebp("VP8L", Buffer.from([0x2f, 0x00, 0x00, 0x00, 0x00, 0x00]));
+}
+
+export function minimalWebpExtended(): Buffer {
+  return riffWebp("VP8X", Buffer.alloc(10));
 }
 
 export function minimalPdf(): Buffer {
