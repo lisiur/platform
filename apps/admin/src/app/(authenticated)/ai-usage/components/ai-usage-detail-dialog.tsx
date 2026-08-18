@@ -10,6 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
   Spinner,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from "@repo/ui";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useState } from "react";
@@ -28,6 +32,13 @@ interface AiUsageEventInputContent {
 interface AiUsageEventOutputContent {
   text: string;
   finishReason: string;
+}
+
+interface MessageTab {
+  value: string;
+  label: string;
+  caption?: string;
+  content: string;
 }
 
 export interface AiUsageEventDetail extends AiUsageEventEntry {
@@ -80,6 +91,40 @@ export function AiUsageDetailDialog({
   }, [open, event, t]);
 
   const hasContent = detail && (detail.input || detail.output || detail.error);
+
+  const messageTabs: MessageTab[] = detail
+    ? [
+        detail.input?.systemPrompt
+          ? {
+              value: "systemPrompt",
+              label: t("message.systemPrompt"),
+              content: detail.input.systemPrompt,
+            }
+          : null,
+        detail.input
+          ? {
+              value: "prompt",
+              label: t("message.prompt"),
+              content: detail.input.prompt,
+            }
+          : null,
+        detail.input?.params && Object.keys(detail.input.params).length > 0
+          ? {
+              value: "params",
+              label: t("message.params"),
+              content: JSON.stringify(detail.input.params, null, 2),
+            }
+          : null,
+        detail.output
+          ? {
+              value: "output",
+              label: t("message.output"),
+              caption: `${t("message.finishReason")}: ${detail.output.finishReason}`,
+              content: detail.output.text,
+            }
+          : null,
+      ].filter((tab): tab is MessageTab => tab !== null)
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,29 +238,30 @@ export function AiUsageDetailDialog({
                   <p className="text-sm text-destructive">{t("loadFailed")}</p>
                 ) : hasContent ? (
                   <div className="flex flex-col gap-3">
-                    {detail?.input?.systemPrompt ? (
-                      <ContentBlock label={t("message.systemPrompt")}>
-                        {detail.input.systemPrompt}
-                      </ContentBlock>
-                    ) : null}
-                    {detail?.input ? (
-                      <ContentBlock label={t("message.prompt")}>
-                        {detail.input.prompt}
-                      </ContentBlock>
-                    ) : null}
-                    {detail?.input?.params &&
-                    Object.keys(detail.input.params).length > 0 ? (
-                      <ContentBlock label={t("message.params")}>
-                        {JSON.stringify(detail.input.params, null, 2)}
-                      </ContentBlock>
-                    ) : null}
-                    {detail?.output ? (
-                      <ContentBlock
-                        label={t("message.output")}
-                        caption={`${t("message.finishReason")}: ${detail.output.finishReason}`}
-                      >
-                        {detail.output.text}
-                      </ContentBlock>
+                    {messageTabs.length > 0 ? (
+                      <Tabs defaultValue={messageTabs[0].value}>
+                        <TabsList>
+                          {messageTabs.map((tab) => (
+                            <TabsTrigger key={tab.value} value={tab.value}>
+                              {tab.label}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {messageTabs.map((tab) => (
+                          <TabsContent
+                            key={tab.value}
+                            value={tab.value}
+                            className="mt-2"
+                          >
+                            <pre className="h-64 overflow-auto rounded-md border bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap break-all">
+                              {tab.content}
+                            </pre>
+                            <p className="mt-1 h-4 text-right text-xs text-muted-foreground">
+                              {tab.caption ?? ""}
+                            </p>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
                     ) : null}
                     {detail?.error ? (
                       <ContentBlock label={t("message.error")} destructive>
