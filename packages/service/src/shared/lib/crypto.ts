@@ -8,10 +8,10 @@ import {
 const ALGO = "aes-256-gcm";
 
 function getKey(): Buffer {
-  const raw = process.env.AI_SECRET_KEY;
+  const raw = process.env.SECRET_ENCRYPTION_KEY;
   if (raw) return createHash("sha256").update(raw).digest();
   if (process.env.NODE_ENV === "production") {
-    throw new Error("AI_SECRET_KEY must be set in production.");
+    throw new Error("SECRET_ENCRYPTION_KEY must be set in production.");
   }
   return createHash("sha256").update("platform-dev-insecure-key").digest();
 }

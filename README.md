@@ -140,7 +140,7 @@ All frontends call the API through typed Hono RPC (`appClient` from `@/lib/api`)
 | `DATABASE_URL`                      | Yes      | PostgreSQL connection string used by Prisma.                                      |
 | `SSR_API_TOKEN`                     | Prod     | Shared secret (`X-Internal-Token`) letting SSR calls bypass the rate limiter.      |
 | `AGENT_API_TOKEN`                   | Prod     | Secret for the agent's `call_api` loopback requests (attributed to source `agent`). |
-| `AI_SECRET_KEY`                     | Prod     | AES-256-GCM key material for encrypting AI provider keys at rest.                 |
+| `SECRET_ENCRYPTION_KEY`             | Prod     | AES-256-GCM key material for encrypting secrets (e.g. AI provider keys) at rest.  |
 | `CORS_ALLOWED_ORIGINS`              | No       | Comma-separated allowed API origins. Unset = any origin in dev, none in prod.     |
 | `NEXT_PUBLIC_API_ORIGIN`            | No       | Overrides the browser API origin (defaults to `http://localhost:3000` in dev).    |
 | `DATA_DIR`                          | No       | Base path for on-disk data: `uploads/` and `agent-attachments/` live under it.    |
