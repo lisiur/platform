@@ -133,22 +133,41 @@ function verifyGif(buf: Buffer): boolean {
   return false;
 }
 
+function verifyWebpChunk(buf: Buffer, chunk: string, size: number): boolean {
+  if (chunk === "VP8 ") {
+    if (size < 10) return false;
+    if ((buf[20] & 0x01) !== 0) return false;
+    return buf[23] === 0x9d && buf[24] === 0x01 && buf[25] === 0x2a;
+  }
+  if (chunk === "VP8L") return size >= 5 && buf[20] === 0x2f;
+  return size === 10;
+}
+
 function verifyWebp(buf: Buffer): boolean {
-  if (buf.length < 16) return false;
+  if (buf.length < 20) return false;
   if (
     buf.toString("ascii", 0, 4) !== "RIFF" ||
     buf.toString("ascii", 8, 12) !== "WEBP"
   ) {
     return false;
   }
+  if (buf.readUInt32LE(4) !== buf.length - 8) return false;
   const chunk = buf.toString("ascii", 12, 16);
   if (chunk !== "VP8 " && chunk !== "VP8L" && chunk !== "VP8X") return false;
-  return buf.readUInt32LE(4) === buf.length - 8;
+  if (!verifyWebpChunk(buf, chunk, buf.readUInt32LE(16))) return false;
+  let i = 12;
+  while (i < buf.length) {
+    if (i + 8 > buf.length) return false;
+    const size = buf.readUInt32LE(i + 4);
+    i += 8 + size + (size % 2);
+    if (i > buf.length) return false;
+  }
+  return i === buf.length;
 }
 
 function verifyPdf(buf: Buffer): boolean {
   if (buf.length < 8 || buf.toString("ascii", 0, 5) !== "%PDF-") return false;
-  const tailStart = Math.max(0, buf.length - 64);
+  const tailStart = Math.max(0, buf.length - 1024);
   const tail = buf.subarray(tailStart).toString("latin1");
   const idx = tail.lastIndexOf("%%EOF");
   if (idx === -1) return false;
@@ -178,7 +197,13 @@ export async function verifyMagicBytes(
   const normalized = MIME_ALIASES[mime] ?? mime;
   if (normalized === "image/svg+xml") {
     const head = buf.subarray(0, 256).toString("utf8").trimStart();
-    return head.startsWith("<?xml") || head.startsWith("<svg");
+    if (head.startsWith("<svg")) return true;
+    return (
+      (head.startsWith("<?xml") ||
+        head.startsWith("<!DOCTYPE") ||
+        head.startsWith("<!--")) &&
+      head.includes("<svg")
+    );
   }
   const detected = await fromBuffer(buf);
   if (detected && detected.mime !== normalized) return false;
