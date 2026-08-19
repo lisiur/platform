@@ -80,7 +80,7 @@ export async function listAiAgents(params: {
   const [agents, total] = await Promise.all([
     prisma.aiAgent.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
       take: limit,
       skip: offset,
     }),
