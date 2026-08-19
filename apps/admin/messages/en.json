@@ -1394,6 +1394,8 @@
     "effectiveTo": "Effective To",
     "code": "Code",
     "systemPrompt": "System Prompt",
+    "userPromptTemplate": "User Prompt Template",
+    "userPromptTemplateDesc": "Optional. Wraps each user message sent to the model; chat history keeps the raw text. Use {ph} where the user's text goes — without it the template is prefixed to the message.",
     "reasoning": "Reasoning",
     "maxSteps": "Max Steps",
     "maxOutputTokens": "Max Output Tokens",

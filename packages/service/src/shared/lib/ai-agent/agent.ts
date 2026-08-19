@@ -28,6 +28,50 @@ export function buildSystemPrompt(
   return lines.length > 0 ? lines.join("\n") : undefined;
 }
 
+/**
+ * Renders a user prompt template around the user's text. `{{prompt}}` is
+ * replaced with the raw text; if the placeholder is absent the template is
+ * prefixed to the text.
+ */
+export function renderUserPromptTemplate(
+  template: string,
+  prompt: string,
+): string {
+  return template.includes("{{prompt}}")
+    ? template.replaceAll("{{prompt}}", () => prompt)
+    : `${template}\n\n${prompt}`;
+}
+
+/**
+ * Applies the sub-agent's user prompt template to every user text part sent
+ * to the model. Returns the input unchanged when no template is set, and
+ * never mutates the original array (persisted/UI messages must stay raw).
+ */
+export function applyUserPromptTemplate(
+  messages: ModelMessage[],
+  template: string | null | undefined,
+): ModelMessage[] {
+  const trimmed = template?.trim();
+  if (!trimmed) return messages;
+  return messages.map((message) => {
+    if (message.role !== "user") return message;
+    if (typeof message.content === "string") {
+      return {
+        ...message,
+        content: renderUserPromptTemplate(trimmed, message.content),
+      };
+    }
+    return {
+      ...message,
+      content: message.content.map((part) =>
+        part.type === "text"
+          ? { ...part, text: renderUserPromptTemplate(trimmed, part.text) }
+          : part,
+      ),
+    };
+  });
+}
+
 export interface StreamAgentParams {
   endpoint: ProviderEndpoint;
   systemPrompt: string | null;

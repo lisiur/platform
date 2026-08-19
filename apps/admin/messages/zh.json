@@ -1395,6 +1395,8 @@
     "effectiveTo": "生效截止",
     "code": "代码",
     "systemPrompt": "系统提示词",
+    "userPromptTemplate": "用户提示词模板",
+    "userPromptTemplateDesc": "可选。发送给模型前包装每条用户消息；聊天历史保留原文。使用 {ph} 表示用户输入的位置——未包含时模板将作为前缀添加。",
     "reasoning": "推理级别",
     "maxSteps": "最大步骤",
     "maxOutputTokens": "最大输出 Token 数",

@@ -13,6 +13,7 @@ export const subAgentSchema = z.object({
   description: z.string().optional(),
   modelId: z.string().min(1),
   systemPrompt: z.string().nullable().optional(),
+  userPromptTemplate: z.string().nullable().optional(),
   reasoning: reasoningLevelSchema.nullable().optional(),
   temperature: z.number().nullable().optional(),
   maxSteps: z.number().int().positive().optional(),

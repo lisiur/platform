@@ -12,7 +12,11 @@ import { z } from "zod";
 import { requireCurrentApp } from "#extractors/current-app";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import type { Prisma } from "#generated/prisma/client";
-import { streamAgent } from "#lib/ai-agent/agent";
+import {
+  applyUserPromptTemplate,
+  renderUserPromptTemplate,
+  streamAgent,
+} from "#lib/ai-agent/agent";
 import {
   buildDisableThinkingOptions,
   createProviderModel,
@@ -69,9 +73,10 @@ type PersistedMessage = {
   parts: UIMessage["parts"];
 };
 
-/** The Prisma JSON column expects InputJsonValue; UIMessage.parts qualifies as one. */
-function asJson(parts: UIMessage["parts"]): Prisma.InputJsonValue {
-  return parts as unknown as Prisma.InputJsonValue;
+/** The Prisma JSON column expects InputJsonValue; message parts and input
+ *  snapshots qualify as one. */
+function asJson(value: object): Prisma.InputJsonValue {
+  return value as unknown as Prisma.InputJsonValue;
 }
 
 async function generateAndSaveTitle(
@@ -86,13 +91,20 @@ async function generateAndSaveTitle(
     PLATFORM_ASSISTANT_FEATURE_CODE,
   );
 
+  // Title sub-agents may wrap the first message in their own template; the
+  // tracked input snapshot records the same rendered prompt the model sees.
+  const titleTemplate = resolved.subAgent.userPromptTemplate?.trim();
+  const renderedPrompt = titleTemplate
+    ? renderUserPromptTemplate(titleTemplate, userPrompt)
+    : userPrompt;
+
   const result = await executeTrackedAiCall({
     userId,
     resolved,
     billing,
     input: {
       systemPrompt: resolved.agent.systemPrompt,
-      prompt: userPrompt,
+      prompt: renderedPrompt,
       params: {
         maxOutputTokens: resolved.subAgent.maxOutputTokens ?? 1000,
         temperature: resolved.agent.temperature ?? undefined,
@@ -113,7 +125,7 @@ async function generateAndSaveTitle(
         const result = await generateText({
           model,
           system: resolved.agent.systemPrompt ?? undefined,
-          prompt: userPrompt,
+          prompt: renderedPrompt,
           // Reasoning models (e.g., DeepSeek-R1, QwQ) ignore `reasoning: "none"` and
           // spend output tokens on <think> blocks. A tight cap starves the actual
           // text output, so leave enough headroom for reasoning + the short title.
@@ -208,8 +220,16 @@ export async function sendMessageHandler(c: Context) {
 
   const isFirstMessage = rows.length === 0;
 
+  // Snapshot of what the model actually sees this turn (rendered user prompt
+  // after the template). Null on tool-result-only turns.
+  let eventPrompt: string | null = null;
+
   if ("prompt" in parsed.data) {
     const userText = parsed.data.prompt;
+    const template = resolved.subAgent.userPromptTemplate?.trim();
+    eventPrompt = template
+      ? renderUserPromptTemplate(template, userText)
+      : userText;
     const userMessage: UIMessage = {
       id: randomUUID(),
       role: "user",
@@ -240,7 +260,11 @@ export async function sendMessageHandler(c: Context) {
     }
   }
 
-  const modelMessages = await convertToModelMessages(priorMessages);
+  // Template only what the model sees; persisted/UI messages stay raw.
+  const modelMessages = applyUserPromptTemplate(
+    await convertToModelMessages(priorMessages),
+    resolved.subAgent.userPromptTemplate,
+  );
 
   const apiOrigin = process.env.API_ORIGIN ?? new URL(c.req.url).origin;
   const forwardedHeaders: Record<string, string> = {};
@@ -281,6 +305,15 @@ export async function sendMessageHandler(c: Context) {
         modelId: resolved.aiModelId,
         accountId: resolved.accountId,
         status: "pending",
+        input: asJson({
+          systemPrompt: resolved.agent.systemPrompt,
+          prompt: eventPrompt,
+          params: {
+            maxSteps: resolved.agent.maxSteps,
+            temperature: resolved.agent.temperature,
+            reasoning: resolved.agent.reasoning,
+          },
+        }),
       },
     })
     .catch((err) => {

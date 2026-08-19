@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DropdownMenuItem,
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -69,6 +70,7 @@ const subAgentSchema = z.object({
   description: z.string().nullable().optional(),
   modelId: z.string().min(1),
   systemPrompt: z.string().nullable().optional(),
+  userPromptTemplate: z.string().nullable().optional(),
   reasoning: z.enum(AI_REASONING_LEVELS).nullable().optional(),
   temperature: optionalNumberSchema,
   maxSteps: optionalIntSchema,
@@ -116,6 +118,7 @@ type AgentSubAgent = {
   description?: string;
   modelId: string;
   systemPrompt?: string | null;
+  userPromptTemplate?: string | null;
   reasoning?: AgentReasoningLevel | null;
   temperature?: number | null;
   maxSteps?: number;
@@ -130,6 +133,7 @@ function createDefaultSubAgent(): AgentSubAgentForm {
     description: "Default sub-agent.",
     modelId: "deepseek-v4-flash",
     systemPrompt: "",
+    userPromptTemplate: "",
     reasoning: "none",
     maxSteps: 8,
   };
@@ -142,6 +146,7 @@ function deserializeSubAgents(subAgents?: AgentSubAgents): AgentSubAgentForm[] {
     description: subAgent.description ?? "",
     modelId: subAgent.modelId,
     systemPrompt: subAgent.systemPrompt ?? "",
+    userPromptTemplate: subAgent.userPromptTemplate ?? "",
     reasoning: subAgent.reasoning ?? "none",
     temperature: subAgent.temperature ?? undefined,
     maxSteps: subAgent.maxSteps ?? undefined,
@@ -156,11 +161,13 @@ function serializeSubAgents(subAgents?: AgentSubAgentForm[]): AgentSubAgents {
     const key = subAgent.key.trim();
     const description = subAgent.description?.trim();
     const systemPrompt = subAgent.systemPrompt?.trim();
+    const userPromptTemplate = subAgent.userPromptTemplate?.trim();
     result[key] = {
       label: subAgent.label.trim(),
       ...(description ? { description } : {}),
       modelId: subAgent.modelId.trim(),
       ...(systemPrompt ? { systemPrompt } : {}),
+      ...(userPromptTemplate ? { userPromptTemplate } : {}),
       ...(subAgent.reasoning ? { reasoning: subAgent.reasoning } : {}),
       ...(subAgent.temperature !== undefined
         ? { temperature: subAgent.temperature }
@@ -460,7 +467,7 @@ function SubAgentFields({
 }: {
   form: UseFormReturn<FieldValues>;
   prefix: string;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string>) => string;
 }) {
   const [activeIndex, setActiveIndex] = useState("0");
   const { fields } = useFieldArray({
@@ -582,6 +589,32 @@ function SubAgentFields({
                   {...(form.register(
                     `subAgents.${index}.systemPrompt`,
                   ) as object)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel
+                  htmlFor={`${prefix}-sub-agent-${index}-user-prompt`}
+                >
+                  {t("userPromptTemplate")}
+                </FieldLabel>
+                <Textarea
+                  id={`${prefix}-sub-agent-${index}-user-prompt`}
+                  rows={4}
+                  aria-invalid={
+                    !!form.getFieldState(
+                      `subAgents.${index}.userPromptTemplate`,
+                    ).error
+                  }
+                  {...(form.register(
+                    `subAgents.${index}.userPromptTemplate`,
+                  ) as object)}
+                />
+                <FieldDescription>
+                  {t("userPromptTemplateDesc", { ph: "{{prompt}}" })}
+                </FieldDescription>
+                <FormFieldError
+                  form={form}
+                  name={`subAgents.${index}.userPromptTemplate`}
                 />
               </Field>
               <div className="grid gap-3 md:grid-cols-2">

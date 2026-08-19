@@ -1613,8 +1613,13 @@ const aiAgents: AiAgentInput[] = [
         label: "Conversation Title",
         description: "Generates a short title from the first user message.",
         modelId: "deepseek-v4-flash",
-        systemPrompt:
-          "Generate a short title (5-6 words max) summarizing the user's first message below. Return only the title, no quotes or punctuation.",
+        systemPrompt: null,
+        userPromptTemplate: [
+          "Generate a concise title (maximum 8 words) that captures the core topic of this conversation based on the user's input. Output only the title, no extra text.",
+          "",
+          "User input:",
+          "{{prompt}}",
+        ].join("\n"),
         reasoning: "none" as const,
         maxOutputTokens: 1000,
       },

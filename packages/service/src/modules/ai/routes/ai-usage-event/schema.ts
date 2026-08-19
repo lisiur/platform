@@ -61,10 +61,11 @@ export const aiUsageEventSchema = z
   })
   .openapi("AiUsageEvent");
 
-// Detail view additionally carries the recorded content audit trail for
-// non-conversation calls (conversation messages live in ai_message instead).
-// The columns are Prisma JsonValue, so they are typed loosely here and their
-// shape is documented via examples.
+// Detail view additionally carries the recorded content audit trail. Single-shot
+// calls record input + output; conversation streaming calls record an input
+// snapshot (system prompt + rendered user prompt) while the full transcript
+// lives in ai_message. The columns are Prisma JsonValue, so they are typed
+// loosely here and their shape is documented via examples.
 export const aiUsageEventDetailSchema = aiUsageEventSchema
   .extend({
     input: z

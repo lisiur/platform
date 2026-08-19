@@ -25,7 +25,8 @@ import type { AiUsageEventEntry } from "./ai-usage-table";
 
 interface AiUsageEventInputContent {
   systemPrompt?: string | null;
-  prompt: string;
+  /** Rendered user prompt for this turn; null on tool-result-only turns. */
+  prompt: string | null;
   params?: Record<string, unknown> | null;
 }
 
@@ -101,7 +102,7 @@ export function AiUsageDetailDialog({
               content: detail.input.systemPrompt,
             }
           : null,
-        detail.input
+        detail.input?.prompt
           ? {
               value: "prompt",
               label: t("message.prompt"),

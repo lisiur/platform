@@ -45,8 +45,8 @@ function normalizeUsage(usage: LanguageModelUsage) {
  * refunded.
  *
  * Conversation-style streaming calls keep their own lifecycle (see
- * `sendMessageHandler`) — their content lives in `ai_message`, so they do not
- * record input/output here.
+ * `sendMessageHandler`) — their transcript lives in `ai_message`; their usage
+ * event records an input snapshot (rendered user prompt) but no output.
  */
 export async function executeTrackedAiCall<
   T extends { usage: LanguageModelUsage },
