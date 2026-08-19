@@ -8,6 +8,8 @@ export const operationLogSchema = z
     traceId: z.string().openapi({ example: "018fc9c2-7a7e-4b7b" }),
     authType: z.string().nullable().optional(),
     authTokenId: z.string().nullable().optional(),
+    userId: z.string().nullable().optional(),
+    userName: z.string().nullable().optional(),
     level: z.string().openapi({ example: "error" }),
     source: z.string().nullable().optional(),
     module: z.string().nullable().optional(),
@@ -22,6 +24,7 @@ export const operationLogSchema = z
     stack: z.string().nullable().optional(),
     metadata: z.unknown().nullable().optional(),
     ip: z.string().nullable().optional(),
+    userAgent: z.string().nullable().optional(),
     createdAt: z.date(),
   })
   .openapi("OperationLog");
@@ -32,6 +35,8 @@ export const listLogsQuerySchema = z.object({
   traceId: z.string().optional(),
   authType: z.string().optional(),
   authTokenId: z.string().optional(),
+  userId: z.string().optional(),
+  userName: z.string().optional(),
   level: z.string().optional(),
   source: z.string().optional(),
   module: z.string().optional(),

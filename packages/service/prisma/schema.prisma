@@ -485,11 +485,15 @@ model OperationLog {
   stack        String?
   metadata     Json?
   ip           String?
+  userAgent    String?
+  userId       String?
+  userName     String?
   createdAt    DateTime @default(now())
 
   @@index([traceId])
   @@index([authType])
   @@index([authTokenId])
+  @@index([userId])
   @@index([level])
   @@index([module])
   @@index([event])

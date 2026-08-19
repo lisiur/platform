@@ -4713,6 +4713,9 @@ export const OperationLogScalarFieldEnum = {
   stack: 'stack',
   metadata: 'metadata',
   ip: 'ip',
+  userAgent: 'userAgent',
+  userId: 'userId',
+  userName: 'userName',
   createdAt: 'createdAt'
 } as const
 

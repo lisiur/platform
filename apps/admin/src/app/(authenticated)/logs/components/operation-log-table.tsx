@@ -38,6 +38,8 @@ interface OperationLogEntry {
   traceId: string;
   authType?: string | null;
   authTokenId?: string | null;
+  userId?: string | null;
+  userName?: string | null;
   level: string;
   source?: string | null;
   module?: string | null;
@@ -52,6 +54,7 @@ interface OperationLogEntry {
   stack?: string | null;
   metadata?: unknown;
   ip?: string | null;
+  userAgent?: string | null;
   createdAt: string;
 }
 
@@ -121,6 +124,7 @@ export function OperationLogTable({
       if (filters.traceId) query.traceId = filters.traceId;
       if (filters.authType) query.authType = filters.authType;
       if (filters.authTokenId) query.authTokenId = filters.authTokenId;
+      if (filters.userName) query.userName = filters.userName;
       if (filters.level) query.level = filters.level;
       if (filters.module) query.module = filters.module;
       if (filters.event) query.event = filters.event;
@@ -206,6 +210,7 @@ export function OperationLogTable({
           labels={{
             traceId: t("filters.traceId"),
             authTokenId: t("filters.authTokenId"),
+            userName: t("filters.userName"),
             level: t("filters.level"),
             module: t("filters.module"),
             event: t("filters.event"),
@@ -241,7 +246,7 @@ export function OperationLogTable({
       ) : (
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Table
-            className="w-[1810px] min-w-[1810px]"
+            className="w-[1950px] min-w-[1950px]"
             containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
           >
             <TableHeader sticky>
@@ -258,6 +263,7 @@ export function OperationLogTable({
                 <TableHead>{t("columns.durationMs")}</TableHead>
                 <TableHead className="w-44">{t("columns.traceId")}</TableHead>
                 <TableHead className="w-56">{t("columns.auth")}</TableHead>
+                <TableHead className="w-40">{t("columns.userName")}</TableHead>
                 <TableHead className="w-72">{t("columns.message")}</TableHead>
                 <TableActionHead />
               </TableRow>
@@ -314,6 +320,7 @@ export function OperationLogTable({
                       "-"
                     )}
                   </TableCell>
+                  <TableCell>{log.userName || log.userId || "-"}</TableCell>
                   <TableCell className="max-w-64 truncate">
                     {log.errorMessage || log.message || "-"}
                   </TableCell>

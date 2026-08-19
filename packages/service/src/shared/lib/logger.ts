@@ -50,7 +50,7 @@ export async function logOperation(params: LogOperationParams) {
   try {
     const c = resolveContext(params.c);
     const error = normalizeError(params.error);
-    const { authType, authTokenId } = await resolveAuth(c, {
+    const { authType, authTokenId, userId, userName } = await resolveAuth(c, {
       authType: params.authType,
       authTokenId: params.authTokenId,
       principal: params.principal,
@@ -61,6 +61,8 @@ export async function logOperation(params: LogOperationParams) {
         traceId: resolveTraceId(c, params.traceId),
         authType,
         authTokenId,
+        userId: userId ?? null,
+        userName: userName ?? null,
         level: params.level ?? "info",
         source: params.source ?? null,
         module: params.module ?? null,
@@ -75,6 +77,7 @@ export async function logOperation(params: LogOperationParams) {
         stack: error.stack,
         metadata: toJsonValue(params.metadata),
         ip: c ? getClientIpFromContextOrNull(c) : null,
+        userAgent: c ? (c.req.header("user-agent") ?? null) : null,
       },
     });
   } catch (e) {

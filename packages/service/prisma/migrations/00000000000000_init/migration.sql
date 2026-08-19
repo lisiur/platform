@@ -378,6 +378,9 @@ CREATE TABLE "operation_log" (
     "stack" TEXT,
     "metadata" JSONB,
     "ip" TEXT,
+    "userAgent" TEXT,
+    "userId" TEXT,
+    "userName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "operation_log_pkey" PRIMARY KEY ("id")
@@ -994,6 +997,9 @@ CREATE INDEX "operation_log_authType_idx" ON "operation_log"("authType");
 
 -- CreateIndex
 CREATE INDEX "operation_log_authTokenId_idx" ON "operation_log"("authTokenId");
+
+-- CreateIndex
+CREATE INDEX "operation_log_userId_idx" ON "operation_log"("userId");
 
 -- CreateIndex
 CREATE INDEX "operation_log_level_idx" ON "operation_log"("level");

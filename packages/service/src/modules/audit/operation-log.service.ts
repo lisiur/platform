@@ -16,6 +16,8 @@ export async function listLogs(params: {
   traceId?: string;
   authType?: string;
   authTokenId?: string;
+  userId?: string;
+  userName?: string;
   level?: string;
   source?: string;
   module?: string;
@@ -32,6 +34,8 @@ export async function listLogs(params: {
     traceId,
     authType,
     authTokenId,
+    userId,
+    userName,
     level,
     source,
     module,
@@ -47,6 +51,8 @@ export async function listLogs(params: {
   if (traceId) where.traceId = traceId;
   if (authType) where.authType = authType;
   if (authTokenId) where.authTokenId = authTokenId;
+  if (userId) where.userId = userId;
+  if (userName) where.userName = { contains: userName, mode: "insensitive" };
   if (level) where.level = level;
   if (source) where.source = source;
   if (module) where.module = module;

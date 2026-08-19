@@ -33,6 +33,8 @@ export interface OperationLogFilters {
   traceId?: string;
   authType?: string;
   authTokenId?: string;
+  userId?: string;
+  userName?: string;
   level?: string;
   module?: string;
   event?: string;
@@ -53,6 +55,7 @@ interface OperationLogFilterProps {
   labels: {
     traceId: string;
     authTokenId: string;
+    userName: string;
     level: string;
     module: string;
     event: string;
@@ -122,6 +125,12 @@ function OperationLogFilterFields({
         placeholder={labels.authTokenId}
         value={filters.authTokenId ?? ""}
         onChange={(event) => setFilter("authTokenId", event.target.value)}
+      />
+      <Input
+        className="h-9 w-full md:w-40"
+        placeholder={labels.userName}
+        value={filters.userName ?? ""}
+        onChange={(event) => setFilter("userName", event.target.value)}
       />
       <Select
         value={filters.level ?? "all"}
