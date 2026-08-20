@@ -17,7 +17,7 @@ CREATE TYPE "LinkType" AS ENUM ('GROUP', 'INTERNAL', 'EXTERNAL');
 CREATE TYPE "ai_message_role" AS ENUM ('user', 'assistant');
 
 -- CreateEnum
-CREATE TYPE "CollectionItemType" AS ENUM ('WORD', 'PHRASE', 'SENTENCE', 'ARTICLE', 'LINK');
+CREATE TYPE "CollectionItemType" AS ENUM ('WORD', 'PHRASE', 'SENTENCE');
 
 -- CreateTable
 CREATE TABLE "user" (
