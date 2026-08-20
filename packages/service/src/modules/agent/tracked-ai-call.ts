@@ -27,6 +27,68 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function jsonCompatible(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => jsonCompatible(item))
+      .filter((item) => item !== undefined);
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([key, item]) => [key, jsonCompatible(item)] as const)
+        .filter(([, item]) => item !== undefined),
+    );
+  }
+  return undefined;
+}
+
+function pickJsonFields(
+  value: unknown,
+  fields: string[],
+): Record<string, unknown> | undefined {
+  if (!isRecord(value)) return undefined;
+  const picked = Object.fromEntries(
+    fields
+      .map((field) => [field, jsonCompatible(value[field])] as const)
+      .filter(([, item]) => item !== undefined),
+  );
+  return Object.keys(picked).length > 0 ? picked : undefined;
+}
+
+function failureOutput(err: unknown): Record<string, unknown> | null {
+  if (!isRecord(err)) return null;
+
+  const output = Object.fromEntries(
+    [
+      ["text", jsonCompatible(err.text)],
+      ["object", jsonCompatible(err.object)],
+      ["finishReason", jsonCompatible(err.finishReason)],
+      ["usage", jsonCompatible(err.usage)],
+      [
+        "response",
+        pickJsonFields(err.response, ["id", "modelId", "timestamp"]),
+      ],
+    ].filter(([, value]) => value !== undefined),
+  );
+
+  return Object.keys(output).length > 0 ? output : null;
+}
+
 function normalizeUsage(usage: LanguageModelUsage) {
   return {
     inputTokens: usage.inputTokens ?? 0,
@@ -142,10 +204,15 @@ export async function executeTrackedAiCall<
 
       return result;
     } catch (err) {
+      const output = failureOutput(err);
       await prisma.aiUsageEvent
         .update({
           where: { id: usageEvent.id },
-          data: { status: "failed", error: errorMessage(err) },
+          data: {
+            status: "failed",
+            error: errorMessage(err),
+            ...(output ? { output: asJson(output) } : {}),
+          },
         })
         .catch(() => {});
       await releaseForAiUsage({
