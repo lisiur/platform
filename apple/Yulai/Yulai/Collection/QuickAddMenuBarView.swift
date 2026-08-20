@@ -38,7 +38,7 @@ struct QuickAddMenuBarView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("快速添加")
                 .font(.headline)
-            TextField("粘贴单词、短语、句子或链接…", text: $source, axis: .vertical)
+            TextField("粘贴单词、短语或句子…", text: $source, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFieldFocused)
                 .lineLimit(1...5)

@@ -4,13 +4,7 @@ import { idParamSchema, paginationQuerySchema } from "#lib/openapi";
 
 export { deleteSuccessSchema, errorSchema } from "#lib/openapi";
 
-export const collectionItemTypeSchema = z.enum([
-  "WORD",
-  "PHRASE",
-  "SENTENCE",
-  "ARTICLE",
-  "LINK",
-]);
+export const collectionItemTypeSchema = z.enum(["WORD", "PHRASE", "SENTENCE"]);
 
 export const itemEnrichmentSchema = z
   .object({
@@ -82,18 +76,14 @@ export const retryEnrichResponseSchema = z
   })
   .openapi("RetryEnrichItemResponse");
 
-export const createItemBodySchema = z
-  .object({
-    type: collectionItemTypeSchema,
-    source: z.string().min(1).openapi({ example: "ephemeral" }),
-    url: z.string().url().optional(),
-    title: z.string().optional(),
-    note: z.string().optional(),
-    tags: z.array(z.string().min(1)).optional(),
-  })
-  .refine((val) => val.type !== "LINK" || /^https?:\/\/.+/i.test(val.source), {
-    message: "source must be an http(s) URL for LINK type",
-  });
+export const createItemBodySchema = z.object({
+  type: collectionItemTypeSchema,
+  source: z.string().min(1).openapi({ example: "ephemeral" }),
+  url: z.string().url().optional(),
+  title: z.string().optional(),
+  note: z.string().optional(),
+  tags: z.array(z.string().min(1)).optional(),
+});
 
 export const updateItemBodySchema = z.object({
   title: z.string().nullable().optional(),
@@ -123,14 +113,7 @@ export const listItemsResponseSchema = z
 export const enrichBodySchema = z.object({
   kinds: z
     .array(
-      z.enum([
-        "translation",
-        "etymology",
-        "examples",
-        "synonyms",
-        "grammar",
-        "summary",
-      ]),
+      z.enum(["translation", "etymology", "examples", "synonyms", "grammar"]),
     )
     .optional()
     .openapi({ example: ["translation", "examples"] }),
@@ -167,9 +150,6 @@ export const exportedItemSchema = z
     enrichStatus: z.enum(ENRICH_STATUSES).optional(),
     createdAt: z.coerce.date().optional(),
     enrichments: exportedEnrichmentSchema.array().max(20),
-  })
-  .refine((val) => val.type !== "LINK" || /^https?:\/\/.+/i.test(val.source), {
-    message: "source must be an http(s) URL for LINK type",
   })
   .openapi("ExportedCollectionItem");
 

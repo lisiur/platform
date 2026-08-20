@@ -16,14 +16,7 @@ import { ImportDialog } from "./import-dialog";
 import { ItemCard } from "./item-card";
 import { type CollectionItemRow, ItemQuickAdd } from "./item-quick-add";
 
-const TYPE_FILTERS = [
-  "ALL",
-  "WORD",
-  "PHRASE",
-  "SENTENCE",
-  "ARTICLE",
-  "LINK",
-] as const;
+const TYPE_FILTERS = ["ALL", "WORD", "PHRASE", "SENTENCE"] as const;
 type TypeFilter = (typeof TYPE_FILTERS)[number];
 
 export function CollectionList() {

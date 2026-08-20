@@ -131,21 +131,10 @@ struct ItemDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            if item.type == .link,
-               let url = URL(string: item.url ?? item.source) {
-                Link(destination: url) {
-                    HStack(spacing: 6) {
-                        Text(item.title ?? item.source)
-                            .font(.title3.weight(.semibold))
-                        Image(systemName: "arrow.up.right.square")
-                    }
-                }
-            } else {
-                Text(item.source)
-                    .font(.title3.weight(.semibold))
-                    .textSelection(.enabled)
-            }
-            if let title = item.title, item.type != .link, !title.isEmpty {
+            Text(item.source)
+                .font(.title3.weight(.semibold))
+                .textSelection(.enabled)
+            if let title = item.title, !title.isEmpty {
                 Text(title)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

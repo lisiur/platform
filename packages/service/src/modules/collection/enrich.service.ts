@@ -21,8 +21,7 @@ export type EnrichmentKind =
   | "etymology"
   | "examples"
   | "synonyms"
-  | "grammar"
-  | "summary";
+  | "grammar";
 
 export const ALL_ENRICHMENT_KINDS: EnrichmentKind[] = [
   "translation",
@@ -30,14 +29,11 @@ export const ALL_ENRICHMENT_KINDS: EnrichmentKind[] = [
   "examples",
   "synonyms",
   "grammar",
-  "summary",
 ];
-
-type EnrichableType = Exclude<CollectionItemType, "LINK">;
 
 interface EnrichmentDef {
   kind: EnrichmentKind;
-  types: EnrichableType[];
+  types: CollectionItemType[];
   schema: z.ZodType;
   /** Concrete JSON shape embedded in the prompt — DeepSeek's json_object mode
    *  does not accept a schema on the wire, so the model must be told the shape. */
@@ -156,31 +152,6 @@ const DEFS: EnrichmentDef[] = [
       prompt: `Analyze the grammar of this English sentence for a Chinese learner. Break down the structure and highlight key grammar points.\n\nSentence: ${source}`,
     }),
   },
-  {
-    kind: "summary",
-    types: ["ARTICLE"],
-    schema: z.object({
-      summary: z
-        .string()
-        .describe("A concise Simplified-Chinese summary of the article"),
-      keyVocabulary: z
-        .array(
-          z.object({
-            word: z.string().describe("An English word or phrase"),
-            meaning: z
-              .string()
-              .describe("Simplified-Chinese meaning in context"),
-          }),
-        )
-        .describe("Important vocabulary worth learning"),
-    }),
-    shapeHint:
-      '{"summary":"文章摘要（简体中文）","keyVocabulary":[{"word":"term","meaning":"释义"}]}',
-    build: (source) => ({
-      system: COMMON_SYSTEM,
-      prompt: `Summarize the following English article in Simplified Chinese, and extract key vocabulary worth learning.\n\nArticle:\n${source}`,
-    }),
-  },
 ];
 
 function kindsForType(type: CollectionItemType): EnrichmentKind[] {
@@ -234,12 +205,6 @@ export async function enrichItem(
   if (!item) {
     throw new HTTPException(404, { message: "Collection item not found" });
   }
-  if (item.type === "LINK") {
-    throw new HTTPException(400, {
-      message: "Link items do not support AI enrichment",
-    });
-  }
-
   const applicable = kindsForType(item.type);
   const targets: EnrichmentKind[] = requested
     ? requested.filter((k) => applicable.includes(k))

@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge, Spinner } from "@repo/ui";
-import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { formatRelativeTime } from "@/utils/date";
@@ -14,8 +13,6 @@ const TYPE_VARIANT: Record<
   WORD: "default",
   PHRASE: "secondary",
   SENTENCE: "outline",
-  ARTICLE: "outline",
-  LINK: "secondary",
 };
 
 interface ItemCardProps {
@@ -36,11 +33,7 @@ interface ItemCardProps {
 export function ItemCard({ item }: ItemCardProps) {
   const t = useTranslations("Collection");
 
-  const displayTitle =
-    item.type === "LINK"
-      ? (item.title ?? item.source)
-      : (item.title ?? item.source);
-  const isLink = item.type === "LINK";
+  const displayTitle = item.title ?? item.source;
 
   return (
     <Link
@@ -79,13 +72,6 @@ export function ItemCard({ item }: ItemCardProps) {
       {item.note && (
         <div className="line-clamp-2 text-xs text-muted-foreground">
           {item.note}
-        </div>
-      )}
-
-      {isLink && (
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <ExternalLink className="size-3 shrink-0" />
-          <span className="truncate">{item.url ?? item.source}</span>
         </div>
       )}
 

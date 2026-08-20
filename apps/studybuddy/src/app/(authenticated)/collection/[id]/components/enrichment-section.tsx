@@ -10,7 +10,6 @@ export const ENRICHMENT_KINDS = [
   "examples",
   "synonyms",
   "grammar",
-  "summary",
 ] as const;
 export type EnrichmentKind = (typeof ENRICHMENT_KINDS)[number];
 
@@ -18,8 +17,6 @@ export const KINDS_BY_TYPE: Record<string, EnrichmentKind[]> = {
   WORD: ["translation", "etymology", "examples", "synonyms"],
   PHRASE: ["translation", "examples"],
   SENTENCE: ["translation", "grammar"],
-  ARTICLE: ["summary"],
-  LINK: [],
 };
 
 export interface EnrichmentData {
@@ -128,29 +125,6 @@ function EnrichContent({
               <li key={p}>{p}</li>
             ))}
           </ul>
-        )}
-      </div>
-    );
-  }
-  if (kind === "summary") {
-    const vocab = (content.keyVocabulary ?? []) as Array<{
-      word: string;
-      meaning: string;
-    }>;
-    return (
-      <div className="space-y-2">
-        <p className="text-sm leading-relaxed">
-          {String(content.summary ?? "")}
-        </p>
-        {vocab.length > 0 && (
-          <div className="space-y-1">
-            {vocab.map((v) => (
-              <div key={v.word} className="text-xs">
-                <span className="font-medium">{v.word}</span>
-                <span className="text-muted-foreground"> — {v.meaning}</span>
-              </div>
-            ))}
-          </div>
         )}
       </div>
     );

@@ -707,8 +707,6 @@ enum CollectionItemType {
   WORD
   PHRASE
   SENTENCE
-  ARTICLE
-  LINK
 }
 
 model CollectionItem {

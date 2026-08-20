@@ -47,7 +47,7 @@
   "Collection": {
     "title": "收藏",
     "description": "收集并学习英语单词、短语、句子、文章和链接",
-    "quickAddPlaceholder": "粘贴单词、短语、句子或链接…",
+    "quickAddPlaceholder": "粘贴单词、短语或句子…",
     "add": "添加",
     "adding": "添加中…",
     "added": "已加入收藏",
@@ -57,9 +57,7 @@
     "types": {
       "WORD": "单词",
       "PHRASE": "短语",
-      "SENTENCE": "句子",
-      "ARTICLE": "文章",
-      "LINK": "链接"
+      "SENTENCE": "句子"
     },
     "enriched": "{count} 条释义",
     "enrichPending": "生成中…",
@@ -110,16 +108,14 @@
       "etymology": "词源",
       "examples": "例句",
       "synonyms": "同义词与反义词",
-      "grammar": "语法",
-      "summary": "摘要"
+      "grammar": "语法"
     },
     "enrichmentDescriptions": {
       "translation": "中文翻译、发音与词性",
       "etymology": "单词的起源与历史",
       "examples": "自然的例句",
       "synonyms": "相关与相反的词",
-      "grammar": "语法拆解与要点",
-      "summary": "简明摘要与重点词汇"
+      "grammar": "语法拆解与要点"
     }
   },
   "Dashboard": {

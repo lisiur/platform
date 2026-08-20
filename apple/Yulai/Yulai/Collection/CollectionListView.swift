@@ -12,9 +12,6 @@ struct CollectionListView: View {
     var body: some View {
         VStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("收集并学习英语单词、短语、句子、文章和链接")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 #if !os(macOS)
                 searchField
                 #endif
@@ -218,8 +215,10 @@ struct CollectionListView: View {
                 Text(type.label).tag(CollectionItemType?.some(type))
             }
         }
+        .labelsHidden()
         .pickerStyle(.segmented)
-        .frame(maxWidth: 460, alignment: .leading)
+        .controlSize(.large)
+        .frame(maxWidth: 560, alignment: .leading)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -326,7 +325,7 @@ struct ManualAddSheet: View {
                 .buttonStyle(.plain)
                 .disabled(store.isAdding)
             }
-            Text("输入单词、短语、句子或链接，类型将自动识别。")
+            Text("输入单词、短语或句子，类型将自动识别。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             sourceField
@@ -392,7 +391,7 @@ struct ManualAddSheet: View {
                 )
                 #endif
             if source.isEmpty {
-                Text("粘贴单词、短语、句子或链接…")
+                Text("粘贴单词、短语或句子…")
                     .font(.body)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 16)

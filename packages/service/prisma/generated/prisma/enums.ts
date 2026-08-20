@@ -59,9 +59,7 @@ export type AiMessageRole = (typeof AiMessageRole)[keyof typeof AiMessageRole]
 export const CollectionItemType = {
   WORD: 'WORD',
   PHRASE: 'PHRASE',
-  SENTENCE: 'SENTENCE',
-  ARTICLE: 'ARTICLE',
-  LINK: 'LINK'
+  SENTENCE: 'SENTENCE'
 } as const
 
 export type CollectionItemType = (typeof CollectionItemType)[keyof typeof CollectionItemType]

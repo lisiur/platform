@@ -8,12 +8,7 @@ import { toast } from "sonner";
 import { appClient } from "@/lib/api";
 import { withApiFeedback } from "@/lib/api/utils";
 
-export type CollectionItemType =
-  | "WORD"
-  | "PHRASE"
-  | "SENTENCE"
-  | "ARTICLE"
-  | "LINK";
+export type CollectionItemType = "WORD" | "PHRASE" | "SENTENCE";
 
 export type EnrichStatus = "none" | "pending" | "ok" | "failed";
 
@@ -34,12 +29,10 @@ export interface CollectionItemRow {
 
 function detectType(source: string): CollectionItemType {
   const trimmed = source.trim();
-  if (/^https?:\/\//i.test(trimmed)) return "LINK";
   const words = trimmed.split(/\s+/).filter(Boolean);
   if (words.length <= 1) return "WORD";
   const endsWithPunctuation = /[.!?…]$/.test(trimmed);
   if (!endsWithPunctuation && words.length <= 5) return "PHRASE";
-  if (words.length > 40) return "ARTICLE";
   return "SENTENCE";
 }
 

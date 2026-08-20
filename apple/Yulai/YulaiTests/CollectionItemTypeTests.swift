@@ -2,16 +2,11 @@ import XCTest
 @testable import Yulai
 
 final class CollectionItemTypeTests: XCTestCase {
-    func testDetectLink() {
-        XCTAssertEqual(CollectionItemType.detect("https://example.com/a?b=c"), .link)
-        XCTAssertEqual(CollectionItemType.detect("HTTP://Example.com"), .link)
-        XCTAssertEqual(CollectionItemType.detect("  https://example.com  "), .link)
-    }
-
     func testDetectWord() {
         XCTAssertEqual(CollectionItemType.detect("hello"), .word)
         XCTAssertEqual(CollectionItemType.detect("  hello  "), .word)
         XCTAssertEqual(CollectionItemType.detect("hello-world"), .word)
+        XCTAssertEqual(CollectionItemType.detect("https://example.com/a?b=c"), .word)
     }
 
     func testDetectPhrase() {
@@ -25,10 +20,9 @@ final class CollectionItemTypeTests: XCTestCase {
         XCTAssertEqual(CollectionItemType.detect("one two three four five six"), .sentence)
     }
 
-    func testDetectArticle() {
+    func testDetectLongText() {
         let words = (1...41).map(String.init).joined(separator: " ")
-        XCTAssertEqual(CollectionItemType.detect(words), .article)
-        // Exactly 40 words is still a sentence; 41 crosses the threshold.
+        XCTAssertEqual(CollectionItemType.detect(words), .sentence)
         let forty = (1...40).map(String.init).joined(separator: " ")
         XCTAssertEqual(CollectionItemType.detect(forty), .sentence)
     }

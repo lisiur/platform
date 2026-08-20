@@ -47,7 +47,7 @@
   "Collection": {
     "title": "Collection",
     "description": "Capture and learn English words, phrases, sentences, articles, and links",
-    "quickAddPlaceholder": "Paste a word, phrase, sentence, or link…",
+    "quickAddPlaceholder": "Paste a word, phrase, or sentence…",
     "add": "Add",
     "adding": "Adding…",
     "added": "Added to collection",
@@ -57,9 +57,7 @@
     "types": {
       "WORD": "Word",
       "PHRASE": "Phrase",
-      "SENTENCE": "Sentence",
-      "ARTICLE": "Article",
-      "LINK": "Link"
+      "SENTENCE": "Sentence"
     },
     "enriched": "{count, plural, one {# enrichment} other {# enrichments}}",
     "enrichPending": "Enriching…",
@@ -110,16 +108,14 @@
       "etymology": "Etymology",
       "examples": "Example sentences",
       "synonyms": "Synonyms & antonyms",
-      "grammar": "Grammar",
-      "summary": "Summary"
+      "grammar": "Grammar"
     },
     "enrichmentDescriptions": {
       "translation": "Chinese translation, pronunciation, and part of speech",
       "etymology": "Origin and history of the word",
       "examples": "Natural example sentences",
       "synonyms": "Related and opposite words",
-      "grammar": "Grammatical breakdown and key points",
-      "summary": "Concise summary and key vocabulary"
+      "grammar": "Grammatical breakdown and key points"
     }
   },
   "Dashboard": {

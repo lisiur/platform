@@ -39,16 +39,6 @@ struct ItemCardView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
-            if item.type == .link {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.right.square")
-                    Text(item.url ?? item.source)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
             if !item.tags.isEmpty {
                 WrapLayout(spacing: 5) {
                     ForEach(Array(item.tags.prefix(4)), id: \.self) { tag in

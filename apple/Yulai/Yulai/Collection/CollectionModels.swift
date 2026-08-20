@@ -5,8 +5,6 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
     case word = "WORD"
     case phrase = "PHRASE"
     case sentence = "SENTENCE"
-    case article = "ARTICLE"
-    case link = "LINK"
 
     var id: String { rawValue }
 
@@ -15,8 +13,6 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
         case .word: "单词"
         case .phrase: "短语"
         case .sentence: "句子"
-        case .article: "文章"
-        case .link: "链接"
         }
     }
 
@@ -25,8 +21,6 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
         case .word: .accentColor
         case .phrase: .purple
         case .sentence: .blue
-        case .article: .orange
-        case .link: .teal
         }
     }
 
@@ -34,21 +28,14 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
         .word: [.translation, .etymology, .examples, .synonyms],
         .phrase: [.translation, .examples],
         .sentence: [.translation, .grammar],
-        .article: [.summary],
-        .link: [],
     ]
 
     static func detect(_ source: String) -> CollectionItemType {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lowercased = trimmed.lowercased()
-        if lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") {
-            return .link
-        }
         let words = trimmed.split(whereSeparator: \.isWhitespace)
         if words.count <= 1 { return .word }
         let endsWithPunctuation = trimmed.last.map { ".!?…".contains($0) } ?? false
         if !endsWithPunctuation && words.count <= 5 { return .phrase }
-        if words.count > 40 { return .article }
         return .sentence
     }
 }
@@ -66,7 +53,6 @@ enum EnrichmentKind: String, CaseIterable, Identifiable {
     case examples
     case synonyms
     case grammar
-    case summary
 
     var id: String { rawValue }
 
@@ -77,7 +63,6 @@ enum EnrichmentKind: String, CaseIterable, Identifiable {
         case .examples: "例句"
         case .synonyms: "同义词与反义词"
         case .grammar: "语法"
-        case .summary: "摘要"
         }
     }
 
@@ -88,7 +73,6 @@ enum EnrichmentKind: String, CaseIterable, Identifiable {
         case .examples: "自然的例句"
         case .synonyms: "相关与相反的词"
         case .grammar: "语法拆解与要点"
-        case .summary: "简明摘要与重点词汇"
         }
     }
 }

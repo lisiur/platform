@@ -4,7 +4,7 @@ import { useEventStream } from "@repo/frontend";
 import type { CollectionItemEnrichedEvent } from "@repo/shared";
 import { Badge, Button, Spinner } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, RefreshCw, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -25,8 +25,6 @@ const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   WORD: "default",
   PHRASE: "secondary",
   SENTENCE: "outline",
-  ARTICLE: "outline",
-  LINK: "secondary",
 };
 
 interface ItemDetailData {
@@ -156,23 +154,11 @@ export function ItemDetail({ id }: ItemDetailProps) {
           </span>
         </div>
 
-        {item.type === "LINK" ? (
-          <a
-            href={item.url ?? item.source}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-lg inline-flex items-center gap-1.5 font-semibold hover:underline"
-          >
-            {item.title ?? item.source}
-            <ExternalLink className="size-4" />
-          </a>
-        ) : (
-          <p className="text-lg whitespace-pre-wrap break-words font-semibold">
-            {item.source}
-          </p>
-        )}
+        <p className="text-lg whitespace-pre-wrap break-words font-semibold">
+          {item.source}
+        </p>
 
-        {item.title && item.type !== "LINK" && (
+        {item.title && (
           <p className="mt-1 text-sm text-muted-foreground">{item.title}</p>
         )}
         {item.note && (

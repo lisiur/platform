@@ -121,26 +121,6 @@ struct EnrichmentContentView: View {
                     }
                 }
             }
-        case .summary:
-            VStack(alignment: .leading, spacing: 8) {
-                Text(content["summary"]?.stringValue ?? "")
-                    .font(.callout)
-                let vocabulary = content["keyVocabulary"]?.arrayValue ?? []
-                if !vocabulary.isEmpty {
-                    VStack(alignment: .leading, spacing: 3) {
-                        ForEach(Array(vocabulary.enumerated()), id: \.offset) { _, entry in
-                            let object = entry.objectValue ?? [:]
-                            HStack(spacing: 0) {
-                                Text(object["word"]?.stringValue ?? "")
-                                    .fontWeight(.medium)
-                                Text(" — \(object["meaning"]?.stringValue ?? "")")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .font(.caption)
-                        }
-                    }
-                }
-            }
         }
     }
 
