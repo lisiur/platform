@@ -1,0 +1,76 @@
+# Xcode
+## User settings
+xcuserdata/
+## Compatibility
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+## Old-style .pbxuser/.mode1v3 etc.
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+## Gcc patches
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+# Note: Package.resolved of an app project should be committed to lock dependency versions
+.build/
+Packages/
+Package.pins
+.swiftpm/
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# SwiftLint / SwiftFormat
+.swiftlint_cache/
+.swiftformat
+
+# Tuist
+Derived/
+
+# Xcode workspaces & per-user state
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# Build products
+build/
+Build/
+DerivedData/
+*.app
+*.framework
+*.dylib
+*.a
+*.o
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
