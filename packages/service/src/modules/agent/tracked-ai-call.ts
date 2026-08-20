@@ -98,6 +98,11 @@ function normalizeUsage(usage: LanguageModelUsage) {
   };
 }
 
+function failureUsage(err: unknown): ReturnType<typeof normalizeUsage> | null {
+  if (!isRecord(err) || !isRecord(err.usage)) return null;
+  return normalizeUsage(err.usage as LanguageModelUsage);
+}
+
 /**
  * Runs a single-shot AI call with full usage/content tracking. Creates the
  * `ai_usage_event` row (status `pending`, recording the input snapshot),
@@ -205,12 +210,33 @@ export async function executeTrackedAiCall<
       return result;
     } catch (err) {
       const output = failureOutput(err);
+      const usage = failureUsage(err);
+      const cost = usage
+        ? resolved.pricing
+          ? computeUsageCost(resolved.pricing, {
+              inputTokens: usage.inputTokens,
+              cachedInputTokens: usage.cachedInputTokens,
+              outputTokens: usage.outputTokens,
+            })
+          : 0
+        : undefined;
       await prisma.aiUsageEvent
         .update({
           where: { id: usageEvent.id },
           data: {
             status: "failed",
             error: errorMessage(err),
+            latencyMs: Date.now() - startTime,
+            ...(usage
+              ? {
+                  inputTokens: usage.inputTokens,
+                  cachedInputTokens: usage.cachedInputTokens,
+                  outputTokens: usage.outputTokens,
+                  reasoningTokens: usage.reasoningTokens,
+                  cost,
+                  currency: resolved.currency,
+                }
+              : {}),
             ...(output ? { output: asJson(output) } : {}),
           },
         })

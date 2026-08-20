@@ -73,6 +73,22 @@ type PersistedMessage = {
   parts: UIMessage["parts"];
 };
 
+type UsageTotals = {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+};
+
+function hasUsage(usage: UsageTotals) {
+  return (
+    usage.inputTokens > 0 ||
+    usage.cachedInputTokens > 0 ||
+    usage.outputTokens > 0 ||
+    usage.reasoningTokens > 0
+  );
+}
+
 /** The Prisma JSON column expects InputJsonValue; message parts and input
  *  snapshots qualify as one. */
 function asJson(value: object): Prisma.InputJsonValue {
@@ -324,10 +340,35 @@ export async function sendMessageHandler(c: Context) {
   let reservedAmount = 0;
   let reservationSettled = false;
 
+  const usageCost = (usage: UsageTotals) =>
+    resolved.pricing
+      ? computeUsageCost(resolved.pricing, {
+          inputTokens: usage.inputTokens,
+          cachedInputTokens: usage.cachedInputTokens,
+          outputTokens: usage.outputTokens,
+        })
+      : 0;
+
   /** Marks the usage event failed and refunds the reservation in full. */
-  const refundReservation = async () => {
+  const refundReservation = async (usage?: UsageTotals | null) => {
     await prisma.aiUsageEvent
-      .update({ where: { id: usageEvent.id }, data: { status: "failed" } })
+      .update({
+        where: { id: usageEvent.id },
+        data: {
+          status: "failed",
+          latencyMs: Date.now() - startTime,
+          ...(usage && hasUsage(usage)
+            ? {
+                inputTokens: usage.inputTokens,
+                cachedInputTokens: usage.cachedInputTokens,
+                outputTokens: usage.outputTokens,
+                reasoningTokens: usage.reasoningTokens,
+                cost: usageCost(usage),
+                currency: resolved.currency,
+              }
+            : {}),
+        },
+      })
       .catch(() => {});
     await releaseForAiUsage({
       userId,
@@ -337,10 +378,10 @@ export async function sendMessageHandler(c: Context) {
     }).catch(() => {});
   };
 
-  const settleFailure = async () => {
+  const settleFailure = async (usage?: UsageTotals | null) => {
     if (reservationSettled) return;
     reservationSettled = true;
-    await refundReservation();
+    await refundReservation(usage);
   };
 
   try {
@@ -380,6 +421,36 @@ export async function sendMessageHandler(c: Context) {
   /** Bounded wait for the SDK to finalize per-step usage after an interruption. */
   const STEPS_SETTLE_TIMEOUT_MS = 5_000;
 
+  const sumStepUsage = () =>
+    result.steps.then((steps) =>
+      steps.reduce<UsageTotals>(
+        (acc, step) => ({
+          inputTokens: acc.inputTokens + (step.usage.inputTokens ?? 0),
+          cachedInputTokens:
+            acc.cachedInputTokens +
+            (step.usage.inputTokenDetails?.cacheReadTokens ?? 0),
+          outputTokens: acc.outputTokens + (step.usage.outputTokens ?? 0),
+          reasoningTokens:
+            acc.reasoningTokens +
+            (step.usage.outputTokenDetails?.reasoningTokens ?? 0),
+        }),
+        {
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+        },
+      ),
+    );
+
+  const sumStepUsageWithTimeout = () =>
+    Promise.race([
+      sumStepUsage(),
+      new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), STEPS_SETTLE_TIMEOUT_MS),
+      ),
+    ]).catch(() => null);
+
   /** Charges the real cost of the steps completed before an interruption
    *  (client disconnect, timeout, stream error) instead of refunding the whole
    *  reservation. Falls back to a full refund when no usage is determinable. */
@@ -387,50 +458,14 @@ export async function sendMessageHandler(c: Context) {
     if (reservationSettled) return;
     reservationSettled = true;
 
-    const usage = await Promise.race([
-      result.steps.then((steps) =>
-        steps.reduce(
-          (acc, step) => ({
-            inputTokens: acc.inputTokens + (step.usage.inputTokens ?? 0),
-            cachedInputTokens:
-              acc.cachedInputTokens +
-              (step.usage.inputTokenDetails?.cacheReadTokens ?? 0),
-            outputTokens: acc.outputTokens + (step.usage.outputTokens ?? 0),
-            reasoningTokens:
-              acc.reasoningTokens +
-              (step.usage.outputTokenDetails?.reasoningTokens ?? 0),
-          }),
-          {
-            inputTokens: 0,
-            cachedInputTokens: 0,
-            outputTokens: 0,
-            reasoningTokens: 0,
-          },
-        ),
-      ),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), STEPS_SETTLE_TIMEOUT_MS),
-      ),
-    ]).catch(() => null);
+    const usage = await sumStepUsageWithTimeout();
 
-    if (
-      !usage ||
-      (usage.inputTokens === 0 &&
-        usage.cachedInputTokens === 0 &&
-        usage.outputTokens === 0 &&
-        usage.reasoningTokens === 0)
-    ) {
+    if (!usage || !hasUsage(usage)) {
       await refundReservation();
       return;
     }
 
-    const cost = resolved.pricing
-      ? computeUsageCost(resolved.pricing, {
-          inputTokens: usage.inputTokens,
-          cachedInputTokens: usage.cachedInputTokens,
-          outputTokens: usage.outputTokens,
-        })
-      : 0;
+    const cost = usageCost(usage);
 
     await prisma.aiUsageEvent
       .update({
@@ -537,27 +572,21 @@ export async function sendMessageHandler(c: Context) {
 
         try {
           const usage = await result.totalUsage;
-          const inputTokens = usage.inputTokens ?? 0;
-          const cachedInputTokens =
-            usage.inputTokenDetails?.cacheReadTokens ?? 0;
-          const outputTokens = usage.outputTokens ?? 0;
-          const reasoningTokens =
-            usage.outputTokenDetails?.reasoningTokens ?? 0;
-          const cost = resolved.pricing
-            ? computeUsageCost(resolved.pricing, {
-                inputTokens,
-                cachedInputTokens,
-                outputTokens,
-              })
-            : 0;
+          const usageTotals: UsageTotals = {
+            inputTokens: usage.inputTokens ?? 0,
+            cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+            reasoningTokens: usage.outputTokenDetails?.reasoningTokens ?? 0,
+          };
+          const cost = usageCost(usageTotals);
 
           await prisma.aiUsageEvent.update({
             where: { id: usageEvent.id },
             data: {
-              inputTokens,
-              cachedInputTokens,
-              outputTokens,
-              reasoningTokens,
+              inputTokens: usageTotals.inputTokens,
+              cachedInputTokens: usageTotals.cachedInputTokens,
+              outputTokens: usageTotals.outputTokens,
+              reasoningTokens: usageTotals.reasoningTokens,
               cost,
               currency: resolved.currency,
               latencyMs: Date.now() - startTime,
@@ -576,7 +605,7 @@ export async function sendMessageHandler(c: Context) {
           reservationSettled = true;
         } catch (err) {
           console.error("[agent] failed to record usage:", err);
-          await settleFailure();
+          await settleFailure(await sumStepUsageWithTimeout());
         }
       },
     }),
