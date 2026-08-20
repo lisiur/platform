@@ -3,7 +3,7 @@ import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
 import { listMyCreditLedger as listMyCreditLedgerService } from "#modules/redeem-code/redeem-code.service";
 import {
-  listRedeemCodesQuerySchema,
+  listMyCreditLedgerQuerySchema,
   listUserCreditLedgerResponseSchema,
 } from "./schema";
 
@@ -15,7 +15,7 @@ export const getMyCreditLedger = defineOpenAPIRoute({
     tags: ["RedeemCode"],
     summary: "List current user's credit ledger entries",
     request: {
-      query: listRedeemCodesQuerySchema,
+      query: listMyCreditLedgerQuerySchema,
     },
     responses: {
       ...unauthorizedResponse,
@@ -28,8 +28,14 @@ export const getMyCreditLedger = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
-    const { limit, offset } = c.req.valid("query");
-    const result = await listMyCreditLedgerService(userId, limit, offset);
+    const { limit, offset, type, from, to } = c.req.valid("query");
+    const result = await listMyCreditLedgerService(userId, {
+      limit,
+      offset,
+      type,
+      from,
+      to,
+    });
     return c.json(result, 200);
   },
 });

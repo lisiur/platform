@@ -55,6 +55,28 @@ type LedgerData = {
   metadata?: Prisma.InputJsonValue;
 };
 
+export type LedgerWindow = {
+  limit?: number;
+  offset?: number;
+  types?: string[];
+  from?: Date;
+  to?: Date;
+};
+
+function ledgerFilterWhere(window: LedgerWindow) {
+  return {
+    ...(window.types ? { type: { in: window.types } } : {}),
+    ...(window.from || window.to
+      ? {
+          createdAt: {
+            ...(window.from ? { gte: window.from } : {}),
+            ...(window.to ? { lte: window.to } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export const userCreditRepository = {
   findByUserId(userId: string) {
     return prisma.userCredit.findUnique({ where: { userId } });
@@ -237,28 +259,26 @@ export const userCreditRepository = {
     return tx ? apply(tx) : prisma.$transaction((t) => apply(t));
   },
 
-  findLedgerByUserId(
-    userId: string,
-    limit?: number,
-    offset?: number,
-    types?: string[],
-  ) {
+  findLedgerByUserId(userId: string, window: LedgerWindow = {}) {
     return prisma.userCreditLedger.findMany({
       where: {
         userId,
-        ...(types ? { type: { in: types } } : {}),
+        ...ledgerFilterWhere(window),
       },
-      take: limit,
-      skip: offset,
+      take: window.limit,
+      skip: window.offset,
       orderBy: { createdAt: "desc" },
     });
   },
 
-  countLedgerByUserId(userId: string, types?: string[]) {
+  countLedgerByUserId(
+    userId: string,
+    window: Omit<LedgerWindow, "limit" | "offset"> = {},
+  ) {
     return prisma.userCreditLedger.count({
       where: {
         userId,
-        ...(types ? { type: { in: types } } : {}),
+        ...ledgerFilterWhere(window),
       },
     });
   },

@@ -9,4 +9,10 @@ vim.lsp.config("jsonls", {
     end,
 })
 
-vim.lsp.enable({ "jsonls", "ts_ls", "biome", "prismals" })
+vim.lsp.config('sourcekit', {
+  cmd = { 'xcrun', 'sourcekit-lsp' },
+  filetypes = { 'swift' },
+  root_markers = { 'Package.swift' },
+})
+
+vim.lsp.enable({ "jsonls", "ts_ls", "biome", "prismals", "sourcekit" })

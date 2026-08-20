@@ -128,7 +128,9 @@ export async function listUserCredits(limit?: number, offset?: number) {
   return { credits, total };
 }
 
-const USER_LEDGER_TYPES = ["ai_usage", "redeem", "seed"];
+const USER_LEDGER_TYPES = ["ai_usage", "redeem", "seed"] as const;
+
+export type LedgerType = (typeof USER_LEDGER_TYPES)[number];
 
 export async function listUserCreditLedger(
   userId: string,
@@ -136,7 +138,7 @@ export async function listUserCreditLedger(
   offset?: number,
 ) {
   const [entries, total] = await Promise.all([
-    userCreditRepository.findLedgerByUserId(userId, limit, offset),
+    userCreditRepository.findLedgerByUserId(userId, { limit, offset }),
     userCreditRepository.countLedgerByUserId(userId),
   ]);
   return { entries, total };
@@ -144,17 +146,24 @@ export async function listUserCreditLedger(
 
 export async function listMyCreditLedger(
   userId: string,
-  limit?: number,
-  offset?: number,
+  opts: {
+    limit?: number;
+    offset?: number;
+    type?: LedgerType;
+    from?: string;
+    to?: string;
+  } = {},
 ) {
+  const window = {
+    limit: opts.limit,
+    offset: opts.offset,
+    types: opts.type ? [opts.type] : [...USER_LEDGER_TYPES],
+    from: opts.from ? new Date(opts.from) : undefined,
+    to: opts.to ? new Date(opts.to) : undefined,
+  };
   const [entries, total] = await Promise.all([
-    userCreditRepository.findLedgerByUserId(
-      userId,
-      limit,
-      offset,
-      USER_LEDGER_TYPES,
-    ),
-    userCreditRepository.countLedgerByUserId(userId, USER_LEDGER_TYPES),
+    userCreditRepository.findLedgerByUserId(userId, window),
+    userCreditRepository.countLedgerByUserId(userId, window),
   ]);
   return { entries, total };
 }
