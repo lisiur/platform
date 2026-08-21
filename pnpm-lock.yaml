@@ -409,6 +409,9 @@ importers:
       ipaddr.js:
         specifier: ^2.4.0
         version: 2.4.0
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
       lru-cache:
         specifier: ^11.0.0
         version: 11.5.2

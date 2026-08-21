@@ -72,6 +72,24 @@ export const signInWechatBodySchema = z.object({
   code: z.string().min(1),
 });
 
+export const signInAppleBodySchema = z.object({
+  identityToken: z.string().min(1),
+  nonce: z.string().min(1).max(256),
+  user: z
+    .object({
+      firstName: z.string().max(128).optional(),
+      lastName: z.string().max(128).optional(),
+    })
+    .optional(),
+});
+
+export const appleStatusResponseSchema = z
+  .object({
+    appleEnabled: z.boolean(),
+    clientId: z.string().nullable(),
+  })
+  .openapi("AppleStatus");
+
 export const registrationStatusSchema = z
   .object({
     registrationEnabled: z.boolean(),

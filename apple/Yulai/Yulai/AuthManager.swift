@@ -114,6 +114,39 @@ final class AuthManager {
         storeQuickLogin(email: email, password: password)
     }
 
+    private struct AppleSignInBody: Encodable {
+        struct User: Encodable {
+            let firstName: String?
+            let lastName: String?
+        }
+
+        let identityToken: String
+        let nonce: String
+        let user: User?
+    }
+
+    /// Sign in (or register) with a Sign in with Apple identity token obtained
+    /// via `ASAuthorizationAppleIDRequest`. The server verifies the token's
+    /// signature against Apple's JWKS, its audience (this app's bundle ID must
+    /// be listed in the platform's `apple.appAudiences` config), and the nonce.
+    func loginWithApple(
+        identityToken: String,
+        nonce: String,
+        firstName: String?,
+        lastName: String?
+    ) async throws {
+        let hasName = firstName != nil || lastName != nil
+        let response: SignInResponse = try await client.request(
+            "POST", "auth/sign-in/apple",
+            body: AppleSignInBody(
+                identityToken: identityToken,
+                nonce: nonce,
+                user: hasName ? .init(firstName: firstName, lastName: lastName) : nil
+            )
+        )
+        acceptSession(response)
+    }
+
     func restoreSession() async {
         defer { isRestoringSession = false }
         guard client.sessionToken != nil, currentUser == nil else { return }

@@ -2,7 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AppleSignInButton,
   isWebAuthnCancellation,
+  useAppleEnabled,
   useRegistrationEnabled,
   useWebAuthnEnabled,
 } from "@repo/frontend";
@@ -52,6 +54,17 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     const res = await appClient.api.auth.webauthn.status.$get();
     return (await res.json()).webauthnEnabled;
   });
+  const { appleEnabled, clientId: appleClientId } = useAppleEnabled(
+    async () => {
+      const res = await appClient.api.auth.apple.status.$get();
+      const data = await res.json();
+      return {
+        appleEnabled: data.appleEnabled,
+        clientId: data.clientId ?? null,
+      };
+    },
+  );
+  const showApple = appleEnabled && !!appleClientId;
 
   const {
     register,
@@ -121,6 +134,24 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     }
   }
 
+  async function handleAppleSuccess(result: {
+    identityToken: string;
+    nonce: string;
+    user?: { firstName?: string; lastName?: string };
+  }) {
+    setError(null);
+    try {
+      await withApiFeedback(appClient.api.auth["sign-in"].apple.$post, {
+        showError: false,
+      })({
+        json: result,
+      });
+      onSuccess?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("appleLoginFailed"));
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <FieldGroup>
@@ -161,7 +192,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         {isSubmitting ? t("signingIn") : t("signIn")}
       </Button>
 
-      {webauthnEnabled && (
+      {(webauthnEnabled || showApple) && (
         <div className="flex items-center gap-3">
           <span className="flex-1 border-t" />
           <span className="text-xs text-muted-foreground">{t("or")}</span>
@@ -180,6 +211,16 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           <UserKey />
           {isBiometricLoading ? t("signingIn") : t("signInWithPasskey")}
         </Button>
+      )}
+
+      {showApple && (
+        <AppleSignInButton
+          clientId={appleClientId}
+          label={t("signInWithApple")}
+          onSuccess={handleAppleSuccess}
+          onError={() => setError(t("appleLoginFailed"))}
+          disabled={isSubmitting}
+        />
       )}
 
       {registrationEnabled && (

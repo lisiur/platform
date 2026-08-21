@@ -23,6 +23,8 @@
     "or": "or",
     "signInWithPasskey": "Sign in with passkey",
     "biometricLoginFailed": "Biometric login failed",
+    "signInWithApple": "Sign in with Apple",
+    "appleLoginFailed": "Sign in with Apple failed. Please try again.",
     "biometricCancelled": "Biometric authentication was cancelled"
   },
   "Common": {

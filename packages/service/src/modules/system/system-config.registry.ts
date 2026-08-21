@@ -83,6 +83,30 @@ export const SYSTEM_CONFIG_REGISTRY: ConfigRegistryEntry[] = [
     valueSchema: z.string(),
   },
 
+  // --- apple ---
+  {
+    group: "apple",
+    key: "clientId",
+    defaultValue: "",
+    type: "string",
+    label: "settings.fields.appleClientId",
+    description: "settings.fieldsDesc.appleClientId",
+    isSecret: false,
+    sortOrder: 0,
+    valueSchema: z.string(),
+  },
+  {
+    group: "apple",
+    key: "appAudiences",
+    defaultValue: "",
+    type: "string",
+    label: "settings.fields.appleAppAudiences",
+    description: "settings.fieldsDesc.appleAppAudiences",
+    isSecret: false,
+    sortOrder: 1,
+    valueSchema: z.string(),
+  },
+
   // --- webauthn ---
   {
     group: "webauthn",

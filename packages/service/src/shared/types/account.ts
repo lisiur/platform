@@ -9,6 +9,13 @@ export type WechatProviderData = {
   scope?: string;
 };
 
+export type AppleProviderData = {
+  sub: string;
+  email?: string;
+  emailVerified?: boolean;
+  isPrivateEmail?: boolean;
+};
+
 export type WebAuthnProviderData = {
   credentialId: string;
   publicKey: string;
@@ -20,4 +27,5 @@ export type WebAuthnProviderData = {
 export type AccountProviderData =
   | CredentialProviderData
   | WechatProviderData
+  | AppleProviderData
   | WebAuthnProviderData;

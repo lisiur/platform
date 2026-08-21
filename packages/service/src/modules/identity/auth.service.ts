@@ -1,9 +1,11 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import {
+  getAppleProviderData,
   getCredentialPassword,
   getWechatProviderData,
 } from "#lib/account-provider-data";
+import { verifyAppleIdentityToken } from "#lib/apple";
 import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { hashPassword, verifyPassword } from "#lib/password";
@@ -458,6 +460,174 @@ export async function signInWithWechat(params: {
       "code" in err &&
       err.code === "P2002"
     ) {
+      const account = await lookupAccount();
+      if (account) {
+        return await loginWithAccount(account);
+      }
+    }
+    throw err;
+  }
+}
+
+export async function getAppleConfig(): Promise<{
+  clientId: string | null;
+  appAudiences: string[];
+}> {
+  const map = new Map(
+    (await getMergedConfigRows("apple")).map((r) => [r.key, r.value]),
+  );
+  const clientId = map.get("clientId")?.trim() || null;
+  const appAudiences = (map.get("appAudiences") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { clientId, appAudiences };
+}
+
+export async function getAppleStatus(): Promise<{
+  appleEnabled: boolean;
+  clientId: string | null;
+}> {
+  const { clientId } = await getAppleConfig();
+  return { appleEnabled: clientId !== null, clientId };
+}
+
+export async function signInWithApple(params: {
+  identityToken: string;
+  nonce: string;
+  user?: { firstName?: string; lastName?: string };
+  ipAddress?: string | null;
+  traceId?: string;
+  userAgent?: string | null;
+}) {
+  const { clientId, appAudiences } = await getAppleConfig();
+
+  if (!clientId) {
+    throw new HTTPException(500, {
+      message: "Apple configuration is incomplete",
+    });
+  }
+
+  const token = await verifyAppleIdentityToken({
+    idToken: params.identityToken,
+    nonce: params.nonce,
+    audiences: [clientId, ...appAudiences],
+  });
+
+  type AccountWithUser = Prisma.AccountGetPayload<{ include: { user: true } }>;
+
+  const lookupAccount = () =>
+    prisma.account.findUnique({
+      where: {
+        providerId_accountId: {
+          providerId: "apple",
+          accountId: token.sub,
+        },
+      },
+      include: { user: true },
+    });
+
+  async function loginWithAccount(account: AccountWithUser) {
+    assertNotBanned(account.user);
+
+    await prisma.account.update({
+      where: { id: account.id },
+      data: {
+        providerData: {
+          ...getAppleProviderData(account.providerData),
+          sub: token.sub,
+          email: token.email,
+          emailVerified: token.emailVerified,
+          isPrivateEmail: token.isPrivateEmail,
+        },
+      },
+    });
+
+    const session = await createSession({
+      userId: account.userId,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+      activeOrganizationId: await getDefaultActiveOrganizationId(
+        account.userId,
+      ),
+    });
+
+    await logAuthLogin(session, account.user.name, params.traceId);
+
+    return { user: account.user, session };
+  }
+
+  const existingAccount = await lookupAccount();
+  if (existingAccount) {
+    return await loginWithAccount(existingAccount);
+  }
+
+  if (!(await getRegistrationEnabled())) {
+    throw new HTTPException(403, { message: "Registration is disabled" });
+  }
+
+  // The profile object only arrives on the FIRST authorization.
+  const profileName = [params.user?.firstName, params.user?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const name = profileName || `apple_${token.sub.slice(0, 8)}`;
+
+  // Identity is keyed by the Apple `sub` alone; email is never used for
+  // matching. New Apple users always get the sub-scoped placeholder email
+  // (same convention as WeChat) — binding a real email is an explicit,
+  // separate action. This avoids both forking an existing email account
+  // into two users and pre-hijacking via unverified password sign-ups.
+  // Apple's email claims are kept on providerData for a future "set your
+  // email" flow.
+  try {
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: `${token.sub}@apple.placeholder`,
+        emailVerified: false,
+        flags: [],
+        accounts: {
+          create: {
+            accountId: token.sub,
+            providerId: "apple",
+            providerData: {
+              sub: token.sub,
+              email: token.email,
+              emailVerified: token.emailVerified,
+              isPrivateEmail: token.isPrivateEmail,
+            },
+          },
+        },
+      },
+    });
+
+    try {
+      await subscribeUserToBasicPlan(user.id);
+    } catch (err) {
+      console.error(
+        `[signup] Failed to subscribe ${user.id} to basic plan:`,
+        err,
+      );
+    }
+
+    const session = await createSession({
+      userId: user.id,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    });
+
+    await logAuthLogin(session, user.name, params.traceId);
+
+    return { user, session };
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      err.code === "P2002"
+    ) {
+      // Race: another request created the apple account first → log in.
       const account = await lookupAccount();
       if (account) {
         return await loginWithAccount(account);

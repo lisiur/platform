@@ -8,6 +8,8 @@ export type {
   AgentSessionsApi,
 } from "./components/agent-launcher/agent-panel";
 export { AgentPanel } from "./components/agent-launcher/agent-panel";
+export type { AppleSignInSuccess } from "./components/apple-sign-in-button";
+export { AppleSignInButton } from "./components/apple-sign-in-button";
 export { DataTablePagination } from "./components/data-table-pagination";
 export type { NotificationBellProps } from "./components/notification-bell";
 export { NotificationBell } from "./components/notification-bell";
@@ -32,16 +34,15 @@ export { VersionDialog } from "./components/version-dialog";
 export type { WatermarkConfig, WatermarkProps } from "./components/watermark";
 export { Watermark } from "./components/watermark";
 export { useActiveFeatures } from "./hooks/use-active-features";
-export type {
-  AgentChatApi,
-  UseAgentChatOptions,
-} from "./hooks/use-agent-chat";
+export type { AgentChatApi, UseAgentChatOptions } from "./hooks/use-agent-chat";
 export { useAgentChat } from "./hooks/use-agent-chat";
 export type {
   AgentConfigApi,
   UseAgentConfigOptions,
 } from "./hooks/use-agent-config";
 export { useAgentConfig } from "./hooks/use-agent-config";
+export type { AppleStatus } from "./hooks/use-apple-enabled";
+export { useAppleEnabled } from "./hooks/use-apple-enabled";
 export type {
   EventStreamOptions,
   SseEventHandler,

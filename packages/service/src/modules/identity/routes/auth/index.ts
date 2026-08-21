@@ -1,7 +1,9 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { changePassword } from "./changePassword";
+import { getAppleStatus } from "./getAppleStatus";
 import { getRegistrationStatus } from "./getRegistrationStatus";
 import { getSession } from "./getSession";
+import { signInApple } from "./signInApple";
 import { signInEmail } from "./signInEmail";
 import { signInWechat } from "./signInWechat";
 import { signOut } from "./signOut";
@@ -22,10 +24,12 @@ const authRoutes = new OpenAPIHono();
 const routes = authRoutes.openapiRoutes([
   signInEmail,
   signInWechat,
+  signInApple,
   signUpEmail,
   signOut,
   getSession,
   getRegistrationStatus,
+  getAppleStatus,
   updateUser,
   changePassword,
   webAuthnStatus,

@@ -5,6 +5,7 @@
 //  Created by Lisiur Day on 2026/8/19.
 //
 
+import AuthenticationServices
 import LocalAuthentication
 import SwiftUI
 
@@ -19,12 +20,19 @@ struct LoginView: View {
     @State private var isSubmitting = false
     @State private var isShowingResetAlert = false
     @State private var isShowingSignUp = false
+    @State private var appleNonce = ""
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
         case email
         case password
     }
+
+    /// Sign in with Apple requires the `com.apple.developer.applesignin`
+    /// entitlement, which needs a completed Apple Developer enrollment.
+    /// Flip to `true` and re-add the entitlement (plus the iOS capability in
+    /// Xcode) once enrollment is approved.
+    private static let appleSignInEnabled = false
 
     var body: some View {
         ScrollView {
@@ -109,6 +117,21 @@ struct LoginView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+
+                    if Self.appleSignInEnabled {
+                        SignInWithAppleButton(.signIn) { request in
+                            request.requestedScopes = [.fullName, .email]
+                            let nonce = Self.randomNonce()
+                            appleNonce = nonce
+                            request.nonce = nonce
+                        } onCompletion: { result in
+                            Task { await handleAppleSignIn(result) }
+                        }
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .disabled(isSubmitting)
                     }
                 }
 
@@ -199,6 +222,51 @@ struct LoginView: View {
         } catch let error as LAError where error.code == .userCancel || error.code == .systemCancel || error.code == .appCancel {
         } catch {
             formError = error.localizedDescription
+        }
+    }
+
+    private static func randomNonce() -> String {
+        var bytes = [UInt8](repeating: 0, count: 16)
+        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        precondition(status == errSecSuccess, "SecRandomCopyBytes failed with status \(status)")
+        return Data(bytes)
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case .failure(let error):
+            // User closing the Apple sheet is not an error worth showing.
+            if let asError = error as? ASAuthorizationError, asError.code == .canceled {
+                return
+            }
+            formError = error.localizedDescription
+
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8)
+            else {
+                formError = "Apple 登录未返回凭证，请重试。"
+                return
+            }
+
+            isSubmitting = true
+            defer { isSubmitting = false }
+
+            do {
+                try await auth.loginWithApple(
+                    identityToken: identityToken,
+                    nonce: appleNonce,
+                    firstName: credential.fullName?.givenName,
+                    lastName: credential.fullName?.familyName
+                )
+            } catch {
+                formError = error.localizedDescription
+            }
         }
     }
 

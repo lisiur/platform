@@ -1,4 +1,8 @@
-import type { WebAuthnProviderData, WechatProviderData } from "#types/account";
+import type {
+  AppleProviderData,
+  WebAuthnProviderData,
+  WechatProviderData,
+} from "#types/account";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === "object" && value !== null) {
@@ -34,6 +38,20 @@ export function getWechatProviderData(
   const record = asRecord(providerData);
   if (record && "accessToken" in record) {
     return record as unknown as Partial<WechatProviderData>;
+  }
+  return {};
+}
+
+/**
+ * Returns the Apple provider data, or an empty object when the stored payload
+ * does not look like one. Never throws on corrupted JSON shapes.
+ */
+export function getAppleProviderData(
+  providerData: unknown,
+): Partial<AppleProviderData> {
+  const record = asRecord(providerData);
+  if (record && "sub" in record) {
+    return record as unknown as Partial<AppleProviderData>;
   }
   return {};
 }

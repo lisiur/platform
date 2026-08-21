@@ -36,6 +36,8 @@
     "or": "或",
     "signInWithPasskey": "通行密钥登录",
     "biometricLoginFailed": "生物识别登录失败",
+    "signInWithApple": "通过 Apple 登录",
+    "appleLoginFailed": "Apple 登录失败，请重试。",
     "biometricCancelled": "生物识别认证已取消"
   },
   "FormDemo": {
@@ -175,6 +177,7 @@
     "description": "管理应用配置",
     "tabs": {
       "auth": "认证",
+      "apple": "Apple 登录",
       "webauthn": "WebAuthn",
       "upload": "上传",
       "rate-limit": "限流",
@@ -667,6 +670,8 @@
         "webauthnRpName": "服务方名称",
         "webauthnRpId": "服务方 ID",
         "webauthnOrigin": "预期 Origin",
+        "appleClientId": "Apple 客户端（Services）ID",
+        "appleAppAudiences": "Apple 原生应用受众",
         "aiAgentBaseURL": "接口地址",
         "aiAgentApiKey": "API 密钥",
         "aiAgentModel": "模型",
@@ -701,6 +706,8 @@
         "webauthnRpName": "浏览器 WebAuthn 提示中显示的友好名称",
         "webauthnRpId": "服务方域名（如 localhost、example.com），必须与浏览器 Origin 的域名一致。",
         "webauthnOrigin": "浏览器访问应用的完整 Origin（如 http://localhost:3000、https://example.com）",
+        "appleClientId": "网页端“通过 Apple 登录”按钮使用的 Apple Services ID，即网页 id_token 的受众。未设置时回退到 APPLE_CLIENT_ID 环境变量。",
+        "appleAppAudiences": "逗号分隔的原生 App Bundle ID 列表，作为额外可接受的 id_token 受众（如 top.hapaul.Yulai）。未设置时回退到 APPLE_APP_AUDIENCES 环境变量。",
         "aiAgentBaseURL": "OpenAI 兼容接口地址（例如 https://api.openai.com/v1 或 OpenRouter 地址）。",
         "aiAgentApiKey": "所配置接口的 API 密钥，以密文存储。",
         "aiAgentModel": "所配置接口支持的模型标识（如 gpt-4o）。",

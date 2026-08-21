@@ -23,6 +23,8 @@
     "or": "或",
     "signInWithPasskey": "通行密钥登录",
     "biometricLoginFailed": "生物识别登录失败",
+    "signInWithApple": "通过 Apple 登录",
+    "appleLoginFailed": "Apple 登录失败，请重试。",
     "biometricCancelled": "生物识别认证已取消"
   },
   "Common": {

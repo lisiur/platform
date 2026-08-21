@@ -16,6 +16,7 @@ import { ConfigGroup } from "./components/config-group";
 
 const tabKeys = [
   "auth",
+  "apple",
   "webauthn",
   "upload",
   "rate-limit",

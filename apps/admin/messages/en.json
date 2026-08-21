@@ -36,6 +36,8 @@
     "or": "or",
     "signInWithPasskey": "Sign in with passkey",
     "biometricLoginFailed": "Biometric login failed",
+    "signInWithApple": "Sign in with Apple",
+    "appleLoginFailed": "Sign in with Apple failed. Please try again.",
     "biometricCancelled": "Biometric authentication was cancelled"
   },
   "FormDemo": {
@@ -175,6 +177,7 @@
     "description": "Manage your application configuration",
     "tabs": {
       "auth": "Authentication",
+      "apple": "Apple Sign In",
       "webauthn": "WebAuthn",
       "upload": "Upload",
       "rate-limit": "Rate Limit",
@@ -666,6 +669,8 @@
         "webauthnRpName": "Relying Party Name",
         "webauthnRpId": "Relying Party ID",
         "webauthnOrigin": "Expected Origin",
+        "appleClientId": "Apple Client (Services) ID",
+        "appleAppAudiences": "Apple App Audiences",
         "aiAgentBaseURL": "Base URL",
         "aiAgentApiKey": "API Key",
         "aiAgentModel": "Model",
@@ -700,6 +705,8 @@
         "webauthnRpName": "Human-friendly name shown in the browser's WebAuthn prompt",
         "webauthnRpId": "Domain of the relying party (e.g. localhost, example.com). Must match the browser origin's domain.",
         "webauthnOrigin": "Full origin the browser uses to access the app (e.g. http://localhost:3000, https://example.com)",
+        "appleClientId": "Apple Services ID used by the web Sign in with Apple button; the audience of web id_tokens. Falls back to APPLE_CLIENT_ID.",
+        "appleAppAudiences": "Comma-separated native app bundle IDs accepted as additional id_token audiences (e.g. top.hapaul.Yulai). Falls back to APPLE_APP_AUDIENCES.",
         "aiAgentBaseURL": "OpenAI-compatible endpoint (e.g. https://api.openai.com/v1 or an OpenRouter URL).",
         "aiAgentApiKey": "API key for the configured endpoint. Stored as a secret.",
         "aiAgentModel": "Model identifier understood by the endpoint (e.g. gpt-4o).",
