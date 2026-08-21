@@ -173,7 +173,7 @@ describe("signInWithApple", () => {
     expect(result.session).toBe(session);
   });
 
-  it("registers a new user keyed by the Apple sub with a placeholder email", async () => {
+  it("registers a new user keyed by the Apple sub without an email", async () => {
     mockPrisma.account.findUnique.mockResolvedValue(null);
     const created = { id: "user_new", name: "John Apple" };
     mockPrisma.user.create.mockResolvedValue(created);
@@ -186,7 +186,6 @@ describe("signInWithApple", () => {
     expect(mockPrisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         name: "John Apple",
-        email: `${token.sub}@apple.placeholder`,
         emailVerified: false,
         accounts: {
           create: expect.objectContaining({
@@ -202,23 +201,26 @@ describe("signInWithApple", () => {
         },
       }),
     });
+    expect(mockPrisma.user.create.mock.calls[0]?.[0].data).not.toHaveProperty(
+      "email",
+    );
     expect(mockSubscribe).toHaveBeenCalledWith("user_new");
     expect(result.user).toBe(created);
   });
 
-  it("falls back to the sub-derived name when no profile name is given", async () => {
+  it("falls back to a random name when no profile name is given", async () => {
     mockPrisma.account.findUnique.mockResolvedValue(null);
     mockPrisma.user.create.mockResolvedValue({ id: "user_new", name: "x" });
 
     await signInWithApple(baseParams);
 
-    expect(mockPrisma.user.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        email: `${token.sub}@apple.placeholder`,
-        emailVerified: false,
-        name: `apple_${token.sub.slice(0, 8)}`,
-      }),
-    });
+    const call = mockPrisma.user.create.mock.calls[0]?.[0].data as Record<
+      string,
+      unknown
+    >;
+    expect(call.name).toMatch(/^apple_[0-9a-f]{8}$/);
+    expect(call.emailVerified).toBe(false);
+    expect(call).not.toHaveProperty("email");
   });
 
   it("logs in when a concurrent request created the account (P2002)", async () => {

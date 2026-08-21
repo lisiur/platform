@@ -14,7 +14,7 @@ export const organizationSchema = z
       .object({
         id: z.string(),
         name: z.string(),
-        email: z.string(),
+        email: z.string().nullable(),
       })
       .nullable()
       .optional(),

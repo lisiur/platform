@@ -93,10 +93,12 @@ struct LoginView: View {
                             Text(isSubmitting ? "登录中…" : "登录")
                                 .font(.headline)
                         }
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .frame(height: 48)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
                     .disabled(isSubmitting)
 
                     if let email = auth.quickLoginEmail, auth.isBiometricsAvailable {
@@ -105,10 +107,12 @@ struct LoginView: View {
                                 Task { await unlockWithBiometrics() }
                             } label: {
                                 Label("使用 \(biometryName)", systemImage: biometryIcon)
+                                    .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
+                                    .frame(height: 48)
+                                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.plain)
                             Text("将登录 \(email)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -152,17 +156,6 @@ struct LoginView: View {
         #if os(iOS)
         .scrollDismissesKeyboard(.interactively)
         #endif
-        .task {
-            // Skip the auto prompt when a stored session token exists —
-            // session restore either failed on a transport/server error (a
-            // biometric login would fail the same way) or is still valid.
-            guard !auth.suppressBiometricAutoPrompt,
-                  auth.quickLoginEmail != nil,
-                  auth.isBiometricsAvailable,
-                  auth.client.sessionToken == nil
-            else { return }
-            await unlockWithBiometrics()
-        }
         .onChange(of: email) { _, _ in
             emailError = nil
             formError = nil

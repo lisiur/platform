@@ -46,7 +46,7 @@ interface QuotaRow {
   userId: string;
   allocated: number;
   used: number;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string | null };
   createdAt: string;
   updatedAt: string;
 }
@@ -163,7 +163,7 @@ export function QuotaTable() {
                 <div>
                   <div>{q.user.name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {q.user.email}
+                    {q.user.email ?? "-"}
                   </div>
                 </div>
               </TableCell>
@@ -203,7 +203,7 @@ export function QuotaTable() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Quota — {ei?.user.email}</DialogTitle>
+            <DialogTitle>Edit Quota — {ei?.user.email ?? "-"}</DialogTitle>
           </DialogHeader>
           <DialogBody>
             {ei && (

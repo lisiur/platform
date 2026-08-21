@@ -1,7 +1,7 @@
 export type AuthUser = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
   avatar?: string | null;
   role?: string | null;
@@ -48,7 +48,7 @@ export interface MenuTreeNode {
 export interface OrganizationOwner {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
 }
 
 export interface Organization {

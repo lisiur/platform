@@ -36,7 +36,7 @@ interface UserCreditRow {
   user: {
     id: string;
     name: string;
-    email: string;
+    email: string | null;
   };
 }
 
@@ -159,7 +159,7 @@ export function UserCreditTable() {
                 <div className="flex flex-col">
                   <span className="font-medium">{c.user.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {c.user.email}
+                    {c.user.email ?? "-"}
                   </span>
                 </div>
               </TableCell>

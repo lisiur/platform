@@ -28,7 +28,7 @@ import { withApiFeedback } from "@/lib/api/utils";
 
 type UserInput = {
   name: string;
-  email: string;
+  email: string | null;
   password?: string;
   roleIds: string[];
 };
@@ -49,7 +49,7 @@ interface UserDialogProps {
   user?: {
     id: string;
     name: string;
-    email: string;
+    email: string | null;
     role?: string | null;
     flags?: string[] | null;
     roleAssignments?: RoleAssignment[];
@@ -76,7 +76,10 @@ export function UserDialog({
   });
   const editUserSchema = z.object({
     name: z.string().min(1),
-    email: z.email(),
+    email: z.preprocess(
+      (v) => (v === "" ? null : v),
+      z.email().nullable().optional(),
+    ),
     roleIds: z.array(z.string()),
   });
 
@@ -142,7 +145,7 @@ export function UserDialog({
           param: { id: user.id },
           json: {
             name: data.name,
-            email: data.email,
+            email: data.email ?? null,
             ...(builtinUser ? {} : { roleIds: data.roleIds }),
           },
         });
@@ -150,7 +153,7 @@ export function UserDialog({
         await withApiFeedback(appClient.api.users.$post)({
           json: {
             name: data.name,
-            email: data.email,
+            email: data.email ?? "",
             password: data.password ?? "",
             roleIds: data.roleIds,
           },
@@ -217,7 +220,7 @@ export function UserDialog({
                 <FieldError errors={errors.name ? [errors.name] : undefined} />
               </Field>
               <Field data-invalid={!!errors.email}>
-                <FieldLabel htmlFor="email" required>
+                <FieldLabel htmlFor="email" required={!isEdit}>
                   {t("email")}
                 </FieldLabel>
                 <Input

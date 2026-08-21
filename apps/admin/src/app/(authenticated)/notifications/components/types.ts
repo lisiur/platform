@@ -39,7 +39,7 @@ export interface NotificationTemplate {
 export interface NotificationRecordRelationUser {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
 }
 
 export interface NotificationRecordRelationTemplate {

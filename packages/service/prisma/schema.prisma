@@ -10,7 +10,7 @@ datasource db {
 model User {
   id                   String           @id @default(cuid())
   name                 String
-  email                String
+  email                String?
   emailVerified        Boolean          @default(false)
   avatar               String?
   avatarId             String?

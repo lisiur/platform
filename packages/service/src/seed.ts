@@ -1176,7 +1176,7 @@ const builtInUsers = [
     roleCode: USER_ROLE_CODE,
   },
 ];
-const ADMIN_SEED_CREDITS = 1_000_000;
+const ADMIN_SEED_CREDITS = 1_000;
 const ADMIN_SEED_CREDIT_LEDGER_ID = "builtin-admin-seed-credit";
 
 // --- Built-in Job Templates ---

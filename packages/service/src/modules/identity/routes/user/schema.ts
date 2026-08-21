@@ -7,7 +7,7 @@ export const adminUserSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
     name: z.string().openapi({ example: "John Doe" }),
-    email: z.string().openapi({ example: "john@example.com" }),
+    email: z.string().nullable().openapi({ example: "john@example.com" }),
     emailVerified: z.boolean(),
     avatar: z.string().nullable().optional(),
     role: z.string().nullable().optional(),
@@ -53,7 +53,7 @@ export const createUserBodySchema = z.object({
 
 export const updateUserBodySchema = z.object({
   name: z.string().min(1).optional(),
-  email: z.email().optional(),
+  email: z.email().nullable().optional(),
   roleIds: z.array(z.string()).optional(),
 });
 

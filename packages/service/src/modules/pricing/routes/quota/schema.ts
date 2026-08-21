@@ -12,7 +12,7 @@ export const quotaSchema = z
     user: z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string(),
+      email: z.string().nullable(),
     }),
     createdAt: z.date(),
     updatedAt: z.date(),

@@ -12,7 +12,7 @@ export const notificationRecordRecipientSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
     name: z.string().openapi({ example: "Alice" }),
-    email: z.email().openapi({ example: "alice@example.com" }),
+    email: z.email().nullable().openapi({ example: "alice@example.com" }),
   })
   .openapi("NotificationRecordRecipient");
 

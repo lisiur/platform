@@ -42,7 +42,7 @@ interface TemplateVariable {
 interface UserOption {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
 }
 
 function parseVariablesSchema(schema: unknown): TemplateVariable[] {
@@ -178,7 +178,7 @@ export function NotificationTestDialog({
                               (u) => u.id === recipientUserId,
                             );
                             return user
-                              ? `${user.name} (${user.email})`
+                              ? `${user.name} (${user.email ?? ""})`
                               : t("templates.selectRecipient");
                           })()
                         : t("templates.selectRecipient")}
@@ -187,7 +187,7 @@ export function NotificationTestDialog({
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.email})
+                        {user.name} ({user.email ?? ""})
                       </SelectItem>
                     ))}
                   </SelectContent>

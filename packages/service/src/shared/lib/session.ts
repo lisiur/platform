@@ -26,7 +26,7 @@ export function getSessionMaxAgeSeconds(): number {
 export type AuthSessionUser = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
   image?: string | null;
   banned?: boolean | null;

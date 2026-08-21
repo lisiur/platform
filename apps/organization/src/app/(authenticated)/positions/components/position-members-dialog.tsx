@@ -23,7 +23,7 @@ import { appClient, withApiFeedback } from "@/lib/api";
 interface MemberUser {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   avatar: string | null;
 }
 
@@ -151,7 +151,7 @@ export function PositionMembersDialog({
                         <div className="min-w-0 flex-1">
                           <div className="font-medium">{member.user.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {member.user.email}
+                            {member.user.email ?? "—"}
                           </div>
                         </div>
                         <Button
@@ -331,7 +331,7 @@ function AddMemberToPositionDialog({
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{member.user.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {member.user.email}
+                      {member.user.email ?? "—"}
                     </div>
                   </div>
                 </div>

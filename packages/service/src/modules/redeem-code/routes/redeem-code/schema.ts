@@ -87,7 +87,7 @@ export const userCreditWithUserSchema = z
     user: z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string(),
+      email: z.string().nullable(),
     }),
   })
   .openapi("UserCreditWithUser");

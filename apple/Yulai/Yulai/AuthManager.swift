@@ -53,13 +53,9 @@ final class AuthManager {
     private(set) var currentUser: User?
     private(set) var permissions: [String] = []
 
-    /// True right after an explicit log out, so the login screen offers the
-    /// biometric button but does not auto-prompt. Reset on next app launch.
-    private(set) var suppressBiometricAutoPrompt = false
-
     /// True while a stored session token is being validated on launch. The
-    /// login screen (and its auto biometric prompt) must wait until this is
-    /// false, otherwise Touch ID pops even when a valid session restores.
+    /// login screen waits for this to become false so a valid restore lands
+    /// on the home view instead of flashing the login form.
     private(set) var isRestoringSession: Bool
 
     var isLoggedIn: Bool {
@@ -216,7 +212,6 @@ final class AuthManager {
     }
 
     func logout() async {
-        suppressBiometricAutoPrompt = true
         await signOutOnServer()
     }
 

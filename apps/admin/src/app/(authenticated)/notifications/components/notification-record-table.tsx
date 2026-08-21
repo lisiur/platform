@@ -191,7 +191,7 @@ export function NotificationRecordTable() {
               <TableCell>
                 <div className="font-medium">{record.recipient.name}</div>
                 <div className="text-muted-foreground text-xs">
-                  {record.recipient.email}
+                  {record.recipient.email ?? "-"}
                 </div>
               </TableCell>
               <TableCell className="max-w-80">
@@ -318,7 +318,7 @@ export function NotificationRecordTable() {
                   <dl className="rounded-md border px-3">
                     <DetailRow
                       label={t("records.columns.recipient")}
-                      value={`${detailRecord.recipient.name} <${detailRecord.recipient.email}>`}
+                      value={`${detailRecord.recipient.name} <${detailRecord.recipient.email ?? ""}>`}
                     />
                     <DetailRow
                       label={t("records.detail.template")}

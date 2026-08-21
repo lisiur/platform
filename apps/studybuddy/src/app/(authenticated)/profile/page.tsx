@@ -25,7 +25,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<{
     id: string;
     name: string;
-    email: string;
+    email: string | null;
     avatar?: string | null;
   } | null>(null);
   const [credentials, setCredentials] = useState<WebAuthnCredential[]>([]);
@@ -106,7 +106,7 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium text-muted-foreground">
                   {t("email")}
                 </label>
-                <p className="text-sm">{user.email}</p>
+                <p className="text-sm">{user.email ?? "-"}</p>
               </div>
               <Separator />
               <ProfileForm

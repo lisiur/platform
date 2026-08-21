@@ -31,7 +31,7 @@ import { MemberPositionsDialog } from "./member-positions-dialog";
 interface MemberUser {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   avatar: string | null;
 }
 
@@ -160,7 +160,7 @@ export function MemberTable({ organizationId }: { organizationId: string }) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{member.user.email}</TableCell>
+                <TableCell>{member.user.email ?? "—"}</TableCell>
                 <TableCell>{member.employeeId ?? "—"}</TableCell>
                 <TableCell>{roleBadge(member.role)}</TableCell>
                 <TableCell>{member.department?.name ?? "—"}</TableCell>

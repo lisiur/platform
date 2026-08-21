@@ -29,7 +29,7 @@ export const memberSchema = z
     user: z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string(),
+      email: z.string().nullable(),
       avatar: z.string().nullable(),
     }),
   })

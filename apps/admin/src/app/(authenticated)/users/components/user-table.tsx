@@ -45,7 +45,7 @@ interface RoleAssignment {
 interface UserRow {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   role?: string | null;
   banned?: boolean | null;
   flags?: string[] | null;
@@ -171,7 +171,7 @@ export function UserTable() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.email ?? "-"}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {user.roleAssignments && user.roleAssignments.length > 0 ? (

@@ -150,12 +150,13 @@ export async function updateUser(
   id: string,
   data: {
     name?: string;
-    email?: string;
+    email?: string | null;
     roleIds?: string[];
   },
 ) {
   const { name, email: rawEmail, roleIds } = data;
-  const email = rawEmail?.toLowerCase();
+  const email =
+    rawEmail === undefined ? undefined : rawEmail?.toLowerCase() || null;
 
   const existingUser = await prisma.user.findUnique({
     where: { id },
@@ -185,7 +186,12 @@ export async function updateUser(
 
   const updateData: Record<string, unknown> = {};
   if (name) updateData.name = name;
-  if (email) {
+  if (email === null) {
+    updateData.email = null;
+    if (existingUser.email) {
+      updateData.emailVerified = false;
+    }
+  } else if (email) {
     updateData.email = email;
     if (email !== existingUser.email) {
       updateData.emailVerified = false;
@@ -201,6 +207,20 @@ export async function updateUser(
       await tx.user.update({
         where: { id },
         data: updateData,
+      });
+    }
+
+    // Password sign-in resolves users by email, so a credential account is
+    // unusable without one. Drop it when the email is cleared, and keep its
+    // accountId mirroring the email so it can be reused by another user.
+    if (email === null) {
+      await tx.account.deleteMany({
+        where: { userId: id, providerId: "credential" },
+      });
+    } else if (email && email !== existingUser.email) {
+      await tx.account.updateMany({
+        where: { userId: id, providerId: "credential" },
+        data: { accountId: email },
       });
     }
 
@@ -259,6 +279,15 @@ export async function resetPassword(
 
   await assertUserIsNotBuiltin(id);
 
+  const email = existingUser.email;
+
+  if (!email) {
+    throw new HTTPException(400, {
+      message:
+        "User has no email address; password sign-in is unavailable for this account",
+    });
+  }
+
   const hashedPassword = await hashPassword(newPassword);
 
   await prisma.$transaction(async (tx) => {
@@ -274,7 +303,7 @@ export async function resetPassword(
     } else {
       await tx.account.create({
         data: {
-          accountId: existingUser.email.toLowerCase(),
+          accountId: email.toLowerCase(),
           providerId: "credential",
           userId: id,
           providerData: { password: hashedPassword },

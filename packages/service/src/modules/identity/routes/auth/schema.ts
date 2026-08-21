@@ -12,7 +12,7 @@ export const authUserSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    email: z.email(),
+    email: z.email().nullable(),
     emailVerified: z.boolean(),
     avatar: z.string().nullable().optional(),
     role: z.string().nullable().optional(),

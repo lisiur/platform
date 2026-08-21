@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import {
@@ -345,6 +346,10 @@ export async function changePassword(params: {
   return { user: updatedUser, session };
 }
 
+function oauthUserSuffix() {
+  return randomBytes(4).toString("hex");
+}
+
 export async function signInWithWechat(params: {
   code: string;
   ipAddress?: string | null;
@@ -421,8 +426,7 @@ export async function signInWithWechat(params: {
   try {
     const user = await prisma.user.create({
       data: {
-        name: `wx_${wechatResult.openid.slice(0, 8)}`,
-        email: `${wechatResult.openid}@wechat.placeholder`,
+        name: `wx_${oauthUserSuffix()}`,
         emailVerified: false,
         flags: [],
         accounts: {
@@ -571,20 +575,18 @@ export async function signInWithApple(params: {
     .filter(Boolean)
     .join(" ")
     .trim();
-  const name = profileName || `apple_${token.sub.slice(0, 8)}`;
+  const name = profileName || `apple_${oauthUserSuffix()}`;
 
   // Identity is keyed by the Apple `sub` alone; email is never used for
-  // matching. New Apple users always get the sub-scoped placeholder email
-  // (same convention as WeChat) — binding a real email is an explicit,
-  // separate action. This avoids both forking an existing email account
-  // into two users and pre-hijacking via unverified password sign-ups.
-  // Apple's email claims are kept on providerData for a future "set your
-  // email" flow.
+  // matching. New Apple users get no email at all — binding a real email is
+  // an explicit, separate action. This avoids both forking an existing email
+  // account into two users and pre-hijacking via unverified password
+  // sign-ups. Apple's email claims are kept on providerData for a future
+  // "set your email" flow.
   try {
     const user = await prisma.user.create({
       data: {
         name,
-        email: `${token.sub}@apple.placeholder`,
         emailVerified: false,
         flags: [],
         accounts: {

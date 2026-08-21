@@ -141,7 +141,7 @@ export async function generateRegistrationOptions(userId: string) {
     rpName,
     rpID,
     userID: new TextEncoder().encode(user.id),
-    userName: user.email,
+    userName: user.email ?? user.name,
     userDisplayName: user.name,
     attestationType: "none",
     excludeCredentials: existingCredentials.map((cred) => ({

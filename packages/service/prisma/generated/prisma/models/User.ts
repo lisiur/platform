@@ -188,7 +188,7 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type UserGroupByOutputType = {
   id: string
   name: string
-  email: string
+  email: string | null
   emailVerified: boolean
   avatar: string | null
   avatarId: string | null
@@ -224,7 +224,7 @@ export type UserWhereInput = {
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   id?: Prisma.StringFilter<"User"> | string
   name?: Prisma.StringFilter<"User"> | string
-  email?: Prisma.StringFilter<"User"> | string
+  email?: Prisma.StringNullableFilter<"User"> | string | null
   emailVerified?: Prisma.BoolFilter<"User"> | boolean
   avatar?: Prisma.StringNullableFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableFilter<"User"> | string | null
@@ -254,7 +254,7 @@ export type UserWhereInput = {
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailVerified?: Prisma.SortOrder
   avatar?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -317,7 +317,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailVerified?: Prisma.SortOrder
   avatar?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -338,7 +338,7 @@ export type UserScalarWhereWithAggregatesInput = {
   NOT?: Prisma.UserScalarWhereWithAggregatesInput | Prisma.UserScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
   name?: Prisma.StringWithAggregatesFilter<"User"> | string
-  email?: Prisma.StringWithAggregatesFilter<"User"> | string
+  email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   emailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   avatar?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -353,7 +353,7 @@ export type UserScalarWhereWithAggregatesInput = {
 export type UserCreateInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -383,7 +383,7 @@ export type UserCreateInput = {
 export type UserUncheckedCreateInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -413,7 +413,7 @@ export type UserUncheckedCreateInput = {
 export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -443,7 +443,7 @@ export type UserUpdateInput = {
 export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -473,7 +473,7 @@ export type UserUncheckedUpdateInput = {
 export type UserCreateManyInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -488,7 +488,7 @@ export type UserCreateManyInput = {
 export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -503,7 +503,7 @@ export type UserUpdateManyMutationInput = {
 export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -584,12 +584,12 @@ export type StringFieldUpdateOperationsInput = {
   set?: string
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
 }
 
 export type NullableBoolFieldUpdateOperationsInput = {
@@ -826,7 +826,7 @@ export type UserUpdateOneRequiredWithoutUserCreditLedgerNestedInput = {
 export type UserCreateWithoutSessionsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -855,7 +855,7 @@ export type UserCreateWithoutSessionsInput = {
 export type UserUncheckedCreateWithoutSessionsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -900,7 +900,7 @@ export type UserUpdateToOneWithWhereWithoutSessionsInput = {
 export type UserUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -929,7 +929,7 @@ export type UserUpdateWithoutSessionsInput = {
 export type UserUncheckedUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -958,7 +958,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
 export type UserCreateWithoutAccountsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -987,7 +987,7 @@ export type UserCreateWithoutAccountsInput = {
 export type UserUncheckedCreateWithoutAccountsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1032,7 +1032,7 @@ export type UserUpdateToOneWithWhereWithoutAccountsInput = {
 export type UserUpdateWithoutAccountsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1061,7 +1061,7 @@ export type UserUpdateWithoutAccountsInput = {
 export type UserUncheckedUpdateWithoutAccountsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1090,7 +1090,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
 export type UserCreateWithoutMembersInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1119,7 +1119,7 @@ export type UserCreateWithoutMembersInput = {
 export type UserUncheckedCreateWithoutMembersInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1164,7 +1164,7 @@ export type UserUpdateToOneWithWhereWithoutMembersInput = {
 export type UserUpdateWithoutMembersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1193,7 +1193,7 @@ export type UserUpdateWithoutMembersInput = {
 export type UserUncheckedUpdateWithoutMembersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1222,7 +1222,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
 export type UserCreateWithoutInvitationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1251,7 +1251,7 @@ export type UserCreateWithoutInvitationsInput = {
 export type UserUncheckedCreateWithoutInvitationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1296,7 +1296,7 @@ export type UserUpdateToOneWithWhereWithoutInvitationsInput = {
 export type UserUpdateWithoutInvitationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1325,7 +1325,7 @@ export type UserUpdateWithoutInvitationsInput = {
 export type UserUncheckedUpdateWithoutInvitationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1354,7 +1354,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
 export type UserCreateWithoutAttachmentsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1383,7 +1383,7 @@ export type UserCreateWithoutAttachmentsInput = {
 export type UserUncheckedCreateWithoutAttachmentsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1428,7 +1428,7 @@ export type UserUpdateToOneWithWhereWithoutAttachmentsInput = {
 export type UserUpdateWithoutAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1457,7 +1457,7 @@ export type UserUpdateWithoutAttachmentsInput = {
 export type UserUncheckedUpdateWithoutAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1486,7 +1486,7 @@ export type UserUncheckedUpdateWithoutAttachmentsInput = {
 export type UserCreateWithoutRoleAssignmentsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1515,7 +1515,7 @@ export type UserCreateWithoutRoleAssignmentsInput = {
 export type UserUncheckedCreateWithoutRoleAssignmentsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1560,7 +1560,7 @@ export type UserUpdateToOneWithWhereWithoutRoleAssignmentsInput = {
 export type UserUpdateWithoutRoleAssignmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1589,7 +1589,7 @@ export type UserUpdateWithoutRoleAssignmentsInput = {
 export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1618,7 +1618,7 @@ export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
 export type UserCreateWithoutNotificationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1647,7 +1647,7 @@ export type UserCreateWithoutNotificationsInput = {
 export type UserUncheckedCreateWithoutNotificationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1681,7 +1681,7 @@ export type UserCreateOrConnectWithoutNotificationsInput = {
 export type UserCreateWithoutCreatedNotificationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1710,7 +1710,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1755,7 +1755,7 @@ export type UserUpdateToOneWithWhereWithoutNotificationsInput = {
 export type UserUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1784,7 +1784,7 @@ export type UserUpdateWithoutNotificationsInput = {
 export type UserUncheckedUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1824,7 +1824,7 @@ export type UserUpdateToOneWithWhereWithoutCreatedNotificationsInput = {
 export type UserUpdateWithoutCreatedNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1853,7 +1853,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1882,7 +1882,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
 export type UserCreateWithoutApiTokensInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1911,7 +1911,7 @@ export type UserCreateWithoutApiTokensInput = {
 export type UserUncheckedCreateWithoutApiTokensInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -1956,7 +1956,7 @@ export type UserUpdateToOneWithWhereWithoutApiTokensInput = {
 export type UserUpdateWithoutApiTokensInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1985,7 +1985,7 @@ export type UserUpdateWithoutApiTokensInput = {
 export type UserUncheckedUpdateWithoutApiTokensInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2014,7 +2014,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
 export type UserCreateWithoutAiConversationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2043,7 +2043,7 @@ export type UserCreateWithoutAiConversationsInput = {
 export type UserUncheckedCreateWithoutAiConversationsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2088,7 +2088,7 @@ export type UserUpdateToOneWithWhereWithoutAiConversationsInput = {
 export type UserUpdateWithoutAiConversationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2117,7 +2117,7 @@ export type UserUpdateWithoutAiConversationsInput = {
 export type UserUncheckedUpdateWithoutAiConversationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2146,7 +2146,7 @@ export type UserUncheckedUpdateWithoutAiConversationsInput = {
 export type UserCreateWithoutCollectionItemsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2175,7 +2175,7 @@ export type UserCreateWithoutCollectionItemsInput = {
 export type UserUncheckedCreateWithoutCollectionItemsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2220,7 +2220,7 @@ export type UserUpdateToOneWithWhereWithoutCollectionItemsInput = {
 export type UserUpdateWithoutCollectionItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2249,7 +2249,7 @@ export type UserUpdateWithoutCollectionItemsInput = {
 export type UserUncheckedUpdateWithoutCollectionItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2278,7 +2278,7 @@ export type UserUncheckedUpdateWithoutCollectionItemsInput = {
 export type UserCreateWithoutAiUsageEventsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2307,7 +2307,7 @@ export type UserCreateWithoutAiUsageEventsInput = {
 export type UserUncheckedCreateWithoutAiUsageEventsInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2352,7 +2352,7 @@ export type UserUpdateToOneWithWhereWithoutAiUsageEventsInput = {
 export type UserUpdateWithoutAiUsageEventsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2381,7 +2381,7 @@ export type UserUpdateWithoutAiUsageEventsInput = {
 export type UserUncheckedUpdateWithoutAiUsageEventsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2410,7 +2410,7 @@ export type UserUncheckedUpdateWithoutAiUsageEventsInput = {
 export type UserCreateWithoutUserQuotasInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2439,7 +2439,7 @@ export type UserCreateWithoutUserQuotasInput = {
 export type UserUncheckedCreateWithoutUserQuotasInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2484,7 +2484,7 @@ export type UserUpdateToOneWithWhereWithoutUserQuotasInput = {
 export type UserUpdateWithoutUserQuotasInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2513,7 +2513,7 @@ export type UserUpdateWithoutUserQuotasInput = {
 export type UserUncheckedUpdateWithoutUserQuotasInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2542,7 +2542,7 @@ export type UserUncheckedUpdateWithoutUserQuotasInput = {
 export type UserCreateWithoutUserCreditInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2571,7 +2571,7 @@ export type UserCreateWithoutUserCreditInput = {
 export type UserUncheckedCreateWithoutUserCreditInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2616,7 +2616,7 @@ export type UserUpdateToOneWithWhereWithoutUserCreditInput = {
 export type UserUpdateWithoutUserCreditInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2645,7 +2645,7 @@ export type UserUpdateWithoutUserCreditInput = {
 export type UserUncheckedUpdateWithoutUserCreditInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2674,7 +2674,7 @@ export type UserUncheckedUpdateWithoutUserCreditInput = {
 export type UserCreateWithoutUserCreditLedgerInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2703,7 +2703,7 @@ export type UserCreateWithoutUserCreditLedgerInput = {
 export type UserUncheckedCreateWithoutUserCreditLedgerInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   emailVerified?: boolean
   avatar?: string | null
   avatarId?: string | null
@@ -2748,7 +2748,7 @@ export type UserUpdateToOneWithWhereWithoutUserCreditLedgerInput = {
 export type UserUpdateWithoutUserCreditLedgerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2777,7 +2777,7 @@ export type UserUpdateWithoutUserCreditLedgerInput = {
 export type UserUncheckedUpdateWithoutUserCreditLedgerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3071,7 +3071,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
-    email: string
+    email: string | null
     emailVerified: boolean
     avatar: string | null
     avatarId: string | null

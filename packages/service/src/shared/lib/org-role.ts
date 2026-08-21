@@ -131,7 +131,7 @@ export async function getOrgOwnerUserIds(
 
 export async function getOrgOwners(
   organizationIds: string[],
-): Promise<Map<string, { id: string; name: string; email: string }>> {
+): Promise<Map<string, { id: string; name: string; email: string | null }>> {
   if (organizationIds.length === 0) return new Map();
   const codes = organizationIds.map(ownerRoleCode);
   const rows = await prisma.roleAssignment.findMany({
@@ -142,7 +142,10 @@ export async function getOrgOwners(
     },
     orderBy: { createdAt: "asc" },
   });
-  const owners = new Map<string, { id: string; name: string; email: string }>();
+  const owners = new Map<
+    string,
+    { id: string; name: string; email: string | null }
+  >();
   for (const row of rows) {
     // role.code = "org:<orgId>/owner" → extract the org id from its scope.
     const scopeSegment = row.role.code.slice(0, row.role.code.lastIndexOf("/"));
