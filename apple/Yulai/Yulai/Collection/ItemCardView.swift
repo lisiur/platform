@@ -3,6 +3,14 @@ import SwiftUI
 struct ItemCardView: View {
     let item: CollectionItem
 
+    private var statusBadge: some View {
+        switch item.status {
+        case "learned": BadgeView(text: "已学习", color: .green)
+        case "archived": BadgeView(text: "已归档", outlined: true)
+        default: BadgeView(text: "学习中", color: .orange)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -24,13 +32,9 @@ struct ItemCardView: View {
                 if let count = item.enrichmentsCount, count > 0 {
                     BadgeView(text: "\(count) 条释义", outlined: true)
                 }
-                Spacer(minLength: 0)
-                Text(CollectionTime.relative(item.createdAt))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
             Text(item.title ?? item.source)
-                .font(.subheadline.weight(.medium))
+                .font(.callout.weight(.semibold))
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let note = item.note, !note.isEmpty {
@@ -51,6 +55,13 @@ struct ItemCardView: View {
                             .padding(.horizontal, 2)
                     }
                 }
+            }
+            HStack {
+                statusBadge
+                Spacer(minLength: 0)
+                Text(CollectionTime.relative(item.createdAt))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(14)

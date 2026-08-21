@@ -4,10 +4,10 @@ struct CollectionListView: View {
     @Environment(CollectionStore.self) private var store
 
     @State private var searchText = ""
-    @State private var isMenuOpen = false
-    @State private var isManualAddPresented = false
-    @State private var pendingPasteText: String?
     @State private var lightweightToast: String?
+    /// The item whose card is currently slid open; opening a card closes
+    /// any other revealed card, like iMessage rows.
+    @State private var revealedItemId: String?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -28,32 +28,10 @@ struct CollectionListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .frame(minWidth: 760, minHeight: 560)
         #endif
-        .overlay(alignment: .bottomTrailing) {
-            quickAddPanel
-        }
         .overlay(alignment: .bottom) {
             toastView
         }
         .animation(.snappy(duration: 0.2), value: lightweightToast)
-        .sheet(isPresented: $isManualAddPresented) {
-            ManualAddSheet(store: store)
-        }
-        .alert(
-            "确认粘贴？",
-            isPresented: Binding(
-                get: { pendingPasteText != nil },
-                set: { if !$0 { pendingPasteText = nil } }
-            )
-        ) {
-            Button("加入收藏") {
-                confirmPasteAndAdd()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            if let pendingPasteText {
-                Text(pendingPasteText)
-            }
-        }
         #if os(macOS)
         .searchable(text: $searchText, prompt: "搜索…")
         #endif
@@ -73,6 +51,9 @@ struct CollectionListView: View {
         .onChange(of: store.typeFilter) {
             Task { await store.resetAndLoad() }
         }
+        .onChange(of: store.statusFilter) {
+            Task { await store.resetAndLoad() }
+        }
     }
 
     @ViewBuilder
@@ -84,7 +65,7 @@ struct CollectionListView: View {
             ContentUnavailableView {
                 Label("还没有内容", systemImage: "tray")
             } description: {
-                Text("点击右下角的按钮即可开始收藏。")
+                Text("点击“添加”按钮收藏新内容。")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -95,10 +76,18 @@ struct CollectionListView: View {
                 ) {
                     ForEach(store.items) { item in
                         NavigationLink(value: item) {
-                            StatusSwipeCard(status: item.status) {
+                            StatusSwipeCard(
+                                status: item.status,
+                                isRevealed: Binding(
+                                    get: { revealedItemId == item.id },
+                                    set: { revealedItemId = $0 ? item.id : nil }
+                                )
+                            ) {
                                 ItemCardView(item: item)
-                            } onSwipe: {
+                            } onToggleStatus: {
                                 Task { await toggleStatus(item) }
+                            } onArchive: {
+                                Task { await archiveItem(item) }
                             }
                         }
                         .buttonStyle(.plain)
@@ -128,70 +117,6 @@ struct CollectionListView: View {
     #endif
 
     @ViewBuilder
-    private var quickAddPanel: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            if isMenuOpen {
-                menuActions
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            addButton
-        }
-        .padding(8)
-        .animation(.snappy(duration: 0.25), value: isMenuOpen)
-    }
-
-    private var menuActions: some View {
-        VStack(spacing: 10) {
-            Button {
-                isMenuOpen = false
-                pasteAndAdd()
-            } label: {
-                Label("粘贴", systemImage: "doc.on.clipboard")
-                    .frame(maxWidth: .infinity)
-            }
-            Button {
-                isMenuOpen = false
-                isManualAddPresented = true
-            } label: {
-                Label("手动输入", systemImage: "square.and.pencil")
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .frame(width: 180, alignment: .trailing)
-    }
-
-    private var addButton: some View {
-        Button {
-            withAnimation(.snappy(duration: 0.25)) {
-                isMenuOpen.toggle()
-            }
-        } label: {
-            Group {
-                if store.isAdding {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white)
-                } else if isMenuOpen {
-                    Image(systemName: "xmark")
-                        .font(.title2.weight(.semibold))
-                        .rotationEffect(.degrees(isMenuOpen ? 90 : 0))
-                } else {
-                    Image(systemName: "plus")
-                        .font(.title2.weight(.semibold))
-                }
-            }
-            .frame(width: 56, height: 56)
-        }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.circle)
-        .clipShape(Circle())
-        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-        .disabled(store.isAdding)
-    }
-
-    @ViewBuilder
     private var toastView: some View {
         if let lightweightToast {
             Label(lightweightToast, systemImage: "checkmark.circle.fill")
@@ -207,6 +132,14 @@ struct CollectionListView: View {
     }
 
     private var controlsRow: some View {
+        HStack(spacing: 12) {
+            typePicker
+            Spacer(minLength: 0)
+            statusPicker
+        }
+    }
+
+    private var typePicker: some View {
         Picker(
             "类型",
             selection: Binding(
@@ -222,8 +155,28 @@ struct CollectionListView: View {
         .labelsHidden()
         .pickerStyle(.segmented)
         .controlSize(.large)
-        .frame(maxWidth: 560, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var statusPicker: some View {
+        Picker(
+            "状态",
+            selection: Binding(
+                get: { store.statusFilter },
+                set: { store.statusFilter = $0 }
+            )
+        ) {
+            Text("全部").tag(CollectionItemStatus?.none)
+            ForEach(CollectionItemStatus.allCases) { status in
+                Text(status.label).tag(CollectionItemStatus?.some(status))
+            }
+        }
+        .labelsHidden()
+        #if os(iOS)
+        .pickerStyle(.menu)
+        #else
+        .pickerStyle(.segmented)
+        .controlSize(.large)
+        #endif
     }
 
     private var paginationFooter: some View {
@@ -251,29 +204,6 @@ struct CollectionListView: View {
         .buttonStyle(.bordered)
     }
 
-    private func pasteAndAdd() {
-        guard
-            let text = clipboardText?
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-            !text.isEmpty
-        else {
-            store.toast = "剪贴板没有可粘贴的内容"
-            isManualAddPresented = true
-            return
-        }
-        pendingPasteText = text
-    }
-
-    private func confirmPasteAndAdd() {
-        guard let text = pendingPasteText else { return }
-        pendingPasteText = nil
-        Task {
-            if await store.quickAdd(text) {
-                showLightweightToast("已加入收藏")
-            }
-        }
-    }
-
     private func showLightweightToast(_ message: String) {
         lightweightToast = message
         Task {
@@ -285,17 +215,20 @@ struct CollectionListView: View {
         }
     }
 
-    private var clipboardText: String? {
-        #if os(macOS)
-        NSPasteboard.general.string(forType: .string)
-        #else
-        UIPasteboard.general.string
-        #endif
-    }
-
-    /// Swipe on a card toggles it between 进行中 and 已掌握.
+    /// Swipe on a card toggles it between 学习中 and 已学习.
     private func toggleStatus(_ item: CollectionItem) async {
         let newStatus = item.status == "learned" ? "active" : "learned"
+        guard await setStatus(item, status: newStatus) else { return }
+        showLightweightToast(newStatus == "learned" ? "已标记为已学习" : "已恢复为学习中")
+    }
+
+    private func archiveItem(_ item: CollectionItem) async {
+        guard await setStatus(item, status: "archived") else { return }
+        showLightweightToast("已归档")
+    }
+
+    @discardableResult
+    private func setStatus(_ item: CollectionItem, status: String) async -> Bool {
         do {
             _ = try await store.updateItem(
                 id: item.id,
@@ -303,262 +236,238 @@ struct CollectionListView: View {
                     title: item.title ?? "",
                     note: item.note ?? "",
                     tags: item.tags,
-                    status: newStatus,
+                    status: status,
                     url: item.url ?? ""
                 )
             )
-            showLightweightToast(newStatus == "learned" ? "已标记为已掌握" : "已恢复为进行中")
+            return true
         } catch {
             store.toast = error.localizedDescription
+            return false
         }
     }
 }
 
-/// Wraps a card so a horizontal drag (either direction) visually pulls
-/// it sideways with damping and triggers an action past a threshold,
-/// then springs back. Vertical drags pass through to the scroll view.
-/// iMessage-style swipe: dragging the card right slides it aside and
-/// reveals the status action behind it; releasing past the threshold
-/// performs the toggle and the card springs back. Vertical drags pass
-/// through to the enclosing scroll view.
+/// iMessage-style swipe with two stages: a short swipe slides the card
+/// aside and settles it open, revealing the action behind it (tap the
+/// action to run it); continuing into a long swipe past `triggerDistance`
+/// auto-runs the action and springs the card closed. Swiping right reveals
+/// the status toggle on the left; swiping left reveals Archive on the
+/// right; swiping the opposite way closes an open card. Vertical drags pass
+/// through to the enclosing scroll view. Only one card may be revealed at a
+/// time — the owner drives `isRevealed` so opening a card closes its
+/// siblings.
 private struct StatusSwipeCard<Content: View>: View {
+    enum RevealSide {
+        case toggle
+        case archive
+    }
+
+    enum DragAxis {
+        case horizontal
+        case vertical
+    }
+
     let status: String
+    @Binding var isRevealed: Bool
     @ViewBuilder let content: Content
-    let onSwipe: () -> Void
+    let onToggleStatus: () -> Void
+    let onArchive: () -> Void
 
     @State private var offsetX: CGFloat = 0
+    @State private var revealSide: RevealSide?
+    @GestureState private var isDragging = false
+    @State private var hasAutoTriggered = false
+    @State private var dragAxis: DragAxis?
+    /// True once onEnded ran, distinguishing a normal end from a system
+    /// cancellation (scroll view stealing the touch).
+    @State private var didEndDrag = false
 
-    private let triggerDistance: CGFloat = 80
+    /// Diameter of the circular action revealed behind the card.
+    private let actionWidth: CGFloat = 56
+    /// Gap kept between the revealed action and the slid card.
+    private let actionMargin: CGFloat = 12
+    /// Distance the card settles at when open: the action plus its margin.
+    private var revealDistance: CGFloat { actionWidth + actionMargin }
+    /// A swipe past this distance auto-triggers the revealed action.
+    private var triggerDistance: CGFloat { revealDistance + 160 }
 
     var body: some View {
         content
-            .background(alignment: .leading) {
-                actionHint
+            // Tap-to-dismiss while revealed. Kept in a lightweight overlay
+            // so the card content keeps a stable view identity — swapping
+            // `content` between gesture/no-gesture branches rebuilt the
+            // whole card and caused a visible flash at drag end.
+            .overlay {
+                if isRevealed {
+                    Color.clear.onTapGesture { resetOffset() }
+                }
             }
-            .offset(x: max(offsetX, 0))
+            .offset(x: offsetX)
+            .background(alignment: .leading) {
+                toggleHint
+            }
+            .background(alignment: .trailing) {
+                archiveHint
+            }
+            // Keep the slid card inside its own grid cell so it never
+            // overlaps the neighboring column on multi-column layouts.
+            .clipped()
             .gesture(
                 DragGesture(minimumDistance: 20)
+                    .updating($isDragging) { _, state, _ in state = true }
                     .onChanged { value in
-                        guard isHorizontal(value) else { resetOffset(); return }
-                        withAnimation(.interactiveSpring) {
-                            offsetX = revealWidth(for: value.translation.width)
+                        guard !hasAutoTriggered else { return }
+                        lockDragAxisIfNeeded(value)
+                        guard dragAxis == .horizontal else { return }
+                        // Track the finger directly — spring-animating every
+                        // drag frame makes the action morph lag and flicker.
+                        offsetX = dragOffset(value.translation.width)
+                        if offsetX > triggerDistance {
+                            hasAutoTriggered = true
+                            onToggleStatus()
+                            resetOffset()
+                        } else if offsetX < -triggerDistance {
+                            hasAutoTriggered = true
+                            onArchive()
+                            resetOffset()
                         }
                     }
                     .onEnded { value in
-                        if isHorizontal(value),
-                           value.translation.width > triggerDistance {
-                            onSwipe()
+                        defer {
+                            hasAutoTriggered = false
+                            dragAxis = nil
+                            didEndDrag = true
                         }
-                        resetOffset()
+                        guard !hasAutoTriggered, dragAxis == .horizontal else { return }
+                        let final = dragOffset(value.translation.width)
+                        if final > revealDistance / 2 {
+                            open(.toggle)
+                        } else if final < -revealDistance / 2 {
+                            open(.archive)
+                        } else {
+                            resetOffset()
+                        }
                     }
             )
+            // onEnded is skipped when the system cancels the gesture (e.g.
+            // the scroll view claims the touch), so also reset the drag
+            // state whenever the drag stops being active. A cancellation
+            // never ran onEnded, so spring the card back closed.
+            .onChange(of: isDragging) {
+                if isDragging {
+                    didEndDrag = false
+                } else {
+                    hasAutoTriggered = false
+                    dragAxis = nil
+                    if !didEndDrag { resetOffset() }
+                }
+            }
+            // A sibling card opening flips this binding back to false.
+            .onChange(of: isRevealed) {
+                if !isRevealed, offsetX != 0 {
+                    revealSide = nil
+                    withAnimation(.spring(duration: 0.3)) { offsetX = 0 }
+                }
+            }
     }
 
-    /// The action pill revealed behind the card while swiping.
+    /// The toggle action revealed on the leading side by a right swipe.
+    /// It scales up from a small dot as the card slides aside; swiping
+    /// further stretches it toward the card, always keeping the margin
+    /// between them.
     @ViewBuilder
-    private var actionHint: some View {
-        let progress = min(max(offsetX, 0) / triggerDistance, 1)
+    private var toggleHint: some View {
+        let reveal = max(offsetX, 0)
+        let progress = min(reveal / revealDistance, 1)
         let isLearned = status == "learned"
-        HStack(spacing: 6) {
-            Image(systemName: isLearned ? "arrow.counterclockwise" : "checkmark")
-            Text(isLearned ? "进行中" : "已掌握")
-        }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(
-            Capsule().fill(isLearned ? Color.orange : Color.green)
+        actionButton(
+            icon: isLearned ? "arrow.counterclockwise" : "checkmark",
+            color: isLearned ? Color.orange : Color.green,
+            width: max(actionWidth, reveal - actionMargin),
+            action: onToggleStatus
         )
-        .scaleEffect(0.8 + 0.2 * progress)
-        .opacity(progress)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(.leading, 16)
-        .allowsHitTesting(false)
+        .scaleEffect(progress, anchor: .leading)
+        .opacity(min(progress * 1.5, 1))
+        .allowsHitTesting(isRevealed)
     }
 
-    /// The card follows the drag; past the trigger the excess motion
-    /// is resisted (rubber band).
-    private func revealWidth(for translation: CGFloat) -> CGFloat {
-        guard translation > 0 else { return 0 }
-        if translation <= triggerDistance {
-            return translation
+    /// The Archive action revealed on the trailing side by a left swipe.
+    /// It scales up from a small dot as the card slides aside; swiping
+    /// further stretches it toward the card, always keeping the margin
+    /// between them.
+    @ViewBuilder
+    private var archiveHint: some View {
+        let reveal = max(-offsetX, 0)
+        let progress = min(reveal / revealDistance, 1)
+        actionButton(
+            icon: "archivebox",
+            color: .gray,
+            width: max(actionWidth, reveal - actionMargin),
+            action: onArchive
+        )
+        .scaleEffect(progress, anchor: .trailing)
+        .opacity(min(progress * 1.5, 1))
+        .allowsHitTesting(isRevealed)
+    }
+
+    private func actionButton(
+        icon: String,
+        color: Color,
+        width: CGFloat,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            action()
+            resetOffset()
+        } label: {
+            Image(systemName: icon)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: width, height: actionWidth)
+                .background(Capsule().fill(color))
         }
-        return triggerDistance + (translation - triggerDistance) * 0.2
+        .buttonStyle(.plain)
+        .frame(maxHeight: .infinity)
     }
 
-    private func isHorizontal(_ value: DragGesture.Value) -> Bool {
-        abs(value.translation.width) > abs(value.translation.height)
+    /// Tracks the finger from either the closed or the revealed position.
+    /// From an open card, dragging the opposite way only closes — it never
+    /// crosses over into the other side's reveal.
+    private func dragOffset(_ translation: CGFloat) -> CGFloat {
+        let base = revealSide.map { $0 == .toggle ? revealDistance : -revealDistance } ?? 0
+        let offset = base + translation
+        guard isRevealed, let side = revealSide else { return offset }
+        switch side {
+        case .toggle: return max(offset, 0)
+        case .archive: return min(offset, 0)
+        }
+    }
+
+    private func open(_ side: RevealSide) {
+        withAnimation(.spring(duration: 0.3)) {
+            revealSide = side
+            isRevealed = true
+            offsetX = side == .toggle ? revealDistance : -revealDistance
+        }
     }
 
     private func resetOffset() {
-        withAnimation(.spring(duration: 0.3)) { offsetX = 0 }
-    }
-}
-
-struct ManualAddSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let store: CollectionStore
-
-    @State private var source = ""
-    @FocusState private var isSourceFocused: Bool
-    @State private var didSucceed = false
-    @State private var addError: String?
-
-    var body: some View {
-        #if os(macOS)
-        cardBody
-        #else
-        formBody
-        #endif
-    }
-
-    #if os(macOS)
-    private var cardBody: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: "square.and.pencil")
-                    .foregroundStyle(Color.accentColor)
-                Text("手动添加")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.plain)
-                .disabled(store.isAdding)
-            }
-            Text("输入单词、短语或句子，类型将自动识别。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            sourceField
-            feedback
-            addButton
-        }
-        .padding(20)
-        .frame(width: 360)
-        .onAppear { isSourceFocused = true }
-    }
-    #endif
-
-    #if !os(macOS)
-    private var formBody: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    sourceField
-                } footer: {
-                    feedback
-                }
-            }
-            .navigationTitle("手动添加")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
-                        .disabled(store.isAdding)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(store.isAdding ? "添加中…" : "添加") {
-                        Task { await add() }
-                    }
-                    .disabled(
-                        store.isAdding
-                            || source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-                }
-            }
-        }
-    }
-    #endif
-
-    private var sourceField: some View {
-        ZStack(alignment: .topLeading) {
-            TextEditor(text: $source)
-                .focused($isSourceFocused)
-                .font(.body)
-                #if os(macOS)
-                .scrollContentBackground(.hidden)
-                #endif
-                #if os(iOS)
-                .textInputAutocapitalization(.never)
-                .frame(minHeight: 120)
-                #endif
-                .autocorrectionDisabled()
-                #if os(macOS)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(minHeight: 120)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(.quaternary)
-                )
-                #endif
-            if source.isEmpty {
-                Text("粘贴单词、短语或句子…")
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 16)
-                    .padding(.leading, 16)
-                    .allowsHitTesting(false)
-            }
+        withAnimation(.spring(duration: 0.3)) {
+            revealSide = nil
+            isRevealed = false
+            offsetX = 0
         }
     }
 
-    private var addButton: some View {
-        Button {
-            Task { await add() }
-        } label: {
-            HStack(spacing: 6) {
-                if store.isAdding {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white)
-                }
-                Text(store.isAdding ? "添加中…" : "添加")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-            }
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(
-            store.isAdding
-                || source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        )
-    }
-
-    @ViewBuilder
-    private var feedback: some View {
-        if didSucceed {
-            Label("已加入收藏", systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
-                .transition(.opacity)
-        }
-        if let addError {
-            Label(addError, systemImage: "exclamationmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.red)
-                .transition(.opacity)
-        }
-    }
-
-    private func add() async {
-        guard !store.isAdding else { return }
-        isSourceFocused = false
-        didSucceed = false
-        addError = nil
-        do {
-            _ = try await store.add(source)
-            withAnimation { didSucceed = true }
-            source = ""
-            await store.resetAndLoad()
-            try? await Task.sleep(for: .seconds(0.8))
-            dismiss()
-        } catch {
-            withAnimation { addError = error.localizedDescription }
-        }
+    /// Locks the drag axis once the movement is unambiguous, so a wiggling
+    /// finger can't flip it mid-gesture (which made the revealed action
+    /// flash on and off).
+    private func lockDragAxisIfNeeded(_ value: DragGesture.Value) {
+        guard dragAxis == nil else { return }
+        let width = abs(value.translation.width)
+        let height = abs(value.translation.height)
+        guard max(width, height) > 12 else { return }
+        dragAxis = width > height ? .horizontal : .vertical
     }
 }

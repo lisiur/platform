@@ -15,6 +15,7 @@ final class CollectionStore {
     private(set) var isImporting = false
 
     var typeFilter: CollectionItemType?
+    var statusFilter: CollectionItemStatus?
     var searchText = ""
     var toast: String?
     var pendingImport: PendingImport?
@@ -68,6 +69,7 @@ final class CollectionStore {
                 Self.listPath(
                     type: typeFilter,
                     q: searchText,
+                    status: statusFilter,
                     limit: pageSize,
                     offset: (page - 1) * pageSize
                 )
@@ -219,12 +221,16 @@ final class CollectionStore {
     private static func listPath(
         type: CollectionItemType?,
         q: String,
+        status: CollectionItemStatus?,
         limit: Int,
         offset: Int
     ) -> String {
         var query = "limit=\(limit)&offset=\(offset)"
         if let type {
             query += "&type=\(type.rawValue)"
+        }
+        if let status {
+            query += "&status=\(status.rawValue)"
         }
         if !q.isEmpty {
             query += "&q=\(queryEncode(q))"

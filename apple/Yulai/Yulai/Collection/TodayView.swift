@@ -7,10 +7,9 @@ struct TodayView: View {
 
     @State private var currentItemId: String?
     @State private var isMarkingLearned = false
-    @State private var isManualAddPresented = false
-    @State private var isAddMenuPresented = false
-    @State private var pendingPasteText: String?
-    @State private var lightweightToast: String?
+    #if os(macOS)
+    @State private var isQuickAddPresented = false
+    #endif
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,38 +20,25 @@ struct TodayView: View {
         }
         #if os(macOS)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                addMenu
+                Button {
+                    isQuickAddPresented = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("添加")
             }
         }
-        .overlay(alignment: .bottom) {
-            toastView
+        .sheet(isPresented: $isQuickAddPresented) {
+            quickAddSheet
         }
-        .animation(.snappy(duration: 0.2), value: lightweightToast)
-        .sheet(isPresented: $isManualAddPresented) {
-            ManualAddSheet(store: collectionStore)
-        }
-        .onChange(of: isManualAddPresented) {
-            if !$0 { Task { await store.load() } }
-        }
-        .alert(
-            "确认粘贴？",
-            isPresented: Binding(
-                get: { pendingPasteText != nil },
-                set: { if !$0 { pendingPasteText = nil } }
-            )
-        ) {
-            Button("加入收藏") {
-                confirmPasteAndAdd()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            if let pendingPasteText {
-                Text(pendingPasteText)
+        .onChange(of: isQuickAddPresented) {
+            if !isQuickAddPresented {
+                Task { await store.load() }
             }
         }
+        #endif
         .task {
             await store.load()
         }
@@ -89,9 +75,9 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.items.isEmpty {
             ContentUnavailableView {
-                Label("今日已学完", systemImage: "checkmark.seal")
+                Label("全部已学完", systemImage: "checkmark.seal")
             } description: {
-                Text("今天没有待学习的内容了，收藏新内容后再来吧。")
+                Text("没有待学习的内容了，收藏新内容后再来吧。")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -168,135 +154,19 @@ struct TodayView: View {
     }
 
     #if os(macOS)
-    private var addMenu: some View {
-        Button {
-            isAddMenuPresented.toggle()
-        } label: {
-            if collectionStore.isAdding {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: "plus")
-            }
+    private var quickAddSheet: some View {
+        NavigationStack {
+            QuickAddView()
+                .navigationTitle("添加")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("关闭") { isQuickAddPresented = false }
+                    }
+                }
         }
-        .disabled(collectionStore.isAdding)
-        .popover(isPresented: $isAddMenuPresented, arrowEdge: .bottom) {
-            addMenuActions
-        }
-    }
-
-    private var addMenuActions: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Button {
-                isAddMenuPresented = false
-                pasteAndAdd()
-            } label: {
-                Label("粘贴", systemImage: "doc.on.clipboard")
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            Divider()
-            Button {
-                isAddMenuPresented = false
-                isManualAddPresented = true
-            } label: {
-                Label("手动输入", systemImage: "square.and.pencil")
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-        }
-        .padding(.vertical, 6)
-        .frame(minWidth: 150, alignment: .leading)
-    }
-    #else
-    private var addMenu: some View {
-        Menu {
-            addMenuContent
-        } label: {
-            if collectionStore.isAdding {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: "plus")
-            }
-        }
-        .disabled(collectionStore.isAdding)
-    }
-
-    @ViewBuilder
-    private var addMenuContent: some View {
-        Button {
-            pasteAndAdd()
-        } label: {
-            Label("粘贴", systemImage: "doc.on.clipboard")
-        }
-        Button {
-            isManualAddPresented = true
-        } label: {
-            Label("手动输入", systemImage: "square.and.pencil")
-        }
+        .frame(width: 460, height: 360)
     }
     #endif
-
-    @ViewBuilder
-    private var toastView: some View {
-        if let lightweightToast {
-            Label(lightweightToast, systemImage: "checkmark.circle.fill")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(.regularMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
-                .padding(.bottom, 20)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-
-    private func pasteAndAdd() {
-        guard
-            let text = clipboardText?
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-            !text.isEmpty
-        else {
-            store.toast = "剪贴板没有可粘贴的内容"
-            isManualAddPresented = true
-            return
-        }
-        pendingPasteText = text
-    }
-
-    private func confirmPasteAndAdd() {
-        guard let text = pendingPasteText else { return }
-        pendingPasteText = nil
-        Task {
-            if await collectionStore.quickAdd(text) {
-                await store.load()
-                showLightweightToast("已加入收藏")
-            }
-        }
-    }
-
-    private func showLightweightToast(_ message: String) {
-        lightweightToast = message
-        Task {
-            try? await Task.sleep(for: .seconds(1.6))
-            guard lightweightToast == message else { return }
-            withAnimation(.snappy(duration: 0.2)) {
-                lightweightToast = nil
-            }
-        }
-    }
-
-    private var clipboardText: String? {
-        #if os(macOS)
-        NSPasteboard.general.string(forType: .string)
-        #else
-        UIPasteboard.general.string
-        #endif
-    }
 
     private func markLearned() async {
         guard let item = currentItem, !isMarkingLearned else { return }
@@ -372,7 +242,7 @@ struct TodayView: View {
 #Preview {
     NavigationStack {
         TodayView()
-            .navigationTitle("今日")
+            .navigationTitle("学习")
     }
     .environment(TodayStore())
     .environment(CollectionStore())

@@ -70,22 +70,7 @@ final class TodayStore {
     }
 
     private static func listPath(limit: Int, offset: Int) -> String {
-        var query = "limit=\(limit)&offset=\(offset)&status=active"
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        let startOfTomorrow = calendar.date(
-            byAdding: .day, value: 1, to: startOfToday
-        ) ?? startOfToday
-        let formatter = ISO8601DateFormatter()
-        query += "&from=\(queryEncode(formatter.string(from: startOfToday)))"
-            + "&to=\(queryEncode(formatter.string(from: startOfTomorrow)))"
-        return "collection/items?\(query)"
-    }
-
-    private static func queryEncode(_ value: String) -> String {
-        var allowed = CharacterSet.urlQueryAllowed
-        allowed.remove(charactersIn: "&=+/?")
-        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+        "collection/items?limit=\(limit)&offset=\(offset)&status=active"
     }
 }
 

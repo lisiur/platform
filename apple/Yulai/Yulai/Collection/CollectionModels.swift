@@ -40,6 +40,22 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum CollectionItemStatus: String, Codable, CaseIterable, Identifiable {
+    case active
+    case archived
+    case learned
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .active: "学习中"
+        case .archived: "已归档"
+        case .learned: "已学习"
+        }
+    }
+}
+
 enum EnrichStatus: String, Codable, Hashable {
     case none
     case pending

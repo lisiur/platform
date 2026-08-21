@@ -255,9 +255,9 @@ struct ItemDetailContent: View {
 
     private func statusLabel(_ status: String) -> String {
         switch status {
-        case "active": "进行中"
+        case "active": "学习中"
         case "archived": "已归档"
-        case "learned": "已掌握"
+        case "learned": "已学习"
         default: status
         }
     }
@@ -303,9 +303,9 @@ struct ItemEditSheet: View {
                 }
                 Section("状态") {
                     Picker("状态", selection: $status) {
-                        Text("进行中").tag("active")
+                        Text("学习中").tag("active")
                         Text("已归档").tag("archived")
-                        Text("已掌握").tag("learned")
+                        Text("已学习").tag("learned")
                     }
                     .pickerStyle(.segmented)
                 }

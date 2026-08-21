@@ -94,9 +94,9 @@
     "importItemsFound": "找到 {count} 条条目",
     "importSuccess": "已导入 {created} 条，跳过 {skipped} 条重复项",
     "status": {
-      "active": "进行中",
+      "active": "学习中",
       "archived": "已归档",
-      "learned": "已掌握"
+      "learned": "已学习"
     },
     "fields": {
       "title": "标题",
