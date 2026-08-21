@@ -65,7 +65,7 @@ const DEFS: EnrichmentDef[] = [
         .describe("Part of speech (noun, verb, etc.), words only"),
     }),
     shapeHint:
-      '{"translation":"中文释义","pronunciation":"/tʃɛk/","partOfSpeech":"noun, verb"}',
+      '{...,"translation":{"translation":"中文释义","pronunciation":"/tʃɛk/","partOfSpeech":"noun, verb"},...}',
     build: (source) => ({
       system: COMMON_SYSTEM,
       prompt: [
@@ -87,7 +87,7 @@ const DEFS: EnrichmentDef[] = [
         .string()
         .describe("Etymology and word origin, in Simplified Chinese"),
     }),
-    shapeHint: '{"origin":"词源说明（简体中文）"}',
+    shapeHint: '{...,"etymology":{"origin":"词源说明（简体中文）"}, ...}',
     build: (source) => ({
       system: COMMON_SYSTEM,
       prompt: `Explain the etymology and origin of the English word "${source}" in Simplified Chinese. Cover its roots, how it evolved, and any interesting history.`,
@@ -109,7 +109,7 @@ const DEFS: EnrichmentDef[] = [
         .describe("2 to 3 example sentences"),
     }),
     shapeHint:
-      '{"sentences":[{"en":"English example","zh":"中文翻译"},{"en":"...","zh":"..."}]}',
+      '{..., "examples":{"sentences":[{"en":"English example","zh":"中文翻译"},{"en":"...","zh":"..."}]}, ...}',
     build: (source) => ({
       system: COMMON_SYSTEM,
       prompt: `Write 3 natural example sentences using the English "${source}", each with a Simplified-Chinese translation.`,
@@ -124,7 +124,8 @@ const DEFS: EnrichmentDef[] = [
         .describe("Closely related synonyms in English"),
       antonyms: z.array(z.string()).describe("Antonyms in English"),
     }),
-    shapeHint: '{"synonyms":["word1","word2"],"antonyms":["word3"]}',
+    shapeHint:
+      '{...,"synonyms":{"synonyms":["word1","word2"],"antonyms":["word3"]},...}',
     build: (source) => ({
       system: COMMON_SYSTEM,
       prompt: `List common synonyms and antonyms for the English word "${source}". Provide a brief Chinese gloss is not required — English words only.`,
@@ -146,7 +147,7 @@ const DEFS: EnrichmentDef[] = [
         ),
     }),
     shapeHint:
-      '{"breakdown":"整体语法结构说明（简体中文）","keyPoints":["要点一","要点二"]}',
+      '{..., "grammar":{"breakdown":"整体语法结构说明（简体中文）","keyPoints":["要点一","要点二"]}, ...}',
     build: (source) => ({
       system: COMMON_SYSTEM,
       prompt: `Analyze the grammar of this English sentence for a Chinese learner. Break down the structure and highlight key grammar points.\n\nSentence: ${source}`,
