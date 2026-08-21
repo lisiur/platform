@@ -55,15 +55,23 @@ export async function listItems(
     tag?: string;
     q?: string;
     status?: string;
+    from?: Date;
+    to?: Date;
     limit?: number;
     offset?: number;
   },
 ) {
-  const { type, tag, q, status, limit, offset } = params;
+  const { type, tag, q, status, from, to, limit, offset } = params;
   const where: Record<string, unknown> = {};
   if (type) where.type = type;
   if (tag) where.tags = { has: tag };
   if (status) where.status = status;
+  if (from || to) {
+    where.createdAt = {
+      ...(from ? { gte: from } : {}),
+      ...(to ? { lt: to } : {}),
+    };
+  }
   if (q) {
     where.OR = [
       { source: { contains: q, mode: "insensitive" } },

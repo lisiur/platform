@@ -8,11 +8,13 @@
 import SwiftUI
 
 enum AppTab: Hashable {
+    case today
     case collection
     case profile
 
     var label: String {
         switch self {
+        case .today: "今日"
         case .collection: "收藏"
         case .profile: "我的"
         }
@@ -20,6 +22,7 @@ enum AppTab: Hashable {
 
     var icon: String {
         switch self {
+        case .today: "sun.max"
         case .collection: "tray.full"
         case .profile: "person.crop.circle"
         }
@@ -28,7 +31,8 @@ enum AppTab: Hashable {
 
 struct ContentView: View {
     @Environment(CollectionStore.self) private var store
-    @State private var tab: AppTab = .collection
+    @State private var tab: AppTab = .today
+    @State private var todayStore = TodayStore()
 
     var body: some View {
         Group {
@@ -42,6 +46,18 @@ struct ContentView: View {
             #else
             TabView(selection: $tab) {
                 Tab(
+                    AppTab.today.label,
+                    systemImage: AppTab.today.icon,
+                    value: AppTab.today
+                ) {
+                    NavigationStack {
+                        TodayView()
+                            .navigationTitle(AppTab.today.label)
+                            .navigationBarTitleDisplayMode(.inline)
+                    }
+                    .environment(todayStore)
+                }
+                Tab(
                     AppTab.collection.label,
                     systemImage: AppTab.collection.icon,
                     value: AppTab.collection
@@ -49,7 +65,7 @@ struct ContentView: View {
                     NavigationStack {
                         CollectionListView()
                             .navigationTitle(AppTab.collection.label)
-                            .navigationBarTitleDisplayMode(.large)
+                            .navigationBarTitleDisplayMode(.inline)
                     }
                 }
                 Tab(
@@ -60,7 +76,7 @@ struct ContentView: View {
                     NavigationStack {
                         ProfileView()
                             .navigationTitle(AppTab.profile.label)
-                            .navigationBarTitleDisplayMode(.large)
+                            .navigationBarTitleDisplayMode(.inline)
                     }
                 }
             }
@@ -80,6 +96,12 @@ struct ContentView: View {
     @ViewBuilder
     private var currentTab: some View {
         switch tab {
+        case .today:
+            NavigationStack {
+                TodayView()
+                    .navigationTitle(AppTab.today.label)
+            }
+            .environment(todayStore)
         case .collection:
             NavigationStack {
                 CollectionListView()
@@ -99,7 +121,7 @@ struct ContentView: View {
 struct AppTabBar: View {
     @Binding var selection: AppTab
 
-    private let tabs = [AppTab.collection, .profile]
+    private let tabs = [AppTab.today, .collection, .profile]
 
     var body: some View {
         HStack(spacing: 0) {

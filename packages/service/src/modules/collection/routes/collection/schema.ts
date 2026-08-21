@@ -100,6 +100,8 @@ export const listItemsQuerySchema = paginationQuerySchema
     tag: z.string().optional(),
     q: z.string().optional(),
     status: z.enum(["active", "archived", "learned"]).optional(),
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
   })
   .openapi("ListCollectionItemsQuery");
 

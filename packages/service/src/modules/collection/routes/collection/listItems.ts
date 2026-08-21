@@ -31,6 +31,8 @@ export const listItemsRoute = defineOpenAPIRoute({
       tag: query.tag,
       q: query.q,
       status: query.status,
+      from: query.from,
+      to: query.to,
       limit: query.limit,
       offset: query.offset,
     });

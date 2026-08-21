@@ -90,38 +90,87 @@ struct ItemDetailView: View {
 
     private func detailBody(_ item: CollectionItem) -> some View {
         ScrollView {
-            VStack(spacing: 14) {
-                headerCard(item)
-                if item.enrichStatus == .failed {
-                    failureBanner(item)
-                }
-                let kinds = CollectionItemType.enrichmentKinds[item.type] ?? []
-                if kinds.isEmpty {
-                    Text("此类型暂不支持 AI 释义。")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                } else {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 320), spacing: 12)],
-                        spacing: 12
-                    ) {
-                        ForEach(kinds) { kind in
-                            EnrichmentSectionView(
-                                kind: kind,
-                                data: item.enrichments?.first { $0.kind == kind.rawValue },
-                                pending: item.enrichStatus == .pending
-                            )
-                        }
-                    }
-                }
-            }
+            ItemDetailContent(
+                item: item,
+                isRetrying: isRetrying,
+                onRetryEnrich: { Task { await retryEnrich() } }
+            )
             .padding(20)
         }
     }
 
-    private func headerCard(_ item: CollectionItem) -> some View {
+    @discardableResult
+    private func load() async -> Bool {
+        if item == nil { isLoading = true }
+        defer { isLoading = false }
+        do {
+            item = try await store.fetchItem(id: itemId)
+            loadError = nil
+            return true
+        } catch {
+            if case let APIError.server(status, _) = error, status == 404 {
+                // Genuinely gone — keep the "not found" state.
+                loadError = nil
+            } else if item == nil {
+                loadError = error.localizedDescription
+            }
+            return false
+        }
+    }
+
+    private func retryEnrich() async {
+        isRetrying = true
+        defer { isRetrying = false }
+        do {
+            _ = try await store.client.send(
+                "POST", "collection/items/\(itemId)/enrich/retry"
+            )
+            await load()
+        } catch {
+            store.toast = error.localizedDescription
+        }
+    }
+}
+
+/// The detail rendering shared by the pushed detail screen and the Today
+/// card pager: header card, failure banner, and enrichment sections.
+/// Callers own scrolling and padding.
+struct ItemDetailContent: View {
+    let item: CollectionItem
+    var isRetrying = false
+    var onRetryEnrich: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 14) {
+            headerCard
+            if item.enrichStatus == .failed {
+                failureBanner
+            }
+            let kinds = CollectionItemType.enrichmentKinds[item.type] ?? []
+            if kinds.isEmpty {
+                Text("此类型暂不支持 AI 释义。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 320), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(kinds) { kind in
+                        EnrichmentSectionView(
+                            kind: kind,
+                            data: item.enrichments?.first { $0.kind == kind.rawValue },
+                            pending: item.enrichStatus == .pending
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var headerCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 BadgeView(text: item.type.label, color: item.type.badgeColor)
@@ -165,7 +214,7 @@ struct ItemDetailView: View {
         )
     }
 
-    private func failureBanner(_ item: CollectionItem) -> some View {
+    private var failureBanner: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("自动生成释义失败")
@@ -179,7 +228,7 @@ struct ItemDetailView: View {
             }
             Spacer()
             Button {
-                Task { await retryEnrich() }
+                onRetryEnrich?()
             } label: {
                 HStack(spacing: 6) {
                     if isRetrying {
@@ -204,35 +253,12 @@ struct ItemDetailView: View {
         )
     }
 
-    @discardableResult
-    private func load() async -> Bool {
-        if item == nil { isLoading = true }
-        defer { isLoading = false }
-        do {
-            item = try await store.fetchItem(id: itemId)
-            loadError = nil
-            return true
-        } catch {
-            if case let APIError.server(status, _) = error, status == 404 {
-                // Genuinely gone — keep the "not found" state.
-                loadError = nil
-            } else if item == nil {
-                loadError = error.localizedDescription
-            }
-            return false
-        }
-    }
-
-    private func retryEnrich() async {
-        isRetrying = true
-        defer { isRetrying = false }
-        do {
-            _ = try await store.client.send(
-                "POST", "collection/items/\(itemId)/enrich/retry"
-            )
-            await load()
-        } catch {
-            store.toast = error.localizedDescription
+    private func statusLabel(_ status: String) -> String {
+        switch status {
+        case "active": "进行中"
+        case "archived": "已归档"
+        case "learned": "已掌握"
+        default: status
         }
     }
 }
@@ -344,14 +370,5 @@ struct ItemEditSheet: View {
         } catch {
             store.toast = error.localizedDescription
         }
-    }
-}
-
-private func statusLabel(_ status: String) -> String {
-    switch status {
-    case "active": "进行中"
-    case "archived": "已归档"
-    case "learned": "已掌握"
-    default: status
     }
 }

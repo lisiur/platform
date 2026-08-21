@@ -95,7 +95,11 @@ struct CollectionListView: View {
                 ) {
                     ForEach(store.items) { item in
                         NavigationLink(value: item) {
-                            ItemCardView(item: item)
+                            StatusSwipeCard(status: item.status) {
+                                ItemCardView(item: item)
+                            } onSwipe: {
+                                Task { await toggleStatus(item) }
+                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -287,6 +291,108 @@ struct CollectionListView: View {
         #else
         UIPasteboard.general.string
         #endif
+    }
+
+    /// Swipe on a card toggles it between 进行中 and 已掌握.
+    private func toggleStatus(_ item: CollectionItem) async {
+        let newStatus = item.status == "learned" ? "active" : "learned"
+        do {
+            _ = try await store.updateItem(
+                id: item.id,
+                body: UpdateItemBody(
+                    title: item.title ?? "",
+                    note: item.note ?? "",
+                    tags: item.tags,
+                    status: newStatus,
+                    url: item.url ?? ""
+                )
+            )
+            showLightweightToast(newStatus == "learned" ? "已标记为已掌握" : "已恢复为进行中")
+        } catch {
+            store.toast = error.localizedDescription
+        }
+    }
+}
+
+/// Wraps a card so a horizontal drag (either direction) visually pulls
+/// it sideways with damping and triggers an action past a threshold,
+/// then springs back. Vertical drags pass through to the scroll view.
+/// iMessage-style swipe: dragging the card right slides it aside and
+/// reveals the status action behind it; releasing past the threshold
+/// performs the toggle and the card springs back. Vertical drags pass
+/// through to the enclosing scroll view.
+private struct StatusSwipeCard<Content: View>: View {
+    let status: String
+    @ViewBuilder let content: Content
+    let onSwipe: () -> Void
+
+    @State private var offsetX: CGFloat = 0
+
+    private let triggerDistance: CGFloat = 80
+
+    var body: some View {
+        content
+            .background(alignment: .leading) {
+                actionHint
+            }
+            .offset(x: max(offsetX, 0))
+            .gesture(
+                DragGesture(minimumDistance: 20)
+                    .onChanged { value in
+                        guard isHorizontal(value) else { resetOffset(); return }
+                        withAnimation(.interactiveSpring) {
+                            offsetX = revealWidth(for: value.translation.width)
+                        }
+                    }
+                    .onEnded { value in
+                        if isHorizontal(value),
+                           value.translation.width > triggerDistance {
+                            onSwipe()
+                        }
+                        resetOffset()
+                    }
+            )
+    }
+
+    /// The action pill revealed behind the card while swiping.
+    @ViewBuilder
+    private var actionHint: some View {
+        let progress = min(max(offsetX, 0) / triggerDistance, 1)
+        let isLearned = status == "learned"
+        HStack(spacing: 6) {
+            Image(systemName: isLearned ? "arrow.counterclockwise" : "checkmark")
+            Text(isLearned ? "进行中" : "已掌握")
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule().fill(isLearned ? Color.orange : Color.green)
+        )
+        .scaleEffect(0.8 + 0.2 * progress)
+        .opacity(progress)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.leading, 16)
+        .allowsHitTesting(false)
+    }
+
+    /// The card follows the drag; past the trigger the excess motion
+    /// is resisted (rubber band).
+    private func revealWidth(for translation: CGFloat) -> CGFloat {
+        guard translation > 0 else { return 0 }
+        if translation <= triggerDistance {
+            return translation
+        }
+        return triggerDistance + (translation - triggerDistance) * 0.2
+    }
+
+    private func isHorizontal(_ value: DragGesture.Value) -> Bool {
+        abs(value.translation.width) > abs(value.translation.height)
+    }
+
+    private func resetOffset() {
+        withAnimation(.spring(duration: 0.3)) { offsetX = 0 }
     }
 }
 
