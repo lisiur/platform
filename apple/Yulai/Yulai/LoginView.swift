@@ -28,11 +28,7 @@ struct LoginView: View {
         case password
     }
 
-    /// Sign in with Apple requires the `com.apple.developer.applesignin`
-    /// entitlement, which needs a completed Apple Developer enrollment.
-    /// Flip to `true` and re-add the entitlement (plus the iOS capability in
-    /// Xcode) once enrollment is approved.
-    private static let appleSignInEnabled = false
+    private static let appleSignInEnabled = true
 
     var body: some View {
         ScrollView {
