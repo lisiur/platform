@@ -23,7 +23,7 @@ CREATE TYPE "CollectionItemType" AS ENUM ('WORD', 'PHRASE', 'SENTENCE');
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "email" TEXT,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "avatar" TEXT,
     "avatarId" TEXT,
@@ -821,6 +821,90 @@ CREATE TABLE "redeem_code" (
     CONSTRAINT "redeem_code_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "qianlai_ledger" (
+    "id" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "currency" TEXT NOT NULL DEFAULT 'CNY',
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "lastEntryNo" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "qianlai_ledger_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_ledger_member" (
+    "id" TEXT NOT NULL,
+    "ledgerId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'editor',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "qianlai_ledger_member_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_ledger_share_code" (
+    "id" TEXT NOT NULL,
+    "ledgerId" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "expiresAt" TIMESTAMP(3),
+    "maxUses" INTEGER,
+    "usesCount" INTEGER NOT NULL DEFAULT 0,
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "qianlai_ledger_share_code_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_book_account" (
+    "id" TEXT NOT NULL,
+    "ledgerId" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "parentId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "qianlai_book_account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_journal_entry" (
+    "id" TEXT NOT NULL,
+    "ledgerId" TEXT NOT NULL,
+    "entryNo" INTEGER NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "memo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'posted',
+    "createdById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "qianlai_journal_entry_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_journal_line" (
+    "id" TEXT NOT NULL,
+    "entryId" TEXT NOT NULL,
+    "accountId" TEXT NOT NULL,
+    "debit" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "credit" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "memo" TEXT,
+
+    CONSTRAINT "qianlai_journal_line_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -1196,6 +1280,33 @@ CREATE INDEX "user_credit_ledger_referenceType_referenceId_idx" ON "user_credit_
 -- CreateIndex
 CREATE UNIQUE INDEX "redeem_code_code_key" ON "redeem_code"("code");
 
+-- CreateIndex
+CREATE INDEX "qianlai_ledger_ownerId_idx" ON "qianlai_ledger"("ownerId");
+
+-- CreateIndex
+CREATE INDEX "qianlai_ledger_member_userId_idx" ON "qianlai_ledger_member"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_ledger_member_ledgerId_userId_key" ON "qianlai_ledger_member"("ledgerId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_ledger_share_code_code_key" ON "qianlai_ledger_share_code"("code");
+
+-- CreateIndex
+CREATE INDEX "qianlai_ledger_share_code_ledgerId_idx" ON "qianlai_ledger_share_code"("ledgerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_book_account_ledgerId_code_key" ON "qianlai_book_account"("ledgerId", "code");
+
+-- CreateIndex
+CREATE INDEX "qianlai_journal_entry_ledgerId_date_idx" ON "qianlai_journal_entry"("ledgerId", "date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_journal_entry_ledgerId_entryNo_key" ON "qianlai_journal_entry"("ledgerId", "entryNo");
+
+-- CreateIndex
+CREATE INDEX "qianlai_journal_line_accountId_idx" ON "qianlai_journal_line"("accountId");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -1354,4 +1465,37 @@ ALTER TABLE "user_credit" ADD CONSTRAINT "user_credit_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "user_credit_ledger" ADD CONSTRAINT "user_credit_ledger_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger" ADD CONSTRAINT "qianlai_ledger_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_book_account" ADD CONSTRAINT "qianlai_book_account_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_book_account" ADD CONSTRAINT "qianlai_book_account_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "qianlai_book_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_entryId_fkey" FOREIGN KEY ("entryId") REFERENCES "qianlai_journal_entry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "qianlai_book_account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

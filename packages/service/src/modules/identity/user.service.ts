@@ -382,7 +382,14 @@ export async function deleteUser(id: string) {
     throw new HTTPException(404, { message: "User not found" });
   }
 
-  await prisma.user.delete({ where: { id } });
+  // The ledger FK is Restrict, so owned ledgers must be reassigned or deleted
+  // before the user delete, in the same transaction.
+  const { releaseOwnedLedgers } = await import("#modules/bookkeeping/public");
+
+  await prisma.$transaction(async (tx) => {
+    await releaseOwnedLedgers(id, tx);
+    await tx.user.delete({ where: { id } });
+  });
 
   return { success: true };
 }

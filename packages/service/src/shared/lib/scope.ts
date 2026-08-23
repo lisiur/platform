@@ -1,6 +1,7 @@
 import {
   ADMIN_APP_CODE,
   ORGANIZATION_APP_CODE,
+  QIANLAI_APP_CODE,
   STUDYBUDDY_APP_CODE,
 } from "@repo/shared";
 
@@ -37,6 +38,12 @@ export const ORG_PERMISSION_SCOPE = "org";
  * permission scopes.
  */
 export const STUDYBUDDY_PERMISSION_SCOPE = "studybuddy";
+
+/**
+ * Scope segment used in permission codes for the Qianlai bookkeeping app
+ * (e.g. "qianlai/dashboard:view"). Independent of the other permission scopes.
+ */
+export const QIANLAI_PERMISSION_SCOPE = "qianlai";
 
 export const orgScope = (organizationId: string): string =>
   `${ORG_SCOPE_PREFIX}${organizationId}`;
@@ -107,14 +114,18 @@ export function roleAssignmentWhereByRoleScope(scope: string) {
  * Maps a role code to the permission scopes that role may hold. Org roles are
  * per-instance ("org:123/owner") but org permissions share a single "org"
  * scope, so the permission scope differs from the role scope. System roles may
- * additionally hold the independent "studybuddy" scope.
- *   "system/admin"   → ["system", "studybuddy"]
+ * additionally hold the independent "studybuddy" and "qianlai" scopes.
+ *   "system/admin"   → ["system", "studybuddy", "qianlai"]
  *   "org:123/owner"  → ["org"]
  */
 export function permissionScopesForRoleCode(roleCode: string): string[] {
   const parsed = parseScope(scopeOfRoleCode(roleCode));
   if (parsed.kind === "system")
-    return [SYSTEM_SCOPE, STUDYBUDDY_PERMISSION_SCOPE];
+    return [
+      SYSTEM_SCOPE,
+      STUDYBUDDY_PERMISSION_SCOPE,
+      QIANLAI_PERMISSION_SCOPE,
+    ];
   if (parsed.kind === "org") return [ORG_PERMISSION_SCOPE];
   return [scopeOfRoleCode(roleCode)];
 }
@@ -124,10 +135,12 @@ export function permissionScopesForRoleCode(roleCode: string): string[] {
  *   "admin"        → "system"
  *   "organization" → "org"
  *   "studybuddy"   → "studybuddy"
+ *   "qianlai"      → "qianlai"
  */
 export function permissionScopeForAppCode(appCode: string): string {
   if (appCode === ADMIN_APP_CODE) return SYSTEM_SCOPE;
   if (appCode === ORGANIZATION_APP_CODE) return ORG_PERMISSION_SCOPE;
   if (appCode === STUDYBUDDY_APP_CODE) return STUDYBUDDY_PERMISSION_SCOPE;
+  if (appCode === QIANLAI_APP_CODE) return QIANLAI_PERMISSION_SCOPE;
   throw new Error(`Unknown application code: ${appCode}`);
 }

@@ -102,7 +102,13 @@ export const ModelName = {
   PricingSubscription: 'PricingSubscription',
   UserCredit: 'UserCredit',
   UserCreditLedger: 'UserCreditLedger',
-  RedeemCode: 'RedeemCode'
+  RedeemCode: 'RedeemCode',
+  Ledger: 'Ledger',
+  LedgerMember: 'LedgerMember',
+  LedgerShareCode: 'LedgerShareCode',
+  BookAccount: 'BookAccount',
+  JournalEntry: 'JournalEntry',
+  JournalLine: 'JournalLine'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -921,6 +927,90 @@ export const RedeemCodeScalarFieldEnum = {
 } as const
 
 export type RedeemCodeScalarFieldEnum = (typeof RedeemCodeScalarFieldEnum)[keyof typeof RedeemCodeScalarFieldEnum]
+
+
+export const LedgerScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  name: 'name',
+  description: 'description',
+  currency: 'currency',
+  status: 'status',
+  isDefault: 'isDefault',
+  lastEntryNo: 'lastEntryNo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LedgerScalarFieldEnum = (typeof LedgerScalarFieldEnum)[keyof typeof LedgerScalarFieldEnum]
+
+
+export const LedgerMemberScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  userId: 'userId',
+  role: 'role',
+  createdAt: 'createdAt'
+} as const
+
+export type LedgerMemberScalarFieldEnum = (typeof LedgerMemberScalarFieldEnum)[keyof typeof LedgerMemberScalarFieldEnum]
+
+
+export const LedgerShareCodeScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  code: 'code',
+  role: 'role',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  maxUses: 'maxUses',
+  usesCount: 'usesCount',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type LedgerShareCodeScalarFieldEnum = (typeof LedgerShareCodeScalarFieldEnum)[keyof typeof LedgerShareCodeScalarFieldEnum]
+
+
+export const BookAccountScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  code: 'code',
+  name: 'name',
+  type: 'type',
+  parentId: 'parentId',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookAccountScalarFieldEnum = (typeof BookAccountScalarFieldEnum)[keyof typeof BookAccountScalarFieldEnum]
+
+
+export const JournalEntryScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  entryNo: 'entryNo',
+  date: 'date',
+  memo: 'memo',
+  status: 'status',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type JournalEntryScalarFieldEnum = (typeof JournalEntryScalarFieldEnum)[keyof typeof JournalEntryScalarFieldEnum]
+
+
+export const JournalLineScalarFieldEnum = {
+  id: 'id',
+  entryId: 'entryId',
+  accountId: 'accountId',
+  debit: 'debit',
+  credit: 'credit',
+  memo: 'memo'
+} as const
+
+export type JournalLineScalarFieldEnum = (typeof JournalLineScalarFieldEnum)[keyof typeof JournalLineScalarFieldEnum]
 
 
 export const SortOrder = {

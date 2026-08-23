@@ -1,0 +1,296 @@
+"use client";
+
+import { VersionDialog } from "@repo/frontend";
+import { APP_VERSION } from "@repo/shared";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  SidebarMenuButton,
+  Switch,
+} from "@repo/ui";
+import {
+  ChevronsUpDown,
+  KeyRound,
+  LanguagesIcon,
+  LogOut,
+  Milestone,
+  Moon,
+  Settings,
+  Sun,
+  UserIcon,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
+import { Fragment, useMemo, useState } from "react";
+import { API_ORIGIN, APP_CODE, appClient } from "@/lib/api";
+import { useSession } from "@/lib/api/use-session";
+
+type UserMenuItem =
+  | "userInfo"
+  | "profile"
+  | "tokens"
+  | "theme"
+  | "locale"
+  | "version"
+  | "signOut";
+
+interface UserMenuProps {
+  full: boolean;
+  items?: UserMenuItem[];
+}
+
+const locales: { value: string; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+];
+
+export function UserMenu({ full, items }: UserMenuProps) {
+  const session = useSession();
+  const user = session.data?.user;
+  const router = useRouter();
+  const locale = useLocale();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
+  const t = useTranslations("Sidebar");
+  const th = useTranslations("Header");
+
+  const [versionOpen, setVersionOpen] = useState(false);
+
+  const visible = new Set(
+    items ?? [
+      "userInfo",
+      "profile",
+      "tokens",
+      "theme",
+      "locale",
+      "version",
+      "signOut",
+    ],
+  );
+
+  const initials = useMemo(() => {
+    const label = user?.name || user?.email || "";
+    return label
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [user?.name, user?.email]);
+
+  const handleSignOut = async () => {
+    try {
+      await session.signOut();
+      router.push("/sign-in");
+    } catch {
+      // Keep the current UI state if sign-out or navigation fails.
+    }
+  };
+
+  function handleLocaleChange(value: string) {
+    // biome-ignore lint/suspicious/noDocumentCookie: simple cookie setter for locale
+    document.cookie = `locale=${value};path=/;max-age=31536000`;
+    router.refresh();
+  }
+
+  const showLabel = visible.has("userInfo");
+  const showProfile = visible.has("profile");
+  const showTokens = visible.has("tokens");
+  const showUtilities = visible.has("theme") || visible.has("locale");
+  const showVersion = visible.has("version");
+  const showSignOut = visible.has("signOut");
+
+  const avatar = (
+    <div
+      className={`relative flex h-full w-full shrink-0 items-center justify-center overflow-hidden ${
+        full ? "rounded-lg" : "rounded-full"
+      } ${user?.avatar ? "" : full ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-muted"}`}
+    >
+      {user?.avatar ? (
+        <Image
+          src={user.avatar}
+          alt={user.name ?? ""}
+          fill
+          className="object-cover"
+          priority
+          unoptimized
+        />
+      ) : (
+        <span className="font-semibold text-xs">{initials}</span>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            full ? (
+              <SidebarMenuButton
+                size="lg"
+                className="w-full data-[popup-open]:bg-sidebar-accent data-[popup-open]:text-sidebar-accent-foreground"
+              />
+            ) : undefined
+          }
+          className={
+            full
+              ? undefined
+              : "inline-flex items-center gap-1.5 rounded-md px-1 py-1 font-medium text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          }
+        >
+          <span className="sr-only">{user ? "User menu" : "Settings"}</span>
+          {full ? (
+            <>
+              <div className="aspect-square h-8 w-8">{avatar}</div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{user?.name}</span>
+                <span className="truncate text-muted-foreground text-xs">
+                  {user?.email}
+                </span>
+              </div>
+              <ChevronsUpDown className="ml-auto h-4 w-4" />
+            </>
+          ) : user ? (
+            <div className="h-6 w-6">{avatar}</div>
+          ) : (
+            <Settings className="h-5 w-5" />
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className={
+            full ? "w-[--radix-dropdown-menu-trigger-width] min-w-56" : "w-48"
+          }
+          side={full ? "top" : "bottom"}
+          align={full ? "start" : "end"}
+          sideOffset={full ? 4 : undefined}
+        >
+          {showLabel && (
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium text-sm leading-none">
+                    {user?.name}
+                  </p>
+                  <p className="text-muted-foreground text-xs leading-none">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+          )}
+          {showLabel &&
+            (showProfile || showTokens || showUtilities || showSignOut) && (
+              <DropdownMenuSeparator />
+            )}
+          {showProfile && (
+            <DropdownMenuItem render={<Link href="/profile" />}>
+              <UserIcon />
+              {t("profile")}
+            </DropdownMenuItem>
+          )}
+          {showTokens && (
+            <DropdownMenuItem render={<Link href="/tokens" />}>
+              <KeyRound />
+              {t("tokens")}
+            </DropdownMenuItem>
+          )}
+          {(showProfile || showTokens) && showUtilities && (
+            <DropdownMenuSeparator />
+          )}
+          {showUtilities && (
+            <Fragment>
+              {visible.has("theme") && (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  className="cursor-default"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-1.5">
+                      {isDark ? (
+                        <Moon className="size-4" />
+                      ) : (
+                        <Sun className="size-4" />
+                      )}
+                      {th("appearance")}
+                    </span>
+                    <Switch
+                      checked={isDark}
+                      onCheckedChange={(checked) =>
+                        setTheme(checked ? "dark" : "light")
+                      }
+                    />
+                  </div>
+                </DropdownMenuItem>
+              )}
+              {visible.has("locale") && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <LanguagesIcon className="size-4 text-muted-foreground" />
+                    <span>{th("language")}</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {locales.map((l) => (
+                      <DropdownMenuCheckboxItem
+                        key={l.value}
+                        checked={locale === l.value}
+                        onClick={() => handleLocaleChange(l.value)}
+                      >
+                        {l.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+            </Fragment>
+          )}
+          {showVersion && (
+            <DropdownMenuItem onClick={() => setVersionOpen(true)}>
+              <Milestone className="h-4 w-4" />
+              <span>{t("version")}</span>
+              <span className="ml-auto font-mono text-muted-foreground text-xs">
+                {APP_VERSION}
+              </span>
+            </DropdownMenuItem>
+          )}
+          {(showLabel ||
+            showProfile ||
+            showTokens ||
+            showUtilities ||
+            showVersion) &&
+            showSignOut && <DropdownMenuSeparator />}
+          {showSignOut && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => void handleSignOut()}
+            >
+              <LogOut className="h-4 w-4" />
+              {t("signOut")}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {showVersion && (
+        <VersionDialog
+          open={versionOpen}
+          onOpenChange={setVersionOpen}
+          appClient={appClient}
+          apiOrigin={API_ORIGIN}
+          appCode={APP_CODE}
+        />
+      )}
+    </>
+  );
+}

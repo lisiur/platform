@@ -277,3 +277,33 @@ export type UserCreditLedger = Prisma.UserCreditLedgerModel
  * 
  */
 export type RedeemCode = Prisma.RedeemCodeModel
+/**
+ * Model Ledger
+ * 
+ */
+export type Ledger = Prisma.LedgerModel
+/**
+ * Model LedgerMember
+ * 
+ */
+export type LedgerMember = Prisma.LedgerMemberModel
+/**
+ * Model LedgerShareCode
+ * 
+ */
+export type LedgerShareCode = Prisma.LedgerShareCodeModel
+/**
+ * Model BookAccount
+ * 
+ */
+export type BookAccount = Prisma.BookAccountModel
+/**
+ * Model JournalEntry
+ * 
+ */
+export type JournalEntry = Prisma.JournalEntryModel
+/**
+ * Model JournalLine
+ * 
+ */
+export type JournalLine = Prisma.JournalLineModel

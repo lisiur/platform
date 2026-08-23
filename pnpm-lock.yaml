@@ -222,6 +222,82 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
+  apps/qianlai:
+    dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.4.0(react-hook-form@7.81.0(react@19.2.4))
+      '@repo/frontend':
+        specifier: workspace:*
+        version: link:../../packages/frontend
+      '@repo/service':
+        specifier: workspace:*
+        version: link:../../packages/service
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@simplewebauthn/browser':
+        specifier: ^13.0.0
+        version: 13.3.0
+      '@tanstack/react-query':
+        specifier: ^5.100.14
+        version: 5.101.2(react@19.2.4)
+      hono:
+        specifier: ^4.12.31
+        version: 4.12.31
+      lucide-react:
+        specifier: ^1.14.0
+        version: 1.23.0(react@19.2.4)
+      next:
+        specifier: 16.2.6
+        version: 16.2.6(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      next-intl:
+        specifier: ^4.12.0
+        version: 4.13.1(next@16.2.6(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(typescript@6.0.3)
+      next-themes:
+        specifier: 0.4.6
+        version: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-hook-form:
+        specifier: ^7.75.0
+        version: 7.81.0(react@19.2.4)
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.8(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+      zustand:
+        specifier: ^5.0.13
+        version: 5.0.14(@types/react@19.2.17)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.3.2
+      '@types/node':
+        specifier: ^24
+        version: 24.13.3
+      '@types/react':
+        specifier: ^19
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.4(@types/react@19.2.17)
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
   apps/studybuddy:
     dependencies:
       '@hookform/resolvers':

@@ -35,6 +35,10 @@ model User {
   userCredit           UserCredit?
   userCreditLedger     UserCreditLedger[]
   aiUsageEvents        AiUsageEvent[]
+  ownedQianlaiLedgers  Ledger[]          @relation("QianlaiLedgerOwner")
+  qianlaiMemberships   LedgerMember[]
+  qianlaiShareCodes    LedgerShareCode[] @relation("QianlaiShareCodeCreator")
+  qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
 
   @@unique([email])
   @@map("user")
@@ -1060,4 +1064,127 @@ model RedeemCode {
   updatedAt DateTime  @updatedAt
 
   @@map("redeem_code")
+}
+
+// ============================================================
+// Qianlai — Personal Bookkeeping (ledgers, accounts, journal)
+// ============================================================
+
+model Ledger {
+  id          String         @id @default(cuid())
+  // Restrict, not Cascade: hard-deleting a user must not silently destroy
+  // shared ledgers (and other members' data). `deleteUser` reassigns or
+  // removes owned ledgers first via `releaseOwnedLedgers`; Restrict makes
+  // any path that forgets that cleanup fail loudly instead of deleting data.
+  ownerId     String
+  owner       User           @relation("QianlaiLedgerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  currency    String         @default("CNY")
+  status      String         @default("active")
+  isDefault   Boolean        @default(false)
+  // Monotonic per-ledger counter backing JournalEntry.entryNo: numbers are
+  // never reused, even after the highest-numbered entry is deleted. Bumped
+  // under the ledger row lock in createEntry.
+  lastEntryNo Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  members     LedgerMember[]
+  shareCodes  LedgerShareCode[]
+  accounts    BookAccount[]
+  entries     JournalEntry[]
+
+  @@index([ownerId])
+  @@map("qianlai_ledger")
+}
+
+model LedgerMember {
+  id        String   @id @default(cuid())
+  ledgerId  String
+  ledger    Ledger   @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("editor")
+  createdAt DateTime @default(now())
+
+  @@unique([ledgerId, userId])
+  @@index([userId])
+  @@map("qianlai_ledger_member")
+}
+
+model LedgerShareCode {
+  id          String    @id @default(cuid())
+  ledgerId    String
+  ledger      Ledger    @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  code        String    @unique
+  role        String
+  status      String    @default("active")
+  expiresAt   DateTime?
+  maxUses     Int?
+  usesCount   Int       @default(0)
+  createdById String
+  createdBy   User      @relation("QianlaiShareCodeCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([ledgerId])
+  @@map("qianlai_ledger_share_code")
+}
+
+model BookAccount {
+  id        String       @id @default(cuid())
+  ledgerId  String
+  ledger    Ledger       @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  type      String
+  // Cascade matches the app-level `deleteAccount` child-count guard's intent;
+  // archiving/soft-delete via `status` is the preferred path for keeping
+  // journal lines queryable.
+  parentId  String?
+  parent    BookAccount? @relation("BookAccountTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  BookAccount[] @relation("BookAccountTree")
+  lines     JournalLine[]
+  status    String       @default("active")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([ledgerId, code])
+  @@map("qianlai_book_account")
+}
+
+model JournalEntry {
+  id          String        @id @default(cuid())
+  ledgerId    String
+  ledger      Ledger        @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  entryNo     Int
+  date        DateTime
+  memo        String?
+  status      String        @default("posted")
+  // SetNull keeps shared-ledger history when a creator deletes their account:
+  // the entry survives with a null creator instead of vanishing for everyone.
+  createdById String?
+  createdBy   User?         @relation("QianlaiJournalEntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  lines       JournalLine[]
+
+  @@unique([ledgerId, entryNo])
+  @@index([ledgerId, date])
+  @@map("qianlai_journal_entry")
+}
+
+// `debit`/`credit` are Decimal(12, 2) — max single-line value is ~10 billion.
+// Sufficient for personal bookkeeping; bump the precision/scale if a user
+// records high-magnitude assets (mortgages, large salaries) without decimals.
+model JournalLine {
+  id        String       @id @default(cuid())
+  entryId   String
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   BookAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  debit     Decimal      @default(0) @db.Decimal(12, 2)
+  credit    Decimal      @default(0) @db.Decimal(12, 2)
+  memo      String?
+
+  @@index([accountId])
+  @@map("qianlai_journal_line")
 }

@@ -6,6 +6,7 @@ export * from "./builtin-roles";
 export * from "./currency";
 export * from "./dev-tokens";
 export * from "./events";
+export * from "./ledger-roles";
 export * from "./notification-flags";
 export * from "./password-policy";
 export * from "./role-flags";

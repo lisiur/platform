@@ -18,6 +18,12 @@
       "port": 3003,
       "basePath": "/studybuddy",
       "assetPrefix": "/studybuddy-static"
+    },
+    {
+      "name": "qianlai",
+      "port": 3004,
+      "basePath": "/qianlai",
+      "assetPrefix": "/qianlai-static"
     }
   ]
 }

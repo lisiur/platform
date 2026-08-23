@@ -13,6 +13,7 @@
     "dev:organization": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/organization --filter ./apps/gateway --stream dev",
     "dev:admin:studybuddy": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/admin --filter ./apps/studybuddy --filter ./apps/gateway --stream dev",
     "dev:studybuddy": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/studybuddy --filter ./apps/gateway --stream dev",
+    "dev:qianlai": "NODE_OPTIONS='--max-old-space-size=8192' pnpm --filter ./apps/qianlai --filter ./apps/gateway --stream dev",
     "build": "pnpm --filter @repo/updater build && pnpm --filter './apps/*' build",
     "build:server": "pnpm --filter @repo/updater build && NODE_OPTIONS=\"--max-old-space-size=512\" UV_THREADPOOL_SIZE=1 pnpm --filter './apps/*' --workspace-concurrency=1 build",
     "clean:next": "find apps -name .next -type d -prune -exec rm -rf {} +",

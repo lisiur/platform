@@ -35,6 +35,7 @@ import {
   BUILTIN_ROLE_FLAG,
   BUILTIN_USER_FLAG,
   ORGANIZATION_APP_CODE,
+  QIANLAI_APP_CODE,
   STUDYBUDDY_APP_CODE,
   USER_ROLE_CODE,
 } from "@repo/shared";
@@ -555,6 +556,23 @@ const studybuddyPermissions = [
   },
 ];
 
+// --- Qianlai App Permissions (own "qianlai" scope: personal bookkeeping) ---
+const qianlaiPermissions = [
+  {
+    code: "qianlai/dashboard:view",
+    group: "dashboard",
+    name: "View Qianlai Dashboard",
+    description: "View the bookkeeping dashboard",
+  },
+  {
+    code: "qianlai/bookkeeping:manage",
+    group: "bookkeeping",
+    name: "Manage Bookkeeping",
+    description:
+      "Manage ledgers, accounts, journal entries, reports and sharing",
+  },
+];
+
 // --- Organization App Permissions ---
 const organizationPermissions = [
   {
@@ -665,6 +683,11 @@ const applications = [
     code: STUDYBUDDY_APP_CODE,
     name: "StudyBuddy",
     description: "Study and exam-grading application",
+  },
+  {
+    code: QIANLAI_APP_CODE,
+    name: "Qianlai",
+    description: "Personal financial bookkeeping application",
   },
 ];
 
@@ -1069,6 +1092,60 @@ const studybuddyMenus = [
   },
 ];
 
+// --- Qianlai App Menus ---
+const qianlaiMenus = [
+  {
+    id: "qianlai-dashboard",
+    code: "dashboard",
+    name: "Dashboard",
+    icon: "LayoutDashboard",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/dashboard",
+    sortOrder: 0,
+    permissions: ["qianlai/dashboard:view"],
+  },
+  {
+    id: "qianlai-journal",
+    code: "journal",
+    name: "Journal",
+    icon: "BookText",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/journal",
+    sortOrder: 1,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+  {
+    id: "qianlai-accounts",
+    code: "accounts",
+    name: "Accounts",
+    icon: "ListTree",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/accounts",
+    sortOrder: 2,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+  {
+    id: "qianlai-reports",
+    code: "reports",
+    name: "Reports",
+    icon: "BarChart3",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/reports",
+    sortOrder: 3,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+  {
+    id: "qianlai-ledgers",
+    code: "ledgers",
+    name: "Ledgers",
+    icon: "BookOpen",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/ledgers",
+    sortOrder: 4,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+];
+
 // --- Roles ---
 const adminRoles = [
   { code: ADMIN_ROLE_CODE, name: "Administrator", flags: [BUILTIN_ROLE_FLAG] },
@@ -1082,13 +1159,23 @@ const adminRoles = [
 
 // --- Role -> Permission mappings (by role code) ---
 const studybuddyPermissionCodes = studybuddyPermissions.map((p) => p.code);
+const qianlaiPermissionCodes = qianlaiPermissions.map((p) => p.code);
 
 const adminRolePermissions: Record<string, string[]> = {
   [ADMIN_ROLE_CODE]: [
     ...systemPermissions.map((p) => p.code),
     ...studybuddyPermissionCodes,
+    ...qianlaiPermissionCodes,
   ],
-  [USER_ROLE_CODE]: ["system/attachment:sign", ...studybuddyPermissionCodes],
+  // Qianlai is personal bookkeeping, so every registered user gets the full
+  // permission set (each user only sees/manages their own ledgers via
+  // ledger-scoped queries — assertPermission is not used for qianlai routes).
+  // If a future change scopes qianlai behind org membership, drop the spread.
+  [USER_ROLE_CODE]: [
+    "system/attachment:sign",
+    ...studybuddyPermissionCodes,
+    ...qianlaiPermissionCodes,
+  ],
 };
 
 // --- Notification Channels ---
@@ -1774,6 +1861,11 @@ export async function seed() {
     `  ${studybuddyPermissions.length} studybuddy permissions ready.\n`,
   );
 
+  // 7c. Qianlai App Permissions (own "qianlai" scope)
+  console.log("Qianlai app permissions:");
+  const qianlaiPermIds = await createPermissions(qianlaiPermissions);
+  console.log(`  ${qianlaiPermissions.length} qianlai permissions ready.\n`);
+
   // 8-9b. Menus (createMenu validates parent groups, permission scope per
   // app, and computes sortOrder; menu defs reference parents by their seed
   // id, resolved through a per-app id map)
@@ -1829,6 +1921,13 @@ export async function seed() {
     studybuddyMenus,
     studybuddyPermIds,
   );
+  // Qianlai permissions live in their own "qianlai" scope.
+  await seedMenus(
+    "Qianlai menus:",
+    appRecords[QIANLAI_APP_CODE],
+    qianlaiMenus,
+    qianlaiPermIds,
+  );
 
   // 10. Platform Roles (system-scoped)
   console.log("Platform roles:");
@@ -1849,7 +1948,11 @@ export async function seed() {
   for (const [roleCode, permCodes] of Object.entries(adminRolePermissions)) {
     const roleId = adminRoleRecords[roleCode];
     if (!roleId) continue;
-    const permissionIdLookup = { ...systemPermIds, ...studybuddyPermIds };
+    const permissionIdLookup = {
+      ...systemPermIds,
+      ...studybuddyPermIds,
+      ...qianlaiPermIds,
+    };
     const permIds = permCodes
       .map((code) => permissionIdLookup[code])
       .filter(Boolean);
