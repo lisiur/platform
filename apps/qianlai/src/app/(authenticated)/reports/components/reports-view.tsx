@@ -59,6 +59,9 @@ export function ReportsView() {
   const { activeLedger, isLoading: ledgersLoading } = useLedgers();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [tab, setTab] = useState<"trial-balance" | "income-statement">(
+    "trial-balance",
+  );
 
   const { data: trial, isLoading: trialLoading } = useQuery({
     queryKey: ["qianlai", "trial-balance", activeLedger?.id, to],
@@ -103,8 +106,12 @@ export function ReportsView() {
   }
 
   return (
-    <Tabs defaultValue="trial-balance" className="gap-6">
-      <div className="flex flex-wrap items-center gap-2">
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as typeof tab)}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <TabsList>
           <TabsTrigger value="trial-balance">
             {t("tabs.trialBalance")}
@@ -133,7 +140,10 @@ export function ReportsView() {
         </div>
       </div>
 
-      <TabsContent value="trial-balance">
+      <TabsContent
+        value="trial-balance"
+        className="flex min-h-0 flex-1 flex-col"
+      >
         {trialLoading ? (
           <div className="flex min-h-[200px] items-center justify-center">
             <Spinner />
@@ -143,7 +153,7 @@ export function ReportsView() {
             {t("empty")}
           </div>
         ) : (
-          <Table containerClassName="overflow-auto rounded-md border">
+          <Table containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border">
             <TableHeader sticky>
               <TableRow>
                 <TableHead>{t("name")}</TableHead>
@@ -186,7 +196,10 @@ export function ReportsView() {
         )}
       </TabsContent>
 
-      <TabsContent value="income-statement">
+      <TabsContent
+        value="income-statement"
+        className="flex min-h-0 flex-1 flex-col"
+      >
         {statementLoading ? (
           <div className="flex min-h-[200px] items-center justify-center">
             <Spinner />
@@ -197,7 +210,7 @@ export function ReportsView() {
             {t("empty")}
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 lg:flex-row">
             {(
               [
                 ["income", statement.income, statement.totalIncome],
@@ -206,7 +219,7 @@ export function ReportsView() {
             ).map(([key, rows, total]) => (
               <Table
                 key={key}
-                containerClassName="overflow-auto rounded-md border"
+                containerClassName="min-h-0 min-w-0 flex-1 overflow-auto rounded-md border"
               >
                 <TableHeader sticky>
                   <TableRow>
