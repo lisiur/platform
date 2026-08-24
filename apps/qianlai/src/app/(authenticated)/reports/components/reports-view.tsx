@@ -24,9 +24,9 @@ import { formatAmount } from "@/utils/amount";
 
 interface TrialBalanceRow {
   id: string;
-  code: string;
   name: string;
   type: string;
+  sortOrder: number;
   totalDebit: number;
   totalCredit: number;
   balance: number;
@@ -39,9 +39,9 @@ interface TrialBalanceDto {
 
 interface StatementRow {
   id: string;
-  code: string;
   name: string;
   type: string;
+  sortOrder: number;
   balance: number;
 }
 
@@ -153,7 +153,6 @@ export function ReportsView() {
           <Table containerClassName="overflow-auto rounded-md border">
             <TableHeader sticky>
               <TableRow>
-                <TableHead>{t("code")}</TableHead>
                 <TableHead>{t("name")}</TableHead>
                 <TableHead>{t("type")}</TableHead>
                 <TableHead className="text-right">{t("totalDebit")}</TableHead>
@@ -164,7 +163,6 @@ export function ReportsView() {
             <TableBody>
               {trial.accounts.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-mono">{row.code}</TableCell>
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{t(`types.${row.type}`)}</Badge>
@@ -181,7 +179,7 @@ export function ReportsView() {
                 </TableRow>
               ))}
               <TableRow className="bg-muted/50 font-semibold">
-                <TableCell colSpan={3}>{t("totals")}</TableCell>
+                <TableCell colSpan={2}>{t("totals")}</TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatAmount(trial.totals.debit)}
                 </TableCell>
@@ -226,12 +224,7 @@ export function ReportsView() {
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell>
-                        <span className="text-muted-foreground mr-2 font-mono text-xs">
-                          {row.code}
-                        </span>
-                        {row.name}
-                      </TableCell>
+                      <TableCell>{row.name}</TableCell>
                       <TableCell className="text-right font-mono tabular-nums">
                         {formatAmount(row.balance)}
                       </TableCell>

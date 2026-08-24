@@ -1,26 +1,16 @@
-import type { Prisma } from "#generated/prisma/client";
+import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
 export const accountRepository = {
   listByLedger(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.bookAccount.findMany({
       where: { ledgerId },
-      orderBy: { code: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
     });
   },
 
   findById(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.bookAccount.findUnique({ where: { id } });
-  },
-
-  findByCode(
-    ledgerId: string,
-    code: string,
-    tx: Prisma.TransactionClient = prisma,
-  ) {
-    return tx.bookAccount.findUnique({
-      where: { ledgerId_code: { ledgerId, code } },
-    });
   },
 
   /**
@@ -50,39 +40,75 @@ export const accountRepository = {
 
   createStarterAccounts(
     ledgerId: string,
-    accounts: Array<{ code: string; name: string; type: string }>,
+    accounts: Array<{
+      name: string;
+      type: string;
+      sortOrder: number;
+      icon?: string | null;
+      meta?: Record<string, unknown> | null;
+    }>,
     tx: Prisma.TransactionClient = prisma,
   ) {
     if (accounts.length === 0) return Promise.resolve({ count: 0 });
     return tx.bookAccount.createMany({
-      data: accounts.map((a) => ({ ...a, ledgerId })),
+      data: accounts.map((a) => ({
+        ...a,
+        ledgerId,
+        meta:
+          a.meta === undefined || a.meta === null
+            ? undefined
+            : (a.meta as Prisma.InputJsonValue),
+      })),
     });
   },
 
   create(
     data: {
       ledgerId: string;
-      code: string;
       name: string;
       type: string;
+      sortOrder?: number;
       parentId?: string | null;
+      icon?: string | null;
+      meta?: Record<string, unknown> | null;
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
-    return tx.bookAccount.create({ data });
+    return tx.bookAccount.create({
+      data: {
+        ...data,
+        meta:
+          data.meta === undefined || data.meta === null
+            ? undefined
+            : (data.meta as Prisma.InputJsonValue),
+      },
+    });
   },
 
   update(
     id: string,
     data: {
-      code?: string;
       name?: string;
       parentId?: string | null;
+      sortOrder?: number;
       status?: string;
+      icon?: string | null;
+      meta?: Record<string, unknown> | null;
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
-    return tx.bookAccount.update({ where: { id }, data });
+    return tx.bookAccount.update({
+      where: { id },
+      data: {
+        ...data,
+        meta:
+          data.meta === undefined
+            ? undefined
+            : data.meta === null
+              ? Prisma.DbNull
+              : (data.meta as Prisma.InputJsonValue),
+      },
+    });
   },
 
   delete(id: string, tx: Prisma.TransactionClient = prisma) {

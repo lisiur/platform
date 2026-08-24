@@ -64,9 +64,9 @@ function account(overrides: Partial<BookAccount> = {}): BookAccount {
   return {
     id: "acc-1",
     ledgerId: "led-1",
-    code: "1001",
     name: "Cash",
     type: "asset",
+    sortOrder: 10,
     parentId: null,
     status: "active",
     createdAt: new Date(),
@@ -90,7 +90,6 @@ describe("validateJournalLines", () => {
   const cash = account({ id: "acc-cash" });
   const food = account({
     id: "acc-food",
-    code: "5001",
     name: "Food",
     type: "expense",
   });
@@ -322,7 +321,7 @@ describe("createEntry", () => {
     });
     mockAccountRepo.listByLedger.mockResolvedValue([
       account({ id: "acc-cash" }),
-      account({ id: "acc-food", code: "5001", name: "Food", type: "expense" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     const created = { id: "e-1" };
     mockJournalRepo.createEntry.mockResolvedValue(created);
@@ -348,7 +347,7 @@ describe("createEntry", () => {
     });
     mockAccountRepo.listByLedger.mockResolvedValue([
       account({ id: "acc-cash" }),
-      account({ id: "acc-food", code: "5001", name: "Food", type: "expense" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-2" });
     await createEntry("user-a", "led-1", baseEntryInput);

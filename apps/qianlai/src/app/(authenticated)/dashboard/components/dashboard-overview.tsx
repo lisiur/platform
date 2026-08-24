@@ -13,7 +13,7 @@ import { formatDateTime } from "@/utils/date";
 interface JournalLineDto {
   id: string;
   accountId: string;
-  account: { id: string; code: string; name: string; type: string };
+  account: { id: string; name: string; type: string; sortOrder: number };
   debit: number;
   credit: number;
   memo: string | null;

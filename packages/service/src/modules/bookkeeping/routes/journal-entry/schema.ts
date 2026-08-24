@@ -14,9 +14,9 @@ export const journalLineSchema = z
     accountId: z.string().openapi({ example: "clx1234567890" }),
     account: z.object({
       id: z.string(),
-      code: z.string().openapi({ example: "1001" }),
       name: z.string().openapi({ example: "Cash" }),
       type: z.string().openapi({ example: "asset" }),
+      sortOrder: z.number().int().openapi({ example: 10 }),
     }),
     debit: z.number().openapi({ example: 50 }),
     credit: z.number().openapi({ example: 0 }),
@@ -114,7 +114,12 @@ export function serializeEntry<
     lines: Array<{
       id: string;
       accountId: string;
-      account: { id: string; code: string; name: string; type: string };
+      account: {
+        id: string;
+        name: string;
+        type: string;
+        sortOrder: number;
+      };
       debit: { toString(): string };
       credit: { toString(): string };
       memo: string | null;

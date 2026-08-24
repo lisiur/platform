@@ -35,13 +35,23 @@ import { AccountDialog } from "./account-dialog";
 export interface AccountRow {
   id: string;
   ledgerId: string;
-  code: string;
   name: string;
   type: "asset" | "liability" | "equity" | "income" | "expense";
+  sortOrder: number;
   parentId: string | null;
   status: string;
+  icon: string | null;
+  meta: Record<string, unknown> | null;
   createdAt: string;
 }
+
+const ACCOUNT_TYPE_LIST = [
+  "asset",
+  "liability",
+  "equity",
+  "income",
+  "expense",
+] as const;
 
 const TYPE_BADGE: Record<string, string> = {
   asset: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -140,6 +150,13 @@ export function AccountsTable() {
         <Select
           value={typeFilter}
           onValueChange={(v) => v !== null && setTypeFilter(v)}
+          items={[
+            { value: "all", label: `${t("type")}: All` },
+            ...ACCOUNT_TYPE_LIST.map((type) => ({
+              value: type,
+              label: t(`types.${type}`),
+            })),
+          ]}
           aria-label={t("type")}
         >
           <SelectTrigger className="w-40">
@@ -147,9 +164,7 @@ export function AccountsTable() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("type")}: All</SelectItem>
-            {(
-              ["asset", "liability", "equity", "income", "expense"] as const
-            ).map((type) => (
+            {ACCOUNT_TYPE_LIST.map((type) => (
               <SelectItem key={type} value={type}>
                 {t(`types.${type}`)}
               </SelectItem>
@@ -172,7 +187,6 @@ export function AccountsTable() {
         <Table containerClassName="overflow-auto rounded-md border">
           <TableHeader sticky>
             <TableRow>
-              <TableHead>{t("code")}</TableHead>
               <TableHead>{t("name")}</TableHead>
               <TableHead>{t("type")}</TableHead>
               <TableHead>{t("status")}</TableHead>
@@ -182,8 +196,14 @@ export function AccountsTable() {
           <TableBody>
             {accounts.map((account) => (
               <TableRow key={account.id}>
-                <TableCell className="font-mono">{account.code}</TableCell>
-                <TableCell className="font-medium">{account.name}</TableCell>
+                <TableCell className="font-medium">
+                  {account.icon && (
+                    <span aria-hidden className="mr-1.5">
+                      {account.icon}
+                    </span>
+                  )}
+                  {account.name}
+                </TableCell>
                 <TableCell>
                   <Badge className={TYPE_BADGE[account.type]} variant="outline">
                     {t(`types.${account.type}`)}

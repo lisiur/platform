@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   Input,
   Spinner,
-  Table,
   TableActionCell,
   TableActionHead,
   TableBody,
@@ -30,13 +29,12 @@ import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
 import { formatDate } from "@/utils/date";
-import { EntryDialog } from "./entry-dialog";
 import { QuickEntryDialog } from "./quick-entry-dialog";
 
 interface JournalLineDto {
   id: string;
   accountId: string;
-  account: { id: string; code: string; name: string; type: string };
+  account: { id: string; name: string; type: string; sortOrder: number };
   debit: number;
   credit: number;
   memo: string | null;
@@ -58,7 +56,6 @@ export function JournalTable() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const { activeLedger, isLoading: ledgersLoading } = useLedgers();
-  const [createOpen, setCreateOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [q, setQ] = useState("");
   const [appliedQ, setAppliedQ] = useState("");
@@ -154,15 +151,10 @@ export function JournalTable() {
         </form>
         <div className="flex-1" />
         {canPost && (
-          <>
-            <Button variant="outline" onClick={() => setCreateOpen(true)}>
-              {t("advancedCreate")}
-            </Button>
-            <Button onClick={() => setQuickOpen(true)}>
-              <Plus className="h-4 w-4" />
-              {t("quickCreate")}
-            </Button>
-          </>
+          <Button onClick={() => setQuickOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t("quickCreate")}
+          </Button>
         )}
       </div>
       <PaginatedTableFrame
@@ -174,96 +166,89 @@ export function JournalTable() {
         pageSize={pageSize}
         onPageChange={setPage}
       >
-        <Table containerClassName="overflow-auto rounded-md border">
-          <TableHeader sticky>
-            <TableRow>
-              <TableHead className="w-16">{t("entryNo")}</TableHead>
-              <TableHead className="w-28">{t("date")}</TableHead>
-              <TableHead>{t("lines")}</TableHead>
-              <TableHead className="w-28 text-right">{t("amount")}</TableHead>
-              <TableHead className="w-24">{t("createdBy")}</TableHead>
-              <TableActionHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => {
-              const amount = entry.lines.reduce(
-                (acc, line) => acc + line.debit,
-                0,
-              );
-              return (
-                <TableRow key={entry.id}>
-                  <TableCell className="font-mono tabular-nums">
-                    #{entry.entryNo}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(entry.date)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="truncate">{entry.memo ?? "—"}</span>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                        {entry.lines.map((line) => (
-                          <span
-                            key={line.id}
-                            className="text-muted-foreground text-xs"
-                          >
-                            {line.account.name}
-                            <span className="ml-1 font-mono tabular-nums">
-                              {line.debit > 0
-                                ? `+${formatAmount(line.debit)}`
-                                : `-${formatAmount(line.credit)}`}
-                            </span>
+        <TableHeader sticky>
+          <TableRow>
+            <TableHead className="w-16">{t("entryNo")}</TableHead>
+            <TableHead className="w-28">{t("date")}</TableHead>
+            <TableHead>{t("lines")}</TableHead>
+            <TableHead className="w-28 text-right">{t("amount")}</TableHead>
+            <TableHead className="w-24">{t("createdBy")}</TableHead>
+            <TableActionHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {entries.map((entry) => {
+            const amount = entry.lines.reduce(
+              (acc, line) => acc + line.debit,
+              0,
+            );
+            return (
+              <TableRow key={entry.id}>
+                <TableCell className="font-mono tabular-nums">
+                  #{entry.entryNo}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(entry.date)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="truncate">{entry.memo ?? "—"}</span>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {entry.lines.map((line) => (
+                        <span
+                          key={line.id}
+                          className="text-muted-foreground text-xs"
+                        >
+                          {line.account.name}
+                          <span className="ml-1 font-mono tabular-nums">
+                            {line.debit > 0
+                              ? `+${formatAmount(line.debit)}`
+                              : `-${formatAmount(line.credit)}`}
                           </span>
-                        ))}
-                      </div>
+                        </span>
+                      ))}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatAmount(amount)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {entry.createdBy?.name ?? "—"}
-                  </TableCell>
-                  <TableActionCell
-                    menuLabel={t("actions")}
-                    menu={
-                      canPost ? (
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => handleDelete(entry)}
-                        >
-                          <Trash2 />
-                          {t("delete")}
-                        </DropdownMenuItem>
-                      ) : undefined
-                    }
-                  >
-                    {canPost && (
-                      <ButtonGroup className="ml-auto">
-                        <TooltipButton
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("delete")}
-                          tooltip={t("delete")}
-                          onClick={() => handleDelete(entry)}
-                        >
-                          <Trash2 />
-                        </TooltipButton>
-                      </ButtonGroup>
-                    )}
-                  </TableActionCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatAmount(amount)}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {entry.createdBy?.name ?? "—"}
+                </TableCell>
+                <TableActionCell
+                  menuLabel={t("actions")}
+                  menu={
+                    canPost ? (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => handleDelete(entry)}
+                      >
+                        <Trash2 />
+                        {t("delete")}
+                      </DropdownMenuItem>
+                    ) : undefined
+                  }
+                >
+                  {canPost && (
+                    <ButtonGroup className="ml-auto">
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("delete")}
+                        tooltip={t("delete")}
+                        onClick={() => handleDelete(entry)}
+                      >
+                        <Trash2 />
+                      </TooltipButton>
+                    </ButtonGroup>
+                  )}
+                </TableActionCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
       </PaginatedTableFrame>
-      <EntryDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        ledgerId={activeLedger?.id ?? ""}
-      />
       <QuickEntryDialog
         open={quickOpen}
         onOpenChange={setQuickOpen}

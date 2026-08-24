@@ -5,9 +5,9 @@ import { journalEntrySchema } from "../journal-entry/schema";
 export const trialBalanceRowSchema = z
   .object({
     id: z.string(),
-    code: z.string().openapi({ example: "1001" }),
     name: z.string().openapi({ example: "Cash" }),
     type: z.enum(ACCOUNT_TYPES),
+    sortOrder: z.number().int().openapi({ example: 10 }),
     totalDebit: z.number().openapi({ example: 100 }),
     totalCredit: z.number().openapi({ example: 0 }),
     balance: z.number().openapi({ example: 100 }),
@@ -29,9 +29,9 @@ export const trialBalanceResponseSchema = z
 const statementRowSchema = z
   .object({
     id: z.string(),
-    code: z.string().openapi({ example: "4001" }),
     name: z.string().openapi({ example: "Salary" }),
     type: z.enum(ACCOUNT_TYPES),
+    sortOrder: z.number().int().openapi({ example: 70 }),
     balance: z.number().openapi({ example: 8000 }),
   })
   .openapi("QianlaiStatementRow");

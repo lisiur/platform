@@ -13,6 +13,7 @@ import { updateAccount } from "../../account.service";
 import {
   accountIdParamSchema,
   bookAccountSchema,
+  serializeAccount,
   updateAccountBodySchema,
 } from "./schema";
 
@@ -50,18 +51,6 @@ export const updateAccountRoute = defineOpenAPIRoute({
     const access = await requireLedgerAccess(userId, ledgerId, "editor");
     assertLedgerWritable(access.ledger);
     const account = await updateAccount(ledgerId, id, body);
-    return c.json(
-      {
-        ...account,
-        type: account.type as
-          | "asset"
-          | "liability"
-          | "equity"
-          | "income"
-          | "expense",
-        status: account.status as "active" | "archived",
-      },
-      200,
-    );
+    return c.json(serializeAccount(account), 200);
   },
 });

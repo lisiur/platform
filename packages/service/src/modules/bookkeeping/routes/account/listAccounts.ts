@@ -8,7 +8,11 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess } from "../../access";
 import { listAccounts } from "../../account.service";
-import { ledgerIdParamSchema, listAccountsResponseSchema } from "./schema";
+import {
+  ledgerIdParamSchema,
+  listAccountsResponseSchema,
+  serializeAccount,
+} from "./schema";
 
 export const listAccountsRoute = defineOpenAPIRoute({
   route: createRoute({
@@ -33,20 +37,6 @@ export const listAccountsRoute = defineOpenAPIRoute({
     const { ledgerId } = c.req.valid("param");
     await requireLedgerAccess(userId, ledgerId, "viewer");
     const { accounts } = await listAccounts(ledgerId);
-    return c.json(
-      {
-        accounts: accounts.map((account) => ({
-          ...account,
-          type: account.type as
-            | "asset"
-            | "liability"
-            | "equity"
-            | "income"
-            | "expense",
-          status: account.status as "active" | "archived",
-        })),
-      },
-      200,
-    );
+    return c.json({ accounts: accounts.map(serializeAccount) }, 200);
   },
 });

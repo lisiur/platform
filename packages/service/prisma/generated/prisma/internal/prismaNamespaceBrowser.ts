@@ -975,11 +975,13 @@ export type LedgerShareCodeScalarFieldEnum = (typeof LedgerShareCodeScalarFieldE
 export const BookAccountScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
-  code: 'code',
   name: 'name',
   type: 'type',
+  sortOrder: 'sortOrder',
   parentId: 'parentId',
   status: 'status',
+  icon: 'icon',
+  meta: 'meta',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

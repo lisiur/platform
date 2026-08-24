@@ -143,9 +143,9 @@
   "Accounts": {
     "title": "科目",
     "description": "当前账本的科目表",
-    "code": "编码",
     "name": "名称",
     "type": "类型",
+    "sortOrder": "排序值",
     "status": "状态",
     "actions": "操作",
     "create": "新建科目",
@@ -169,7 +169,15 @@
     "hasChildrenError": "请先删除或移走该科目的子科目",
     "empty": "暂无科目",
     "namePlaceholder": "例如：美元现金",
-    "codePlaceholder": "例如 1005",
+    "icon": "图标",
+    "iconPlaceholder": "表情符号，如 💳",
+    "meta": "附加信息",
+    "metaDescription": "可记录银行卡号等自定义信息",
+    "metaKey": "名称",
+    "metaValue": "内容",
+    "addMeta": "添加字段",
+    "removeMeta": "删除字段",
+    "metaKeyRequired": "名称为必填项",
     "types": {
       "asset": "资产",
       "liability": "负债",
@@ -182,27 +190,22 @@
       "archived": "已归档"
     },
     "validation": {
-      "codeRequired": "编码为必填项",
       "nameRequired": "名称为必填项"
     },
     "readOnly": "需要记账人及以上角色才能管理科目"
   },
   "Journal": {
-    "title": "日记账",
-    "description": "当前账本的复式记账流水",
+    "title": "流水",
+    "description": "当前账本的全部收支记录",
     "entryNo": "编号",
     "date": "日期",
-    "memo": "摘要",
+    "memo": "备注",
     "lines": "明细",
     "amount": "金额",
-    "createdBy": "记账人",
+    "createdBy": "记录人",
     "actions": "操作",
-    "create": "记一笔",
-    "createDescription": "记录一笔借贷平衡的复式流水",
-    "quickCreate": "快捷记账",
+    "quickCreate": "记一笔",
     "quickCreateDescription": "选择类型和账户，一键记录收入、支出或转账",
-    "advancedCreate": "复式流水",
-    "advancedCreateDescription": "手动填写借贷明细，适合复合分录",
     "quick": {
       "expense": "支出",
       "income": "收入",
@@ -220,16 +223,6 @@
         "sameAccount": "转入与转出账户不能相同"
       }
     },
-    "addLine": "添加明细",
-    "removeLine": "移除",
-    "account": "科目",
-    "debit": "借方",
-    "credit": "贷方",
-    "lineMemo": "明细备注",
-    "totalDebit": "借方合计",
-    "totalCredit": "贷方合计",
-    "balanced": "已平衡",
-    "unbalanced": "未平衡",
     "dateLabel": "日期",
     "memoPlaceholder": "例如：每周买菜",
     "save": "登记",
@@ -245,13 +238,6 @@
     "to": "结束日期",
     "filter": "筛选",
     "clear": "清除",
-    "validation": {
-      "needTwoLines": "一笔流水至少需要两行明细",
-      "amountRequired": "每行明细需填写大于 0 的借方或贷方金额",
-      "oneSideOnly": "同一行不能同时填写借方和贷方",
-      "mustBalance": "借方合计必须等于贷方合计",
-      "accountRequired": "每行明细都需选择科目"
-    },
     "readOnly": "需要记账人及以上角色才能记账"
   },
   "Reports": {
@@ -261,7 +247,6 @@
       "trialBalance": "科目余额表",
       "incomeStatement": "收支表"
     },
-    "code": "编码",
     "name": "名称",
     "type": "类型",
     "totalDebit": "借方累计",

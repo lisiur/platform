@@ -14,6 +14,7 @@ import {
   bookAccountSchema,
   createAccountBodySchema,
   ledgerIdParamSchema,
+  serializeAccount,
 } from "./schema";
 
 export const createAccountRoute = defineOpenAPIRoute({
@@ -48,18 +49,6 @@ export const createAccountRoute = defineOpenAPIRoute({
     const access = await requireLedgerAccess(userId, ledgerId, "editor");
     assertLedgerWritable(access.ledger);
     const account = await createAccount(ledgerId, body);
-    return c.json(
-      {
-        ...account,
-        type: account.type as
-          | "asset"
-          | "liability"
-          | "equity"
-          | "income"
-          | "expense",
-        status: account.status as "active" | "archived",
-      },
-      201,
-    );
+    return c.json(serializeAccount(account), 201);
   },
 });

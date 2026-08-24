@@ -1134,9 +1134,10 @@ model BookAccount {
   id        String       @id @default(cuid())
   ledgerId  String
   ledger    Ledger       @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
-  code      String
   name      String
   type      String
+  // Manual display ordering within a ledger; ties fall back to name then id.
+  sortOrder Int          @default(0)
   // Cascade matches the app-level `deleteAccount` child-count guard's intent;
   // archiving/soft-delete via `status` is the preferred path for keeping
   // journal lines queryable.
@@ -1145,10 +1146,14 @@ model BookAccount {
   children  BookAccount[] @relation("BookAccountTree")
   lines     JournalLine[]
   status    String       @default("active")
+  // Display icon (emoji or icon name) shown next to the account name.
+  icon      String?
+  // Free-form metadata (e.g. bank card number) stored as JSON.
+  meta      Json?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  @@unique([ledgerId, code])
+  @@index([ledgerId, sortOrder])
   @@map("qianlai_book_account")
 }
 

@@ -198,6 +198,10 @@ export function MembersDialog({
   const isOwner = members.some(
     (m) => m.userId === myUserId && m.role === "owner",
   );
+  const roleItems = [
+    { value: "editor", label: t("editor") },
+    { value: "viewer", label: t("viewer") },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,6 +268,7 @@ export function MembersDialog({
                               });
                             }
                           }}
+                          items={roleItems}
                         >
                           <SelectTrigger className="h-8 w-32">
                             <SelectValue />
@@ -330,6 +335,7 @@ export function MembersDialog({
                   onValueChange={(v) =>
                     v !== null && setShareRole(v as "editor" | "viewer")
                   }
+                  items={roleItems}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue />

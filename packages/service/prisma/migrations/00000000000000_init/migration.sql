@@ -868,11 +868,13 @@ CREATE TABLE "qianlai_ledger_share_code" (
 CREATE TABLE "qianlai_book_account" (
     "id" TEXT NOT NULL,
     "ledgerId" TEXT NOT NULL,
-    "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "parentId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'active',
+    "icon" TEXT,
+    "meta" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1296,7 +1298,7 @@ CREATE UNIQUE INDEX "qianlai_ledger_share_code_code_key" ON "qianlai_ledger_shar
 CREATE INDEX "qianlai_ledger_share_code_ledgerId_idx" ON "qianlai_ledger_share_code"("ledgerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "qianlai_book_account_ledgerId_code_key" ON "qianlai_book_account"("ledgerId", "code");
+CREATE INDEX "qianlai_book_account_ledgerId_sortOrder_idx" ON "qianlai_book_account"("ledgerId", "sortOrder");
 
 -- CreateIndex
 CREATE INDEX "qianlai_journal_entry_ledgerId_date_idx" ON "qianlai_journal_entry"("ledgerId", "date");

@@ -150,8 +150,22 @@ describe("ensureDefaultLedger", () => {
       expect.anything(),
     );
     const [, accounts] = mockAccountRepo.createStarterAccounts.mock
-      .calls[0] as [string, Array<{ name: string }>, unknown];
+      .calls[0] as [
+      string,
+      Array<{ name: string; meta?: Record<string, unknown> }>,
+      unknown,
+    ];
     expect(accounts.some((a) => a.name === "现金")).toBe(true);
+    expect(
+      accounts.some(
+        (a) => a.name === "默认收款账户" && a.meta?.defaultDebit === true,
+      ),
+    ).toBe(true);
+    expect(
+      accounts.some(
+        (a) => a.name === "默认支付账户" && a.meta?.defaultCredit === true,
+      ),
+    ).toBe(true);
   });
 
   it("promotes the earliest active owned ledger instead of provisioning a new one", async () => {

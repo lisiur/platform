@@ -56,9 +56,9 @@ export async function trialBalance(ledgerId: string) {
     const { debit = 0, credit = 0 } = sums.get(account.id) ?? {};
     return {
       id: account.id,
-      code: account.code,
       name: account.name,
       type: account.type as AccountType,
+      sortOrder: account.sortOrder,
       totalDebit: round(debit),
       totalCredit: round(credit),
       balance: signedBalance(account.type as AccountType, debit, credit),
@@ -148,9 +148,9 @@ function buildStatementRows(
     const { debit = 0, credit = 0 } = sums.get(account.id) ?? {};
     return {
       id: account.id,
-      code: account.code,
       name: account.name,
       type: account.type as AccountType,
+      sortOrder: account.sortOrder,
       balance: signedBalance(account.type as AccountType, debit, credit),
     };
   };

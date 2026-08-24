@@ -26,6 +26,7 @@ import {
 } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -112,6 +113,14 @@ export function QuickEntryDialog({
   const assetLikeAccounts = activeAccounts.filter(
     (a) => a.type === "asset" || a.type === "liability",
   );
+  // Ledger-flagged default pockets (created with the ledger): prefill the
+  // asset-side fields so Paid From / Received Into can be left untouched.
+  const defaultDebitAccount = activeAccounts.find(
+    (a) => a.meta?.defaultDebit === true,
+  );
+  const defaultCreditAccount = activeAccounts.find(
+    (a) => a.meta?.defaultCredit === true,
+  );
 
   const today = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
@@ -132,6 +141,27 @@ export function QuickEntryDialog({
     resolver: zodResolver(quickEntrySchema),
     defaultValues,
   });
+
+  // Fill the asset-side selects once the accounts load (or the dialog
+  // reopens after a reset); category picks stay the user's job.
+  useEffect(() => {
+    if (!open) return;
+    const kind = form.getValues("kind");
+    if (
+      !form.getValues("debitAccount") &&
+      (kind === "income" || kind === "transfer") &&
+      defaultDebitAccount
+    ) {
+      form.setValue("debitAccount", defaultDebitAccount.id);
+    }
+    if (
+      !form.getValues("creditAccount") &&
+      (kind === "expense" || kind === "transfer") &&
+      defaultCreditAccount
+    ) {
+      form.setValue("creditAccount", defaultCreditAccount.id);
+    }
+  }, [open, form, defaultDebitAccount, defaultCreditAccount]);
 
   const kind = form.watch("kind");
   const debitAccount = form.watch("debitAccount");
@@ -229,10 +259,21 @@ export function QuickEntryDialog({
   }
 
   function handleKindChange(value: QuickKind) {
-    // Options differ per kind, so selections don't carry over.
+    // Options differ per kind, so category selections don't carry over — but
+    // the ledger's default pockets refill the asset-side fields.
     form.setValue("kind", value);
-    form.setValue("debitAccount", "");
-    form.setValue("creditAccount", "");
+    form.setValue(
+      "debitAccount",
+      value === "income" || value === "transfer"
+        ? (defaultDebitAccount?.id ?? "")
+        : "",
+    );
+    form.setValue(
+      "creditAccount",
+      value === "expense" || value === "transfer"
+        ? (defaultCreditAccount?.id ?? "")
+        : "",
+    );
     form.clearErrors(["debitAccount", "creditAccount"]);
   }
 
@@ -309,6 +350,10 @@ export function QuickEntryDialog({
                     <Select
                       value={field.value || null}
                       onValueChange={field.onChange}
+                      items={debitOptions.map((account) => ({
+                        value: account.id,
+                        label: account.name,
+                      }))}
                     >
                       <SelectTrigger
                         id="quick-debit-account"
@@ -319,7 +364,7 @@ export function QuickEntryDialog({
                       <SelectContent>
                         {debitOptions.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.code} · {account.name}
+                            {account.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -342,6 +387,10 @@ export function QuickEntryDialog({
                     <Select
                       value={field.value || null}
                       onValueChange={field.onChange}
+                      items={creditOptions.map((account) => ({
+                        value: account.id,
+                        label: account.name,
+                      }))}
                     >
                       <SelectTrigger
                         id="quick-credit-account"
@@ -352,7 +401,7 @@ export function QuickEntryDialog({
                       <SelectContent>
                         {creditOptions.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.code} · {account.name}
+                            {account.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

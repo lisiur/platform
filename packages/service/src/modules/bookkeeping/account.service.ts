@@ -5,7 +5,6 @@ import { assertLedgerWritable } from "./access";
 import { accountRepository } from "./account.repository";
 import { ACCOUNT_TYPES, type AccountType } from "./domain";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
-import { isUniqueViolation } from "./prisma-errors";
 
 /**
  * Locks the ledger row (FOR UPDATE) and re-checks writability under the lock.
@@ -55,7 +54,14 @@ export async function listAccounts(ledgerId: string) {
 
 export async function createAccount(
   ledgerId: string,
-  data: { code: string; name: string; type: string; parentId?: string | null },
+  data: {
+    name: string;
+    type: string;
+    sortOrder?: number;
+    parentId?: string | null;
+    icon?: string | null;
+    meta?: Record<string, unknown> | null;
+  },
 ) {
   parseType(data.type);
   return prisma.$transaction(async (tx) => {
@@ -73,26 +79,7 @@ export async function createAccount(
         });
       }
     }
-    const duplicate = await accountRepository.findByCode(
-      ledgerId,
-      data.code,
-      tx,
-    );
-    if (duplicate) {
-      throw new HTTPException(409, {
-        message: `Account code ${data.code} already exists in this ledger`,
-      });
-    }
-    try {
-      return await accountRepository.create({ ...data, ledgerId }, tx);
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new HTTPException(409, {
-          message: `Account code ${data.code} already exists in this ledger`,
-        });
-      }
-      throw err;
-    }
+    return accountRepository.create({ ...data, ledgerId }, tx);
   });
 }
 
@@ -100,10 +87,12 @@ export async function updateAccount(
   ledgerId: string,
   accountId: string,
   data: {
-    code?: string;
     name?: string;
     parentId?: string | null;
+    sortOrder?: number;
     status?: string;
+    icon?: string | null;
+    meta?: Record<string, unknown> | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -112,18 +101,6 @@ export async function updateAccount(
     // lines on a just-archived account.
     await requireWritableLedger(ledgerId, tx);
     const account = await requireAccountInLedger(accountId, ledgerId, tx);
-    if (data.code && data.code !== account.code) {
-      const duplicate = await accountRepository.findByCode(
-        ledgerId,
-        data.code,
-        tx,
-      );
-      if (duplicate && duplicate.id !== accountId) {
-        throw new HTTPException(409, {
-          message: `Account code ${data.code} already exists in this ledger`,
-        });
-      }
-    }
     if (data.parentId) {
       if (data.parentId === accountId) {
         throw new HTTPException(400, {
@@ -160,16 +137,7 @@ export async function updateAccount(
         });
       }
     }
-    try {
-      return await accountRepository.update(accountId, data, tx);
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new HTTPException(409, {
-          message: "Account code already in use",
-        });
-      }
-      throw err;
-    }
+    return accountRepository.update(accountId, data, tx);
   });
 }
 
