@@ -29,6 +29,11 @@
 - Keep permission gating (`canUpdate`/`canDelete`) consistent between inline buttons and menu items; use `variant="destructive"` on destructive menu items.
 - Extract row actions into named handlers (e.g. `openEdit(row)` defined at the component level) and reference them from both the inline button and the menu item — never duplicate the `onClick` body in both places. When actions are permission-gated, pass `menu={canX || canY ? (...) : undefined}` so users without any permitted action get no dropdown at all.
 
+## Selects
+- `Select`/`SelectValue` (from `@repo/ui`) wrap Base UI, not Radix. `SelectValue` renders the **raw value** (e.g. `"asset"`, an id) unless the Root receives an `items` mapping — a bare `<SelectValue />` inside a populated select is a bug.
+- Always pass `items` to the `Select` root: `<Select items={options.map(o => ({ value: o.value, label: o.label }))} …>`, reusing the same labels as the `SelectItem` children (build the array once and map both from it). Alternatively, pass a function child to `SelectValue`: `<SelectValue>{(v) => labelFor(v)}</SelectValue>`.
+- Base UI uses `onValueChange` (may deliver `null` when cleared) and accepts `null` for `value`; guard handlers accordingly.
+
 ## Tooling
 - Biome is the linter/formatter, not ESLint. 2-space indentation, recommended Next/React domains.
 - Zod 4 is installed. Prefer `z.email()` / `z.url()` over `z.string().email()`.
