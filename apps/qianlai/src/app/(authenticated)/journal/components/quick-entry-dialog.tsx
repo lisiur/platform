@@ -2,6 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  DEFAULT_CREDIT_ACCOUNT_FLAG,
+  DEFAULT_DEBIT_ACCOUNT_FLAG,
+  hasAccountFlag,
+} from "@repo/shared";
+import {
   Button,
   Dialog,
   DialogBody,
@@ -113,13 +118,12 @@ export function QuickEntryDialog({
   const assetLikeAccounts = activeAccounts.filter(
     (a) => a.type === "asset" || a.type === "liability",
   );
-  // Ledger-flagged default pockets (created with the ledger): prefill the
-  // asset-side fields so Paid From / Received Into can be left untouched.
-  const defaultDebitAccount = activeAccounts.find(
-    (a) => a.meta?.defaultDebit === true,
-  );
-  const defaultCreditAccount = activeAccounts.find(
-    (a) => a.meta?.defaultCredit === true,
+  // Ledger-flagged default pocket (created with the ledger): prefills the
+  // asset-side field so Paid From / Received Into can be left untouched.
+  const defaultAccount = activeAccounts.find(
+    (a) =>
+      hasAccountFlag(a.flags, DEFAULT_DEBIT_ACCOUNT_FLAG) ||
+      hasAccountFlag(a.flags, DEFAULT_CREDIT_ACCOUNT_FLAG),
   );
 
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -142,26 +146,27 @@ export function QuickEntryDialog({
     defaultValues,
   });
 
-  // Fill the asset-side selects once the accounts load (or the dialog
-  // reopens after a reset); category picks stay the user's job.
+  // Fill the asset-side select once the accounts load (or the dialog
+  // reopens after a reset); category picks stay the user's job. Transfers
+  // only prefill "From" — both sides can't share the default account.
   useEffect(() => {
     if (!open) return;
     const kind = form.getValues("kind");
     if (
       !form.getValues("debitAccount") &&
-      (kind === "income" || kind === "transfer") &&
-      defaultDebitAccount
+      kind === "income" &&
+      defaultAccount
     ) {
-      form.setValue("debitAccount", defaultDebitAccount.id);
+      form.setValue("debitAccount", defaultAccount.id);
     }
     if (
       !form.getValues("creditAccount") &&
       (kind === "expense" || kind === "transfer") &&
-      defaultCreditAccount
+      defaultAccount
     ) {
-      form.setValue("creditAccount", defaultCreditAccount.id);
+      form.setValue("creditAccount", defaultAccount.id);
     }
-  }, [open, form, defaultDebitAccount, defaultCreditAccount]);
+  }, [open, form, defaultAccount]);
 
   const kind = form.watch("kind");
   const debitAccount = form.watch("debitAccount");
@@ -260,18 +265,17 @@ export function QuickEntryDialog({
 
   function handleKindChange(value: QuickKind) {
     // Options differ per kind, so category selections don't carry over — but
-    // the ledger's default pockets refill the asset-side fields.
+    // the ledger's default pocket refills the asset-side field. Transfers
+    // only prefill "From" so the two sides can't collide on one account.
     form.setValue("kind", value);
     form.setValue(
       "debitAccount",
-      value === "income" || value === "transfer"
-        ? (defaultDebitAccount?.id ?? "")
-        : "",
+      value === "income" ? (defaultAccount?.id ?? "") : "",
     );
     form.setValue(
       "creditAccount",
       value === "expense" || value === "transfer"
-        ? (defaultCreditAccount?.id ?? "")
+        ? (defaultAccount?.id ?? "")
         : "",
     );
     form.clearErrors(["debitAccount", "creditAccount"]);

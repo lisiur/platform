@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
+import { endOfUtcDay, startOfUtcDay } from "@/utils/date";
 
 interface TrialBalanceRow {
   id: string;
@@ -53,17 +54,6 @@ interface IncomeStatementDto {
   net: number;
 }
 
-// Entry dates are stored at UTC midnight, so window boundaries must be UTC
-// instants built from the picked YYYY-MM-DD — local-timezone Dates skew the
-// window by up to a day for non-UTC users.
-function startOfUtcDay(dateStr: string): Date {
-  return new Date(`${dateStr}T00:00:00Z`);
-}
-
-function endOfUtcDay(dateStr: string): Date {
-  return new Date(`${dateStr}T23:59:59.999Z`);
-}
-
 export function ReportsView() {
   const t = useTranslations("Reports");
   const { activeLedger, isLoading: ledgersLoading } = useLedgers();
@@ -71,12 +61,15 @@ export function ReportsView() {
   const [to, setTo] = useState("");
 
   const { data: trial, isLoading: trialLoading } = useQuery({
-    queryKey: ["qianlai", "trial-balance", activeLedger?.id],
+    queryKey: ["qianlai", "trial-balance", activeLedger?.id, to],
     queryFn: async () => {
       const res = await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].reports["trial-balance"]
           .$get,
-      )({ param: { ledgerId: activeLedger?.id } });
+      )({
+        param: { ledgerId: activeLedger?.id },
+        query: { to: to ? endOfUtcDay(to).toISOString() : undefined },
+      });
       return (await res.json()) as TrialBalanceDto;
     },
     enabled: !!activeLedger,

@@ -154,38 +154,63 @@ export async function createEntry(
     }
     assertLedgerWritable(ledger);
     const ledgerAccounts = await accountRepository.listByLedger(ledgerId, tx);
-    const lines = validateJournalLines(data.lines, ledgerAccounts);
-    // entryNo comes from the ledger's monotonic counter so numbers are never
-    // reused, even after deleting the highest-numbered entry. Race-free
-    // because we hold the ledger row lock.
-    const entryNo = ledger.lastEntryNo + 1;
-    await ledgerRepository.update(ledgerId, { lastEntryNo: entryNo }, tx);
-    try {
-      return await journalRepository.createEntry(
-        {
-          ledgerId,
-          entryNo,
-          date: data.date,
-          memo: data.memo,
-          createdById: userId,
-          lines: lines.map((line) => ({
-            accountId: line.accountId,
-            debit: new Prisma.Decimal(line.debitCents).div(100),
-            credit: new Prisma.Decimal(line.creditCents).div(100),
-            memo: line.memo,
-          })),
-        },
-        tx,
-      );
-    } catch (err) {
-      if (isForeignKeyViolation(err)) {
-        throw new HTTPException(400, {
-          message: "A referenced account no longer exists in this ledger",
-        });
-      }
-      throw err;
-    }
+    return postEntryInTransaction(tx, userId, ledgerId, ledger, {
+      ...data,
+      rawLines: data.lines,
+      ledgerAccounts,
+    });
   });
+}
+
+/**
+ * Validates and posts an entry inside an existing transaction. Caller must
+ * already hold the ledger row lock and have re-checked writability (e.g.
+ * `createEntry` above, or `setAccountBalance`) so entryNo stays race-free and
+ * line validation runs against a transaction-consistent account list.
+ */
+export async function postEntryInTransaction(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  ledgerId: string,
+  ledger: { lastEntryNo: number },
+  data: {
+    date: Date;
+    memo?: string;
+    rawLines: JournalLineInput[];
+    ledgerAccounts: BookAccount[];
+  },
+) {
+  const lines = validateJournalLines(data.rawLines, data.ledgerAccounts);
+  // entryNo comes from the ledger's monotonic counter so numbers are never
+  // reused, even after deleting the highest-numbered entry. Race-free
+  // because we hold the ledger row lock.
+  const entryNo = ledger.lastEntryNo + 1;
+  await ledgerRepository.update(ledgerId, { lastEntryNo: entryNo }, tx);
+  try {
+    return await journalRepository.createEntry(
+      {
+        ledgerId,
+        entryNo,
+        date: data.date,
+        memo: data.memo,
+        createdById: userId,
+        lines: lines.map((line) => ({
+          accountId: line.accountId,
+          debit: new Prisma.Decimal(line.debitCents).div(100),
+          credit: new Prisma.Decimal(line.creditCents).div(100),
+          memo: line.memo,
+        })),
+      },
+      tx,
+    );
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      throw new HTTPException(400, {
+        message: "A referenced account no longer exists in this ledger",
+      });
+    }
+    throw err;
+  }
 }
 
 /**

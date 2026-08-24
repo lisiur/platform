@@ -76,3 +76,9 @@ export const incomeStatementQuerySchema = z
     to: z.coerce.date().optional(),
   })
   .openapi("QianlaiIncomeStatementQuery");
+
+export const trialBalanceQuerySchema = z
+  .object({
+    to: z.coerce.date().optional(),
+  })
+  .openapi("QianlaiTrialBalanceQuery");

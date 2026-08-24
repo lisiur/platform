@@ -3,7 +3,7 @@ import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { assertLedgerWritable } from "./access";
 import { accountRepository } from "./account.repository";
-import { ACCOUNT_TYPES, type AccountType } from "./domain";
+import { ACCOUNT_TYPES, type AccountType, isBuiltinAccount } from "./domain";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 
 /**
@@ -33,6 +33,20 @@ function parseType(value: string): AccountType {
 }
 
 /**
+ * Equity is system-managed: opening-balance and adjustment offset accounts are
+ * seeded or auto-created, never user-created — users think in asset/liability/
+ * income/expense and stray equity accounts would pollute net-worth reports.
+ */
+function assertUserCreatableType(type: string): void {
+  if (type === "equity") {
+    throw new HTTPException(400, {
+      message:
+        "Equity accounts are system-managed and cannot be created directly",
+    });
+  }
+}
+
+/**
  * Returns true if `targetId` appears anywhere on the parent chain above (or at)
  * `startId`. Guards against cycles when re-parenting an account (e.g. setting
  * A's parent to B when B already has A as an ancestor). One round-trip via a
@@ -57,13 +71,13 @@ export async function createAccount(
   data: {
     name: string;
     type: string;
-    sortOrder?: number;
     parentId?: string | null;
     icon?: string | null;
     meta?: Record<string, unknown> | null;
   },
 ) {
   parseType(data.type);
+  assertUserCreatableType(data.type);
   return prisma.$transaction(async (tx) => {
     await requireWritableLedger(ledgerId, tx);
     if (data.parentId) {
@@ -78,8 +92,21 @@ export async function createAccount(
           message: "Parent account is archived",
         });
       }
+      if (parent.type !== data.type) {
+        throw new HTTPException(400, {
+          message: "Child account type must match its parent",
+        });
+      }
     }
-    return accountRepository.create({ ...data, ledgerId }, tx);
+    // Position is server-controlled: new accounts append to the end of their
+    // sibling group; users reorder by dragging in the accounts tree.
+    const parentId = data.parentId ?? null;
+    const sortOrder =
+      (await accountRepository.findMaxSortOrder(ledgerId, parentId, tx)) + 1;
+    return accountRepository.create(
+      { ...data, parentId, sortOrder, ledgerId },
+      tx,
+    );
   });
 }
 
@@ -89,7 +116,6 @@ export async function updateAccount(
   data: {
     name?: string;
     parentId?: string | null;
-    sortOrder?: number;
     status?: string;
     icon?: string | null;
     meta?: Record<string, unknown> | null;
@@ -118,6 +144,11 @@ export async function updateAccount(
           message: "An account cannot be a descendant of itself",
         });
       }
+      if (parent.type !== account.type) {
+        throw new HTTPException(400, {
+          message: "Child account type must match its parent",
+        });
+      }
       if (parent.status !== "active") {
         throw new HTTPException(400, {
           message: "Parent account is archived",
@@ -127,6 +158,13 @@ export async function updateAccount(
     // Keep the tree consistent: an archived account must not have active
     // children (they'd be unreachable in the UI while still postable).
     if (data.status === "archived" && account.status === "active") {
+      // Builtin accounts (opening balance / adjustment offset) must stay
+      // postable or balance adjustments would silently create duplicates.
+      if (isBuiltinAccount(account.flags)) {
+        throw new HTTPException(409, {
+          message: "Built-in accounts cannot be archived",
+        });
+      }
       const activeChildren = await accountRepository.countActiveChildren(
         accountId,
         tx,
@@ -142,6 +180,62 @@ export async function updateAccount(
 }
 
 /**
+ * Applies drag-and-drop ordering from the accounts tree. The tree only moves
+ * nodes within their current sibling group, so re-parenting is not accepted
+ * here — each item's `parentId` is informational and the server groups by the
+ * account's actual parent. After applying the new positions, every affected
+ * sibling group is normalized to a gapless 0..n-1 sequence so repeated drags
+ * can't accumulate sortOrder collisions.
+ */
+export async function reorderAccounts(
+  ledgerId: string,
+  items: Array<{ id: string; parentId: string | null; sortOrder: number }>,
+) {
+  const accounts = await prisma.$transaction(async (tx) => {
+    await requireWritableLedger(ledgerId, tx);
+    const existing = await accountRepository.findManyByIds(
+      ledgerId,
+      items.map((item) => item.id),
+      tx,
+    );
+    if (existing.length !== new Set(items.map((item) => item.id)).size) {
+      throw new HTTPException(404, { message: "Account not found" });
+    }
+    const accountById = new Map(existing.map((a) => [a.id, a]));
+    for (const item of items) {
+      const account = accountById.get(item.id);
+      if (!account || account.parentId !== item.parentId) {
+        throw new HTTPException(400, {
+          message: "Cannot move account to a different parent via reorder",
+        });
+      }
+      await accountRepository.update(
+        item.id,
+        { sortOrder: item.sortOrder },
+        tx,
+      );
+    }
+    const affectedParentIds = new Set(
+      existing.map((account) => account.parentId),
+    );
+    for (const parentId of affectedParentIds) {
+      const siblings = await accountRepository.listSiblings(
+        ledgerId,
+        parentId,
+        tx,
+      );
+      for (let i = 0; i < siblings.length; i++) {
+        if (siblings[i].sortOrder !== i) {
+          await accountRepository.update(siblings[i].id, { sortOrder: i }, tx);
+        }
+      }
+    }
+    return accountRepository.listByLedger(ledgerId, tx);
+  });
+  return { accounts };
+}
+
+/**
  * Deletes an account. Accounts that still have journal lines are refused
  * (archive instead); accounts with children must have children deleted first.
  * Guards run under the ledger row lock (the same lock `createEntry` takes)
@@ -151,7 +245,12 @@ export async function updateAccount(
 export async function deleteAccount(ledgerId: string, accountId: string) {
   await prisma.$transaction(async (tx) => {
     await requireWritableLedger(ledgerId, tx);
-    await requireAccountInLedger(accountId, ledgerId, tx);
+    const account = await requireAccountInLedger(accountId, ledgerId, tx);
+    if (isBuiltinAccount(account.flags)) {
+      throw new HTTPException(409, {
+        message: "Built-in accounts cannot be deleted",
+      });
+    }
     const [lineCount, childCount] = await Promise.all([
       accountRepository.countLines(accountId, tx),
       accountRepository.countChildren(accountId, tx),

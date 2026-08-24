@@ -875,6 +875,7 @@ CREATE TABLE "qianlai_book_account" (
     "status" TEXT NOT NULL DEFAULT 'active',
     "icon" TEXT,
     "meta" JSONB,
+    "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

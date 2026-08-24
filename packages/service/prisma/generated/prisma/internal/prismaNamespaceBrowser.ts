@@ -982,6 +982,7 @@ export const BookAccountScalarFieldEnum = {
   status: 'status',
   icon: 'icon',
   meta: 'meta',
+  flags: 'flags',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

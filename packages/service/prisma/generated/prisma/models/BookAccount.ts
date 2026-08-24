@@ -70,6 +70,7 @@ export type BookAccountCountAggregateOutputType = {
   status: number
   icon: number
   meta: number
+  flags: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -120,6 +121,7 @@ export type BookAccountCountAggregateInputType = {
   status?: true
   icon?: true
   meta?: true
+  flags?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -221,6 +223,7 @@ export type BookAccountGroupByOutputType = {
   status: string
   icon: string | null
   meta: runtime.JsonValue | null
+  flags: string[]
   createdAt: Date
   updatedAt: Date
   _count: BookAccountCountAggregateOutputType | null
@@ -258,6 +261,7 @@ export type BookAccountWhereInput = {
   status?: Prisma.StringFilter<"BookAccount"> | string
   icon?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   meta?: Prisma.JsonNullableFilter<"BookAccount">
+  flags?: Prisma.StringNullableListFilter<"BookAccount">
   createdAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
   ledger?: Prisma.XOR<Prisma.LedgerScalarRelationFilter, Prisma.LedgerWhereInput>
@@ -276,6 +280,7 @@ export type BookAccountOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
+  flags?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   ledger?: Prisma.LedgerOrderByWithRelationInput
@@ -297,6 +302,7 @@ export type BookAccountWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"BookAccount"> | string
   icon?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   meta?: Prisma.JsonNullableFilter<"BookAccount">
+  flags?: Prisma.StringNullableListFilter<"BookAccount">
   createdAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
   ledger?: Prisma.XOR<Prisma.LedgerScalarRelationFilter, Prisma.LedgerWhereInput>
@@ -315,6 +321,7 @@ export type BookAccountOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   icon?: Prisma.SortOrderInput | Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
+  flags?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.BookAccountCountOrderByAggregateInput
@@ -337,6 +344,7 @@ export type BookAccountScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"BookAccount"> | string
   icon?: Prisma.StringNullableWithAggregatesFilter<"BookAccount"> | string | null
   meta?: Prisma.JsonNullableWithAggregatesFilter<"BookAccount">
+  flags?: Prisma.StringNullableListFilter<"BookAccount">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BookAccount"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"BookAccount"> | Date | string
 }
@@ -349,6 +357,7 @@ export type BookAccountCreateInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
@@ -367,6 +376,7 @@ export type BookAccountUncheckedCreateInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
@@ -381,6 +391,7 @@ export type BookAccountUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
@@ -399,6 +410,7 @@ export type BookAccountUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
@@ -415,6 +427,7 @@ export type BookAccountCreateManyInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -427,6 +440,7 @@ export type BookAccountUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -441,6 +455,7 @@ export type BookAccountUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -470,6 +485,7 @@ export type BookAccountCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   icon?: Prisma.SortOrder
   meta?: Prisma.SortOrder
+  flags?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -555,6 +571,10 @@ export type BookAccountUncheckedUpdateManyWithoutLedgerNestedInput = {
   deleteMany?: Prisma.BookAccountScalarWhereInput | Prisma.BookAccountScalarWhereInput[]
 }
 
+export type BookAccountCreateflagsInput = {
+  set: string[]
+}
+
 export type BookAccountCreateNestedOneWithoutChildrenInput = {
   create?: Prisma.XOR<Prisma.BookAccountCreateWithoutChildrenInput, Prisma.BookAccountUncheckedCreateWithoutChildrenInput>
   connectOrCreate?: Prisma.BookAccountCreateOrConnectWithoutChildrenInput
@@ -573,6 +593,11 @@ export type BookAccountUncheckedCreateNestedManyWithoutParentInput = {
   connectOrCreate?: Prisma.BookAccountCreateOrConnectWithoutParentInput | Prisma.BookAccountCreateOrConnectWithoutParentInput[]
   createMany?: Prisma.BookAccountCreateManyParentInputEnvelope
   connect?: Prisma.BookAccountWhereUniqueInput | Prisma.BookAccountWhereUniqueInput[]
+}
+
+export type BookAccountUpdateflagsInput = {
+  set?: string[]
+  push?: string | string[]
 }
 
 export type BookAccountUpdateOneWithoutChildrenNestedInput = {
@@ -635,6 +660,7 @@ export type BookAccountCreateWithoutLedgerInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
@@ -651,6 +677,7 @@ export type BookAccountUncheckedCreateWithoutLedgerInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
@@ -696,6 +723,7 @@ export type BookAccountScalarWhereInput = {
   status?: Prisma.StringFilter<"BookAccount"> | string
   icon?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   meta?: Prisma.JsonNullableFilter<"BookAccount">
+  flags?: Prisma.StringNullableListFilter<"BookAccount">
   createdAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
 }
@@ -708,6 +736,7 @@ export type BookAccountCreateWithoutChildrenInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
@@ -725,6 +754,7 @@ export type BookAccountUncheckedCreateWithoutChildrenInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
@@ -743,6 +773,7 @@ export type BookAccountCreateWithoutParentInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
@@ -759,6 +790,7 @@ export type BookAccountUncheckedCreateWithoutParentInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
@@ -794,6 +826,7 @@ export type BookAccountUpdateWithoutChildrenInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
@@ -811,6 +844,7 @@ export type BookAccountUncheckedUpdateWithoutChildrenInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
@@ -840,6 +874,7 @@ export type BookAccountCreateWithoutLinesInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
@@ -857,6 +892,7 @@ export type BookAccountUncheckedCreateWithoutLinesInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
@@ -886,6 +922,7 @@ export type BookAccountUpdateWithoutLinesInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
@@ -903,6 +940,7 @@ export type BookAccountUncheckedUpdateWithoutLinesInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
@@ -917,6 +955,7 @@ export type BookAccountCreateManyLedgerInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -929,6 +968,7 @@ export type BookAccountUpdateWithoutLedgerInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
@@ -945,6 +985,7 @@ export type BookAccountUncheckedUpdateWithoutLedgerInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
@@ -960,6 +1001,7 @@ export type BookAccountUncheckedUpdateManyWithoutLedgerInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -973,6 +1015,7 @@ export type BookAccountCreateManyParentInput = {
   status?: string
   icon?: string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -985,6 +1028,7 @@ export type BookAccountUpdateWithoutParentInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
@@ -1001,6 +1045,7 @@ export type BookAccountUncheckedUpdateWithoutParentInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
@@ -1016,6 +1061,7 @@ export type BookAccountUncheckedUpdateManyWithoutParentInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1070,6 +1116,7 @@ export type BookAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   status?: boolean
   icon?: boolean
   meta?: boolean
+  flags?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
@@ -1089,6 +1136,7 @@ export type BookAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   status?: boolean
   icon?: boolean
   meta?: boolean
+  flags?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
@@ -1105,6 +1153,7 @@ export type BookAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   status?: boolean
   icon?: boolean
   meta?: boolean
+  flags?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
@@ -1121,11 +1170,12 @@ export type BookAccountSelectScalar = {
   status?: boolean
   icon?: boolean
   meta?: boolean
+  flags?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BookAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "name" | "type" | "sortOrder" | "parentId" | "status" | "icon" | "meta" | "createdAt" | "updatedAt", ExtArgs["result"]["bookAccount"]>
+export type BookAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "name" | "type" | "sortOrder" | "parentId" | "status" | "icon" | "meta" | "flags" | "createdAt" | "updatedAt", ExtArgs["result"]["bookAccount"]>
 export type BookAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.BookAccount$parentArgs<ExtArgs>
@@ -1160,6 +1210,7 @@ export type $BookAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
     status: string
     icon: string | null
     meta: runtime.JsonValue | null
+    flags: string[]
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["bookAccount"]>
@@ -1598,6 +1649,7 @@ export interface BookAccountFieldRefs {
   readonly status: Prisma.FieldRef<"BookAccount", 'String'>
   readonly icon: Prisma.FieldRef<"BookAccount", 'String'>
   readonly meta: Prisma.FieldRef<"BookAccount", 'Json'>
+  readonly flags: Prisma.FieldRef<"BookAccount", 'String[]'>
   readonly createdAt: Prisma.FieldRef<"BookAccount", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"BookAccount", 'DateTime'>
 }

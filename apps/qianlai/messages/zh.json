@@ -145,13 +145,18 @@
     "description": "当前账本的科目表",
     "name": "名称",
     "type": "类型",
-    "sortOrder": "排序值",
+    "expandAll": "展开全部",
+    "collapseAll": "收起全部",
+    "dragToReorder": "拖拽排序",
     "status": "状态",
     "actions": "操作",
     "create": "新建科目",
     "createDescription": "在科目表中新增科目",
+    "createChild": "新增子科目",
+    "createChildDescription": "在「{name}」下新增子科目",
     "edit": "编辑",
     "editDescription": "更新科目信息",
+    "selectToEdit": "选择科目进行编辑",
     "save": "保存",
     "saving": "保存中…",
     "creating": "创建中…",
@@ -167,6 +172,10 @@
     "confirmDelete": "确定删除科目「{name}」？",
     "hasLinesError": "该科目已有流水，请改为归档",
     "hasChildrenError": "请先删除或移走该科目的子科目",
+    "builtinArchiveError": "系统科目无法归档",
+    "builtinDeleteError": "系统科目无法删除",
+    "builtin": "系统",
+    "setBalance": "设置余额",
     "empty": "暂无科目",
     "namePlaceholder": "例如：美元现金",
     "icon": "图标",
@@ -192,7 +201,27 @@
     "validation": {
       "nameRequired": "名称为必填项"
     },
-    "readOnly": "需要记账人及以上角色才能管理科目"
+    "readOnly": "需要记账人及以上角色才能管理科目",
+    "balance": {
+      "title": "设置余额 — {name}",
+      "description": "将自动生成一笔与系统权益科目对冲的平衡分录",
+      "balanceLabel": "新余额",
+      "dateLabel": "截至日期",
+      "memoLabel": "备注",
+      "memoPlaceholder": "例如：现金盘点",
+      "balanceAsOf": "截至 {date} 的余额：",
+      "liabilityHint": "负债余额表示你欠的金额",
+      "asOfHint": "截至日期之后的流水不会被改动；当前余额会随本次调整同步变化。",
+      "save": "调整余额",
+      "saving": "调整中…",
+      "cancel": "取消",
+      "success": "余额已调整",
+      "alreadyAtBalance": "余额已是指定值，无需调整",
+      "validation": {
+        "balanceMin": "余额不能小于 0",
+        "dateRequired": "日期为必填项"
+      }
+    }
   },
   "Journal": {
     "title": "流水",

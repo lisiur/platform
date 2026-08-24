@@ -1148,8 +1148,13 @@ model BookAccount {
   status    String       @default("active")
   // Display icon (emoji or icon name) shown next to the account name.
   icon      String?
-  // Free-form metadata (e.g. bank card number) stored as JSON.
+  // Free-form, user-owned metadata (e.g. bank card number) stored as JSON.
+  // Never holds business logic — system semantics live in `flags`.
   meta      Json?
+  // Behavior flags: "builtin" (system-managed, not user-deletable),
+  // "adjustmentOffset" (equity offset for balance adjustments),
+  // "defaultDebit"/"defaultCredit" (default pocket for quick entry).
+  flags     String[]     @default([])
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 

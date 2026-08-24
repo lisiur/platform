@@ -1,5 +1,6 @@
 import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import { ADJUSTMENT_OFFSET_ACCOUNT_FLAG } from "./domain";
 
 export const accountRepository = {
   listByLedger(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
@@ -11,6 +12,40 @@ export const accountRepository = {
 
   findById(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.bookAccount.findUnique({ where: { id } });
+  },
+
+  findManyByIds(
+    ledgerId: string,
+    ids: string[],
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.bookAccount.findMany({ where: { ledgerId, id: { in: ids } } });
+  },
+
+  /** Siblings of one parent group, in display order (for normalization). */
+  listSiblings(
+    ledgerId: string,
+    parentId: string | null,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.bookAccount.findMany({
+      where: { ledgerId, parentId },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+    });
+  },
+
+  /** Highest sortOrder within a sibling group; -1 when the group is empty. */
+  async findMaxSortOrder(
+    ledgerId: string,
+    parentId: string | null,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    const row = await tx.bookAccount.findFirst({
+      where: { ledgerId, parentId },
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+    return row?.sortOrder ?? -1;
   },
 
   /**
@@ -45,6 +80,7 @@ export const accountRepository = {
       type: string;
       sortOrder: number;
       icon?: string | null;
+      flags?: string[];
       meta?: Record<string, unknown> | null;
     }>,
     tx: Prisma.TransactionClient = prisma,
@@ -70,6 +106,7 @@ export const accountRepository = {
       sortOrder?: number;
       parentId?: string | null;
       icon?: string | null;
+      flags?: string[];
       meta?: Record<string, unknown> | null;
     },
     tx: Prisma.TransactionClient = prisma,
@@ -113,6 +150,33 @@ export const accountRepository = {
 
   delete(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.bookAccount.delete({ where: { id } });
+  },
+
+  /** The system-managed equity account balance adjustments offset against. */
+  findAdjustmentOffsetAccount(
+    ledgerId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.bookAccount.findFirst({
+      where: {
+        ledgerId,
+        type: "equity",
+        status: "active",
+        flags: { has: ADJUSTMENT_OFFSET_ACCOUNT_FLAG },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+    });
+  },
+
+  findFirstActiveByType(
+    ledgerId: string,
+    type: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.bookAccount.findFirst({
+      where: { ledgerId, type, status: "active" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+    });
   },
 
   countLines(id: string, tx: Prisma.TransactionClient = prisma) {

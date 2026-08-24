@@ -47,10 +47,14 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-export async function trialBalance(ledgerId: string) {
+/** When `window.to` is set, balances only reflect entries dated <= that day. */
+export async function trialBalance(
+  ledgerId: string,
+  window: { from?: Date; to?: Date } = {},
+) {
   const [accounts, sums] = await Promise.all([
     accountRepository.listByLedger(ledgerId),
-    sumsByAccount(ledgerId),
+    sumsByAccount(ledgerId, window),
   ]);
   const rows = accounts.map((account) => {
     const { debit = 0, credit = 0 } = sums.get(account.id) ?? {};
