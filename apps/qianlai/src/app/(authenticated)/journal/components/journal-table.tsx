@@ -6,8 +6,12 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  DateRangePicker,
   DropdownMenuItem,
   Input,
+  Select,
+  SelectTrigger,
+  SelectValue,
   Spinner,
   TableActionCell,
   TableActionHead,
@@ -19,9 +23,10 @@ import {
   TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2, Users } from "lucide-react";
+import { Plus, Search, Trash2, Users, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import type { DateRange } from "react-day-promise";
 import { toast } from "sonner";
 import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -63,6 +68,12 @@ interface EntryRow {
   }>;
 }
 
+interface MemberRow {
+  id: string;
+  userId: string;
+  user: { id: string; name: string; email: string | null } | null;
+}
+
 export function JournalTable() {
   const t = useTranslations("Journal");
   const accountName = useAccountName();
@@ -72,6 +83,25 @@ export function JournalTable() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [q, setQ] = useState("");
   const [appliedQ, setAppliedQ] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [appliedDateRange, setAppliedDateRange] = useState<
+    DateRange | undefined
+  >();
+  const [participantMemberId, setParticipantMemberId] = useState<string>("");
+  const [appliedMemberId, setAppliedMemberId] = useState<string>("");
+
+  const { data: membersData } = useQuery({
+    queryKey: ["qianlai", "members", activeLedger?.id],
+    queryFn: async () => {
+      const res = await withApiFeedback(
+        appClient.api.bookkeeping.ledgers[":ledgerId"].members.$get,
+      )({ param: { ledgerId: activeLedger?.id } });
+      return res.json() as Promise<{ members: MemberRow[] }>;
+    },
+    enabled: !!activeLedger,
+  });
+
+  const members = membersData?.members ?? [];
 
   const canPost =
     !!activeLedger &&
@@ -86,14 +116,28 @@ export function JournalTable() {
     loading,
     setPage,
   } = usePaginatedQuery<EntryRow>({
-    queryKey: ["qianlai", "entries", activeLedger?.id, appliedQ],
+    queryKey: [
+      "qianlai",
+      "entries",
+      activeLedger?.id,
+      appliedQ,
+      appliedDateRange,
+      appliedMemberId,
+    ],
     enabled: !!activeLedger,
     queryFn: async ({ limit, offset }) => {
       const res = await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].entries.$get,
       )({
         param: { ledgerId: activeLedger?.id },
-        query: { limit, offset, q: appliedQ || undefined },
+        query: {
+          limit,
+          offset,
+          q: appliedQ || undefined,
+          from: appliedDateRange?.from,
+          to: appliedDateRange?.to,
+          participantMemberId: appliedMemberId || undefined,
+        },
       });
       const data = await res.json();
       return { items: data.entries, total: data.total };
@@ -110,6 +154,29 @@ export function JournalTable() {
     },
     enabled: !!activeLedger,
   });
+
+  function applyFilters() {
+    setAppliedQ(q.trim());
+    setAppliedDateRange(dateRange);
+    setAppliedMemberId(participantMemberId);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setQ("");
+    setAppliedQ("");
+    setDateRange(undefined);
+    setAppliedDateRange(undefined);
+    setParticipantMemberId("");
+    setAppliedMemberId("");
+    setPage(1);
+  }
+
+  const hasActiveFilters =
+    appliedQ ||
+    appliedDateRange?.from ||
+    appliedDateRange?.to ||
+    appliedMemberId;
 
   async function handleDelete(entry: EntryRow) {
     const confirmed = await confirm({
@@ -148,13 +215,12 @@ export function JournalTable() {
 
   return (
     <>
-      <div className="mb-4 flex shrink-0 items-center gap-2">
+      <div className="mb-4 flex shrink-0 flex-wrap items-center gap-2">
         <form
           className="relative w-full max-w-xs"
           onSubmit={(e) => {
             e.preventDefault();
-            setAppliedQ(q.trim());
-            setPage(0);
+            applyFilters();
           }}
         >
           <Search className="text-muted-foreground absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2" />
@@ -165,6 +231,32 @@ export function JournalTable() {
             onChange={(e) => setQ(e.target.value)}
           />
         </form>
+        <DateRangePicker
+          startDate={dateRange?.from}
+          endDate={dateRange?.to}
+          onChange={(range) => setDateRange(range)}
+          className="w-64"
+        />
+        <Select
+          value={participantMemberId || "all"}
+          onValueChange={(v) => setParticipantMemberId(v === "all" ? "" : v)}
+          items={[
+            { value: "all", label: t("allMembers") },
+            ...members.map((m) => ({
+              value: m.id,
+              label: m.user?.name ?? m.userId,
+            })),
+          ]}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder={t("filterByMember")} />
+          </SelectTrigger>
+        </Select>
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
         <div className="flex-1" />
         {canPost && (
           <Button onClick={() => setQuickOpen(true)}>

@@ -290,7 +290,9 @@
     "to": "结束日期",
     "filter": "筛选",
     "clear": "清除",
-    "readOnly": "需要记账人及以上角色才能记账"
+    "readOnly": "需要记账人及以上角色才能记账",
+    "filterByMember": "按成员筛选",
+    "allMembers": "全部成员"
   },
   "Reports": {
     "title": "报表",

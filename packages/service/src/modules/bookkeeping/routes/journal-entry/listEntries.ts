@@ -50,6 +50,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
         from: query.from,
         to: query.to,
         q: query.q,
+        participantMemberId: query.participantMemberId,
       },
       access.membership.role,
     );

@@ -5,6 +5,7 @@ export type EntryWindow = {
   from?: Date;
   to?: Date;
   q?: string;
+  participantMemberId?: string;
 };
 
 /** Participant rows with the member's user profile, as returned on entries. */
@@ -72,6 +73,13 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
               },
             },
           ],
+        }
+      : {}),
+    ...(window.participantMemberId
+      ? {
+          participants: {
+            some: { ledgerMemberId: window.participantMemberId },
+          },
         }
       : {}),
   };

@@ -291,7 +291,9 @@
     "to": "To",
     "filter": "Filter",
     "clear": "Clear",
-    "readOnly": "You need the editor role to post entries"
+    "readOnly": "You need the editor role to post entries",
+    "filterByMember": "Filter by member",
+    "allMembers": "All members"
   },
   "Reports": {
     "title": "Reports",

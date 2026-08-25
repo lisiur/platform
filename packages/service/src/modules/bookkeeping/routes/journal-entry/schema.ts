@@ -73,6 +73,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     from: z.coerce.date().optional(),
     to: z.coerce.date().optional(),
     q: z.string().optional(),
+    participantMemberId: z.string().optional(),
   })
   .openapi("QianlaiListEntriesQuery");
 
