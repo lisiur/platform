@@ -16,10 +16,12 @@ import {
   DialogHeader,
   DialogTitle,
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
   Input,
+  MultiSelect,
   Select,
   SelectContent,
   SelectItem,
@@ -35,6 +37,7 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useAccountName } from "@/hooks/use-account-name";
 import { appClient, withApiFeedback } from "@/lib/api";
 import type { AccountRow } from "../../accounts/components/accounts-table";
 
@@ -53,6 +56,7 @@ const quickEntrySchema = z
     debitAccount: z.string(),
     creditAccount: z.string(),
     memo: z.string().optional(),
+    participants: z.array(z.string()),
   })
   .superRefine((data, ctx) => {
     if (!(data.amount > 0)) {
@@ -85,6 +89,12 @@ const quickEntrySchema = z
 
 type QuickEntryFormData = z.infer<typeof quickEntrySchema>;
 
+interface MemberRow {
+  id: string;
+  userId: string;
+  user: { id: string; name: string; email: string | null } | null;
+}
+
 interface QuickEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -97,6 +107,7 @@ export function QuickEntryDialog({
   ledgerId,
 }: QuickEntryDialogProps) {
   const t = useTranslations("Journal");
+  const accountName = useAccountName();
   const queryClient = useQueryClient();
 
   const { data: accountsData } = useQuery({
@@ -110,9 +121,21 @@ export function QuickEntryDialog({
     enabled: open && !!ledgerId,
   });
 
+  const { data: membersData } = useQuery({
+    queryKey: ["qianlai", "members", ledgerId],
+    queryFn: async () => {
+      const res = await withApiFeedback(
+        appClient.api.bookkeeping.ledgers[":ledgerId"].members.$get,
+      )({ param: { ledgerId } });
+      return (await res.json()) as { members: MemberRow[] };
+    },
+    enabled: open && !!ledgerId,
+  });
+
   const activeAccounts = (accountsData?.accounts ?? []).filter(
     (a) => a.status === "active",
   );
+  const members = membersData?.members ?? [];
   // Asset + liability accounts are the "money pockets": where funds sit or
   // where spending is charged (credit card).
   const assetLikeAccounts = activeAccounts.filter(
@@ -139,6 +162,7 @@ export function QuickEntryDialog({
     debitAccount: "",
     creditAccount: "",
     memo: "",
+    participants: [],
   };
 
   const form = useForm<QuickEntryFormData>({
@@ -234,6 +258,9 @@ export function QuickEntryDialog({
             { accountId: data.debitAccount, debit: amount, credit: 0 },
             { accountId: data.creditAccount, debit: 0, credit: amount },
           ],
+          participantMemberIds: data.participants.length
+            ? data.participants
+            : undefined,
         },
       });
     },
@@ -249,6 +276,9 @@ export function QuickEntryDialog({
       });
       queryClient.invalidateQueries({
         queryKey: ["qianlai", "income-statement", ledgerId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["qianlai", "member-turnover", ledgerId],
       });
       toast.success(t("createSuccess"));
       onOpenChange(false);
@@ -356,7 +386,7 @@ export function QuickEntryDialog({
                       onValueChange={field.onChange}
                       items={debitOptions.map((account) => ({
                         value: account.id,
-                        label: account.name,
+                        label: accountName(account),
                       }))}
                     >
                       <SelectTrigger
@@ -368,7 +398,7 @@ export function QuickEntryDialog({
                       <SelectContent>
                         {debitOptions.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.name}
+                            {accountName(account)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -393,7 +423,7 @@ export function QuickEntryDialog({
                       onValueChange={field.onChange}
                       items={creditOptions.map((account) => ({
                         value: account.id,
-                        label: account.name,
+                        label: accountName(account),
                       }))}
                     >
                       <SelectTrigger
@@ -405,7 +435,7 @@ export function QuickEntryDialog({
                       <SelectContent>
                         {creditOptions.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.name}
+                            {accountName(account)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -425,6 +455,31 @@ export function QuickEntryDialog({
                   placeholder={t("memoPlaceholder")}
                 />
               </Field>
+
+              {members.length > 0 && (
+                <Field>
+                  <FieldLabel>{t("quick.participants")}</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="participants"
+                    render={({ field }) => (
+                      <MultiSelect
+                        options={members.map((member) => ({
+                          value: member.id,
+                          label: member.user?.name ?? member.userId,
+                        }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={t("quick.participantsPlaceholder")}
+                        searchPlaceholder={t("quick.participantsSearch")}
+                      />
+                    )}
+                  />
+                  <FieldDescription>
+                    {t("quick.participantsHint")}
+                  </FieldDescription>
+                </Field>
+              )}
             </FieldGroup>
           </form>
         </DialogBody>

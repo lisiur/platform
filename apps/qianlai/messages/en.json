@@ -177,6 +177,7 @@
     "builtin": "System",
     "setBalance": "Set Balance",
     "empty": "No accounts yet",
+    "nameOptionalHint": "Leave empty to keep the default name",
     "namePlaceholder": "e.g. USD Cash",
     "icon": "Icon",
     "iconPlaceholder": "Emoji, e.g. 💳",
@@ -187,6 +188,24 @@
     "addMeta": "Add Field",
     "removeMeta": "Remove field",
     "metaKeyRequired": "Label is required",
+    "names": {
+      "defaultAccount": "Default Account",
+      "cash": "Cash",
+      "bankCard": "Bank Card",
+      "alipay": "Alipay",
+      "wechatPay": "WeChat Pay",
+      "creditCard": "Credit Card",
+      "openingBalance": "Opening Balance",
+      "balanceAdjustment": "Balance Adjustment",
+      "salary": "Salary",
+      "otherIncome": "Other Income",
+      "food": "Food",
+      "transport": "Transport",
+      "shopping": "Shopping",
+      "entertainment": "Entertainment",
+      "housing": "Housing",
+      "medical": "Medical"
+    },
     "types": {
       "asset": "Asset",
       "liability": "Liability",
@@ -247,6 +266,10 @@
       "receiveAccount": "Received Into",
       "toAccount": "Transfer To",
       "fromAccount": "Transfer From",
+      "participants": "Related Members",
+      "participantsPlaceholder": "Tag members on this entry…",
+      "participantsSearch": "Search members…",
+      "participantsHint": "Turnover reports sum every entry a member is tagged on",
       "validation": {
         "amountRequired": "Enter an amount greater than 0",
         "accountRequired": "Select both accounts",
@@ -275,10 +298,20 @@
     "description": "Trial balance and income statement of the active ledger",
     "tabs": {
       "trialBalance": "Trial Balance",
-      "incomeStatement": "Income Statement"
+      "incomeStatement": "Income Statement",
+      "memberTurnover": "Member Turnover"
     },
     "name": "Name",
     "type": "Type",
+    "member": "Member",
+    "role": "Role",
+    "entryCount": "Entries",
+    "turnover": "Turnover",
+    "roles": {
+      "owner": "Owner",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
     "totalDebit": "Total Debit",
     "totalCredit": "Total Credit",
     "balance": "Balance",

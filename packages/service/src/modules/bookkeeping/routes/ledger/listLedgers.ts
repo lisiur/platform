@@ -1,7 +1,6 @@
 import { createRoute, defineOpenAPIRoute } from "@hono/zod-openapi";
 import { getPrincipalUserId, requirePrincipal } from "#extractors/session";
 import { okResponseFn, unauthorizedResponse } from "#lib/openapi";
-import { normalizeSeedLocale } from "../../domain";
 import { ensureDefaultLedger, listLedgers } from "../../ledger.service";
 import { listLedgersResponseSchema } from "./schema";
 
@@ -26,8 +25,7 @@ export const listLedgersRoute = defineOpenAPIRoute({
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
-    const locale = normalizeSeedLocale(c.req.header("accept-language"));
-    await ensureDefaultLedger(userId, locale);
+    await ensureDefaultLedger(userId);
     const result = await listLedgers(userId);
     return c.json(result, 200);
   },

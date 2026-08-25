@@ -108,7 +108,8 @@ export const ModelName = {
   LedgerShareCode: 'LedgerShareCode',
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
-  JournalLine: 'JournalLine'
+  JournalLine: 'JournalLine',
+  JournalEntryParticipant: 'JournalEntryParticipant'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -976,6 +977,7 @@ export const BookAccountScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
   name: 'name',
+  code: 'code',
   type: 'type',
   sortOrder: 'sortOrder',
   parentId: 'parentId',
@@ -1014,6 +1016,16 @@ export const JournalLineScalarFieldEnum = {
 } as const
 
 export type JournalLineScalarFieldEnum = (typeof JournalLineScalarFieldEnum)[keyof typeof JournalLineScalarFieldEnum]
+
+
+export const JournalEntryParticipantScalarFieldEnum = {
+  id: 'id',
+  entryId: 'entryId',
+  ledgerMemberId: 'ledgerMemberId',
+  createdAt: 'createdAt'
+} as const
+
+export type JournalEntryParticipantScalarFieldEnum = (typeof JournalEntryParticipantScalarFieldEnum)[keyof typeof JournalEntryParticipantScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -177,6 +177,7 @@
     "builtin": "系统",
     "setBalance": "设置余额",
     "empty": "暂无科目",
+    "nameOptionalHint": "留空则使用默认名称",
     "namePlaceholder": "例如：美元现金",
     "icon": "图标",
     "iconPlaceholder": "表情符号，如 💳",
@@ -187,6 +188,24 @@
     "addMeta": "添加字段",
     "removeMeta": "删除字段",
     "metaKeyRequired": "名称为必填项",
+    "names": {
+      "defaultAccount": "默认账户",
+      "cash": "现金",
+      "bankCard": "银行卡",
+      "alipay": "支付宝",
+      "wechatPay": "微信支付",
+      "creditCard": "信用卡",
+      "openingBalance": "期初余额",
+      "balanceAdjustment": "余额调整",
+      "salary": "工资收入",
+      "otherIncome": "其他收入",
+      "food": "餐饮",
+      "transport": "交通",
+      "shopping": "购物",
+      "entertainment": "娱乐",
+      "housing": "住房",
+      "medical": "医疗"
+    },
     "types": {
       "asset": "资产",
       "liability": "负债",
@@ -246,6 +265,10 @@
       "receiveAccount": "收款账户",
       "toAccount": "转入账户",
       "fromAccount": "转出账户",
+      "participants": "相关成员",
+      "participantsPlaceholder": "标记这笔流水相关的成员…",
+      "participantsSearch": "搜索成员…",
+      "participantsHint": "成员往来统计会汇总其被标记的全部流水",
       "validation": {
         "amountRequired": "请填写大于 0 的金额",
         "accountRequired": "请选择账户",
@@ -274,10 +297,20 @@
     "description": "当前账本的科目余额表与收支表",
     "tabs": {
       "trialBalance": "科目余额表",
-      "incomeStatement": "收支表"
+      "incomeStatement": "收支表",
+      "memberTurnover": "成员往来"
     },
     "name": "名称",
     "type": "类型",
+    "member": "成员",
+    "role": "角色",
+    "entryCount": "笔数",
+    "turnover": "往来金额",
+    "roles": {
+      "owner": "所有者",
+      "editor": "记账人",
+      "viewer": "查看者"
+    },
     "totalDebit": "借方累计",
     "totalCredit": "贷方累计",
     "balance": "余额",

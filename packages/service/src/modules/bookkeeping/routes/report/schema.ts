@@ -1,11 +1,12 @@
 import { z } from "@hono/zod-openapi";
-import { ACCOUNT_TYPES } from "../../domain";
+import { ACCOUNT_TYPES, LEDGER_ROLES } from "../../domain";
 import { journalEntrySchema } from "../journal-entry/schema";
 
 export const trialBalanceRowSchema = z
   .object({
     id: z.string(),
-    name: z.string().openapi({ example: "Cash" }),
+    name: z.string().nullable().openapi({ example: null }),
+    code: z.string().nullable().openapi({ example: "cash" }),
     type: z.enum(ACCOUNT_TYPES),
     sortOrder: z.number().int().openapi({ example: 10 }),
     totalDebit: z.number().openapi({ example: 100 }),
@@ -29,7 +30,8 @@ export const trialBalanceResponseSchema = z
 const statementRowSchema = z
   .object({
     id: z.string(),
-    name: z.string().openapi({ example: "Salary" }),
+    name: z.string().nullable().openapi({ example: null }),
+    code: z.string().nullable().openapi({ example: "salary" }),
     type: z.enum(ACCOUNT_TYPES),
     sortOrder: z.number().int().openapi({ example: 70 }),
     balance: z.number().openapi({ example: 8000 }),
@@ -82,3 +84,34 @@ export const trialBalanceQuerySchema = z
     to: z.coerce.date().optional(),
   })
   .openapi("QianlaiTrialBalanceQuery");
+
+export const memberTurnoverRowSchema = z
+  .object({
+    ledgerMemberId: z.string(),
+    userId: z.string(),
+    name: z.string().openapi({ example: "Alice" }),
+    avatar: z.string().nullable().openapi({ example: null }),
+    role: z.enum(LEDGER_ROLES).openapi({ example: "editor" }),
+    entryCount: z.number().int().openapi({ example: 12 }),
+    turnover: z.number().openapi({ example: 3250.5 }),
+  })
+  .openapi("QianlaiMemberTurnoverRow");
+
+export const memberTurnoverResponseSchema = z
+  .object({
+    members: memberTurnoverRowSchema.array(),
+    totals: z
+      .object({
+        entries: z.number().int().openapi({ example: 18 }),
+        turnover: z.number().openapi({ example: 5180.75 }),
+      })
+      .openapi("QianlaiMemberTurnoverTotals"),
+  })
+  .openapi("QianlaiMemberTurnoverResponse");
+
+export const memberTurnoverQuerySchema = z
+  .object({
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+  })
+  .openapi("QianlaiMemberTurnoverQuery");

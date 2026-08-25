@@ -7,6 +7,23 @@ export type EntryWindow = {
   q?: string;
 };
 
+/** Participant rows with the member's user profile, as returned on entries. */
+const participantInclude = {
+  ledgerMember: {
+    include: {
+      user: { select: { id: true, name: true, email: true, avatar: true } },
+    },
+  },
+} as const satisfies Prisma.JournalEntryParticipantInclude;
+
+const entryInclude = {
+  lines: { include: { account: true } },
+  participants: { include: participantInclude },
+  createdBy: {
+    select: { id: true, name: true, email: true, avatar: true },
+  },
+} as const satisfies Prisma.JournalEntryInclude;
+
 function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   return {
     ledgerId,
@@ -34,10 +51,20 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
                     },
                     {
                       account: {
-                        name: {
-                          contains: window.q,
-                          mode: "insensitive" as const,
-                        },
+                        OR: [
+                          {
+                            name: {
+                              contains: window.q,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                          {
+                            code: {
+                              contains: window.q,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                        ],
                       },
                     },
                   ],
@@ -58,12 +85,7 @@ export const journalRepository = {
   ) {
     return tx.journalEntry.findMany({
       where: entryFilterWhere(ledgerId, opts),
-      include: {
-        lines: { include: { account: true } },
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true },
-        },
-      },
+      include: entryInclude,
       take: opts.limit,
       skip: opts.offset,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],
@@ -81,12 +103,7 @@ export const journalRepository = {
   findById(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.journalEntry.findUnique({
       where: { id },
-      include: {
-        lines: { include: { account: true } },
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true },
-        },
-      },
+      include: entryInclude,
     });
   },
 
@@ -103,6 +120,7 @@ export const journalRepository = {
         credit: Prisma.Decimal | number;
         memo?: string;
       }>;
+      participantMemberIds?: string[];
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
@@ -114,13 +132,13 @@ export const journalRepository = {
         memo: data.memo,
         createdById: data.createdById,
         lines: { create: data.lines },
-      },
-      include: {
-        lines: { include: { account: true } },
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true },
+        participants: {
+          create: (data.participantMemberIds ?? []).map((ledgerMemberId) => ({
+            ledgerMemberId,
+          })),
         },
       },
+      include: entryInclude,
     });
   },
 
@@ -157,6 +175,38 @@ export const journalRepository = {
     });
   },
 
+  /**
+   * Per-participant turnover input: entries of the ledger dated within
+   * [from, to] that have at least one participant, with each entry's
+   * participant ids and raw lines (whose debit sum is the entry's gross
+   * amount). The per-member aggregation itself runs in the service —
+   * Prisma can't groupBy a relation key like ledgerMemberId.
+   */
+  listTaggedEntries(
+    ledgerId: string,
+    window: { from?: Date; to?: Date } = {},
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.findMany({
+      where: {
+        ledgerId,
+        participants: { some: {} },
+        ...(window.from || window.to
+          ? {
+              date: {
+                ...(window.from ? { gte: window.from } : {}),
+                ...(window.to ? { lte: window.to } : {}),
+              },
+            }
+          : {}),
+      },
+      select: {
+        participants: { select: { ledgerMemberId: true } },
+        lines: { select: { debit: true } },
+      },
+    });
+  },
+
   listRecent(
     ledgerId: string,
     limit: number,
@@ -164,12 +214,7 @@ export const journalRepository = {
   ) {
     return tx.journalEntry.findMany({
       where: { ledgerId },
-      include: {
-        lines: { include: { account: true } },
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true },
-        },
-      },
+      include: entryInclude,
       take: limit,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],
     });

@@ -17,7 +17,9 @@ vi.mock("../ledger.repository", () => ({
 }));
 
 vi.mock("../ledger-member.repository", () => ({
-  ledgerMemberRepository: {},
+  ledgerMemberRepository: {
+    listByLedger: vi.fn(),
+  },
 }));
 
 vi.mock("../account.repository", () => ({
@@ -43,6 +45,7 @@ import {
   validateJournalLines,
 } from "../journal.service";
 import { ledgerRepository } from "../ledger.repository";
+import { ledgerMemberRepository } from "../ledger-member.repository";
 
 const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
@@ -52,6 +55,9 @@ const mockLedgerRepo = ledgerRepository as unknown as {
   update: ReturnType<typeof vi.fn>;
 };
 const mockAccountRepo = accountRepository as unknown as {
+  listByLedger: ReturnType<typeof vi.fn>;
+};
+const mockMemberRepo = ledgerMemberRepository as unknown as {
   listByLedger: ReturnType<typeof vi.fn>;
 };
 const mockJournalRepo = journalRepository as unknown as {
@@ -291,6 +297,10 @@ describe("createEntry", () => {
     mockPrisma.$transaction.mockImplementation(
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1" },
+      { id: "mem-2" },
+    ]);
   });
 
   it("rejects a ledger archived after the route's check (race, 400)", async () => {
@@ -353,6 +363,66 @@ describe("createEntry", () => {
     await createEntry("user-a", "led-1", baseEntryInput);
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ entryNo: 4 }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects participants that are not members of the ledger (400)", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    await expectStatus(
+      () =>
+        createEntry("user-a", "led-1", {
+          ...baseEntryInput,
+          participantMemberIds: ["mem-1", "mem-foreign"],
+        }),
+      400,
+    );
+    expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("dedupes participant ids and passes them through to the repository", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-3" });
+    await createEntry("user-a", "led-1", {
+      ...baseEntryInput,
+      participantMemberIds: ["mem-2", "mem-1", "mem-2"],
+    });
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ participantMemberIds: ["mem-2", "mem-1"] }),
+      expect.anything(),
+    );
+  });
+
+  it("omits participants entirely when none are given", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-4" });
+    await createEntry("user-a", "led-1", baseEntryInput);
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ participantMemberIds: undefined }),
       expect.anything(),
     );
   });

@@ -19,13 +19,17 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import { type AccountLike, useAccountName } from "@/hooks/use-account-name";
 import type { AccountRow } from "./accounts-table";
 
 interface AccountTreeNode extends DraggableTreeNode {
   account: AccountRow;
 }
 
-function buildAccountTree(accounts: AccountRow[]): AccountTreeNode[] {
+function buildAccountTree(
+  accounts: AccountRow[],
+  nameFor: (account: AccountLike) => string,
+): AccountTreeNode[] {
   const nodes = new Map<string, AccountTreeNode>();
   const roots: AccountTreeNode[] = [];
 
@@ -34,7 +38,7 @@ function buildAccountTree(accounts: AccountRow[]): AccountTreeNode[] {
       id: account.id,
       parentId: account.parentId,
       sortOrder: account.sortOrder,
-      name: account.name,
+      name: nameFor(account),
       icon: account.icon ? <span aria-hidden>{account.icon}</span> : undefined,
       children: [],
       account,
@@ -78,7 +82,11 @@ export function AccountsTree({
   onReorder,
 }: AccountsTreeProps) {
   const t = useTranslations("Accounts");
-  const treeData = useMemo(() => buildAccountTree(accounts), [accounts]);
+  const accountName = useAccountName();
+  const treeData = useMemo(
+    () => buildAccountTree(accounts, accountName),
+    [accounts, accountName],
+  );
 
   const canAdjustBalance = (account: AccountRow) =>
     account.status === "active" &&

@@ -331,3 +331,8 @@ export type JournalEntry = Prisma.JournalEntryModel
  * 
  */
 export type JournalLine = Prisma.JournalLineModel
+/**
+ * Model JournalEntryParticipant
+ * 
+ */
+export type JournalEntryParticipant = Prisma.JournalEntryParticipantModel

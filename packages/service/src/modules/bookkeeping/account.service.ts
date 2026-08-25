@@ -114,7 +114,8 @@ export async function updateAccount(
   ledgerId: string,
   accountId: string,
   data: {
-    name?: string;
+    /** Null/empty clears the override; absent leaves it untouched. */
+    name?: string | null;
     parentId?: string | null;
     status?: string;
     icon?: string | null;
@@ -175,7 +176,20 @@ export async function updateAccount(
         });
       }
     }
-    return accountRepository.update(accountId, data, tx);
+    // `name` is a display override above the code's localized label:
+    // empty/null reverts to the label. The code itself is never cleared.
+    // Only seeded (coded) accounts may go nameless — a user-created account
+    // without a code would render nothing.
+    let name = data.name;
+    if (name !== undefined) {
+      name = name?.trim() || null;
+      if (name === null && !account.code) {
+        throw new HTTPException(400, {
+          message: "Name is required for accounts without a code",
+        });
+      }
+    }
+    return accountRepository.update(accountId, { ...data, name }, tx);
   });
 }
 

@@ -21,6 +21,7 @@ import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useAccountName } from "@/hooks/use-account-name";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { endOfUtcDay } from "@/utils/date";
 import type { AccountRow } from "./accounts-table";
@@ -42,6 +43,7 @@ export function BalanceDialog({
   account: AccountRow;
 }) {
   const t = useTranslations("Accounts.balance");
+  const accountName = useAccountName();
 
   const balanceFormSchema = z.object({
     balance: z.number().min(0, t("validation.balanceMin")),
@@ -133,7 +135,9 @@ export function BalanceDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("title", { name: account.name })}</DialogTitle>
+          <DialogTitle>
+            {t("title", { name: accountName(account) })}
+          </DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <DialogBody>

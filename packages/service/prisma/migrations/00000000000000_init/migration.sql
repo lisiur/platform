@@ -868,7 +868,8 @@ CREATE TABLE "qianlai_ledger_share_code" (
 CREATE TABLE "qianlai_book_account" (
     "id" TEXT NOT NULL,
     "ledgerId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "name" TEXT,
+    "code" TEXT,
     "type" TEXT NOT NULL,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
     "parentId" TEXT,
@@ -906,6 +907,16 @@ CREATE TABLE "qianlai_journal_line" (
     "memo" TEXT,
 
     CONSTRAINT "qianlai_journal_line_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_journal_entry_participant" (
+    "id" TEXT NOT NULL,
+    "entryId" TEXT NOT NULL,
+    "ledgerMemberId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "qianlai_journal_entry_participant_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -1302,6 +1313,9 @@ CREATE INDEX "qianlai_ledger_share_code_ledgerId_idx" ON "qianlai_ledger_share_c
 CREATE INDEX "qianlai_book_account_ledgerId_sortOrder_idx" ON "qianlai_book_account"("ledgerId", "sortOrder");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "qianlai_book_account_ledgerId_code_key" ON "qianlai_book_account"("ledgerId", "code");
+
+-- CreateIndex
 CREATE INDEX "qianlai_journal_entry_ledgerId_date_idx" ON "qianlai_journal_entry"("ledgerId", "date");
 
 -- CreateIndex
@@ -1309,6 +1323,12 @@ CREATE UNIQUE INDEX "qianlai_journal_entry_ledgerId_entryNo_key" ON "qianlai_jou
 
 -- CreateIndex
 CREATE INDEX "qianlai_journal_line_accountId_idx" ON "qianlai_journal_line"("accountId");
+
+-- CreateIndex
+CREATE INDEX "qianlai_journal_entry_participant_ledgerMemberId_idx" ON "qianlai_journal_entry_participant"("ledgerMemberId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_journal_entry_participant_entryId_ledgerMemberId_key" ON "qianlai_journal_entry_participant"("entryId", "ledgerMemberId");
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1501,4 +1521,10 @@ ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_entryId_
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "qianlai_book_account"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_entryId_fkey" FOREIGN KEY ("entryId") REFERENCES "qianlai_journal_entry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_ledgerMemberId_fkey" FOREIGN KEY ("ledgerMemberId") REFERENCES "qianlai_ledger_member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

@@ -454,7 +454,8 @@ export const ModelName = {
   LedgerShareCode: 'LedgerShareCode',
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
-  JournalLine: 'JournalLine'
+  JournalLine: 'JournalLine',
+  JournalEntryParticipant: 'JournalEntryParticipant'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -470,7 +471,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "ledgerMember" | "ledgerShareCode" | "bookAccount" | "journalEntry" | "journalLine"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "ledgerMember" | "ledgerShareCode" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4766,6 +4767,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    JournalEntryParticipant: {
+      payload: Prisma.$JournalEntryParticipantPayload<ExtArgs>
+      fields: Prisma.JournalEntryParticipantFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.JournalEntryParticipantFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.JournalEntryParticipantFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        findFirst: {
+          args: Prisma.JournalEntryParticipantFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.JournalEntryParticipantFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        findMany: {
+          args: Prisma.JournalEntryParticipantFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>[]
+        }
+        create: {
+          args: Prisma.JournalEntryParticipantCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        createMany: {
+          args: Prisma.JournalEntryParticipantCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.JournalEntryParticipantCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>[]
+        }
+        delete: {
+          args: Prisma.JournalEntryParticipantDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        update: {
+          args: Prisma.JournalEntryParticipantUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        deleteMany: {
+          args: Prisma.JournalEntryParticipantDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.JournalEntryParticipantUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.JournalEntryParticipantUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>[]
+        }
+        upsert: {
+          args: Prisma.JournalEntryParticipantUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JournalEntryParticipantPayload>
+        }
+        aggregate: {
+          args: Prisma.JournalEntryParticipantAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateJournalEntryParticipant>
+        }
+        groupBy: {
+          args: Prisma.JournalEntryParticipantGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JournalEntryParticipantGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.JournalEntryParticipantCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JournalEntryParticipantCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5654,6 +5729,7 @@ export const BookAccountScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
   name: 'name',
+  code: 'code',
   type: 'type',
   sortOrder: 'sortOrder',
   parentId: 'parentId',
@@ -5692,6 +5768,16 @@ export const JournalLineScalarFieldEnum = {
 } as const
 
 export type JournalLineScalarFieldEnum = (typeof JournalLineScalarFieldEnum)[keyof typeof JournalLineScalarFieldEnum]
+
+
+export const JournalEntryParticipantScalarFieldEnum = {
+  id: 'id',
+  entryId: 'entryId',
+  ledgerMemberId: 'ledgerMemberId',
+  createdAt: 'createdAt'
+} as const
+
+export type JournalEntryParticipantScalarFieldEnum = (typeof JournalEntryParticipantScalarFieldEnum)[keyof typeof JournalEntryParticipantScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -6131,6 +6217,7 @@ export type GlobalOmitConfig = {
   bookAccount?: Prisma.BookAccountOmit
   journalEntry?: Prisma.JournalEntryOmit
   journalLine?: Prisma.JournalLineOmit
+  journalEntryParticipant?: Prisma.JournalEntryParticipantOmit
 }
 
 /* Types for Logging */

@@ -46,10 +46,6 @@ export const createLedgerBodySchema = z
     name: z.string().min(1).max(100).openapi({ example: "Travel 2026" }),
     description: z.string().max(500).optional(),
     currency: z.string().min(3).max(3).optional().openapi({ example: "CNY" }),
-    locale: z.enum(["en", "zh"]).optional().openapi({
-      example: "zh",
-      description: "Language for the seeded starter chart of accounts",
-    }),
     seedStarterAccounts: z.boolean().optional().openapi({
       example: true,
       description: "Seed a starter chart of accounts (default true)",

@@ -104,7 +104,7 @@ describe("ensureDefaultLedger", () => {
   it("returns the existing default without creating anything", async () => {
     const existing = { id: "led-1", isDefault: true };
     mockLedgerRepo.findDefaultForOwner.mockResolvedValue(existing);
-    const result = await ensureDefaultLedger("user-a", "zh");
+    const result = await ensureDefaultLedger("user-a");
     expect(result).toBe(existing);
     expect(mockLedgerRepo.create).not.toHaveBeenCalled();
     expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe("ensureDefaultLedger", () => {
   it("does not re-seed a deliberately emptied chart of accounts", async () => {
     const existing = { id: "led-1", isDefault: true };
     mockLedgerRepo.findDefaultForOwner.mockResolvedValue(existing);
-    const result = await ensureDefaultLedger("user-a", "zh");
+    const result = await ensureDefaultLedger("user-a");
     expect(result).toBe(existing);
     expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
   });
@@ -124,13 +124,13 @@ describe("ensureDefaultLedger", () => {
     mockLedgerRepo.findDefaultForOwner
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(existing);
-    const result = await ensureDefaultLedger("user-a", "zh");
+    const result = await ensureDefaultLedger("user-a");
     expect(result).toBe(existing);
     expect(mockLedgerRepo.create).not.toHaveBeenCalled();
     expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
   });
 
-  it("creates a default ledger with owner membership and a localized starter chart", async () => {
+  it("creates a default ledger with owner membership and a coded starter chart", async () => {
     mockLedgerRepo.findDefaultForOwner
       .mockResolvedValueOnce(null) // pre-check outside tx
       .mockResolvedValueOnce(null); // re-check inside tx
@@ -150,9 +150,13 @@ describe("ensureDefaultLedger", () => {
       expect.anything(),
     );
     const [, accounts] = mockAccountRepo.createStarterAccounts.mock
-      .calls[0] as [string, Array<{ name: string; flags?: string[] }>, unknown];
-    expect(accounts.some((a) => a.name === "现金")).toBe(true);
-    const defaultAccount = accounts.find((a) => a.name === "默认账户");
+      .calls[0] as [
+      string,
+      Array<{ code?: string; flags?: string[] }>,
+      unknown,
+    ];
+    expect(accounts.some((a) => a.code === "cash")).toBe(true);
+    const defaultAccount = accounts.find((a) => a.code === "defaultAccount");
     expect(defaultAccount?.flags).toContain("defaultDebit");
     expect(defaultAccount?.flags).toContain("defaultCredit");
   });
@@ -165,7 +169,7 @@ describe("ensureDefaultLedger", () => {
       .mockResolvedValueOnce(null); // re-check inside tx
     const candidate = { id: "led-earliest", ownerId: "user-a" };
     mockLedgerRepo.findFirstActiveOwned.mockResolvedValue(candidate);
-    const result = await ensureDefaultLedger("user-a", "zh");
+    const result = await ensureDefaultLedger("user-a");
     expect(result).toBe(candidate);
     expect(mockLedgerRepo.setDefault).toHaveBeenCalledWith(
       "led-earliest",

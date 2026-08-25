@@ -18,7 +18,7 @@ import {
   Textarea,
 } from "@repo/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -44,7 +44,6 @@ export function LedgerDialog({
   ledger,
 }: LedgerDialogProps) {
   const t = useTranslations("Ledgers");
-  const locale = useLocale();
   const queryClient = useQueryClient();
   const isEdit = !!ledger;
 
@@ -68,7 +67,6 @@ export function LedgerDialog({
           json: {
             name: data.name,
             description: data.description || undefined,
-            locale: locale.startsWith("zh") ? "zh" : "en",
           },
         });
       }

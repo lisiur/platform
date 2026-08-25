@@ -76,7 +76,7 @@ export async function setAccountBalance(
     }
     if (account.status !== "active") {
       throw new HTTPException(400, {
-        message: `Account ${account.name} is archived`,
+        message: `Account ${account.name ?? account.code} is archived`,
       });
     }
 
@@ -112,6 +112,7 @@ export async function setAccountBalance(
         {
           ledgerId,
           name: OFFSET_ACCOUNT_NAME[locale],
+          code: "balanceAdjustment",
           type: "equity",
           sortOrder: 61,
           icon: "⚖️",

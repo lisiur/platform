@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -74,7 +75,9 @@ export function buildMeta(
 
 export function accountToFormValues(account: AccountRow): AccountFormInput {
   return {
-    name: account.name,
+    // Seeded accounts start empty (the localized label is the placeholder);
+    // a typed name becomes a custom override above the label.
+    name: account.name ?? "",
     type: account.type,
     icon: account.icon ?? "",
     metaEntries: metaToEntries(account.meta),
@@ -86,14 +89,26 @@ interface AccountFormProps {
   defaultValues: AccountFormInput;
   /** Type select is disabled when editing (immutable) or locked by a parent. */
   typeDisabled?: boolean;
+  /** Name may be left empty (keep the localized label) for seeded accounts. */
+  nameOptional?: boolean;
+  /** Placeholder for the name input (the account's localized label). */
+  namePlaceholder?: string;
 }
 
 export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
-  function AccountForm({ defaultValues, typeDisabled = false }, ref) {
+  function AccountForm(
+    {
+      defaultValues,
+      typeDisabled = false,
+      nameOptional = false,
+      namePlaceholder,
+    },
+    ref,
+  ) {
     const t = useTranslations("Accounts");
 
     const accountFormSchema = z.object({
-      name: z.string().min(1),
+      name: nameOptional ? z.string().max(100) : z.string().min(1),
       type: z.enum(ALL_TYPES),
       icon: z.string().max(100),
       metaEntries: z.array(
@@ -130,15 +145,18 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
     return (
       <FieldGroup>
         <Field data-invalid={!!form.formState.errors.name}>
-          <FieldLabel htmlFor="account-name" required>
+          <FieldLabel htmlFor="account-name" required={!nameOptional}>
             {t("name")}
           </FieldLabel>
           <Input
             id="account-name"
             aria-invalid={!!form.formState.errors.name}
             {...form.register("name")}
-            placeholder={t("namePlaceholder")}
+            placeholder={namePlaceholder ?? t("namePlaceholder")}
           />
+          {nameOptional && (
+            <FieldDescription>{t("nameOptionalHint")}</FieldDescription>
+          )}
           <FieldError
             errors={
               form.formState.errors.name

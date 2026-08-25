@@ -1,20 +1,37 @@
 import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
 import { journalRepository } from "./journal.repository";
+import { ledgerMemberRepository } from "./ledger-member.repository";
 
 type AccountSums = Map<string, { debit: number; credit: number }>;
 
 /**
- * Only owners see entry creators' email addresses — same policy as
- * `listMembers`: non-owners must not be able to harvest members' emails
- * through the dashboard's recent entries.
+ * Only owners see entry creators' and participants' email addresses — same
+ * policy as `listMembers`: non-owners must not be able to harvest members'
+ * emails through the dashboard's recent entries.
  */
 function redactEntryCreatorEmail<
-  T extends { createdBy?: { email: string | null } | null },
+  T extends {
+    createdBy?: { email: string | null } | null;
+    participants?: Array<{
+      ledgerMember: { user: { email: string | null } };
+    }>;
+  },
 >(entry: T, viewerRole: LedgerRole): T {
-  return viewerRole === "owner" || !entry.createdBy
-    ? entry
-    : { ...entry, createdBy: { ...entry.createdBy, email: null } };
+  if (viewerRole === "owner") return entry;
+  return {
+    ...entry,
+    createdBy: entry.createdBy
+      ? { ...entry.createdBy, email: null }
+      : entry.createdBy,
+    participants: entry.participants?.map((p) => ({
+      ...p,
+      ledgerMember: {
+        ...p.ledgerMember,
+        user: { ...p.ledgerMember.user, email: null },
+      },
+    })),
+  };
 }
 
 async function sumsByAccount(
@@ -61,6 +78,7 @@ export async function trialBalance(
     return {
       id: account.id,
       name: account.name,
+      code: account.code,
       type: account.type as AccountType,
       sortOrder: account.sortOrder,
       totalDebit: round(debit),
@@ -86,6 +104,65 @@ export async function incomeStatement(
     sumsByAccount(ledgerId, window),
   ]);
   return buildStatementRows(accounts, sums);
+}
+
+/**
+ * Per-member turnover: the gross amount (total debits) of every entry a
+ * member is tagged on, summed over the window. An entry tagged with several
+ * members counts in full for each of them — "related turnover", not a split
+ * (amount splits live in the journal lines). All current members are
+ * returned, zero turnover included, so clients can render a complete table.
+ */
+export async function memberTurnover(
+  ledgerId: string,
+  window: { from?: Date; to?: Date } = {},
+) {
+  const [members, tagged] = await Promise.all([
+    ledgerMemberRepository.listByLedger(ledgerId),
+    journalRepository.listTaggedEntries(ledgerId, window),
+  ]);
+
+  const turnoverByMember = new Map<
+    string,
+    { turnover: number; entries: number }
+  >();
+  for (const entry of tagged) {
+    // Total debits of an entry equal total credits: the gross amount.
+    const gross = entry.lines.reduce(
+      (acc, line) => acc + Number(line.debit),
+      0,
+    );
+    for (const participant of entry.participants) {
+      const current = turnoverByMember.get(participant.ledgerMemberId) ?? {
+        turnover: 0,
+        entries: 0,
+      };
+      current.turnover += gross;
+      current.entries += 1;
+      turnoverByMember.set(participant.ledgerMemberId, current);
+    }
+  }
+
+  const rows = members.map((member) => {
+    const { turnover = 0, entries = 0 } = turnoverByMember.get(member.id) ?? {};
+    return {
+      ledgerMemberId: member.id,
+      userId: member.userId,
+      name: member.user?.name ?? member.userId,
+      avatar: member.user?.avatar ?? null,
+      role: member.role as LedgerRole,
+      entryCount: entries,
+      turnover: round(turnover),
+    };
+  });
+
+  return {
+    members: rows,
+    totals: {
+      entries: tagged.length,
+      turnover: round(rows.reduce((acc, r) => acc + r.turnover, 0)),
+    },
+  };
 }
 
 export async function dashboard(
@@ -153,6 +230,7 @@ function buildStatementRows(
     return {
       id: account.id,
       name: account.name,
+      code: account.code,
       type: account.type as AccountType,
       sortOrder: account.sortOrder,
       balance: signedBalance(account.type as AccountType, debit, credit),

@@ -29,7 +29,16 @@ export const bookAccountSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
     ledgerId: z.string().openapi({ example: "clx1234567890" }),
-    name: z.string().openapi({ example: "Cash" }),
+    name: z.string().nullable().openapi({
+      example: null,
+      description:
+        "Custom display-name override; null renders the localized label for code",
+    }),
+    code: z.string().nullable().openapi({
+      example: "cash",
+      description:
+        "i18n key for seeded accounts; null for user-created accounts (render name)",
+    }),
     type: accountTypeEnumSchema,
     sortOrder: z.number().int().openapi({ example: 10 }),
     parentId: z.string().nullable().openapi({ example: null }),
@@ -64,7 +73,11 @@ export const createAccountBodySchema = z
 
 export const updateAccountBodySchema = z
   .object({
-    name: z.string().min(1).max(100).optional(),
+    name: z.string().max(100).nullable().optional().openapi({
+      example: "My Wallet",
+      description:
+        "Sets a custom display name; null or empty reverts to the localized label (coded accounts only)",
+    }),
     parentId: z.string().nullable().optional(),
     status: z.enum(["active", "archived"]).optional(),
     icon: z.string().max(100).nullable().optional(),

@@ -14,7 +14,11 @@ export const journalLineSchema = z
     accountId: z.string().openapi({ example: "clx1234567890" }),
     account: z.object({
       id: z.string(),
-      name: z.string().openapi({ example: "Cash" }),
+      name: z.string().nullable().openapi({ example: null }),
+      code: z
+        .string()
+        .nullable()
+        .openapi({ example: "cash", description: "i18n key, null if custom" }),
       type: z.string().openapi({ example: "asset" }),
       sortOrder: z.number().int().openapi({ example: 10 }),
     }),
@@ -23,6 +27,21 @@ export const journalLineSchema = z
     memo: z.string().nullable().openapi({ example: null }),
   })
   .openapi("QianlaiJournalLine");
+
+/** Which ledger member an entry concerns; feeds member turnover reports. */
+export const journalEntryParticipantSchema = z
+  .object({
+    id: z.string().openapi({ example: "clx1234567890" }),
+    ledgerMemberId: z.string().openapi({ example: "clx1234567890" }),
+    // Owner-only, same redaction policy as entry creators' emails.
+    user: z.object({
+      id: z.string(),
+      name: z.string().openapi({ example: "Alice" }),
+      email: z.string().nullable(),
+      avatar: z.string().nullable(),
+    }),
+  })
+  .openapi("QianlaiJournalEntryParticipant");
 
 export const journalEntrySchema = z
   .object({
@@ -45,6 +64,7 @@ export const journalEntrySchema = z
       .nullable(),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
+    participants: journalEntryParticipantSchema.array(),
   })
   .openapi("QianlaiJournalEntry");
 
@@ -87,6 +107,9 @@ export const createEntryBodySchema = z
     date: z.coerce.date().openapi({ example: "2026-08-22T00:00:00.000Z" }),
     memo: z.string().max(500).optional(),
     lines: z.array(journalLineInputSchema).min(2).max(50),
+    // Optional ledger-member ids this entry concerns; must be members of the
+    // ledger. Repeats are collapsed server-side.
+    participantMemberIds: z.array(z.string().min(1)).max(20).optional(),
   })
   .openapi("QianlaiCreateEntryBody");
 
@@ -116,13 +139,26 @@ export function serializeEntry<
       accountId: string;
       account: {
         id: string;
-        name: string;
+        name: string | null;
+        code: string | null;
         type: string;
         sortOrder: number;
       };
       debit: { toString(): string };
       credit: { toString(): string };
       memo: string | null;
+    }>;
+    participants?: Array<{
+      id: string;
+      ledgerMemberId: string;
+      ledgerMember: {
+        user: {
+          id: string;
+          name: string;
+          email: string | null;
+          avatar: string | null;
+        };
+      };
     }>;
   },
 >(entry: T) {
@@ -132,6 +168,11 @@ export function serializeEntry<
       ...line,
       debit: Number(line.debit),
       credit: Number(line.credit),
+    })),
+    participants: (entry.participants ?? []).map((participant) => ({
+      id: participant.id,
+      ledgerMemberId: participant.ledgerMemberId,
+      user: participant.ledgerMember.user,
     })),
   };
 }

@@ -24,6 +24,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { appClient, withApiFeedback } from "@/lib/api";
@@ -41,7 +42,10 @@ import { BalanceDialog } from "./balance-dialog";
 export interface AccountRow {
   id: string;
   ledgerId: string;
-  name: string;
+  /** Custom display-name override; null renders the code's localized label. */
+  name: string | null;
+  /** i18n key for seeded accounts; null for user-created accounts. */
+  code: string | null;
   type: "asset" | "liability" | "equity" | "income" | "expense";
   sortOrder: number;
   parentId: string | null;
@@ -65,6 +69,7 @@ const TYPE_BADGE: Record<AccountRow["type"], string> = {
 
 export function AccountsTable() {
   const t = useTranslations("Accounts");
+  const accountName = useAccountName();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const isMobile = useIsMobile();
@@ -143,7 +148,7 @@ export function AccountsTable() {
   async function handleDelete(account: AccountRow) {
     const confirmed = await confirm({
       title: t("delete"),
-      description: t("confirmDelete", { name: account.name }),
+      description: t("confirmDelete", { name: accountName(account) }),
       confirmLabel: t("delete"),
       cancelLabel: t("cancel"),
     });
@@ -211,12 +216,16 @@ export function AccountsTable() {
     }
     setSaving(true);
     try {
+      // Seeded accounts: an empty name reverts to the localized label
+      // (null); typing a custom name stores it as an override. The code
+      // is never cleared.
+      const name = selectedAccount.code ? data.name.trim() || null : data.name;
       await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].accounts[":id"].$patch,
       )({
         param: { ledgerId: activeLedger.id, id: selectedAccount.id },
         json: {
-          name: data.name,
+          name,
           icon: data.icon.trim() || null,
           meta: buildMeta(data.metaEntries),
         },
@@ -298,6 +307,10 @@ export function AccountsTable() {
       ref={editFormRef}
       defaultValues={accountToFormValues(selectedAccount)}
       typeDisabled
+      nameOptional={!!selectedAccount.code}
+      namePlaceholder={
+        selectedAccount.code ? accountName(selectedAccount) : undefined
+      }
     />
   ) : null;
 
@@ -337,7 +350,9 @@ export function AccountsTable() {
         >
           <SheetContent side="bottom" className="max-h-[85dvh]">
             <SheetHeader>
-              <SheetTitle>{selectedAccount?.name}</SheetTitle>
+              <SheetTitle>
+                {selectedAccount ? accountName(selectedAccount) : null}
+              </SheetTitle>
               <SheetDescription>{t("editDescription")}</SheetDescription>
             </SheetHeader>
             <SheetBody>{editContent}</SheetBody>
@@ -366,7 +381,7 @@ export function AccountsTable() {
                   <span aria-hidden>{selectedAccount.icon}</span>
                 )}
                 <h3 className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {selectedAccount.name}
+                  {accountName(selectedAccount)}
                 </h3>
                 <Badge
                   variant="outline"

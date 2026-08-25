@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight, Scale, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useAccountName } from "@/hooks/use-account-name";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
@@ -13,7 +14,13 @@ import { formatDateTime } from "@/utils/date";
 interface JournalLineDto {
   id: string;
   accountId: string;
-  account: { id: string; name: string; type: string; sortOrder: number };
+  account: {
+    id: string;
+    name: string | null;
+    code: string | null;
+    type: string;
+    sortOrder: number;
+  };
   debit: number;
   credit: number;
   memo: string | null;
@@ -78,6 +85,7 @@ function StatCard({
 
 export function DashboardOverview() {
   const t = useTranslations("Dashboard");
+  const accountName = useAccountName();
   const { activeLedger, isLoading: ledgersLoading } = useLedgers();
 
   const { data, isLoading } = useQuery({
@@ -174,7 +182,9 @@ export function DashboardOverview() {
                     </span>
                     <span className="min-w-0 flex-1 truncate">
                       {entry.memo ??
-                        entry.lines.map((l) => l.account.name).join(" / ")}
+                        entry.lines
+                          .map((l) => accountName(l.account))
+                          .join(" / ")}
                     </span>
                     {entry.createdBy && (
                       <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">

@@ -6,7 +6,6 @@ import {
   LEDGER_STATUSES,
   type LedgerRole,
   type LedgerStatus,
-  type SeedLocale,
   STARTER_ACCOUNTS,
 } from "./domain";
 import { journalRepository } from "./journal.repository";
@@ -79,16 +78,12 @@ export async function listLedgers(userId: string) {
  * repair. An empty chart of accounts is a deliberate user choice (they
  * deleted the starter accounts) and must not be re-seeded.
  */
-export async function ensureDefaultLedger(
-  userId: string,
-  locale: SeedLocale = "en",
-) {
+export async function ensureDefaultLedger(userId: string) {
   const existing = await ledgerRepository.findDefaultForOwner(userId);
   if (existing) {
     return existing;
   }
 
-  const accounts = STARTER_ACCOUNTS[locale];
   return prisma.$transaction(async (tx) => {
     // Advisory lock first: for a brand-new owner the row lock below guards
     // nothing (empty result set), and this is exactly the provisioning race
@@ -110,7 +105,7 @@ export async function ensureDefaultLedger(
     const ledger = await ledgerRepository.create(
       {
         ownerId: userId,
-        name: locale === "zh" ? "默认账本" : "Default Ledger",
+        name: "Default Ledger",
         isDefault: true,
       },
       tx,
@@ -119,7 +114,11 @@ export async function ensureDefaultLedger(
       { ledgerId: ledger.id, userId, role: "owner" },
       tx,
     );
-    await accountRepository.createStarterAccounts(ledger.id, accounts, tx);
+    await accountRepository.createStarterAccounts(
+      ledger.id,
+      STARTER_ACCOUNTS,
+      tx,
+    );
     return ledger;
   });
 }
@@ -130,13 +129,10 @@ export async function createLedger(
     name: string;
     description?: string;
     currency?: string;
-    locale?: SeedLocale;
     seedStarterAccounts?: boolean;
   },
 ) {
-  const locale = data.locale ?? "en";
-  const accounts =
-    data.seedStarterAccounts === false ? [] : STARTER_ACCOUNTS[locale];
+  const accounts = data.seedStarterAccounts === false ? [] : STARTER_ACCOUNTS;
   return prisma.$transaction(async (tx) => {
     const ledger = await ledgerRepository.create(
       {

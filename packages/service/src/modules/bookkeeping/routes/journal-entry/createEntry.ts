@@ -24,7 +24,7 @@ export const createEntryRoute = defineOpenAPIRoute({
     tags: ["QianlaiJournal"],
     summary: "Post a journal entry (editor+)",
     description:
-      "Creates a balanced, immutable journal entry: total debits must equal total credits and every line references an account of this ledger.",
+      "Creates a balanced, immutable journal entry: total debits must equal total credits and every line references an account of this ledger. Optionally tags ledger members as participants of the entry for turnover reports.",
     request: {
       params: ledgerIdParamSchema,
       body: {

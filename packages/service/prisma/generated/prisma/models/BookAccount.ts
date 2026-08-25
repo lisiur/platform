@@ -38,6 +38,7 @@ export type BookAccountMinAggregateOutputType = {
   id: string | null
   ledgerId: string | null
   name: string | null
+  code: string | null
   type: string | null
   sortOrder: number | null
   parentId: string | null
@@ -51,6 +52,7 @@ export type BookAccountMaxAggregateOutputType = {
   id: string | null
   ledgerId: string | null
   name: string | null
+  code: string | null
   type: string | null
   sortOrder: number | null
   parentId: string | null
@@ -64,6 +66,7 @@ export type BookAccountCountAggregateOutputType = {
   id: number
   ledgerId: number
   name: number
+  code: number
   type: number
   sortOrder: number
   parentId: number
@@ -89,6 +92,7 @@ export type BookAccountMinAggregateInputType = {
   id?: true
   ledgerId?: true
   name?: true
+  code?: true
   type?: true
   sortOrder?: true
   parentId?: true
@@ -102,6 +106,7 @@ export type BookAccountMaxAggregateInputType = {
   id?: true
   ledgerId?: true
   name?: true
+  code?: true
   type?: true
   sortOrder?: true
   parentId?: true
@@ -115,6 +120,7 @@ export type BookAccountCountAggregateInputType = {
   id?: true
   ledgerId?: true
   name?: true
+  code?: true
   type?: true
   sortOrder?: true
   parentId?: true
@@ -216,7 +222,8 @@ export type BookAccountGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type BookAccountGroupByOutputType = {
   id: string
   ledgerId: string
-  name: string
+  name: string | null
+  code: string | null
   type: string
   sortOrder: number
   parentId: string | null
@@ -254,7 +261,8 @@ export type BookAccountWhereInput = {
   NOT?: Prisma.BookAccountWhereInput | Prisma.BookAccountWhereInput[]
   id?: Prisma.StringFilter<"BookAccount"> | string
   ledgerId?: Prisma.StringFilter<"BookAccount"> | string
-  name?: Prisma.StringFilter<"BookAccount"> | string
+  name?: Prisma.StringNullableFilter<"BookAccount"> | string | null
+  code?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   type?: Prisma.StringFilter<"BookAccount"> | string
   sortOrder?: Prisma.IntFilter<"BookAccount"> | number
   parentId?: Prisma.StringNullableFilter<"BookAccount"> | string | null
@@ -273,7 +281,8 @@ export type BookAccountWhereInput = {
 export type BookAccountOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   ledgerId?: Prisma.SortOrder
-  name?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -291,11 +300,13 @@ export type BookAccountOrderByWithRelationInput = {
 
 export type BookAccountWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  ledgerId_code?: Prisma.BookAccountLedgerIdCodeCompoundUniqueInput
   AND?: Prisma.BookAccountWhereInput | Prisma.BookAccountWhereInput[]
   OR?: Prisma.BookAccountWhereInput[]
   NOT?: Prisma.BookAccountWhereInput | Prisma.BookAccountWhereInput[]
   ledgerId?: Prisma.StringFilter<"BookAccount"> | string
-  name?: Prisma.StringFilter<"BookAccount"> | string
+  name?: Prisma.StringNullableFilter<"BookAccount"> | string | null
+  code?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   type?: Prisma.StringFilter<"BookAccount"> | string
   sortOrder?: Prisma.IntFilter<"BookAccount"> | number
   parentId?: Prisma.StringNullableFilter<"BookAccount"> | string | null
@@ -309,12 +320,13 @@ export type BookAccountWhereUniqueInput = Prisma.AtLeast<{
   parent?: Prisma.XOR<Prisma.BookAccountNullableScalarRelationFilter, Prisma.BookAccountWhereInput> | null
   children?: Prisma.BookAccountListRelationFilter
   lines?: Prisma.JournalLineListRelationFilter
-}, "id">
+}, "id" | "ledgerId_code">
 
 export type BookAccountOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   ledgerId?: Prisma.SortOrder
-  name?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -337,7 +349,8 @@ export type BookAccountScalarWhereWithAggregatesInput = {
   NOT?: Prisma.BookAccountScalarWhereWithAggregatesInput | Prisma.BookAccountScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"BookAccount"> | string
   ledgerId?: Prisma.StringWithAggregatesFilter<"BookAccount"> | string
-  name?: Prisma.StringWithAggregatesFilter<"BookAccount"> | string
+  name?: Prisma.StringNullableWithAggregatesFilter<"BookAccount"> | string | null
+  code?: Prisma.StringNullableWithAggregatesFilter<"BookAccount"> | string | null
   type?: Prisma.StringWithAggregatesFilter<"BookAccount"> | string
   sortOrder?: Prisma.IntWithAggregatesFilter<"BookAccount"> | number
   parentId?: Prisma.StringNullableWithAggregatesFilter<"BookAccount"> | string | null
@@ -351,7 +364,8 @@ export type BookAccountScalarWhereWithAggregatesInput = {
 
 export type BookAccountCreateInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -369,7 +383,8 @@ export type BookAccountCreateInput = {
 export type BookAccountUncheckedCreateInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -385,7 +400,8 @@ export type BookAccountUncheckedCreateInput = {
 
 export type BookAccountUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -403,7 +419,8 @@ export type BookAccountUpdateInput = {
 export type BookAccountUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -420,7 +437,8 @@ export type BookAccountUncheckedUpdateInput = {
 export type BookAccountCreateManyInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -434,7 +452,8 @@ export type BookAccountCreateManyInput = {
 
 export type BookAccountUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -448,7 +467,8 @@ export type BookAccountUpdateManyMutationInput = {
 export type BookAccountUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -475,10 +495,16 @@ export type BookAccountNullableScalarRelationFilter = {
   isNot?: Prisma.BookAccountWhereInput | null
 }
 
+export type BookAccountLedgerIdCodeCompoundUniqueInput = {
+  ledgerId: string
+  code: string
+}
+
 export type BookAccountCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ledgerId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -498,6 +524,7 @@ export type BookAccountMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ledgerId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -511,6 +538,7 @@ export type BookAccountMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ledgerId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -654,7 +682,8 @@ export type BookAccountUpdateOneRequiredWithoutLinesNestedInput = {
 
 export type BookAccountCreateWithoutLedgerInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -670,7 +699,8 @@ export type BookAccountCreateWithoutLedgerInput = {
 
 export type BookAccountUncheckedCreateWithoutLedgerInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -716,7 +746,8 @@ export type BookAccountScalarWhereInput = {
   NOT?: Prisma.BookAccountScalarWhereInput | Prisma.BookAccountScalarWhereInput[]
   id?: Prisma.StringFilter<"BookAccount"> | string
   ledgerId?: Prisma.StringFilter<"BookAccount"> | string
-  name?: Prisma.StringFilter<"BookAccount"> | string
+  name?: Prisma.StringNullableFilter<"BookAccount"> | string | null
+  code?: Prisma.StringNullableFilter<"BookAccount"> | string | null
   type?: Prisma.StringFilter<"BookAccount"> | string
   sortOrder?: Prisma.IntFilter<"BookAccount"> | number
   parentId?: Prisma.StringNullableFilter<"BookAccount"> | string | null
@@ -730,7 +761,8 @@ export type BookAccountScalarWhereInput = {
 
 export type BookAccountCreateWithoutChildrenInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -747,7 +779,8 @@ export type BookAccountCreateWithoutChildrenInput = {
 export type BookAccountUncheckedCreateWithoutChildrenInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -767,7 +800,8 @@ export type BookAccountCreateOrConnectWithoutChildrenInput = {
 
 export type BookAccountCreateWithoutParentInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -784,7 +818,8 @@ export type BookAccountCreateWithoutParentInput = {
 export type BookAccountUncheckedCreateWithoutParentInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -820,7 +855,8 @@ export type BookAccountUpdateToOneWithWhereWithoutChildrenInput = {
 
 export type BookAccountUpdateWithoutChildrenInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -837,7 +873,8 @@ export type BookAccountUpdateWithoutChildrenInput = {
 export type BookAccountUncheckedUpdateWithoutChildrenInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -868,7 +905,8 @@ export type BookAccountUpdateManyWithWhereWithoutParentInput = {
 
 export type BookAccountCreateWithoutLinesInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -885,7 +923,8 @@ export type BookAccountCreateWithoutLinesInput = {
 export type BookAccountUncheckedCreateWithoutLinesInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -916,7 +955,8 @@ export type BookAccountUpdateToOneWithWhereWithoutLinesInput = {
 
 export type BookAccountUpdateWithoutLinesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -933,7 +973,8 @@ export type BookAccountUpdateWithoutLinesInput = {
 export type BookAccountUncheckedUpdateWithoutLinesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -948,7 +989,8 @@ export type BookAccountUncheckedUpdateWithoutLinesInput = {
 
 export type BookAccountCreateManyLedgerInput = {
   id?: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   parentId?: string | null
@@ -962,7 +1004,8 @@ export type BookAccountCreateManyLedgerInput = {
 
 export type BookAccountUpdateWithoutLedgerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -978,7 +1021,8 @@ export type BookAccountUpdateWithoutLedgerInput = {
 
 export type BookAccountUncheckedUpdateWithoutLedgerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -994,7 +1038,8 @@ export type BookAccountUncheckedUpdateWithoutLedgerInput = {
 
 export type BookAccountUncheckedUpdateManyWithoutLedgerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1009,7 +1054,8 @@ export type BookAccountUncheckedUpdateManyWithoutLedgerInput = {
 export type BookAccountCreateManyParentInput = {
   id?: string
   ledgerId: string
-  name: string
+  name?: string | null
+  code?: string | null
   type: string
   sortOrder?: number
   status?: string
@@ -1022,7 +1068,8 @@ export type BookAccountCreateManyParentInput = {
 
 export type BookAccountUpdateWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1039,7 +1086,8 @@ export type BookAccountUpdateWithoutParentInput = {
 export type BookAccountUncheckedUpdateWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1055,7 +1103,8 @@ export type BookAccountUncheckedUpdateWithoutParentInput = {
 export type BookAccountUncheckedUpdateManyWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1110,6 +1159,7 @@ export type BookAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   id?: boolean
   ledgerId?: boolean
   name?: boolean
+  code?: boolean
   type?: boolean
   sortOrder?: boolean
   parentId?: boolean
@@ -1130,6 +1180,7 @@ export type BookAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   ledgerId?: boolean
   name?: boolean
+  code?: boolean
   type?: boolean
   sortOrder?: boolean
   parentId?: boolean
@@ -1147,6 +1198,7 @@ export type BookAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   ledgerId?: boolean
   name?: boolean
+  code?: boolean
   type?: boolean
   sortOrder?: boolean
   parentId?: boolean
@@ -1164,6 +1216,7 @@ export type BookAccountSelectScalar = {
   id?: boolean
   ledgerId?: boolean
   name?: boolean
+  code?: boolean
   type?: boolean
   sortOrder?: boolean
   parentId?: boolean
@@ -1175,7 +1228,7 @@ export type BookAccountSelectScalar = {
   updatedAt?: boolean
 }
 
-export type BookAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "name" | "type" | "sortOrder" | "parentId" | "status" | "icon" | "meta" | "flags" | "createdAt" | "updatedAt", ExtArgs["result"]["bookAccount"]>
+export type BookAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "name" | "code" | "type" | "sortOrder" | "parentId" | "status" | "icon" | "meta" | "flags" | "createdAt" | "updatedAt", ExtArgs["result"]["bookAccount"]>
 export type BookAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   parent?: boolean | Prisma.BookAccount$parentArgs<ExtArgs>
@@ -1203,7 +1256,8 @@ export type $BookAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     ledgerId: string
-    name: string
+    name: string | null
+    code: string | null
     type: string
     sortOrder: number
     parentId: string | null
@@ -1643,6 +1697,7 @@ export interface BookAccountFieldRefs {
   readonly id: Prisma.FieldRef<"BookAccount", 'String'>
   readonly ledgerId: Prisma.FieldRef<"BookAccount", 'String'>
   readonly name: Prisma.FieldRef<"BookAccount", 'String'>
+  readonly code: Prisma.FieldRef<"BookAccount", 'String'>
   readonly type: Prisma.FieldRef<"BookAccount", 'String'>
   readonly sortOrder: Prisma.FieldRef<"BookAccount", 'Int'>
   readonly parentId: Prisma.FieldRef<"BookAccount", 'String'>

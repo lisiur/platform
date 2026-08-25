@@ -7,6 +7,7 @@ import { accountRepository } from "./account.repository";
 import { type LedgerRole, MAX_LINE_CENTS } from "./domain";
 import { type EntryWindow, journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
+import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
 
 export type JournalLineInput = {
@@ -74,7 +75,7 @@ export function validateJournalLines(
     }
     if (account.status !== "active") {
       throw new HTTPException(400, {
-        message: `Account ${account.name} is archived`,
+        message: `Account ${account.name ?? account.code} is archived`,
       });
     }
     totalDebitCents += debitCents;
@@ -95,16 +96,32 @@ export function validateJournalLines(
 }
 
 /**
- * Only owners see entry creators' email addresses — same policy as
- * `listMembers`: non-owners must not be able to harvest members' emails
- * through the journal history.
+ * Only owners see entry creators' and participants' email addresses — same
+ * policy as `listMembers`: non-owners must not be able to harvest members'
+ * emails through the journal history.
  */
 function redactEntryCreatorEmail<
-  T extends { createdBy?: { email: string | null } | null },
+  T extends {
+    createdBy?: { email: string | null } | null;
+    participants?: Array<{
+      ledgerMember: { user: { email: string | null } };
+    }>;
+  },
 >(entry: T, viewerRole: LedgerRole): T {
-  return viewerRole === "owner" || !entry.createdBy
-    ? entry
-    : { ...entry, createdBy: { ...entry.createdBy, email: null } };
+  if (viewerRole === "owner") return entry;
+  return {
+    ...entry,
+    createdBy: entry.createdBy
+      ? { ...entry.createdBy, email: null }
+      : entry.createdBy,
+    participants: entry.participants?.map((p) => ({
+      ...p,
+      ledgerMember: {
+        ...p.ledgerMember,
+        user: { ...p.ledgerMember.user, email: null },
+      },
+    })),
+  };
 }
 
 export async function listEntries(
@@ -144,7 +161,12 @@ export async function getEntry(
 export async function createEntry(
   userId: string,
   ledgerId: string,
-  data: { date: Date; memo?: string; lines: JournalLineInput[] },
+  data: {
+    date: Date;
+    memo?: string;
+    lines: JournalLineInput[];
+    participantMemberIds?: string[];
+  },
 ) {
   return prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
@@ -153,11 +175,15 @@ export async function createEntry(
       throw new HTTPException(404, { message: "Ledger not found" });
     }
     assertLedgerWritable(ledger);
-    const ledgerAccounts = await accountRepository.listByLedger(ledgerId, tx);
+    const [ledgerAccounts, ledgerMembers] = await Promise.all([
+      accountRepository.listByLedger(ledgerId, tx),
+      ledgerMemberRepository.listByLedger(ledgerId, tx),
+    ]);
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
       rawLines: data.lines,
       ledgerAccounts,
+      ledgerMembers,
     });
   });
 }
@@ -167,6 +193,10 @@ export async function createEntry(
  * already hold the ledger row lock and have re-checked writability (e.g.
  * `createEntry` above, or `setAccountBalance`) so entryNo stays race-free and
  * line validation runs against a transaction-consistent account list.
+ *
+ * `participantMemberIds` tags the entry to ledger members (for turnover
+ * reports); it must be a subset of `ledgerMembers`, which the caller loads
+ * under the same lock so a member removed concurrently is caught here.
  */
 export async function postEntryInTransaction(
   tx: Prisma.TransactionClient,
@@ -178,9 +208,15 @@ export async function postEntryInTransaction(
     memo?: string;
     rawLines: JournalLineInput[];
     ledgerAccounts: BookAccount[];
+    ledgerMembers?: Array<{ id: string }>;
+    participantMemberIds?: string[];
   },
 ) {
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts);
+  const participantMemberIds = validateParticipants(
+    data.participantMemberIds,
+    data.ledgerMembers ?? [],
+  );
   // entryNo comes from the ledger's monotonic counter so numbers are never
   // reused, even after deleting the highest-numbered entry. Race-free
   // because we hold the ledger row lock.
@@ -200,6 +236,7 @@ export async function postEntryInTransaction(
           credit: new Prisma.Decimal(line.creditCents).div(100),
           memo: line.memo,
         })),
+        participantMemberIds,
       },
       tx,
     );
@@ -211,6 +248,28 @@ export async function postEntryInTransaction(
     }
     throw err;
   }
+}
+
+/**
+ * Participants must be current members of this ledger. Deduplicated so a
+ * repeated id can't violate the (entryId, ledgerMemberId) unique constraint.
+ * Returns undefined (not []) when no participants are given, so
+ * system-generated posts (balance adjustments) skip the relation entirely.
+ */
+function validateParticipants(
+  participantMemberIds: string[] | undefined,
+  ledgerMembers: Array<{ id: string }>,
+): string[] | undefined {
+  if (!participantMemberIds?.length) return undefined;
+  const memberIds = new Set(ledgerMembers.map((m) => m.id));
+  for (const id of new Set(participantMemberIds)) {
+    if (!memberIds.has(id)) {
+      throw new HTTPException(400, {
+        message: "Participants must be members of this ledger",
+      });
+    }
+  }
+  return [...new Set(participantMemberIds)];
 }
 
 /**

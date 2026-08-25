@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAccountName } from "@/hooks/use-account-name";
 import { appClient, withApiFeedback } from "@/lib/api";
 import {
   AccountForm,
@@ -39,6 +40,7 @@ export function AccountDialog({
   parent,
 }: AccountDialogProps) {
   const t = useTranslations("Accounts");
+  const accountName = useAccountName();
   const queryClient = useQueryClient();
   const formRef = useRef<AccountFormRef>(null);
   const [formKey, setFormKey] = useState(0);
@@ -93,7 +95,7 @@ export function AccountDialog({
           <DialogTitle>{parent ? t("createChild") : t("create")}</DialogTitle>
           <DialogDescription>
             {parent
-              ? t("createChildDescription", { name: parent.name })
+              ? t("createChildDescription", { name: accountName(parent) })
               : t("createDescription")}
           </DialogDescription>
         </DialogHeader>

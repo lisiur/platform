@@ -1107,6 +1107,8 @@ model LedgerMember {
   role      String   @default("editor")
   createdAt DateTime @default(now())
 
+  entryParticipants JournalEntryParticipant[]
+
   @@unique([ledgerId, userId])
   @@index([userId])
   @@map("qianlai_ledger_member")
@@ -1134,7 +1136,12 @@ model BookAccount {
   id        String       @id @default(cuid())
   ledgerId  String
   ledger    Ledger       @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
-  name      String
+  // Custom display name set by the user. Null renders the localized label
+  // for `code` (seeded accounts); user-created accounts always have a name.
+  name      String?
+  // Stable i18n key for seeded accounts (e.g. "cash"); never cleared —
+  // renaming only sets `name` as an override above the localized label.
+  code      String?
   type      String
   // Manual display ordering within a ledger; ties fall back to name then id.
   sortOrder Int          @default(0)
@@ -1158,6 +1165,7 @@ model BookAccount {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
+  @@unique([ledgerId, code])
   @@index([ledgerId, sortOrder])
   @@map("qianlai_book_account")
 }
@@ -1176,6 +1184,7 @@ model JournalEntry {
   createdBy   User?         @relation("QianlaiJournalEntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime      @default(now())
   lines       JournalLine[]
+  participants JournalEntryParticipant[]
 
   @@unique([ledgerId, entryNo])
   @@index([ledgerId, date])
@@ -1197,4 +1206,23 @@ model JournalLine {
 
   @@index([accountId])
   @@map("qianlai_journal_line")
+}
+
+// Tags which ledger members an entry concerns (e.g. a shared expense for
+// Alice and Bob) — the basis for per-member turnover reports. Pure tagging:
+// an entry's full gross amount is attributed to each participant; amount
+// splits live in the journal lines. Cascade on LedgerMember means a member
+// leaving the ledger drops their tags (entries themselves survive); on
+// JournalEntry it means deleting an entry cleans its tags up with it.
+model JournalEntryParticipant {
+  id             String       @id @default(cuid())
+  entryId        String
+  entry          JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  ledgerMemberId String
+  ledgerMember   LedgerMember @relation(fields: [ledgerMemberId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([entryId, ledgerMemberId])
+  @@index([ledgerMemberId])
+  @@map("qianlai_journal_entry_participant")
 }

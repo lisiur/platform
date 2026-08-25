@@ -19,10 +19,11 @@ import {
   TooltipButton,
 } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
@@ -34,7 +35,13 @@ import { QuickEntryDialog } from "./quick-entry-dialog";
 interface JournalLineDto {
   id: string;
   accountId: string;
-  account: { id: string; name: string; type: string; sortOrder: number };
+  account: {
+    id: string;
+    name: string | null;
+    code: string | null;
+    type: string;
+    sortOrder: number;
+  };
   debit: number;
   credit: number;
   memo: string | null;
@@ -49,10 +56,16 @@ interface EntryRow {
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
   lines: JournalLineDto[];
+  participants: Array<{
+    id: string;
+    ledgerMemberId: string;
+    user: { id: string; name: string } | null;
+  }>;
 }
 
 export function JournalTable() {
   const t = useTranslations("Journal");
+  const accountName = useAccountName();
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const { activeLedger, isLoading: ledgersLoading } = useLedgers();
@@ -115,6 +128,9 @@ export function JournalTable() {
       });
       queryClient.invalidateQueries({
         queryKey: ["qianlai", "dashboard", activeLedger?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["qianlai", "member-turnover", activeLedger?.id],
       });
       toast.success(t("deleteSuccess"));
     } catch {
@@ -199,7 +215,7 @@ export function JournalTable() {
                           key={line.id}
                           className="text-muted-foreground text-xs"
                         >
-                          {line.account.name}
+                          {accountName(line.account)}
                           <span className="ml-1 font-mono tabular-nums">
                             {line.debit > 0
                               ? `+${formatAmount(line.debit)}`
@@ -208,6 +224,21 @@ export function JournalTable() {
                         </span>
                       ))}
                     </div>
+                    {entry.participants?.length > 0 && (
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                        <Users className="text-muted-foreground h-3 w-3" />
+                        {entry.participants.map((participant) => (
+                          <Badge
+                            key={participant.id}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {participant.user?.name ??
+                              participant.ledgerMemberId}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">

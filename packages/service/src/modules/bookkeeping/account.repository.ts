@@ -6,7 +6,7 @@ export const accountRepository = {
   listByLedger(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.bookAccount.findMany({
       where: { ledgerId },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
   },
 
@@ -30,7 +30,7 @@ export const accountRepository = {
   ) {
     return tx.bookAccount.findMany({
       where: { ledgerId, parentId },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
   },
 
@@ -76,9 +76,9 @@ export const accountRepository = {
   createStarterAccounts(
     ledgerId: string,
     accounts: Array<{
-      name: string;
       type: string;
       sortOrder: number;
+      code?: string | null;
       icon?: string | null;
       flags?: string[];
       meta?: Record<string, unknown> | null;
@@ -90,6 +90,7 @@ export const accountRepository = {
       data: accounts.map((a) => ({
         ...a,
         ledgerId,
+        name: null,
         meta:
           a.meta === undefined || a.meta === null
             ? undefined
@@ -101,7 +102,9 @@ export const accountRepository = {
   create(
     data: {
       ledgerId: string;
-      name: string;
+      /** User-created accounts always have a name; seeded ones don't. */
+      name: string | null;
+      code?: string | null;
       type: string;
       sortOrder?: number;
       parentId?: string | null;
@@ -125,7 +128,8 @@ export const accountRepository = {
   update(
     id: string,
     data: {
-      name?: string;
+      /** Null clears the user override (falls back to the code's label). */
+      name?: string | null;
       parentId?: string | null;
       sortOrder?: number;
       status?: string;
@@ -164,7 +168,7 @@ export const accountRepository = {
         status: "active",
         flags: { has: ADJUSTMENT_OFFSET_ACCOUNT_FLAG },
       },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
   },
 
@@ -175,7 +179,7 @@ export const accountRepository = {
   ) {
     return tx.bookAccount.findFirst({
       where: { ledgerId, type, status: "active" },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
   },
 
