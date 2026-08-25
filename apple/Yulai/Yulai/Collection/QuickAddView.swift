@@ -4,6 +4,7 @@ import SwiftUI
 /// word, phrase, or sentence — the type is detected automatically.
 struct QuickAddView: View {
     @Environment(CollectionStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
 
     @State private var source = ""
     @State private var isAdding = false
@@ -32,7 +33,9 @@ struct QuickAddView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.snappy(duration: 0.2), value: feedback)
+        #if os(macOS)
         .onAppear { isSourceFocused = true }
+        #endif
     }
 
     /// A vertical-axis `TextField` renders its own placeholder, so the
@@ -155,14 +158,17 @@ struct QuickAddView: View {
         Task {
             do {
                 _ = try await store.add(trimmed)
-                source = ""
-                feedback = .success(type)
                 await store.reloadQuietly()
+                #if os(iOS)
+                // On iOS quick-add lives in a sheet — close it after a
+                // successful add. (macOS shows it as a page/menu item.)
+                dismiss()
+                #endif
             } catch {
                 feedback = .failure(error.localizedDescription)
+                isAdding = false
+                isSourceFocused = true
             }
-            isAdding = false
-            isSourceFocused = true
         }
     }
 
