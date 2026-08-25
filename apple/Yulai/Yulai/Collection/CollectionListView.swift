@@ -291,6 +291,12 @@ private struct StatusSwipeCard<Content: View>: View {
     /// True once onEnded ran, distinguishing a normal end from a system
     /// cancellation (scroll view stealing the touch).
     @State private var didEndDrag = false
+    /// Whether the action pills are present in the backgrounds. Set as soon
+    /// as a horizontal drag locks (the delayed progress mapping keeps them
+    /// invisible at first) and cleared inside the spring animation that
+    /// closes the card, so removal plays a scale-and-fade exit transition
+    /// instead of vanishing instantly.
+    @State private var showsActions = false
 
     /// Diameter of the circular action revealed behind the card.
     private let actionWidth: CGFloat = 56
@@ -314,10 +320,22 @@ private struct StatusSwipeCard<Content: View>: View {
             }
             .offset(x: offsetX)
             .background(alignment: .leading) {
-                toggleHint
+                if showsActions {
+                    toggleHint
+                        .transition(
+                            .scale(scale: 0.3, anchor: .center)
+                                .combined(with: .opacity)
+                        )
+                }
             }
             .background(alignment: .trailing) {
-                archiveHint
+                if showsActions {
+                    archiveHint
+                        .transition(
+                            .scale(scale: 0.3, anchor: .center)
+                                .combined(with: .opacity)
+                        )
+                }
             }
             // Keep the slid card inside its own grid cell so it never
             // overlaps the neighboring column on multi-column layouts.
@@ -329,6 +347,7 @@ private struct StatusSwipeCard<Content: View>: View {
                         guard !hasAutoTriggered else { return }
                         lockDragAxisIfNeeded(value)
                         guard dragAxis == .horizontal else { return }
+                        showsActions = true
                         // Track the finger directly — spring-animating every
                         // drag frame makes the action morph lag and flicker.
                         offsetX = dragOffset(value.translation.width)
@@ -376,19 +395,30 @@ private struct StatusSwipeCard<Content: View>: View {
             .onChange(of: isRevealed) {
                 if !isRevealed, offsetX != 0 {
                     revealSide = nil
-                    withAnimation(.spring(duration: 0.3)) { offsetX = 0 }
+                    withAnimation(.spring(duration: 0.3)) {
+                        showsActions = false
+                        offsetX = 0
+                    }
                 }
             }
     }
 
     /// The toggle action revealed on the leading side by a right swipe.
-    /// It scales up from a small dot as the card slides aside; swiping
-    /// further stretches it toward the card, always keeping the margin
-    /// between them.
+    /// It scales up from its center, but its appearance is delayed until
+    /// the opened gap is wide enough to contain the scaled pill plus the
+    /// margin, so it never shows beneath the card; swiping past the reveal
+    /// stretches it toward the card, always keeping the margin between them.
     @ViewBuilder
     private var toggleHint: some View {
         let reveal = max(offsetX, 0)
-        let progress = min(reveal / revealDistance, 1)
+        // The pill is centered in its 56pt square, so its scaled half-width
+        // is actionWidth / 2 * progress. It stays hidden until the card has
+        // opened actionWidth / 2 + margin, then grows to full size exactly
+        // as the gap reaches the settle distance.
+        let progress = min(
+            max(reveal - actionWidth / 2 - actionMargin, 0) / (actionWidth / 2),
+            1
+        )
         let isLearned = status == "learned"
         actionButton(
             icon: isLearned ? "arrow.counterclockwise" : "checkmark",
@@ -396,26 +426,30 @@ private struct StatusSwipeCard<Content: View>: View {
             width: max(actionWidth, reveal - actionMargin),
             action: onToggleStatus
         )
-        .scaleEffect(progress, anchor: .leading)
+        .scaleEffect(progress, anchor: .center)
         .opacity(min(progress * 1.5, 1))
         .allowsHitTesting(isRevealed)
     }
 
     /// The Archive action revealed on the trailing side by a left swipe.
-    /// It scales up from a small dot as the card slides aside; swiping
-    /// further stretches it toward the card, always keeping the margin
-    /// between them.
+    /// It scales up from its center, but its appearance is delayed until
+    /// the opened gap is wide enough to contain the scaled pill plus the
+    /// margin, so it never shows beneath the card; swiping past the reveal
+    /// stretches it toward the card, always keeping the margin between them.
     @ViewBuilder
     private var archiveHint: some View {
         let reveal = max(-offsetX, 0)
-        let progress = min(reveal / revealDistance, 1)
+        let progress = min(
+            max(reveal - actionWidth / 2 - actionMargin, 0) / (actionWidth / 2),
+            1
+        )
         actionButton(
             icon: "archivebox",
             color: .gray,
             width: max(actionWidth, reveal - actionMargin),
             action: onArchive
         )
-        .scaleEffect(progress, anchor: .trailing)
+        .scaleEffect(progress, anchor: .center)
         .opacity(min(progress * 1.5, 1))
         .allowsHitTesting(isRevealed)
     }
@@ -463,6 +497,7 @@ private struct StatusSwipeCard<Content: View>: View {
 
     private func resetOffset() {
         withAnimation(.spring(duration: 0.3)) {
+            showsActions = false
             revealSide = nil
             isRevealed = false
             offsetX = 0
