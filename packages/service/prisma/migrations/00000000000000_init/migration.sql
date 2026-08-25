@@ -865,6 +865,21 @@ CREATE TABLE "qianlai_ledger_share_code" (
 );
 
 -- CreateTable
+CREATE TABLE "qianlai_real_account" (
+    "id" TEXT NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "icon" TEXT,
+    "meta" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "qianlai_real_account_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "qianlai_book_account" (
     "id" TEXT NOT NULL,
     "ledgerId" TEXT NOT NULL,
@@ -877,6 +892,7 @@ CREATE TABLE "qianlai_book_account" (
     "icon" TEXT,
     "meta" JSONB,
     "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "realAccountId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1310,7 +1326,13 @@ CREATE UNIQUE INDEX "qianlai_ledger_share_code_code_key" ON "qianlai_ledger_shar
 CREATE INDEX "qianlai_ledger_share_code_ledgerId_idx" ON "qianlai_ledger_share_code"("ledgerId");
 
 -- CreateIndex
+CREATE INDEX "qianlai_real_account_ownerId_idx" ON "qianlai_real_account"("ownerId");
+
+-- CreateIndex
 CREATE INDEX "qianlai_book_account_ledgerId_sortOrder_idx" ON "qianlai_book_account"("ledgerId", "sortOrder");
+
+-- CreateIndex
+CREATE INDEX "qianlai_book_account_realAccountId_idx" ON "qianlai_book_account"("realAccountId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "qianlai_book_account_ledgerId_code_key" ON "qianlai_book_account"("ledgerId", "code");
@@ -1505,10 +1527,16 @@ ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_cod
 ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "qianlai_real_account" ADD CONSTRAINT "qianlai_real_account_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "qianlai_book_account" ADD CONSTRAINT "qianlai_book_account_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_book_account" ADD CONSTRAINT "qianlai_book_account_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "qianlai_book_account"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_book_account" ADD CONSTRAINT "qianlai_book_account_realAccountId_fkey" FOREIGN KEY ("realAccountId") REFERENCES "qianlai_real_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;

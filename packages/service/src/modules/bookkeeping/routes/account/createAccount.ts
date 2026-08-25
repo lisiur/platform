@@ -48,7 +48,7 @@ export const createAccountRoute = defineOpenAPIRoute({
     const body = c.req.valid("json");
     const access = await requireLedgerAccess(userId, ledgerId, "editor");
     assertLedgerWritable(access.ledger);
-    const account = await createAccount(ledgerId, body);
+    const account = await createAccount(userId, ledgerId, body);
     return c.json(serializeAccount(account), 201);
   },
 });

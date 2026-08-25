@@ -317,6 +317,11 @@ export type LedgerMember = Prisma.LedgerMemberModel
  */
 export type LedgerShareCode = Prisma.LedgerShareCodeModel
 /**
+ * Model RealAccount
+ * 
+ */
+export type RealAccount = Prisma.RealAccountModel
+/**
  * Model BookAccount
  * 
  */

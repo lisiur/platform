@@ -33,7 +33,6 @@ import {
 } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -42,6 +41,43 @@ import { appClient, withApiFeedback } from "@/lib/api";
 import type { AccountRow } from "../../accounts/components/accounts-table";
 
 type QuickKind = "expense" | "income" | "transfer";
+
+/** A pickable account flattened into select order with its nesting depth. */
+type AccountEntry = { account: AccountRow; depth: number };
+
+/**
+ * Orders accounts parent-first so a Select can render them as a tree:
+ * each parent is immediately followed by its (indented) descendants.
+ * Orphans — e.g. children of an archived parent — become roots.
+ */
+function toTreeEntries(
+  accounts: AccountRow[],
+  nameFor: (account: AccountRow) => string,
+): Array<AccountEntry & { label: string }> {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const depthOf = (account: AccountRow) => {
+    let depth = 0;
+    let parent = account.parentId ? byId.get(account.parentId) : undefined;
+    while (parent) {
+      depth += 1;
+      parent = parent.parentId ? byId.get(parent.parentId) : undefined;
+    }
+    return depth;
+  };
+  const entries: Array<AccountEntry & { label: string }> = [];
+  const visit = (list: AccountRow[]) => {
+    for (const account of list) {
+      entries.push({
+        account,
+        depth: depthOf(account),
+        label: nameFor(account),
+      });
+      visit(accounts.filter((c) => c.parentId === account.id));
+    }
+  };
+  visit(accounts.filter((a) => !a.parentId || !byId.has(a.parentId)));
+  return entries;
+}
 
 /**
  * One-click income/expense/transfer entry: the user picks a scenario and two
@@ -66,10 +102,21 @@ const quickEntrySchema = z
         message: "amountRequired",
       });
     }
-    if (!data.debitAccount || !data.creditAccount) {
+    // The category side must always be picked; the pocket side may stay
+    // unselected ("未选择") — the backend then falls back to the ledger's
+    // flagged default account for that side. Transfers have no category:
+    // both pockets are required.
+    if (!(data.kind === "income" ? data.creditAccount : data.debitAccount)) {
       ctx.addIssue({
         code: "custom",
-        path: ["debitAccount"],
+        path: [data.kind === "income" ? "creditAccount" : "debitAccount"],
+        message: "accountRequired",
+      });
+    }
+    if (data.kind !== "expense" && !data.creditAccount) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["creditAccount"],
         message: "accountRequired",
       });
     }
@@ -138,15 +185,16 @@ export function QuickEntryDialog({
   const members = membersData?.members ?? [];
   // Asset + liability accounts are the "money pockets": where funds sit or
   // where spending is charged (credit card).
-  const assetLikeAccounts = activeAccounts.filter(
-    (a) => a.type === "asset" || a.type === "liability",
-  );
-  // Ledger-flagged default pocket (created with the ledger): prefills the
-  // asset-side field so Paid From / Received Into can be left untouched.
-  const defaultAccount = activeAccounts.find(
+  //
+  // The seeded default pocket is hidden from the picks — leaving the pocket
+  // at 未选择 lets the backend fall back to it instead.
+  const pickableAccounts = activeAccounts.filter(
     (a) =>
-      hasAccountFlag(a.flags, DEFAULT_DEBIT_ACCOUNT_FLAG) ||
-      hasAccountFlag(a.flags, DEFAULT_CREDIT_ACCOUNT_FLAG),
+      !hasAccountFlag(a.flags, DEFAULT_DEBIT_ACCOUNT_FLAG) &&
+      !hasAccountFlag(a.flags, DEFAULT_CREDIT_ACCOUNT_FLAG),
+  );
+  const assetLikeAccounts = pickableAccounts.filter(
+    (a) => a.type === "asset" || a.type === "liability",
   );
 
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -170,27 +218,13 @@ export function QuickEntryDialog({
     defaultValues,
   });
 
-  // Fill the asset-side select once the accounts load (or the dialog
-  // reopens after a reset); category picks stay the user's job. Transfers
-  // only prefill "From" — both sides can't share the default account.
-  useEffect(() => {
-    if (!open) return;
-    const kind = form.getValues("kind");
-    if (
-      !form.getValues("debitAccount") &&
-      kind === "income" &&
-      defaultAccount
-    ) {
-      form.setValue("debitAccount", defaultAccount.id);
-    }
-    if (
-      !form.getValues("creditAccount") &&
-      (kind === "expense" || kind === "transfer") &&
-      defaultAccount
-    ) {
-      form.setValue("creditAccount", defaultAccount.id);
-    }
-  }, [open, form, defaultAccount]);
+  // Trigger label resolver: empty/unselected renders the explicit
+  // 未选择 sentinel instead of a blank trigger.
+  function nameFor(value: unknown) {
+    if (typeof value !== "string" || value === "") return t("quick.noAccount");
+    const account = activeAccounts.find((a) => a.id === value);
+    return account ? accountName(account) : t("quick.noAccount");
+  }
 
   const kind = form.watch("kind");
   const debitAccount = form.watch("debitAccount");
@@ -212,18 +246,43 @@ export function QuickEntryDialog({
   };
   const labels = kindLabels[kind];
 
-  const debitOptions =
+  // Category sides render as a tree (parents before indented children);
+  // pocket sides are flat.
+  const debitEntries: AccountEntry[] =
     kind === "expense"
-      ? activeAccounts.filter((a) => a.type === "expense")
+      ? toTreeEntries(
+          pickableAccounts.filter((a) => a.type === "expense"),
+          accountName,
+        )
       : kind === "income"
-        ? activeAccounts.filter((a) => a.type === "asset")
-        : assetLikeAccounts;
-  const creditOptions =
+        ? pickableAccounts
+            .filter((a) => a.type === "asset")
+            .map((account) => ({ account, depth: 0 }))
+        : assetLikeAccounts.map((account) => ({ account, depth: 0 }));
+  const creditEntries: AccountEntry[] =
     kind === "expense"
-      ? assetLikeAccounts
+      ? assetLikeAccounts.map((account) => ({ account, depth: 0 }))
       : kind === "income"
-        ? activeAccounts.filter((a) => a.type === "income")
-        : assetLikeAccounts;
+        ? toTreeEntries(
+            pickableAccounts.filter((a) => a.type === "income"),
+            accountName,
+          )
+        : assetLikeAccounts.map((account) => ({ account, depth: 0 }));
+
+  // The pocket side (debit for income, credit for expense) may stay at
+  // 未选择 — the backend then falls back to the ledger's default account.
+  // Transfers move between two explicit pockets, so nothing is optional.
+  const noAccountItem = { value: "", label: t("quick.noAccount"), depth: 0 };
+  const toItems = (entries: AccountEntry[], withNoAccount: boolean) => [
+    ...(withNoAccount ? [noAccountItem] : []),
+    ...entries.map(({ account, depth }) => ({
+      value: account.id,
+      label: accountName(account),
+      depth,
+    })),
+  ];
+  const debitItems = toItems(debitEntries, kind === "income");
+  const creditItems = toItems(creditEntries, kind === "expense");
 
   const validationMessages: Record<string, string> = {
     amountRequired: t("quick.validation.amountRequired"),
@@ -255,8 +314,10 @@ export function QuickEntryDialog({
           date: data.date,
           memo: data.memo || undefined,
           lines: [
-            { accountId: data.debitAccount, debit: amount, credit: 0 },
-            { accountId: data.creditAccount, debit: 0, credit: amount },
+            // An unselected pocket side posts as null; the backend resolves
+            // it to the ledger's flagged default account for that side.
+            { accountId: data.debitAccount || null, debit: amount, credit: 0 },
+            { accountId: data.creditAccount || null, debit: 0, credit: amount },
           ],
           participantMemberIds: data.participants.length
             ? data.participants
@@ -294,20 +355,11 @@ export function QuickEntryDialog({
   }
 
   function handleKindChange(value: QuickKind) {
-    // Options differ per kind, so category selections don't carry over — but
-    // the ledger's default pocket refills the asset-side field. Transfers
-    // only prefill "From" so the two sides can't collide on one account.
+    // Labels differ per kind; both sides start at 未选择. Leaving the pocket
+    // unselected lets the backend fall back to the ledger's default account.
     form.setValue("kind", value);
-    form.setValue(
-      "debitAccount",
-      value === "income" ? (defaultAccount?.id ?? "") : "",
-    );
-    form.setValue(
-      "creditAccount",
-      value === "expense" || value === "transfer"
-        ? (defaultAccount?.id ?? "")
-        : "",
-    );
+    form.setValue("debitAccount", "");
+    form.setValue("creditAccount", "");
     form.clearErrors(["debitAccount", "creditAccount"]);
   }
 
@@ -374,7 +426,10 @@ export function QuickEntryDialog({
               </div>
 
               <Field data-invalid={!!form.formState.errors.debitAccount}>
-                <FieldLabel htmlFor="quick-debit-account" required>
+                <FieldLabel
+                  htmlFor="quick-debit-account"
+                  required={kind !== "income"}
+                >
                   {labels.debit}
                 </FieldLabel>
                 <Controller
@@ -384,21 +439,26 @@ export function QuickEntryDialog({
                     <Select
                       value={field.value || null}
                       onValueChange={field.onChange}
-                      items={debitOptions.map((account) => ({
-                        value: account.id,
-                        label: accountName(account),
-                      }))}
+                      items={debitItems}
                     >
                       <SelectTrigger
                         id="quick-debit-account"
                         aria-invalid={!!fieldState.error}
                       >
-                        <SelectValue />
+                        <SelectValue>{(value) => nameFor(value)}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {debitOptions.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {accountName(account)}
+                        {debitItems.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            style={
+                              item.depth
+                                ? { paddingLeft: `${item.depth * 16 + 6}px` }
+                                : undefined
+                            }
+                          >
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -411,7 +471,10 @@ export function QuickEntryDialog({
               </Field>
 
               <Field data-invalid={!!form.formState.errors.creditAccount}>
-                <FieldLabel htmlFor="quick-credit-account" required>
+                <FieldLabel
+                  htmlFor="quick-credit-account"
+                  required={kind !== "expense"}
+                >
                   {labels.credit}
                 </FieldLabel>
                 <Controller
@@ -421,21 +484,26 @@ export function QuickEntryDialog({
                     <Select
                       value={field.value || null}
                       onValueChange={field.onChange}
-                      items={creditOptions.map((account) => ({
-                        value: account.id,
-                        label: accountName(account),
-                      }))}
+                      items={creditItems}
                     >
                       <SelectTrigger
                         id="quick-credit-account"
                         aria-invalid={!!fieldState.error}
                       >
-                        <SelectValue />
+                        <SelectValue>{(value) => nameFor(value)}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {creditOptions.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {accountName(account)}
+                        {creditItems.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            style={
+                              item.depth
+                                ? { paddingLeft: `${item.depth * 16 + 6}px` }
+                                : undefined
+                            }
+                          >
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

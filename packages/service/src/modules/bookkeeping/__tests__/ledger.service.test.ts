@@ -136,7 +136,7 @@ describe("ensureDefaultLedger", () => {
       .mockResolvedValueOnce(null); // re-check inside tx
     mockLedgerRepo.findFirstActiveOwned.mockResolvedValue(null);
     mockLedgerRepo.create.mockResolvedValue({ id: "led-new" });
-    await ensureDefaultLedger("user-a", "zh");
+    await ensureDefaultLedger("user-a");
     expect(mockLedgerRepo.clearDefaultForOwner).toHaveBeenCalledWith(
       "user-a",
       expect.anything(),
@@ -155,7 +155,7 @@ describe("ensureDefaultLedger", () => {
       Array<{ code?: string; flags?: string[] }>,
       unknown,
     ];
-    expect(accounts.some((a) => a.code === "cash")).toBe(true);
+    expect(accounts.some((a) => a.code === "openingBalance")).toBe(true);
     const defaultAccount = accounts.find((a) => a.code === "defaultAccount");
     expect(defaultAccount?.flags).toContain("defaultDebit");
     expect(defaultAccount?.flags).toContain("defaultCredit");

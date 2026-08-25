@@ -1,6 +1,11 @@
 "use client";
 
-import { roleAtLeast } from "@repo/shared";
+import {
+  DEFAULT_CREDIT_ACCOUNT_FLAG,
+  DEFAULT_DEBIT_ACCOUNT_FLAG,
+  hasAccountFlag,
+  roleAtLeast,
+} from "@repo/shared";
 import {
   Badge,
   Button,
@@ -27,6 +32,10 @@ import { toast } from "sonner";
 import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
+import {
+  realAccountsQueryKey,
+  useRealAccounts,
+} from "@/hooks/use-real-accounts";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { AccountDialog } from "./account-dialog";
 import {
@@ -35,6 +44,8 @@ import {
   type AccountFormRef,
   accountToFormValues,
   buildMeta,
+  NO_REAL_ACCOUNT,
+  type RealAccountOption,
 } from "./account-form";
 import { AccountsTree } from "./accounts-tree";
 import { BalanceDialog } from "./balance-dialog";
@@ -58,6 +69,18 @@ export interface AccountRow {
 
 /** Tabs shown to users; equity is system-managed and not listed in the UI. */
 const ACCOUNT_TYPE_LIST = ["asset", "liability", "income", "expense"] as const;
+
+/**
+ * The seeded default pocket is a prefill-only system account: hidden from
+ * every user-facing list (legacy ledgers may still carry it and journal
+ * lines against it, so reports keep showing it).
+ */
+function isDefaultPocket(account: AccountRow) {
+  return (
+    hasAccountFlag(account.flags, DEFAULT_DEBIT_ACCOUNT_FLAG) ||
+    hasAccountFlag(account.flags, DEFAULT_CREDIT_ACCOUNT_FLAG)
+  );
+}
 
 const TYPE_BADGE: Record<AccountRow["type"], string> = {
   asset: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
@@ -100,6 +123,26 @@ export function AccountsTable() {
     enabled: !!activeLedger,
   });
 
+  // The caller's own masters feed the link picker; the pockets map reveals
+  // which ledger accounts are already linked (own links only — other
+  // members' links are invisible by design, and their patches never send
+  // realAccountId unless they explicitly change it).
+  const { data: realAccountsData } = useRealAccounts();
+  const realAccountOptions: RealAccountOption[] = (
+    realAccountsData?.realAccounts ?? []
+  ).map((real) => ({
+    id: real.id,
+    name: real.name,
+    type: real.type,
+    icon: real.icon,
+  }));
+  const pocketLink = new Map<string, string>();
+  for (const real of realAccountsData?.realAccounts ?? []) {
+    for (const pocket of real.pockets) {
+      pocketLink.set(pocket.id, real.id);
+    }
+  }
+
   // Synchronous reorder mirror (see handleReorder): holds the reordered list
   // plus the query snapshot it was based on. Stale as soon as fresh query
   // data renders (identity mismatch), so the cache stays the source of truth.
@@ -107,14 +150,32 @@ export function AccountsTable() {
     source: { accounts: AccountRow[] } | undefined;
     accounts: AccountRow[];
   } | null>(null);
-  const accounts =
-    local && local.source === data ? local.accounts : (data?.accounts ?? []);
+  const accounts = (
+    local && local.source === data ? local.accounts : (data?.accounts ?? [])
+  ).filter((a) => !isDefaultPocket(a));
 
   // Selection is derived from the current list so it survives refetches and
   // drops automatically when the account is deleted or the ledger changes.
   const selectedAccount = selectedId
     ? (accounts.find((a) => a.id === selectedId) ?? null)
     : null;
+
+  // Link snapshot frozen per selection: handleEditSave must compare the
+  // form's value against what seeded it at mount, not the live map —
+  // pocketLink can populate after the form mounted (the real-accounts query
+  // resolving late), and treating that delta as a user change would silently
+  // unlink the pocket.
+  const seedRef = useRef<{ id: string | null; link: string }>({
+    id: null,
+    link: NO_REAL_ACCOUNT,
+  });
+  if (seedRef.current.id !== selectedId) {
+    seedRef.current = {
+      id: selectedId,
+      link: (selectedId && pocketLink.get(selectedId)) || NO_REAL_ACCOUNT,
+    };
+  }
+  const seededLink = seedRef.current.link;
 
   function invalidate() {
     queryClient.invalidateQueries({
@@ -220,6 +281,12 @@ export function AccountsTable() {
       // (null); typing a custom name stores it as an override. The code
       // is never cleared.
       const name = selectedAccount.code ? data.name.trim() || null : data.name;
+      // Only touch the link when the user changed it: untouched saves must
+      // not unlink a master another member linked (invisible to us).
+      const linkChanged =
+        data.realAccountId !== seededLink &&
+        (selectedAccount.type === "asset" ||
+          selectedAccount.type === "liability");
       await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].accounts[":id"].$patch,
       )({
@@ -228,9 +295,20 @@ export function AccountsTable() {
           name,
           icon: data.icon.trim() || null,
           meta: buildMeta(data.metaEntries),
+          ...(linkChanged
+            ? {
+                realAccountId:
+                  data.realAccountId === NO_REAL_ACCOUNT
+                    ? null
+                    : data.realAccountId,
+              }
+            : {}),
         },
       });
       invalidate();
+      if (linkChanged) {
+        queryClient.invalidateQueries({ queryKey: realAccountsQueryKey });
+      }
       toast.success(t("updateSuccess"));
       if (isMobile) {
         setSelectedId(null);
@@ -305,12 +383,13 @@ export function AccountsTable() {
     <AccountForm
       key={selectedAccount.id}
       ref={editFormRef}
-      defaultValues={accountToFormValues(selectedAccount)}
+      defaultValues={accountToFormValues(selectedAccount, seededLink)}
       typeDisabled
       nameOptional={!!selectedAccount.code}
       namePlaceholder={
         selectedAccount.code ? accountName(selectedAccount) : undefined
       }
+      realAccountOptions={realAccountOptions}
     />
   ) : null;
 
@@ -320,6 +399,7 @@ export function AccountsTable() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         ledgerId={activeLedger?.id ?? ""}
+        realAccountOptions={realAccountOptions}
       />
       {createParent && (
         <AccountDialog
@@ -327,6 +407,7 @@ export function AccountsTable() {
           onOpenChange={(open) => !open && setCreateParent(null)}
           ledgerId={activeLedger?.id ?? ""}
           parent={createParent}
+          realAccountOptions={realAccountOptions}
         />
       )}
       {balanceAccount && (

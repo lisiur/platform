@@ -36,6 +36,7 @@ model User {
   userCreditLedger     UserCreditLedger[]
   aiUsageEvents        AiUsageEvent[]
   ownedQianlaiLedgers  Ledger[]          @relation("QianlaiLedgerOwner")
+  ownedQianlaiRealAccounts RealAccount[] @relation("QianlaiRealAccountOwner")
   qianlaiMemberships   LedgerMember[]
   qianlaiShareCodes    LedgerShareCode[] @relation("QianlaiShareCodeCreator")
   qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
@@ -1132,6 +1133,29 @@ model LedgerShareCode {
   @@map("qianlai_ledger_share_code")
 }
 
+// Owner-private master record of a real-world asset/liability (a bank card,
+// a wallet). Per-ledger BookAccount "pockets" link to it via realAccountId;
+// the cross-ledger aggregate is only ever served to the owner — ledger
+// members never see beyond the pocket they can already access.
+model RealAccount {
+  id        String        @id @default(cuid())
+  ownerId   String
+  owner     User          @relation("QianlaiRealAccountOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  // asset | liability; income/expense stay ledger-local by design.
+  type      String
+  status    String        @default("active")
+  icon      String?
+  // Free-form, owner-only metadata (e.g. card number).
+  meta      Json?
+  pockets   BookAccount[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@map("qianlai_real_account")
+}
+
 model BookAccount {
   id        String       @id @default(cuid())
   ledgerId  String
@@ -1162,11 +1186,17 @@ model BookAccount {
   // "adjustmentOffset" (equity offset for balance adjustments),
   // "defaultDebit"/"defaultCredit" (default pocket for quick entry).
   flags     String[]     @default([])
+  // Owner-private master this pocket aggregates into (asset/liability only).
+  // Never exposed through ledger-scoped responses; the owner reads the
+  // cross-ledger roll-up via their own real-account endpoints instead.
+  realAccountId String?
+  realAccount   RealAccount? @relation(fields: [realAccountId], references: [id], onDelete: SetNull)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   @@unique([ledgerId, code])
   @@index([ledgerId, sortOrder])
+  @@index([realAccountId])
   @@map("qianlai_book_account")
 }
 

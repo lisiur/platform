@@ -59,7 +59,7 @@ describe("updateAccount name-override handling", () => {
 
   it("renames a seeded account without touching its code (name overrides the label)", async () => {
     mockAccountRepo.findById.mockResolvedValue(account({ code: "cash" }));
-    await updateAccount("led-1", "acc-1", { name: "My Wallet" });
+    await updateAccount("user-a", "led-1", "acc-1", { name: "My Wallet" });
     expect(mockAccountRepo.update).toHaveBeenCalledWith(
       "acc-1",
       { name: "My Wallet" },
@@ -71,7 +71,7 @@ describe("updateAccount name-override handling", () => {
     mockAccountRepo.findById.mockResolvedValue(
       account({ code: "cash", name: "My Wallet" }),
     );
-    await updateAccount("led-1", "acc-1", { name: null });
+    await updateAccount("user-a", "led-1", "acc-1", { name: null });
     expect(mockAccountRepo.update).toHaveBeenCalledWith(
       "acc-1",
       { name: null },
@@ -80,7 +80,7 @@ describe("updateAccount name-override handling", () => {
   });
 
   it("keeps the name untouched when the patch omits it", async () => {
-    await updateAccount("led-1", "acc-1", { icon: "💰" });
+    await updateAccount("user-a", "led-1", "acc-1", { icon: "💰" });
     expect(mockAccountRepo.update).toHaveBeenCalledWith(
       "acc-1",
       { icon: "💰" },
@@ -90,9 +90,9 @@ describe("updateAccount name-override handling", () => {
 
   it("rejects clearing the name on a user-created account (no code, nothing to render)", async () => {
     mockAccountRepo.findById.mockResolvedValue(account({ name: "Wallet" }));
-    const err = await updateAccount("led-1", "acc-1", { name: "" }).catch(
-      (e) => e,
-    );
+    const err = await updateAccount("user-a", "led-1", "acc-1", {
+      name: "",
+    }).catch((e) => e);
     expect(err).toBeInstanceOf(Error);
     expect((err as { status: number }).status).toBe(400);
     expect(mockAccountRepo.update).not.toHaveBeenCalled();

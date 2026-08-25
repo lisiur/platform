@@ -13,10 +13,16 @@ export const userAccountTypeEnumSchema = z.enum(
   ACCOUNT_TYPES.filter((t) => t !== "equity") as [string, ...string[]],
 );
 
-/** Shapes a raw BookAccount row into the OpenAPI response contract. */
+/**
+ * Shapes a raw BookAccount row into the OpenAPI response contract.
+ * `realAccountId` is deliberately stripped: ledger-scoped responses must not
+ * reveal master-account links to members — owners read the mapping through
+ * their own real-account endpoints instead.
+ */
 export function serializeAccount(account: BookAccount) {
+  const { realAccountId: _realAccountId, ...safe } = account;
   return {
-    ...account,
+    ...safe,
     type: account.type as (typeof ACCOUNT_TYPES)[number],
     status: account.status as "active" | "archived",
     meta: account.meta as Record<string, unknown> | null,
@@ -68,6 +74,13 @@ export const createAccountBodySchema = z
     parentId: z.string().nullable().optional().openapi({ example: null }),
     icon: z.string().max(100).nullable().optional().openapi({ example: "💳" }),
     meta: accountMetaSchema.nullable().optional(),
+    /** Links the new pocket to one of the caller's real accounts (owner-only). */
+    realAccountId: z
+      .string()
+      .min(1)
+      .nullable()
+      .optional()
+      .openapi({ example: null }),
   })
   .openapi("QianlaiCreateAccountBody");
 
@@ -82,6 +95,13 @@ export const updateAccountBodySchema = z
     status: z.enum(["active", "archived"]).optional(),
     icon: z.string().max(100).nullable().optional(),
     meta: accountMetaSchema.nullable().optional(),
+    /** Links (string) / unlinks (null) the pocket; only for the caller's own real accounts. */
+    realAccountId: z
+      .string()
+      .min(1)
+      .nullable()
+      .optional()
+      .openapi({ example: null }),
   })
   .openapi("QianlaiUpdateAccountBody");
 

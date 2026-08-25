@@ -106,6 +106,7 @@ export const ModelName = {
   Ledger: 'Ledger',
   LedgerMember: 'LedgerMember',
   LedgerShareCode: 'LedgerShareCode',
+  RealAccount: 'RealAccount',
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
   JournalLine: 'JournalLine',
@@ -973,6 +974,21 @@ export const LedgerShareCodeScalarFieldEnum = {
 export type LedgerShareCodeScalarFieldEnum = (typeof LedgerShareCodeScalarFieldEnum)[keyof typeof LedgerShareCodeScalarFieldEnum]
 
 
+export const RealAccountScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  name: 'name',
+  type: 'type',
+  status: 'status',
+  icon: 'icon',
+  meta: 'meta',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RealAccountScalarFieldEnum = (typeof RealAccountScalarFieldEnum)[keyof typeof RealAccountScalarFieldEnum]
+
+
 export const BookAccountScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
@@ -985,6 +1001,7 @@ export const BookAccountScalarFieldEnum = {
   icon: 'icon',
   meta: 'meta',
   flags: 'flags',
+  realAccountId: 'realAccountId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -250,6 +250,7 @@ export type UserWhereInput = {
   userCreditLedger?: Prisma.UserCreditLedgerListRelationFilter
   aiUsageEvents?: Prisma.AiUsageEventListRelationFilter
   ownedQianlaiLedgers?: Prisma.LedgerListRelationFilter
+  ownedQianlaiRealAccounts?: Prisma.RealAccountListRelationFilter
   qianlaiMemberships?: Prisma.LedgerMemberListRelationFilter
   qianlaiShareCodes?: Prisma.LedgerShareCodeListRelationFilter
   qianlaiJournalEntries?: Prisma.JournalEntryListRelationFilter
@@ -284,6 +285,7 @@ export type UserOrderByWithRelationInput = {
   userCreditLedger?: Prisma.UserCreditLedgerOrderByRelationAggregateInput
   aiUsageEvents?: Prisma.AiUsageEventOrderByRelationAggregateInput
   ownedQianlaiLedgers?: Prisma.LedgerOrderByRelationAggregateInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountOrderByRelationAggregateInput
   qianlaiMemberships?: Prisma.LedgerMemberOrderByRelationAggregateInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeOrderByRelationAggregateInput
   qianlaiJournalEntries?: Prisma.JournalEntryOrderByRelationAggregateInput
@@ -321,6 +323,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   userCreditLedger?: Prisma.UserCreditLedgerListRelationFilter
   aiUsageEvents?: Prisma.AiUsageEventListRelationFilter
   ownedQianlaiLedgers?: Prisma.LedgerListRelationFilter
+  ownedQianlaiRealAccounts?: Prisma.RealAccountListRelationFilter
   qianlaiMemberships?: Prisma.LedgerMemberListRelationFilter
   qianlaiShareCodes?: Prisma.LedgerShareCodeListRelationFilter
   qianlaiJournalEntries?: Prisma.JournalEntryListRelationFilter
@@ -391,6 +394,7 @@ export type UserCreateInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -425,6 +429,7 @@ export type UserUncheckedCreateInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -459,6 +464,7 @@ export type UserUpdateInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -493,6 +499,7 @@ export type UserUncheckedUpdateInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -893,6 +900,20 @@ export type UserUpdateOneRequiredWithoutQianlaiShareCodesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutQianlaiShareCodesInput, Prisma.UserUpdateWithoutQianlaiShareCodesInput>, Prisma.UserUncheckedUpdateWithoutQianlaiShareCodesInput>
 }
 
+export type UserCreateNestedOneWithoutOwnedQianlaiRealAccountsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedCreateWithoutOwnedQianlaiRealAccountsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedQianlaiRealAccountsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutOwnedQianlaiRealAccountsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedCreateWithoutOwnedQianlaiRealAccountsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedQianlaiRealAccountsInput
+  upsert?: Prisma.UserUpsertWithoutOwnedQianlaiRealAccountsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUpdateWithoutOwnedQianlaiRealAccountsInput>, Prisma.UserUncheckedUpdateWithoutOwnedQianlaiRealAccountsInput>
+}
+
 export type UserCreateNestedOneWithoutQianlaiJournalEntriesInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutQianlaiJournalEntriesInput, Prisma.UserUncheckedCreateWithoutQianlaiJournalEntriesInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutQianlaiJournalEntriesInput
@@ -937,6 +958,7 @@ export type UserCreateWithoutSessionsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -970,6 +992,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1019,6 +1042,7 @@ export type UserUpdateWithoutSessionsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1052,6 +1076,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1085,6 +1110,7 @@ export type UserCreateWithoutAccountsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1118,6 +1144,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1167,6 +1194,7 @@ export type UserUpdateWithoutAccountsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1200,6 +1228,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1233,6 +1262,7 @@ export type UserCreateWithoutMembersInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1266,6 +1296,7 @@ export type UserUncheckedCreateWithoutMembersInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1315,6 +1346,7 @@ export type UserUpdateWithoutMembersInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1348,6 +1380,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1381,6 +1414,7 @@ export type UserCreateWithoutInvitationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1414,6 +1448,7 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1463,6 +1498,7 @@ export type UserUpdateWithoutInvitationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1496,6 +1532,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1529,6 +1566,7 @@ export type UserCreateWithoutAttachmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1562,6 +1600,7 @@ export type UserUncheckedCreateWithoutAttachmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1611,6 +1650,7 @@ export type UserUpdateWithoutAttachmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1644,6 +1684,7 @@ export type UserUncheckedUpdateWithoutAttachmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1677,6 +1718,7 @@ export type UserCreateWithoutRoleAssignmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1710,6 +1752,7 @@ export type UserUncheckedCreateWithoutRoleAssignmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1759,6 +1802,7 @@ export type UserUpdateWithoutRoleAssignmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -1792,6 +1836,7 @@ export type UserUncheckedUpdateWithoutRoleAssignmentsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -1825,6 +1870,7 @@ export type UserCreateWithoutNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1858,6 +1904,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1896,6 +1943,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -1929,6 +1977,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -1978,6 +2027,7 @@ export type UserUpdateWithoutNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2011,6 +2061,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2055,6 +2106,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2088,6 +2140,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2121,6 +2174,7 @@ export type UserCreateWithoutApiTokensInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2154,6 +2208,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2203,6 +2258,7 @@ export type UserUpdateWithoutApiTokensInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2236,6 +2292,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2269,6 +2326,7 @@ export type UserCreateWithoutAiConversationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2302,6 +2360,7 @@ export type UserUncheckedCreateWithoutAiConversationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2351,6 +2410,7 @@ export type UserUpdateWithoutAiConversationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2384,6 +2444,7 @@ export type UserUncheckedUpdateWithoutAiConversationsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2417,6 +2478,7 @@ export type UserCreateWithoutCollectionItemsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2450,6 +2512,7 @@ export type UserUncheckedCreateWithoutCollectionItemsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2499,6 +2562,7 @@ export type UserUpdateWithoutCollectionItemsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2532,6 +2596,7 @@ export type UserUncheckedUpdateWithoutCollectionItemsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2565,6 +2630,7 @@ export type UserCreateWithoutAiUsageEventsInput = {
   userCredit?: Prisma.UserCreditCreateNestedOneWithoutUserInput
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2598,6 +2664,7 @@ export type UserUncheckedCreateWithoutAiUsageEventsInput = {
   userCredit?: Prisma.UserCreditUncheckedCreateNestedOneWithoutUserInput
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2647,6 +2714,7 @@ export type UserUpdateWithoutAiUsageEventsInput = {
   userCredit?: Prisma.UserCreditUpdateOneWithoutUserNestedInput
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2680,6 +2748,7 @@ export type UserUncheckedUpdateWithoutAiUsageEventsInput = {
   userCredit?: Prisma.UserCreditUncheckedUpdateOneWithoutUserNestedInput
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2713,6 +2782,7 @@ export type UserCreateWithoutUserQuotasInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2746,6 +2816,7 @@ export type UserUncheckedCreateWithoutUserQuotasInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2795,6 +2866,7 @@ export type UserUpdateWithoutUserQuotasInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2828,6 +2900,7 @@ export type UserUncheckedUpdateWithoutUserQuotasInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -2861,6 +2934,7 @@ export type UserCreateWithoutUserCreditInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -2894,6 +2968,7 @@ export type UserUncheckedCreateWithoutUserCreditInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -2943,6 +3018,7 @@ export type UserUpdateWithoutUserCreditInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -2976,6 +3052,7 @@ export type UserUncheckedUpdateWithoutUserCreditInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -3009,6 +3086,7 @@ export type UserCreateWithoutUserCreditLedgerInput = {
   userCredit?: Prisma.UserCreditCreateNestedOneWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -3042,6 +3120,7 @@ export type UserUncheckedCreateWithoutUserCreditLedgerInput = {
   userCredit?: Prisma.UserCreditUncheckedCreateNestedOneWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -3091,6 +3170,7 @@ export type UserUpdateWithoutUserCreditLedgerInput = {
   userCredit?: Prisma.UserCreditUpdateOneWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -3124,6 +3204,7 @@ export type UserUncheckedUpdateWithoutUserCreditLedgerInput = {
   userCredit?: Prisma.UserCreditUncheckedUpdateOneWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -3157,6 +3238,7 @@ export type UserCreateWithoutOwnedQianlaiLedgersInput = {
   userCredit?: Prisma.UserCreditCreateNestedOneWithoutUserInput
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
@@ -3190,6 +3272,7 @@ export type UserUncheckedCreateWithoutOwnedQianlaiLedgersInput = {
   userCredit?: Prisma.UserCreditUncheckedCreateNestedOneWithoutUserInput
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
@@ -3239,6 +3322,7 @@ export type UserUpdateWithoutOwnedQianlaiLedgersInput = {
   userCredit?: Prisma.UserCreditUpdateOneWithoutUserNestedInput
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
@@ -3272,6 +3356,7 @@ export type UserUncheckedUpdateWithoutOwnedQianlaiLedgersInput = {
   userCredit?: Prisma.UserCreditUncheckedUpdateOneWithoutUserNestedInput
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -3306,6 +3391,7 @@ export type UserCreateWithoutQianlaiMembershipsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
 }
@@ -3339,6 +3425,7 @@ export type UserUncheckedCreateWithoutQianlaiMembershipsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
 }
@@ -3388,6 +3475,7 @@ export type UserUpdateWithoutQianlaiMembershipsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
 }
@@ -3421,6 +3509,7 @@ export type UserUncheckedUpdateWithoutQianlaiMembershipsInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
 }
@@ -3454,6 +3543,7 @@ export type UserCreateWithoutQianlaiShareCodesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
 }
@@ -3487,6 +3577,7 @@ export type UserUncheckedCreateWithoutQianlaiShareCodesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
 }
@@ -3536,6 +3627,7 @@ export type UserUpdateWithoutQianlaiShareCodesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
 }
@@ -3569,7 +3661,160 @@ export type UserUncheckedUpdateWithoutQianlaiShareCodesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
+  qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserCreateWithoutOwnedQianlaiRealAccountsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutOwnerInput
+  aiConversations?: Prisma.AiConversationCreateNestedManyWithoutUserInput
+  attachments?: Prisma.AttachmentCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemCreateNestedManyWithoutOwnerInput
+  userQuotas?: Prisma.UserQuotaCreateNestedManyWithoutUserInput
+  userCredit?: Prisma.UserCreditCreateNestedOneWithoutUserInput
+  userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
+  aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
+  ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
+  qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
+  qianlaiJournalEntries?: Prisma.JournalEntryCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserUncheckedCreateWithoutOwnedQianlaiRealAccountsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  emailVerified?: boolean
+  avatar?: string | null
+  avatarId?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  flags?: Prisma.UserCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutOwnerInput
+  aiConversations?: Prisma.AiConversationUncheckedCreateNestedManyWithoutUserInput
+  attachments?: Prisma.AttachmentUncheckedCreateNestedManyWithoutCreatorInput
+  collectionItems?: Prisma.CollectionItemUncheckedCreateNestedManyWithoutOwnerInput
+  userQuotas?: Prisma.UserQuotaUncheckedCreateNestedManyWithoutUserInput
+  userCredit?: Prisma.UserCreditUncheckedCreateNestedOneWithoutUserInput
+  userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
+  ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
+  qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
+  qianlaiJournalEntries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserCreateOrConnectWithoutOwnedQianlaiRealAccountsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedCreateWithoutOwnedQianlaiRealAccountsInput>
+}
+
+export type UserUpsertWithoutOwnedQianlaiRealAccountsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedUpdateWithoutOwnedQianlaiRealAccountsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedCreateWithoutOwnedQianlaiRealAccountsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutOwnedQianlaiRealAccountsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutOwnedQianlaiRealAccountsInput, Prisma.UserUncheckedUpdateWithoutOwnedQianlaiRealAccountsInput>
+}
+
+export type UserUpdateWithoutOwnedQianlaiRealAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutOwnerNestedInput
+  aiConversations?: Prisma.AiConversationUpdateManyWithoutUserNestedInput
+  attachments?: Prisma.AttachmentUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUpdateManyWithoutOwnerNestedInput
+  userQuotas?: Prisma.UserQuotaUpdateManyWithoutUserNestedInput
+  userCredit?: Prisma.UserCreditUpdateOneWithoutUserNestedInput
+  userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
+  aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
+  ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
+  qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
+  qianlaiJournalEntries?: Prisma.JournalEntryUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutOwnedQianlaiRealAccountsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  flags?: Prisma.UserUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
+  roleAssignments?: Prisma.RoleAssignmentUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutOwnerNestedInput
+  aiConversations?: Prisma.AiConversationUncheckedUpdateManyWithoutUserNestedInput
+  attachments?: Prisma.AttachmentUncheckedUpdateManyWithoutCreatorNestedInput
+  collectionItems?: Prisma.CollectionItemUncheckedUpdateManyWithoutOwnerNestedInput
+  userQuotas?: Prisma.UserQuotaUncheckedUpdateManyWithoutUserNestedInput
+  userCredit?: Prisma.UserCreditUncheckedUpdateOneWithoutUserNestedInput
+  userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
+  ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
+  qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
   qianlaiJournalEntries?: Prisma.JournalEntryUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
@@ -3602,6 +3847,7 @@ export type UserCreateWithoutQianlaiJournalEntriesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeCreateNestedManyWithoutCreatedByInput
 }
@@ -3635,6 +3881,7 @@ export type UserUncheckedCreateWithoutQianlaiJournalEntriesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedCreateNestedManyWithoutUserInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedCreateNestedManyWithoutUserInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedCreateNestedManyWithoutOwnerInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedCreateNestedManyWithoutOwnerInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutUserInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedCreateNestedManyWithoutCreatedByInput
 }
@@ -3684,6 +3931,7 @@ export type UserUpdateWithoutQianlaiJournalEntriesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUpdateManyWithoutCreatedByNestedInput
 }
@@ -3717,6 +3965,7 @@ export type UserUncheckedUpdateWithoutQianlaiJournalEntriesInput = {
   userCreditLedger?: Prisma.UserCreditLedgerUncheckedUpdateManyWithoutUserNestedInput
   aiUsageEvents?: Prisma.AiUsageEventUncheckedUpdateManyWithoutUserNestedInput
   ownedQianlaiLedgers?: Prisma.LedgerUncheckedUpdateManyWithoutOwnerNestedInput
+  ownedQianlaiRealAccounts?: Prisma.RealAccountUncheckedUpdateManyWithoutOwnerNestedInput
   qianlaiMemberships?: Prisma.LedgerMemberUncheckedUpdateManyWithoutUserNestedInput
   qianlaiShareCodes?: Prisma.LedgerShareCodeUncheckedUpdateManyWithoutCreatedByNestedInput
 }
@@ -3742,6 +3991,7 @@ export type UserCountOutputType = {
   userCreditLedger: number
   aiUsageEvents: number
   ownedQianlaiLedgers: number
+  ownedQianlaiRealAccounts: number
   qianlaiMemberships: number
   qianlaiShareCodes: number
   qianlaiJournalEntries: number
@@ -3763,6 +4013,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   userCreditLedger?: boolean | UserCountOutputTypeCountUserCreditLedgerArgs
   aiUsageEvents?: boolean | UserCountOutputTypeCountAiUsageEventsArgs
   ownedQianlaiLedgers?: boolean | UserCountOutputTypeCountOwnedQianlaiLedgersArgs
+  ownedQianlaiRealAccounts?: boolean | UserCountOutputTypeCountOwnedQianlaiRealAccountsArgs
   qianlaiMemberships?: boolean | UserCountOutputTypeCountQianlaiMembershipsArgs
   qianlaiShareCodes?: boolean | UserCountOutputTypeCountQianlaiShareCodesArgs
   qianlaiJournalEntries?: boolean | UserCountOutputTypeCountQianlaiJournalEntriesArgs
@@ -3886,6 +4137,13 @@ export type UserCountOutputTypeCountOwnedQianlaiLedgersArgs<ExtArgs extends runt
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountOwnedQianlaiRealAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RealAccountWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountQianlaiMembershipsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.LedgerMemberWhereInput
 }
@@ -3934,6 +4192,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   userCreditLedger?: boolean | Prisma.User$userCreditLedgerArgs<ExtArgs>
   aiUsageEvents?: boolean | Prisma.User$aiUsageEventsArgs<ExtArgs>
   ownedQianlaiLedgers?: boolean | Prisma.User$ownedQianlaiLedgersArgs<ExtArgs>
+  ownedQianlaiRealAccounts?: boolean | Prisma.User$ownedQianlaiRealAccountsArgs<ExtArgs>
   qianlaiMemberships?: boolean | Prisma.User$qianlaiMembershipsArgs<ExtArgs>
   qianlaiShareCodes?: boolean | Prisma.User$qianlaiShareCodesArgs<ExtArgs>
   qianlaiJournalEntries?: boolean | Prisma.User$qianlaiJournalEntriesArgs<ExtArgs>
@@ -4003,6 +4262,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   userCreditLedger?: boolean | Prisma.User$userCreditLedgerArgs<ExtArgs>
   aiUsageEvents?: boolean | Prisma.User$aiUsageEventsArgs<ExtArgs>
   ownedQianlaiLedgers?: boolean | Prisma.User$ownedQianlaiLedgersArgs<ExtArgs>
+  ownedQianlaiRealAccounts?: boolean | Prisma.User$ownedQianlaiRealAccountsArgs<ExtArgs>
   qianlaiMemberships?: boolean | Prisma.User$qianlaiMembershipsArgs<ExtArgs>
   qianlaiShareCodes?: boolean | Prisma.User$qianlaiShareCodesArgs<ExtArgs>
   qianlaiJournalEntries?: boolean | Prisma.User$qianlaiJournalEntriesArgs<ExtArgs>
@@ -4030,6 +4290,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     userCreditLedger: Prisma.$UserCreditLedgerPayload<ExtArgs>[]
     aiUsageEvents: Prisma.$AiUsageEventPayload<ExtArgs>[]
     ownedQianlaiLedgers: Prisma.$LedgerPayload<ExtArgs>[]
+    ownedQianlaiRealAccounts: Prisma.$RealAccountPayload<ExtArgs>[]
     qianlaiMemberships: Prisma.$LedgerMemberPayload<ExtArgs>[]
     qianlaiShareCodes: Prisma.$LedgerShareCodePayload<ExtArgs>[]
     qianlaiJournalEntries: Prisma.$JournalEntryPayload<ExtArgs>[]
@@ -4457,6 +4718,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   userCreditLedger<T extends Prisma.User$userCreditLedgerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$userCreditLedgerArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserCreditLedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiUsageEvents<T extends Prisma.User$aiUsageEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiUsageEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiUsageEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ownedQianlaiLedgers<T extends Prisma.User$ownedQianlaiLedgersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedQianlaiLedgersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  ownedQianlaiRealAccounts<T extends Prisma.User$ownedQianlaiRealAccountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedQianlaiRealAccountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RealAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   qianlaiMemberships<T extends Prisma.User$qianlaiMembershipsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$qianlaiMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LedgerMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   qianlaiShareCodes<T extends Prisma.User$qianlaiShareCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$qianlaiShareCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LedgerShareCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   qianlaiJournalEntries<T extends Prisma.User$qianlaiJournalEntriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$qianlaiJournalEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JournalEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -5270,6 +5532,30 @@ export type User$ownedQianlaiLedgersArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.LedgerScalarFieldEnum | Prisma.LedgerScalarFieldEnum[]
+}
+
+/**
+ * User.ownedQianlaiRealAccounts
+ */
+export type User$ownedQianlaiRealAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RealAccount
+   */
+  select?: Prisma.RealAccountSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RealAccount
+   */
+  omit?: Prisma.RealAccountOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RealAccountInclude<ExtArgs> | null
+  where?: Prisma.RealAccountWhereInput
+  orderBy?: Prisma.RealAccountOrderByWithRelationInput | Prisma.RealAccountOrderByWithRelationInput[]
+  cursor?: Prisma.RealAccountWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RealAccountScalarFieldEnum | Prisma.RealAccountScalarFieldEnum[]
 }
 
 /**

@@ -1125,13 +1125,23 @@ const qianlaiMenus = [
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
+    id: "qianlai-real-accounts",
+    code: "realAccounts",
+    name: "Assets",
+    icon: "Wallet",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/real-accounts",
+    sortOrder: 3,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+  {
     id: "qianlai-reports",
     code: "reports",
     name: "Reports",
     icon: "BarChart3",
     linkType: "INTERNAL" as const,
     url: "/qianlai/reports",
-    sortOrder: 3,
+    sortOrder: 4,
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
@@ -1141,7 +1151,7 @@ const qianlaiMenus = [
     icon: "BookOpen",
     linkType: "INTERNAL" as const,
     url: "/qianlai/ledgers",
-    sortOrder: 4,
+    sortOrder: 5,
     permissions: ["qianlai/bookkeeping:manage"],
   },
 ];

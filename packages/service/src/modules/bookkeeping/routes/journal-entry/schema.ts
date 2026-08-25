@@ -86,7 +86,11 @@ export const listEntriesResponseSchema = z
 
 export const journalLineInputSchema = z
   .object({
-    accountId: z.string().min(1),
+    accountId: z.string().min(1).nullish().openapi({
+      example: "clx1234567890",
+      description:
+        "Account id. Omitted or null defers to the ledger's default pocket for this line's side (defaultCredit pays, defaultDebit receives).",
+    }),
     debit: z
       .number()
       .min(0)

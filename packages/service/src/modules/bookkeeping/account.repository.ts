@@ -73,7 +73,12 @@ export const accountRepository = {
     return rows.map((r) => r.id);
   },
 
-  createStarterAccounts(
+  /**
+   * Seeds the starter chart in list order. Accounts with `parentCode` are
+   * inserted after the roots, linked to the parent row created above (one
+   * nesting level: a parent must not itself carry a parentCode).
+   */
+  async createStarterAccounts(
     ledgerId: string,
     accounts: Array<{
       type: string;
@@ -82,21 +87,44 @@ export const accountRepository = {
       icon?: string | null;
       flags?: string[];
       meta?: Record<string, unknown> | null;
+      parentCode?: string | null;
     }>,
     tx: Prisma.TransactionClient = prisma,
   ) {
-    if (accounts.length === 0) return Promise.resolve({ count: 0 });
-    return tx.bookAccount.createMany({
-      data: accounts.map((a) => ({
-        ...a,
-        ledgerId,
-        name: null,
-        meta:
-          a.meta === undefined || a.meta === null
-            ? undefined
-            : (a.meta as Prisma.InputJsonValue),
-      })),
+    if (accounts.length === 0) return { count: 0 };
+    const toRow = (a: (typeof accounts)[number], parentId?: string | null) => ({
+      type: a.type,
+      sortOrder: a.sortOrder,
+      code: a.code,
+      icon: a.icon,
+      flags: a.flags,
+      meta:
+        a.meta === undefined || a.meta === null
+          ? undefined
+          : (a.meta as Prisma.InputJsonValue),
+      ledgerId,
+      name: null,
+      parentId,
     });
+    const roots = accounts.filter((a) => !a.parentCode);
+    const children = accounts.filter((a) => a.parentCode != null);
+    // createManyAndReturn returns ids so children can link by parent code.
+    const createdRoots = await tx.bookAccount.createManyAndReturn({
+      data: roots.map((a) => toRow(a)),
+      select: { id: true, code: true },
+    });
+    if (children.length === 0) return { count: accounts.length };
+    const idByCode = new Map(
+      createdRoots
+        .filter((r): r is { id: string; code: string } => r.code !== null)
+        .map((r) => [r.code, r.id]),
+    );
+    await tx.bookAccount.createMany({
+      data: children.map((a) =>
+        toRow(a, idByCode.get(a.parentCode as string) ?? null),
+      ),
+    });
+    return { count: accounts.length };
   },
 
   create(
@@ -111,6 +139,8 @@ export const accountRepository = {
       icon?: string | null;
       flags?: string[];
       meta?: Record<string, unknown> | null;
+      /** Links the pocket to an owner-private master account. */
+      realAccountId?: string | null;
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
@@ -135,6 +165,8 @@ export const accountRepository = {
       status?: string;
       icon?: string | null;
       meta?: Record<string, unknown> | null;
+      /** Null unlinks the pocket from its master account. */
+      realAccountId?: string | null;
     },
     tx: Prisma.TransactionClient = prisma,
   ) {

@@ -50,7 +50,7 @@ export const updateAccountRoute = defineOpenAPIRoute({
     const body = c.req.valid("json");
     const access = await requireLedgerAccess(userId, ledgerId, "editor");
     assertLedgerWritable(access.ledger);
-    const account = await updateAccount(ledgerId, id, body);
+    const account = await updateAccount(userId, ledgerId, id, body);
     return c.json(serializeAccount(account), 200);
   },
 });

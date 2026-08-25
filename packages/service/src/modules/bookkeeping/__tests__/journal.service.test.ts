@@ -112,6 +112,57 @@ describe("validateJournalLines", () => {
     ).not.toThrow();
   });
 
+  it("resolves a null credit accountId to the defaultCredit pocket", () => {
+    const pocket = account({
+      id: "acc-default",
+      code: "defaultAccount",
+      flags: ["defaultDebit", "defaultCredit"],
+    });
+    const lines = validateJournalLines(
+      [
+        { accountId: null, debit: 0, credit: 50 },
+        { accountId: "acc-food", debit: 50, credit: 0 },
+      ],
+      [pocket, food],
+    );
+    expect(lines[0].accountId).toBe("acc-default");
+  });
+
+  it("resolves a null debit accountId to the defaultDebit pocket", () => {
+    const pocket = account({
+      id: "acc-default",
+      code: "defaultAccount",
+      flags: ["defaultDebit", "defaultCredit"],
+    });
+    const income = account({
+      id: "acc-income",
+      name: "Salary",
+      type: "income",
+    });
+    const lines = validateJournalLines(
+      [
+        { accountId: undefined, debit: 30, credit: 0 },
+        { accountId: "acc-income", debit: 0, credit: 30 },
+      ],
+      [pocket, income],
+    );
+    expect(lines[0].accountId).toBe("acc-default");
+  });
+
+  it("rejects an unselected side when no default pocket is seeded (400)", async () => {
+    await expectStatus(
+      () =>
+        validateJournalLines(
+          [
+            { accountId: null, debit: 0, credit: 50 },
+            { accountId: "acc-food", debit: 50, credit: 0 },
+          ],
+          [cash, food],
+        ),
+      400,
+    );
+  });
+
   it("rejects fewer than two lines (400)", async () => {
     await expectStatus(
       () =>

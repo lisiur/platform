@@ -30,11 +30,24 @@ const ALL_TYPES = [...ACCOUNT_TYPES, "equity"] as const;
 
 type MetaEntry = { key: string; value: string; raw?: unknown };
 
+/** Select sentinel meaning "not linked to any real account". */
+export const NO_REAL_ACCOUNT = "none";
+
+/** One of the caller's own masters, offered as a link target. */
+export type RealAccountOption = {
+  id: string;
+  name: string;
+  type: "asset" | "liability";
+  icon: string | null;
+};
+
 export type AccountFormInput = {
   name: string;
   type: (typeof ALL_TYPES)[number];
   icon: string;
   metaEntries: MetaEntry[];
+  /** NO_REAL_ACCOUNT | a real account id; only sent to the API when changed. */
+  realAccountId: string;
 };
 
 export interface AccountFormRef {
@@ -73,7 +86,10 @@ export function buildMeta(
   return Object.keys(meta).length > 0 ? meta : null;
 }
 
-export function accountToFormValues(account: AccountRow): AccountFormInput {
+export function accountToFormValues(
+  account: AccountRow,
+  realAccountId: string = NO_REAL_ACCOUNT,
+): AccountFormInput {
   return {
     // Seeded accounts start empty (the localized label is the placeholder);
     // a typed name becomes a custom override above the label.
@@ -81,6 +97,7 @@ export function accountToFormValues(account: AccountRow): AccountFormInput {
     type: account.type,
     icon: account.icon ?? "",
     metaEntries: metaToEntries(account.meta),
+    realAccountId,
   };
 }
 
@@ -93,6 +110,8 @@ interface AccountFormProps {
   nameOptional?: boolean;
   /** Placeholder for the name input (the account's localized label). */
   namePlaceholder?: string;
+  /** The caller's own masters; enables the "link to real account" picker. */
+  realAccountOptions?: RealAccountOption[];
 }
 
 export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
@@ -102,6 +121,7 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
       typeDisabled = false,
       nameOptional = false,
       namePlaceholder,
+      realAccountOptions,
     },
     ref,
   ) {
@@ -118,6 +138,7 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
           raw: z.unknown().optional(),
         }),
       ),
+      realAccountId: z.string(),
     });
 
     const form = useForm<AccountFormInput>({
@@ -141,6 +162,24 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
       value: type,
       label: t(`types.${type}`),
     }));
+
+    // The link picker only makes sense for real-world money pockets; income
+    // and expense categories stay ledger-local.
+    const watchedType = form.watch("type");
+    const linkable =
+      !!realAccountOptions &&
+      realAccountOptions.length > 0 &&
+      (watchedType === "asset" || watchedType === "liability");
+    const linkableOptions = (realAccountOptions ?? []).filter(
+      (option) => option.type === watchedType,
+    );
+    const realAccountItems = [
+      { value: NO_REAL_ACCOUNT, label: t("notLinked") },
+      ...linkableOptions.map((option) => ({
+        value: option.id,
+        label: option.name,
+      })),
+    ];
 
     return (
       <FieldGroup>
@@ -191,7 +230,14 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
             render={({ field, fieldState }) => (
               <Select
                 value={field.value}
-                onValueChange={field.onChange}
+                onValueChange={(value) => {
+                  const next = value ?? field.value;
+                  if (next === field.value) return;
+                  field.onChange(next);
+                  // Link options are filtered by type; drop any stale pick
+                  // rather than submit a mismatched type/master pair.
+                  form.setValue("realAccountId", NO_REAL_ACCOUNT);
+                }}
                 items={typeItems}
                 disabled={typeDisabled}
               >
@@ -219,6 +265,42 @@ export const AccountForm = forwardRef<AccountFormRef, AccountFormProps>(
             }
           />
         </Field>
+        {linkable && (
+          <Field>
+            <FieldLabel htmlFor="account-real">
+              {t("linkRealAccount")}
+            </FieldLabel>
+            <Controller
+              control={form.control}
+              name="realAccountId"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(value) =>
+                    field.onChange(value ?? NO_REAL_ACCOUNT)
+                  }
+                  items={realAccountItems}
+                >
+                  <SelectTrigger id="account-real">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_REAL_ACCOUNT}>
+                      {t("notLinked")}
+                    </SelectItem>
+                    {linkableOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.icon ? `${option.icon} ` : ""}
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldDescription>{t("linkRealAccountHint")}</FieldDescription>
+          </Field>
+        )}
         <Field>
           <FieldLabel>{t("meta")}</FieldLabel>
           <p className="text-sm text-muted-foreground">

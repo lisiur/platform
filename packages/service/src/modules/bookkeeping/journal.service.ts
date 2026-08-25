@@ -4,14 +4,24 @@ import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { assertLedgerWritable } from "./access";
 import { accountRepository } from "./account.repository";
-import { type LedgerRole, MAX_LINE_CENTS } from "./domain";
+import {
+  DEFAULT_CREDIT_ACCOUNT_FLAG,
+  DEFAULT_DEBIT_ACCOUNT_FLAG,
+  hasAccountFlag,
+  type LedgerRole,
+  MAX_LINE_CENTS,
+} from "./domain";
 import { type EntryWindow, journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
 
 export type JournalLineInput = {
-  accountId: string;
+  /**
+   * Null/omitted when the caller defers to the ledger's default pocket for
+   * this line's side (quick entry leaves the pay account unselected).
+   */
+  accountId?: string | null;
   debit: number;
   credit: number;
   memo?: string;
@@ -31,6 +41,9 @@ export type NormalizedJournalLine = {
  * - each line has exactly one positive side (debit XOR credit) after rounding to cents
  * - total debits equal total credits on the rounded (i.e. stored) amounts
  * - every referenced account exists, belongs to the ledger and is active
+ * - a line without an account resolves to the ledger's flagged default
+ *   pocket for its side (`defaultCredit` pays, `defaultDebit` receives);
+ *   400 when no such pocket is seeded
  *
  * Amounts are rounded to integer cents BEFORE balancing so what is validated
  * is exactly what gets stored. Returns the normalized lines for persistence.
@@ -67,7 +80,26 @@ export function validateJournalLines(
           "Each line must have exactly one positive amount on either debit or credit",
       });
     }
-    const account = accountsById.get(line.accountId);
+    // Unselected side falls back to the ledger's flagged default pocket
+    // (defaultCredit pays, defaultDebit receives).
+    let accountId = line.accountId;
+    if (!accountId) {
+      const fallback = ledgerAccounts.find((a) =>
+        hasAccountFlag(
+          a.flags,
+          creditCents > 0
+            ? DEFAULT_CREDIT_ACCOUNT_FLAG
+            : DEFAULT_DEBIT_ACCOUNT_FLAG,
+        ),
+      );
+      if (!fallback) {
+        throw new HTTPException(400, {
+          message: "No default account is configured for this ledger",
+        });
+      }
+      accountId = fallback.id;
+    }
+    const account = accountsById.get(accountId);
     if (!account) {
       throw new HTTPException(400, {
         message: "All lines must reference accounts from this ledger",
@@ -81,7 +113,7 @@ export function validateJournalLines(
     totalDebitCents += debitCents;
     totalCreditCents += creditCents;
     normalized.push({
-      accountId: line.accountId,
+      accountId,
       debitCents,
       creditCents,
       memo: line.memo,

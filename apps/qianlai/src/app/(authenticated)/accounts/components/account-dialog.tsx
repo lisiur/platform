@@ -16,12 +16,15 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAccountName } from "@/hooks/use-account-name";
+import { realAccountsQueryKey } from "@/hooks/use-real-accounts";
 import { appClient, withApiFeedback } from "@/lib/api";
 import {
   AccountForm,
   type AccountFormInput,
   type AccountFormRef,
   buildMeta,
+  NO_REAL_ACCOUNT,
+  type RealAccountOption,
 } from "./account-form";
 import type { AccountRow } from "./accounts-table";
 
@@ -30,6 +33,7 @@ interface AccountDialogProps {
   onOpenChange: (open: boolean) => void;
   ledgerId: string;
   parent?: AccountRow;
+  realAccountOptions?: RealAccountOption[];
 }
 
 /** Create dialog (top-level or child); editing happens in the detail panel. */
@@ -38,6 +42,7 @@ export function AccountDialog({
   onOpenChange,
   ledgerId,
   parent,
+  realAccountOptions,
 }: AccountDialogProps) {
   const t = useTranslations("Accounts");
   const accountName = useAccountName();
@@ -64,6 +69,13 @@ export function AccountDialog({
     setCreating(true);
     try {
       const meta = buildMeta(data.metaEntries);
+      // Link right away when the user picked one of their masters; the
+      // picker only renders for asset/liability types.
+      const linkReal =
+        data.realAccountId !== NO_REAL_ACCOUNT &&
+        (data.type === "asset" || data.type === "liability")
+          ? data.realAccountId
+          : undefined;
       await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].accounts.$post,
       )({
@@ -74,11 +86,15 @@ export function AccountDialog({
           parentId: parent?.id ?? null,
           icon: data.icon.trim() || null,
           ...(meta ? { meta } : {}),
+          ...(linkReal ? { realAccountId: linkReal } : {}),
         },
       });
       queryClient.invalidateQueries({
         queryKey: ["qianlai", "accounts", ledgerId],
       });
+      if (linkReal) {
+        queryClient.invalidateQueries({ queryKey: realAccountsQueryKey });
+      }
       toast.success(t("createSuccess"));
       onOpenChange(false);
     } catch {
@@ -108,8 +124,10 @@ export function AccountDialog({
               type: parent?.type ?? "asset",
               icon: "",
               metaEntries: [],
+              realAccountId: NO_REAL_ACCOUNT,
             }}
             typeDisabled={!!parent}
+            realAccountOptions={realAccountOptions}
           />
         </DialogBody>
         <DialogFooter>

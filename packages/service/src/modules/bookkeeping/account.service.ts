@@ -3,8 +3,14 @@ import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { assertLedgerWritable } from "./access";
 import { accountRepository } from "./account.repository";
-import { ACCOUNT_TYPES, type AccountType, isBuiltinAccount } from "./domain";
+import {
+  ACCOUNT_TYPES,
+  type AccountType,
+  isBuiltinAccount,
+  REAL_ACCOUNT_TYPES,
+} from "./domain";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
+import { realAccountRepository } from "./real-account.repository";
 
 /**
  * Locks the ledger row (FOR UPDATE) and re-checks writability under the lock.
@@ -61,12 +67,47 @@ async function isAncestorOf(
   return ancestorIds.includes(targetId);
 }
 
+/**
+ * Validates that `realAccountId` is an active master account of `userId`'s
+ * own whose type matches the pocket being linked, holding the master's row
+ * lock while doing so (mirrored by deleteRealAccount) so a concurrent delete
+ * cannot slip past this check and silently detach the pocket via SetNull.
+ * Foreign ids 404 (no existence leak) — linking is always to the operating
+ * user's own master.
+ */
+async function requireLinkableRealAccount(
+  userId: string,
+  realAccountId: string,
+  pocketType: string,
+  tx: Prisma.TransactionClient,
+) {
+  if (!REAL_ACCOUNT_TYPES.includes(pocketType as "asset" | "liability")) {
+    throw new HTTPException(400, {
+      message: "Only asset and liability accounts can link to a real account",
+    });
+  }
+  const real = await realAccountRepository.lockById(realAccountId, tx);
+  if (!real || real.ownerId !== userId) {
+    throw new HTTPException(404, { message: "Real account not found" });
+  }
+  if (real.status !== "active") {
+    throw new HTTPException(400, { message: "Real account is archived" });
+  }
+  if (real.type !== pocketType) {
+    throw new HTTPException(400, {
+      message: "Real account type must match the account type",
+    });
+  }
+  return real;
+}
+
 export async function listAccounts(ledgerId: string) {
   const accounts = await accountRepository.listByLedger(ledgerId);
   return { accounts };
 }
 
 export async function createAccount(
+  userId: string,
   ledgerId: string,
   data: {
     name: string;
@@ -74,12 +115,21 @@ export async function createAccount(
     parentId?: string | null;
     icon?: string | null;
     meta?: Record<string, unknown> | null;
+    realAccountId?: string | null;
   },
 ) {
   parseType(data.type);
   assertUserCreatableType(data.type);
   return prisma.$transaction(async (tx) => {
     await requireWritableLedger(ledgerId, tx);
+    if (data.realAccountId) {
+      await requireLinkableRealAccount(
+        userId,
+        data.realAccountId,
+        data.type,
+        tx,
+      );
+    }
     if (data.parentId) {
       const parent = await accountRepository.findById(data.parentId, tx);
       if (!parent || parent.ledgerId !== ledgerId) {
@@ -111,6 +161,7 @@ export async function createAccount(
 }
 
 export async function updateAccount(
+  userId: string,
   ledgerId: string,
   accountId: string,
   data: {
@@ -120,6 +171,8 @@ export async function updateAccount(
     status?: string;
     icon?: string | null;
     meta?: Record<string, unknown> | null;
+    /** String links, null unlinks, absent leaves the link untouched. */
+    realAccountId?: string | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -128,6 +181,14 @@ export async function updateAccount(
     // lines on a just-archived account.
     await requireWritableLedger(ledgerId, tx);
     const account = await requireAccountInLedger(accountId, ledgerId, tx);
+    if (data.realAccountId) {
+      await requireLinkableRealAccount(
+        userId,
+        data.realAccountId,
+        account.type,
+        tx,
+      );
+    }
     if (data.parentId) {
       if (data.parentId === accountId) {
         throw new HTTPException(400, {
