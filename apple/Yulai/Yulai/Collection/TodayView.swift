@@ -113,7 +113,7 @@ struct TodayView: View {
                     } else {
                         Image(systemName: "checkmark.circle")
                     }
-                    Text("已学习")
+                    Text("标记已学习")
                 }
             }
             .buttonStyle(.bordered)

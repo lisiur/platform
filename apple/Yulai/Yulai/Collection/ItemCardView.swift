@@ -51,7 +51,6 @@ struct ItemCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                BadgeView(text: item.type.label, color: item.type.badgeColor, font: CardFonts.badge)
                 if item.enrichStatus == .pending {
                     HStack(spacing: 4) {
                         ProgressView().controlSize(.small)
@@ -65,9 +64,6 @@ struct ItemCardView: View {
                 }
                 if item.enrichStatus == .failed {
                     BadgeView(text: "生成释义失败", color: .red, font: CardFonts.badge)
-                }
-                if let count = item.enrichmentsCount, count > 0 {
-                    BadgeView(text: "\(count) 条释义", outlined: true, font: CardFonts.badge)
                 }
             }
             Text(item.title ?? item.source)

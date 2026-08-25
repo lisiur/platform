@@ -42,8 +42,8 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
 
 enum CollectionItemStatus: String, Codable, CaseIterable, Identifiable {
     case active
-    case archived
     case learned
+    case archived
 
     var id: String { rawValue }
 
@@ -79,16 +79,6 @@ enum EnrichmentKind: String, CaseIterable, Identifiable {
         case .examples: "例句"
         case .synonyms: "同义词与反义词"
         case .grammar: "语法"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .translation: "中文翻译、发音与词性"
-        case .etymology: "单词的起源与历史"
-        case .examples: "自然的例句"
-        case .synonyms: "相关与相反的词"
-        case .grammar: "语法拆解与要点"
         }
     }
 }

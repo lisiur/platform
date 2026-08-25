@@ -10,18 +10,10 @@ struct EnrichmentSectionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(kind.label)
-                    .font(.subheadline.weight(.semibold))
-                Text(kind.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text(kind.label)
+                .font(.subheadline.weight(.semibold))
             if let data {
                 EnrichmentContentView(kind: kind, content: data.content, word: word)
-                Text("\(data.model) · \(CollectionTime.full(data.generatedAt))")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             } else if pending {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
@@ -35,16 +27,8 @@ struct EnrichmentSectionView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.primary.opacity(0.04))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08))
-        )
     }
 }
 
@@ -76,7 +60,7 @@ struct EnrichmentContentView: View {
                 }
             }
         case .etymology:
-            Text(content["origin"]?.stringValue ?? "")
+            highlighted(content["origin"]?.stringValue ?? "", base: .callout)
                 .font(.callout)
         case .examples:
             VStack(alignment: .leading, spacing: 8) {
@@ -109,7 +93,7 @@ struct EnrichmentContentView: View {
             }
         case .grammar:
             VStack(alignment: .leading, spacing: 8) {
-                Text(content["breakdown"]?.stringValue ?? "")
+                highlighted(content["breakdown"]?.stringValue ?? "", base: .callout)
                     .font(.callout)
                 let points = content["keyPoints"]?.arrayValue?
                     .compactMap(\.stringValue) ?? []
@@ -118,7 +102,7 @@ struct EnrichmentContentView: View {
                         ForEach(points, id: \.self) { point in
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
                                 Text("•")
-                                Text(point)
+                                highlighted(point, base: .callout)
                                     .font(.callout)
                             }
                         }

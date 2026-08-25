@@ -133,7 +133,8 @@ struct ItemDetailView: View {
 }
 
 /// The detail rendering shared by the pushed detail screen and the Today
-/// card pager: header card, failure banner, and enrichment sections.
+/// card pager: a single card combining the header and enrichment sections
+/// (separated by inset dividers), plus a standalone failure banner.
 /// Callers own scrolling and padding.
 struct ItemDetailContent: View {
     let item: CollectionItem
@@ -142,44 +143,56 @@ struct ItemDetailContent: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            headerCard
             if item.enrichStatus == .failed {
                 failureBanner
             }
-            let kinds = CollectionItemType.enrichmentKinds[item.type] ?? []
-            if kinds.isEmpty {
-                Text("此类型暂不支持 AI 释义。")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-            } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(kinds) { kind in
-                        EnrichmentSectionView(
-                            kind: kind,
-                            data: item.enrichments?.first { $0.kind == kind.rawValue },
-                            pending: item.enrichStatus == .pending,
-                            word: item.source
-                        )
-                    }
-                }
-            }
+            card
         }
     }
 
-    private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                BadgeView(text: item.type.label, color: item.type.badgeColor)
-                BadgeView(text: statusLabel(item.status), outlined: true)
-                Spacer()
-                Text(CollectionTime.full(item.createdAt))
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+    private var card: some View {
+        let kinds = CollectionItemType.enrichmentKinds[item.type] ?? []
+        return VStack(spacing: 0) {
+            headerSection
+            if kinds.isEmpty {
+                sectionDivider
+                Text("此类型暂不支持 AI 释义。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(18)
+            } else {
+                ForEach(kinds) { kind in
+                    sectionDivider
+                    EnrichmentSectionView(
+                        kind: kind,
+                        data: item.enrichments?.first { $0.kind == kind.rawValue },
+                        pending: item.enrichStatus == .pending,
+                        word: item.source
+                    )
+                }
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.primary.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08))
+        )
+    }
+
+    private var sectionDivider: some View {
+        Divider().padding(.leading, 18)
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text(item.source)
-                .font(.title3.weight(.semibold))
+                .font(.title.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
                 .textSelection(.enabled)
             if let title = item.title, !title.isEmpty {
                 Text(title)
@@ -202,14 +215,6 @@ struct ItemDetailContent: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08))
-        )
     }
 
     private var failureBanner: some View {
@@ -249,15 +254,6 @@ struct ItemDetailContent: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.red.opacity(0.35))
         )
-    }
-
-    private func statusLabel(_ status: String) -> String {
-        switch status {
-        case "active": "学习中"
-        case "archived": "已归档"
-        case "learned": "已学习"
-        default: status
-        }
     }
 }
 
