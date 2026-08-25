@@ -3,6 +3,14 @@ import SwiftUI
 struct CollectionListView: View {
     @Environment(CollectionStore.self) private var store
 
+    /// macOS cards carry larger fonts, so their adaptive columns need a
+    /// wider minimum to keep the text from wrapping too aggressively.
+    #if os(macOS)
+    private static let cardMinWidth: CGFloat = 270
+    #else
+    private static let cardMinWidth: CGFloat = 230
+    #endif
+
     @State private var searchText = ""
     @State private var lightweightToast: String?
     /// The item whose card is currently slid open; opening a card closes
@@ -70,7 +78,9 @@ struct CollectionListView: View {
         } else {
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 230), spacing: 12)],
+                    columns: [
+                        GridItem(.adaptive(minimum: Self.cardMinWidth), spacing: 12)
+                    ],
                     spacing: 12
                 ) {
                     ForEach(store.items) { item in

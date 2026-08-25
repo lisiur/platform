@@ -7,10 +7,11 @@ struct BadgeView: View {
     let text: String
     var color: Color = .accentColor
     var outlined = false
+    var font: Font = .caption2.weight(.medium)
 
     var body: some View {
         Text(text)
-            .font(.caption2.weight(.medium))
+            .font(font)
             .foregroundStyle(outlined ? .secondary : color)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
