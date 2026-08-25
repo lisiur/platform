@@ -16,6 +16,9 @@ struct CollectionListView: View {
     /// The item whose card is currently slid open; opening a card closes
     /// any other revealed card, like iMessage rows.
     @State private var revealedItemId: String?
+    /// Item pushed to the detail screen. Rows handle taps themselves so a
+    /// tap on a revealed card can close it without triggering navigation.
+    @State private var pushedItem: CollectionItem?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -42,7 +45,7 @@ struct CollectionListView: View {
         #if os(macOS)
         .searchable(text: $searchText, prompt: "搜索…")
         #endif
-        .navigationDestination(for: CollectionItem.self) { item in
+        .navigationDestination(item: $pushedItem) { item in
             ItemDetailView(itemId: item.id)
         }
         .task {
@@ -84,22 +87,36 @@ struct CollectionListView: View {
                     spacing: 12
                 ) {
                     ForEach(store.items) { item in
-                        NavigationLink(value: item) {
-                            StatusSwipeCard(
-                                status: item.status,
-                                isRevealed: Binding(
-                                    get: { revealedItemId == item.id },
-                                    set: { revealedItemId = $0 ? item.id : nil }
-                                )
+                        SwipeActionCard(
+                            leadingAction: SwipeAction(
+                                icon: item.status == "learned"
+                                    ? "arrow.counterclockwise" : "checkmark",
+                                color: item.status == "learned" ? .orange : .green,
+                                title: item.status == "learned" ? "标记学习中" : "标记已学习"
                             ) {
-                                ItemCardView(item: item)
-                            } onToggleStatus: {
                                 Task { await toggleStatus(item) }
-                            } onArchive: {
+                            },
+                            trailingAction: SwipeAction(
+                                icon: "archivebox",
+                                color: .gray,
+                                title: "归档"
+                            ) {
                                 Task { await archiveItem(item) }
-                            }
+                            },
+                            isRevealed: Binding(
+                                get: { revealedItemId == item.id },
+                                set: { revealedItemId = $0 ? item.id : nil }
+                            )
+                        ) {
+                            ItemCardView(item: item)
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // While any card is revealed, taps belong to the
+                            // reveal/close interaction, never navigation.
+                            guard revealedItemId == nil else { return }
+                            pushedItem = item
+                        }
                     }
                 }
             }
@@ -254,264 +271,5 @@ struct CollectionListView: View {
             store.toast = error.localizedDescription
             return false
         }
-    }
-}
-
-/// iMessage-style swipe with two stages: a short swipe slides the card
-/// aside and settles it open, revealing the action behind it (tap the
-/// action to run it); continuing into a long swipe past `triggerDistance`
-/// auto-runs the action and springs the card closed. Swiping right reveals
-/// the status toggle on the left; swiping left reveals Archive on the
-/// right; swiping the opposite way closes an open card. Vertical drags pass
-/// through to the enclosing scroll view. Only one card may be revealed at a
-/// time — the owner drives `isRevealed` so opening a card closes its
-/// siblings.
-private struct StatusSwipeCard<Content: View>: View {
-    enum RevealSide {
-        case toggle
-        case archive
-    }
-
-    enum DragAxis {
-        case horizontal
-        case vertical
-    }
-
-    let status: String
-    @Binding var isRevealed: Bool
-    @ViewBuilder let content: Content
-    let onToggleStatus: () -> Void
-    let onArchive: () -> Void
-
-    @State private var offsetX: CGFloat = 0
-    @State private var revealSide: RevealSide?
-    @GestureState private var isDragging = false
-    @State private var hasAutoTriggered = false
-    @State private var dragAxis: DragAxis?
-    /// True once onEnded ran, distinguishing a normal end from a system
-    /// cancellation (scroll view stealing the touch).
-    @State private var didEndDrag = false
-    /// Whether the action pills are present in the backgrounds. Set as soon
-    /// as a horizontal drag locks (the delayed progress mapping keeps them
-    /// invisible at first) and cleared inside the spring animation that
-    /// closes the card, so removal plays a scale-and-fade exit transition
-    /// instead of vanishing instantly.
-    @State private var showsActions = false
-
-    /// Diameter of the circular action revealed behind the card.
-    private let actionWidth: CGFloat = 56
-    /// Gap kept between the revealed action and the slid card.
-    private let actionMargin: CGFloat = 12
-    /// Distance the card settles at when open: the action plus its margin.
-    private var revealDistance: CGFloat { actionWidth + actionMargin }
-    /// A swipe past this distance auto-triggers the revealed action.
-    private var triggerDistance: CGFloat { revealDistance + 160 }
-
-    var body: some View {
-        content
-            // Tap-to-dismiss while revealed. Kept in a lightweight overlay
-            // so the card content keeps a stable view identity — swapping
-            // `content` between gesture/no-gesture branches rebuilt the
-            // whole card and caused a visible flash at drag end.
-            .overlay {
-                if isRevealed {
-                    Color.clear.onTapGesture { resetOffset() }
-                }
-            }
-            .offset(x: offsetX)
-            .background(alignment: .leading) {
-                if showsActions {
-                    toggleHint
-                        .transition(
-                            .scale(scale: 0.3, anchor: .center)
-                                .combined(with: .opacity)
-                        )
-                }
-            }
-            .background(alignment: .trailing) {
-                if showsActions {
-                    archiveHint
-                        .transition(
-                            .scale(scale: 0.3, anchor: .center)
-                                .combined(with: .opacity)
-                        )
-                }
-            }
-            // Keep the slid card inside its own grid cell so it never
-            // overlaps the neighboring column on multi-column layouts.
-            .clipped()
-            .gesture(
-                DragGesture(minimumDistance: 20)
-                    .updating($isDragging) { _, state, _ in state = true }
-                    .onChanged { value in
-                        guard !hasAutoTriggered else { return }
-                        lockDragAxisIfNeeded(value)
-                        guard dragAxis == .horizontal else { return }
-                        showsActions = true
-                        // Track the finger directly — spring-animating every
-                        // drag frame makes the action morph lag and flicker.
-                        offsetX = dragOffset(value.translation.width)
-                        if offsetX > triggerDistance {
-                            hasAutoTriggered = true
-                            onToggleStatus()
-                            resetOffset()
-                        } else if offsetX < -triggerDistance {
-                            hasAutoTriggered = true
-                            onArchive()
-                            resetOffset()
-                        }
-                    }
-                    .onEnded { value in
-                        defer {
-                            hasAutoTriggered = false
-                            dragAxis = nil
-                            didEndDrag = true
-                        }
-                        guard !hasAutoTriggered, dragAxis == .horizontal else { return }
-                        let final = dragOffset(value.translation.width)
-                        if final > revealDistance / 2 {
-                            open(.toggle)
-                        } else if final < -revealDistance / 2 {
-                            open(.archive)
-                        } else {
-                            resetOffset()
-                        }
-                    }
-            )
-            // onEnded is skipped when the system cancels the gesture (e.g.
-            // the scroll view claims the touch), so also reset the drag
-            // state whenever the drag stops being active. A cancellation
-            // never ran onEnded, so spring the card back closed.
-            .onChange(of: isDragging) {
-                if isDragging {
-                    didEndDrag = false
-                } else {
-                    hasAutoTriggered = false
-                    dragAxis = nil
-                    if !didEndDrag { resetOffset() }
-                }
-            }
-            // A sibling card opening flips this binding back to false.
-            .onChange(of: isRevealed) {
-                if !isRevealed, offsetX != 0 {
-                    revealSide = nil
-                    withAnimation(.spring(duration: 0.3)) {
-                        showsActions = false
-                        offsetX = 0
-                    }
-                }
-            }
-    }
-
-    /// The toggle action revealed on the leading side by a right swipe.
-    /// It scales up from its center, but its appearance is delayed until
-    /// the opened gap is wide enough to contain the scaled pill plus the
-    /// margin, so it never shows beneath the card; swiping past the reveal
-    /// stretches it toward the card, always keeping the margin between them.
-    @ViewBuilder
-    private var toggleHint: some View {
-        let reveal = max(offsetX, 0)
-        // The pill is centered in its 56pt square, so its scaled half-width
-        // is actionWidth / 2 * progress. It stays hidden until the card has
-        // opened actionWidth / 2 + margin, then grows to full size exactly
-        // as the gap reaches the settle distance.
-        let progress = min(
-            max(reveal - actionWidth / 2 - actionMargin, 0) / (actionWidth / 2),
-            1
-        )
-        let isLearned = status == "learned"
-        actionButton(
-            icon: isLearned ? "arrow.counterclockwise" : "checkmark",
-            color: isLearned ? Color.orange : Color.green,
-            width: max(actionWidth, reveal - actionMargin),
-            action: onToggleStatus
-        )
-        .scaleEffect(progress, anchor: .center)
-        .opacity(min(progress * 1.5, 1))
-        .allowsHitTesting(isRevealed)
-    }
-
-    /// The Archive action revealed on the trailing side by a left swipe.
-    /// It scales up from its center, but its appearance is delayed until
-    /// the opened gap is wide enough to contain the scaled pill plus the
-    /// margin, so it never shows beneath the card; swiping past the reveal
-    /// stretches it toward the card, always keeping the margin between them.
-    @ViewBuilder
-    private var archiveHint: some View {
-        let reveal = max(-offsetX, 0)
-        let progress = min(
-            max(reveal - actionWidth / 2 - actionMargin, 0) / (actionWidth / 2),
-            1
-        )
-        actionButton(
-            icon: "archivebox",
-            color: .gray,
-            width: max(actionWidth, reveal - actionMargin),
-            action: onArchive
-        )
-        .scaleEffect(progress, anchor: .center)
-        .opacity(min(progress * 1.5, 1))
-        .allowsHitTesting(isRevealed)
-    }
-
-    private func actionButton(
-        icon: String,
-        color: Color,
-        width: CGFloat,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            action()
-            resetOffset()
-        } label: {
-            Image(systemName: icon)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: width, height: actionWidth)
-                .background(Capsule().fill(color))
-        }
-        .buttonStyle(.plain)
-        .frame(maxHeight: .infinity)
-    }
-
-    /// Tracks the finger from either the closed or the revealed position.
-    /// From an open card, dragging the opposite way only closes — it never
-    /// crosses over into the other side's reveal.
-    private func dragOffset(_ translation: CGFloat) -> CGFloat {
-        let base = revealSide.map { $0 == .toggle ? revealDistance : -revealDistance } ?? 0
-        let offset = base + translation
-        guard isRevealed, let side = revealSide else { return offset }
-        switch side {
-        case .toggle: return max(offset, 0)
-        case .archive: return min(offset, 0)
-        }
-    }
-
-    private func open(_ side: RevealSide) {
-        withAnimation(.spring(duration: 0.3)) {
-            revealSide = side
-            isRevealed = true
-            offsetX = side == .toggle ? revealDistance : -revealDistance
-        }
-    }
-
-    private func resetOffset() {
-        withAnimation(.spring(duration: 0.3)) {
-            showsActions = false
-            revealSide = nil
-            isRevealed = false
-            offsetX = 0
-        }
-    }
-
-    /// Locks the drag axis once the movement is unambiguous, so a wiggling
-    /// finger can't flip it mid-gesture (which made the revealed action
-    /// flash on and off).
-    private func lockDragAxisIfNeeded(_ value: DragGesture.Value) {
-        guard dragAxis == nil else { return }
-        let width = abs(value.translation.width)
-        let height = abs(value.translation.height)
-        guard max(width, height) > 12 else { return }
-        dragAxis = width > height ? .horizontal : .vertical
     }
 }
