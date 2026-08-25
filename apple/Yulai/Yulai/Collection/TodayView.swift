@@ -149,8 +149,11 @@ struct TodayView: View {
         store.items.firstIndex(where: { $0.id == currentItemId }) ?? 0
     }
 
+    /// `.scrollPosition(id:)` writes nil into the binding during initial
+    /// layout before any card reports as visible; the pager still rests on
+    /// the first card, so actions target it instead of disabling.
     private var currentItem: CollectionItem? {
-        store.items.first { $0.id == currentItemId }
+        store.items.indices.contains(currentIndex) ? store.items[currentIndex] : nil
     }
 
     #if os(macOS)
