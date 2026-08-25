@@ -88,7 +88,7 @@ struct TodayView: View {
     /// Full-width, full-height cards — one card is one detail page;
     /// swipe horizontally to move between them.
     private var cardPager: some View {
-        ScrollView(.horizontal) {
+        ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 0) {
                 ForEach(store.items) { item in
                     TodayCardPageView(item: item)
@@ -99,7 +99,7 @@ struct TodayView: View {
         }
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentItemId)
-        .scrollIndicators(.hidden)
+        .scrollIndicators(.never)
     }
 
     private var cardFooter: some View {

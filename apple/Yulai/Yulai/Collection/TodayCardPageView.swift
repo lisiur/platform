@@ -93,6 +93,7 @@ struct TodayCardPageView: View {
             )
             .padding(20)
         }
+        .scrollIndicators(.never)
     }
 
     @discardableResult
