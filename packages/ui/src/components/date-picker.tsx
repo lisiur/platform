@@ -8,6 +8,8 @@ import { Button } from "./button";
 import { Calendar } from "./calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
+export type { DateRange, OnSelectHandler } from "react-day-picker";
+
 function formatDate(value: Date) {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, "0");

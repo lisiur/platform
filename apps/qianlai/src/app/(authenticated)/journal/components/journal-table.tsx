@@ -6,6 +6,7 @@ import {
   Badge,
   Button,
   ButtonGroup,
+  type DateRange,
   DateRangePicker,
   DropdownMenuItem,
   Input,
@@ -26,7 +27,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Trash2, Users, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import type { DateRange } from "react-day-promise";
 import { toast } from "sonner";
 import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -239,7 +239,9 @@ export function JournalTable() {
         />
         <Select
           value={participantMemberId || "all"}
-          onValueChange={(v) => setParticipantMemberId(v === "all" ? "" : v)}
+          onValueChange={(v) =>
+            setParticipantMemberId(!v || v === "all" ? "" : v)
+          }
           items={[
             { value: "all", label: t("allMembers") },
             ...members.map((m) => ({
