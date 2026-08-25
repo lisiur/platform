@@ -26,7 +26,6 @@ struct CollectionListView: View {
         .padding(20)
         #if os(macOS)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .frame(minWidth: 760, minHeight: 560)
         #endif
         .overlay(alignment: .bottom) {
             toastView

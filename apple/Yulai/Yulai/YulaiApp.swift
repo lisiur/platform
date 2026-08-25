@@ -26,10 +26,16 @@ struct YulaiApp: App {
             }
             .environment(authManager)
             .environment(collectionStore)
+            #if os(macOS)
+            .frame(minWidth: 520, minHeight: 520)
+            #endif
             .task {
                 await authManager.restoreSession()
             }
         }
+        #if os(macOS)
+        .windowResizability(.contentMinSize)
+        #endif
         #if os(macOS)
         MenuBarExtra {
             QuickAddMenuBarView()
