@@ -26,11 +26,11 @@ struct TodayCardPageView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let loadError, detail == nil {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label("Failed to load", systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(loadError)
                 } actions: {
-                    Button("重试") {
+                    Button("Retry") {
                         Task { await loadDetail() }
                     }
                 }
@@ -60,22 +60,22 @@ struct TodayCardPageView: View {
             }
         }
         .contextMenu {
-            Button("编辑") { isEditing = true }
-            Button("删除", role: .destructive) { isConfirmingDelete = true }
+            Button("Edit") { isEditing = true }
+            Button("Delete", role: .destructive) { isConfirmingDelete = true }
         }
         .confirmationDialog(
-            "删除此条目及其全部释义？此操作不可撤销。",
+            "Delete this item and all its enrichments? This action cannot be undone.",
             isPresented: $isConfirmingDelete,
             titleVisibility: .visible
         ) {
-            Button("删除", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 Task {
                     if await store.deleteItem(id: item.id) {
                         todayStore.removeItem(id: item.id)
                     }
                 }
             }
-            Button("取消", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isEditing) {
             ItemEditSheet(item: resolvedItem) {

@@ -43,7 +43,7 @@ struct CollectionListView: View {
         }
         .animation(.snappy(duration: 0.2), value: lightweightToast)
         #if os(macOS)
-        .searchable(text: $searchText, prompt: "搜索…")
+        .searchable(text: $searchText, prompt: "Search…")
         #endif
         .navigationDestination(item: $pushedItem) { item in
             ItemDetailView(itemId: item.id)
@@ -73,9 +73,9 @@ struct CollectionListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.items.isEmpty {
             ContentUnavailableView {
-                Label("还没有内容", systemImage: "tray")
+                Label("No items yet", systemImage: "tray")
             } description: {
-                Text("点击“添加”按钮收藏新内容。")
+                Text("Tap Add to collect new items.")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -92,14 +92,14 @@ struct CollectionListView: View {
                                 icon: item.status == "learned"
                                     ? "arrow.counterclockwise" : "checkmark",
                                 color: item.status == "learned" ? .orange : .green,
-                                title: item.status == "learned" ? "标记学习中" : "标记已学习"
+                                title: item.status == "learned" ? "Mark as studying" : "Mark as learned"
                             ) {
                                 Task { await toggleStatus(item) }
                             },
                             trailingAction: SwipeAction(
                                 icon: "archivebox",
                                 color: .gray,
-                                title: "归档"
+                                title: "Archive"
                             ) {
                                 Task { await archiveItem(item) }
                             },
@@ -129,7 +129,7 @@ struct CollectionListView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("搜索…", text: $searchText)
+            TextField("Search…", text: $searchText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
@@ -167,13 +167,13 @@ struct CollectionListView: View {
 
     private var typePicker: some View {
         Picker(
-            "类型",
+            "Item type",
             selection: Binding(
                 get: { store.typeFilter },
                 set: { store.typeFilter = $0 }
             )
         ) {
-            Text("全部").tag(CollectionItemType?.none)
+            Text("All").tag(CollectionItemType?.none)
             ForEach(CollectionItemType.allCases) { type in
                 Text(type.label).tag(CollectionItemType?.some(type))
             }
@@ -185,13 +185,13 @@ struct CollectionListView: View {
 
     private var statusPicker: some View {
         Picker(
-            "状态",
+            "Status",
             selection: Binding(
                 get: { store.statusFilter },
                 set: { store.statusFilter = $0 }
             )
         ) {
-            Text("全部").tag(CollectionItemStatus?.none)
+            Text("All").tag(CollectionItemStatus?.none)
             ForEach(CollectionItemStatus.allCases) { status in
                 Text(status.label).tag(CollectionItemStatus?.some(status))
             }
@@ -207,7 +207,7 @@ struct CollectionListView: View {
 
     private var paginationFooter: some View {
         HStack {
-            Text("共 \(store.total) 条")
+            Text("\(store.total) items")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -217,7 +217,7 @@ struct CollectionListView: View {
                 Image(systemName: "chevron.left")
             }
             .disabled(store.page <= 1)
-            Text("第 \(store.page) / \(store.pageCount) 页")
+            Text("Page \(store.page) / \(store.pageCount)")
                 .font(.footnote)
                 .monospacedDigit()
             Button {
@@ -245,12 +245,12 @@ struct CollectionListView: View {
     private func toggleStatus(_ item: CollectionItem) async {
         let newStatus = item.status == "learned" ? "active" : "learned"
         guard await setStatus(item, status: newStatus) else { return }
-        showLightweightToast(newStatus == "learned" ? "已标记为已学习" : "已恢复为学习中")
+        showLightweightToast(newStatus == "learned" ? "Marked as learned" : "Restored to studying")
     }
 
     private func archiveItem(_ item: CollectionItem) async {
         guard await setStatus(item, status: "archived") else { return }
-        showLightweightToast("已归档")
+        showLightweightToast("Archived")
     }
 
     @discardableResult

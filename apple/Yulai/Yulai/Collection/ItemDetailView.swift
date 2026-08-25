@@ -22,29 +22,29 @@ struct ItemDetailView: View {
                 detailBody(item)
             } else if let loadError {
                 ContentUnavailableView {
-                    Label("加载失败", systemImage: "wifi.exclamationmark")
+                    Label("Failed to load", systemImage: "wifi.exclamationmark")
                 } description: {
                     Text(loadError)
                 } actions: {
-                    Button("重试") {
+                    Button("Retry") {
                         Task { await load() }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ContentUnavailableView {
-                    Label("未找到该条目。", systemImage: "magnifyingglass")
+                    Label("Item not found.", systemImage: "magnifyingglass")
                 }
             }
         }
-        .navigationTitle("条目")
+        .navigationTitle("Item")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("编辑") { isEditing = true }
+                Button("Edit") { isEditing = true }
                     .disabled(item == nil)
             }
             ToolbarItem(placement: .primaryAction) {
-                Button("删除", role: .destructive) { isConfirmingDelete = true }
+                Button("Delete", role: .destructive) { isConfirmingDelete = true }
                     .disabled(item == nil)
             }
         }
@@ -66,18 +66,18 @@ struct ItemDetailView: View {
             }
         }
         .confirmationDialog(
-            "删除此条目及其全部释义？此操作不可撤销。",
+            "Delete this item and all its enrichments? This action cannot be undone.",
             isPresented: $isConfirmingDelete,
             titleVisibility: .visible
         ) {
-            Button("删除", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 Task {
                     if await store.deleteItem(id: itemId) {
                         dismiss()
                     }
                 }
             }
-            Button("取消", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $isEditing) {
             if let item {
@@ -156,7 +156,7 @@ struct ItemDetailContent: View {
             headerSection
             if kinds.isEmpty {
                 sectionDivider
-                Text("此类型暂不支持 AI 释义。")
+                Text("AI enrichment is not supported for this type.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,7 +220,7 @@ struct ItemDetailContent: View {
     private var failureBanner: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("自动生成释义失败")
+                Text("Auto-enrichment failed")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.red)
                 if let error = item.enrichError, !error.isEmpty {
@@ -239,7 +239,7 @@ struct ItemDetailContent: View {
                     } else {
                         Image(systemName: "arrow.clockwise")
                     }
-                    Text("重试")
+                    Text("Retry")
                 }
             }
             .buttonStyle(.bordered)
@@ -285,25 +285,25 @@ struct ItemEditSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("标题") {
-                    TextField("标题", text: $title)
+                Section("Title") {
+                    TextField("Title", text: $title)
                 }
-                Section("笔记") {
-                    TextField("笔记", text: $note, axis: .vertical)
+                Section("Note") {
+                    TextField("Note", text: $note, axis: .vertical)
                         .lineLimit(3...6)
                 }
-                Section("标签（逗号分隔）") {
+                Section("Tags (comma-separated)") {
                     TextField("adjective, daily", text: $tagsText)
                 }
-                Section("状态") {
-                    Picker("状态", selection: $status) {
-                        Text("学习中").tag("active")
-                        Text("已归档").tag("archived")
-                        Text("已学习").tag("learned")
+                Section("Status") {
+                    Picker("Status", selection: $status) {
+                        Text("Studying").tag("active")
+                        Text("Archived").tag("archived")
+                        Text("Learned").tag("learned")
                     }
                     .pickerStyle(.segmented)
                 }
-                Section("链接") {
+                Section("Link") {
                     TextField("https://…", text: $urlText)
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
@@ -317,14 +317,14 @@ struct ItemEditSheet: View {
                     }
                 }
             }
-            .navigationTitle("更新条目详情")
+            .navigationTitle("Update item details")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("Cancel") { dismiss() }
                         .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isSaving ? "保存中…" : "保存") {
+                    Button(isSaving ? "Saving…" : "Save") {
                         Task { await save() }
                     }
                     .disabled(isSaving)
@@ -340,7 +340,7 @@ struct ItemEditSheet: View {
         let trimmedURL = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedURL.isEmpty,
            trimmedURL.range(of: #"^https?://.+"#, options: .regularExpression) == nil {
-            urlError = "请输入有效的 http(s) 链接。"
+            urlError = "Please enter a valid http(s) URL."
             return
         }
         urlError = nil
@@ -358,7 +358,7 @@ struct ItemEditSheet: View {
         defer { isSaving = false }
         do {
             _ = try await store.updateItem(id: item.id, body: body)
-            store.toast = "条目已更新"
+            store.toast = "Item updated"
             onSaved()
             dismiss()
         } catch {

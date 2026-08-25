@@ -129,7 +129,7 @@ final class CollectionStore {
                 options: [.prettyPrinted, .sortedKeys]
             )
         } catch {
-            toast = "导出失败，请重试。"
+            toast = "Export failed. Please try again."
             return nil
         }
     }
@@ -146,11 +146,11 @@ final class CollectionStore {
             let importedItems = file.items,
             !importedItems.isEmpty
         else {
-            toast = "这不是有效的语来导出文件。"
+            toast = "This isn't a valid Yulai export file."
             return
         }
         guard importedItems.count <= 1000 else {
-            toast = "文件中条目过多（最多 1000 条）。请拆分后重试。"
+            toast = "Too many items in the file (max 1000). Please split and try again."
             return
         }
         pendingImport = PendingImport(
@@ -181,7 +181,7 @@ final class CollectionStore {
                 body: ImportBody(items: pending.items)
             )
             pendingImport = nil
-            toast = "已导入 \(result.created) 条，跳过 \(result.skipped) 条重复项"
+            toast = "Imported \(result.created) items, skipped \(result.skipped) duplicates"
             await resetAndLoad()
         } catch {
             toast = error.localizedDescription
@@ -205,7 +205,7 @@ final class CollectionStore {
     func deleteItem(id: String) async -> Bool {
         do {
             _ = try await client.send("DELETE", "collection/items/\(id)")
-            toast = "条目已删除"
+            toast = "Item deleted"
             await load()
             return true
         } catch {

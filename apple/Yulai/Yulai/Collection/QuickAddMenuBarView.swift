@@ -36,9 +36,9 @@ struct QuickAddMenuBarView: View {
 
     private var addContent: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("快速添加")
+            Text("Quick Add")
                 .font(.headline)
-            TextField("粘贴单词、短语或句子…", text: $source, axis: .vertical)
+            TextField("Paste a word, phrase, or sentence…", text: $source, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFieldFocused)
                 .lineLimit(1...5)
@@ -46,7 +46,7 @@ struct QuickAddMenuBarView: View {
                 .onSubmit(add)
             HStack(spacing: 10) {
                 if let detectedType {
-                    Text("识别为 \(detectedType.label)")
+                    Text("Detected: \(detectedType.label)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -57,7 +57,7 @@ struct QuickAddMenuBarView: View {
                             .controlSize(.small)
                             .tint(.white)
                     } else {
-                        Text("添加")
+                        Text("Add")
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -69,20 +69,20 @@ struct QuickAddMenuBarView: View {
 
     private var loggedOutContent: some View {
         ContentUnavailableView {
-            Label("未登录", systemImage: "person.crop.circle")
+            Label("Not signed in", systemImage: "person.crop.circle")
         } description: {
-            Text("登录语来后即可快速收藏。")
+            Text("Sign in to Yulai to start collecting.")
         }
     }
 
     private var footer: some View {
         HStack {
-            Text(authManager.currentUser?.greetingName ?? "语来")
+            Text(authManager.currentUser?.greetingName ?? "Yulai")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer()
-            Button("打开语来") {
+            Button("Open Yulai") {
                 openWindow(id: "main")
                 dismiss()
             }
@@ -94,7 +94,7 @@ struct QuickAddMenuBarView: View {
         if let feedback {
             switch feedback {
             case .success(let type):
-                Label("已加入收藏（\(type.label)）", systemImage: "checkmark.circle.fill")
+                Label("Added to collection (\(type.label)）", systemImage: "checkmark.circle.fill")
                     .font(.footnote)
                     .foregroundStyle(.green)
             case .failure(let message):

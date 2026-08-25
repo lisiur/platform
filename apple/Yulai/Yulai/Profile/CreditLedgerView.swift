@@ -16,15 +16,15 @@ struct CreditLedgerView: View {
             } else if store.ledgerEntries.isEmpty {
                 ContentUnavailableView {
                     Label(
-                        store.ledgerError == nil ? "暂无积分明细" : "加载失败",
+                        store.ledgerError == nil ? "No credit history" : "Failed to load",
                         systemImage: store.ledgerError == nil
                             ? "list.bullet.rectangle" : "exclamationmark.circle"
                     )
                 } description: {
-                    Text(store.ledgerError ?? "当前筛选条件下暂无记录。")
+                    Text(store.ledgerError ?? "No records match the current filter.")
                 } actions: {
                     if store.ledgerError != nil {
-                        Button("重试") {
+                        Button("Retry") {
                             Task { await store.loadLedger() }
                         }
                     }
@@ -49,14 +49,14 @@ struct CreditLedgerView: View {
                 }
             }
         }
-        .navigationTitle("积分明细")
+        .navigationTitle("Credit history")
         #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Picker(
-                    "时间",
+                    "Time",
                     selection: Binding(
                         get: { store.ledgerDateRange },
                         set: { store.ledgerDateRange = $0 }
@@ -70,7 +70,7 @@ struct CreditLedgerView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Picker(
-                    "类型",
+                    "Item type",
                     selection: Binding(
                         get: { store.ledgerFilter },
                         set: { store.ledgerFilter = $0 }
@@ -99,9 +99,9 @@ private struct LedgerRow: View {
 
     private var typeLabel: String {
         switch entry.type {
-        case "redeem": "兑换积分"
-        case "ai_usage": "AI 使用"
-        case "seed": "系统发放"
+        case "redeem": "Redeem points"
+        case "ai_usage": "AI usage"
+        case "seed": "System credit"
         default: entry.type
         }
     }
@@ -136,7 +136,7 @@ private struct LedgerRow: View {
                 Text(entry.amount > 0 ? "+\(entry.amount)" : "\(entry.amount)")
                     .font(.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(entry.amount >= 0 ? .green : .red)
-                Text("余额 \(entry.balanceAfter)")
+                Text("Balance \(entry.balanceAfter)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()

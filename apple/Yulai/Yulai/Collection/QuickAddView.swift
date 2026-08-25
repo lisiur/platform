@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Dedicated quick-add page behind the "添加" tab: paste or type any
+/// Dedicated quick-add page behind the "Add" tab: paste or type any
 /// word, phrase, or sentence — the type is detected automatically.
 struct QuickAddView: View {
     @Environment(CollectionStore.self) private var store
@@ -13,17 +13,18 @@ struct QuickAddView: View {
 
     enum Feedback: Equatable {
         case success(CollectionItemType)
+        case emptyPasteboard
         case failure(String)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("输入单词、短语或句子，类型将自动识别。")
+            Text("Enter a word, phrase, or sentence — the type will be detected automatically.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             sourceField
             if let detectedType {
-                Text("识别为 \(detectedType.label)")
+                Text("Detected: \(detectedType.label)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -43,7 +44,7 @@ struct QuickAddView: View {
     /// with a hand-drawn overlay, whose insets never quite match.
     private var sourceField: some View {
         TextField(
-            "粘贴或输入单词、短语或句子…",
+            "Paste or type a word, phrase, or sentence…",
             text: $source,
             axis: .vertical
         )
@@ -78,7 +79,7 @@ struct QuickAddView: View {
             Button {
                 pasteIntoField()
             } label: {
-                Label("粘贴", systemImage: "doc.on.clipboard")
+                Label("Paste", systemImage: "doc.on.clipboard")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -99,7 +100,7 @@ struct QuickAddView: View {
                         .controlSize(.small)
                         .tint(.white)
                 } else {
-                    Text("添加")
+                    Text("Add")
                 }
             }
             .frame(maxWidth: .infinity)
@@ -114,9 +115,14 @@ struct QuickAddView: View {
         if let feedback {
             switch feedback {
             case .success(let type):
-                Label("已加入收藏（\(type.label)）", systemImage: "checkmark.circle.fill")
+                Label("Added to collection (\(type.label)）", systemImage: "checkmark.circle.fill")
                     .font(.footnote)
                     .foregroundStyle(.green)
+                    .transition(.opacity)
+            case .emptyPasteboard:
+                Label("Nothing on the clipboard to paste", systemImage: "exclamationmark.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
                     .transition(.opacity)
             case .failure(let message):
                 Label(message, systemImage: "exclamationmark.circle.fill")
@@ -141,7 +147,7 @@ struct QuickAddView: View {
                 .trimmingCharacters(in: .whitespacesAndNewlines),
             !text.isEmpty
         else {
-            feedback = .failure("剪贴板没有可粘贴的内容")
+            feedback = .emptyPasteboard
             return
         }
         source = text
@@ -152,7 +158,6 @@ struct QuickAddView: View {
     private func add() {
         let trimmed = trimmedSource
         guard !trimmed.isEmpty, !isAdding else { return }
-        let type = CollectionItemType.detect(trimmed)
         feedback = nil
         isAdding = true
         Task {
@@ -184,7 +189,7 @@ struct QuickAddView: View {
 #Preview {
     NavigationStack {
         QuickAddView()
-            .navigationTitle("添加")
+            .navigationTitle("Add")
     }
     .environment(CollectionStore())
 }

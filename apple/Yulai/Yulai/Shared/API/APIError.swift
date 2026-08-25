@@ -16,9 +16,9 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .server(_, let message): message
-        case .transport: "网络连接失败，请检查网络后重试。"
-        case .invalidResponse: "服务器响应异常，请稍后重试。"
-        case .decodingFailed: "无法解析服务器返回的数据。"
+        case .transport: "Network connection failed. Check your connection and try again."
+        case .invalidResponse: "Server returned an unexpected response. Please try again later."
+        case .decodingFailed: "Couldn't parse the server response."
         }
     }
 }

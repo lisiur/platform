@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collectionStore
+    @Environment(LocaleSettings.self) private var localeSettings
     @State private var store = ProfileStore()
     @State private var isShowingRedeem = false
     @State private var isShowingImporter = false
@@ -37,18 +38,18 @@ struct ProfileView: View {
                 }
             }
             .confirmationDialog(
-                collectionStore.pendingImport.map { "找到 \($0.count) 条条目" } ?? "导入",
+                collectionStore.pendingImport.map { "\($0.count) items" } ?? "Import",
                 isPresented: $isShowingImportConfirm,
                 titleVisibility: .visible
             ) {
-                Button("导入") {
+                Button("Import") {
                     collectionStore.confirmImport()
                 }
-                Button("取消", role: .cancel) {
+                Button("Cancel", role: .cancel) {
                     collectionStore.cancelImport()
                 }
             } message: {
-                Text("从语来导出文件恢复条目。收藏中已存在的条目将被跳过。")
+                Text("Restore items from a Yulai export file. Items already in your collection will be skipped.")
             }
             .alert(
                 collectionStore.toast ?? "",
@@ -57,14 +58,14 @@ struct ProfileView: View {
                     set: { if !$0 { collectionStore.toast = nil } }
                 )
             ) {
-                Button("好", role: .cancel) {}
+                Button("OK", role: .cancel) {}
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         Task { await auth.logout() }
                     } label: {
-                        Label("退出登录", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                     .tint(.red)
                 }
@@ -113,7 +114,7 @@ struct ProfileView: View {
             if let user = auth.currentUser {
                 VStack(spacing: 10) {
                     avatar(user)
-                    Text(user.name ?? "未命名用户")
+                    Text(user.name ?? "Unnamed user")
                         .font(.title2.weight(.semibold))
                     if let email = user.email {
                         Text(email)
@@ -127,7 +128,7 @@ struct ProfileView: View {
             Button {
                 isShowingRedeem = true
             } label: {
-                Label("兑换积分", systemImage: "giftcard")
+                Label("Redeem points", systemImage: "giftcard")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
@@ -141,7 +142,7 @@ struct ProfileView: View {
                     } else {
                         Image(systemName: "square.and.arrow.down")
                     }
-                    Text(collectionStore.isExporting ? "导出中…" : "导出数据")
+                    Text(collectionStore.isExporting ? "Exporting…" : "Export data")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
@@ -157,17 +158,47 @@ struct ProfileView: View {
                     } else {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    Text(collectionStore.isImporting ? "导入中…" : "导入数据")
+                    Text(collectionStore.isImporting ? "Importing…" : "Import data")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 6)
             }
             .buttonStyle(.bordered)
             .disabled(collectionStore.isImporting)
+            languageCard
             #if os(macOS)
             Spacer()
             #endif
         }
+    }
+
+    private var languageCard: some View {
+        HStack {
+            Text("Language")
+                .font(.subheadline)
+            Spacer()
+            Picker(
+                "Language",
+                selection: Binding(
+                    get: { localeSettings.identifier },
+                    set: { localeSettings.set(identifier: $0) }
+                )
+            ) {
+                Text("Follow system").tag(LocaleSettings.systemIdentifier)
+                Text("English", comment: "Language name: English (native form)")
+                    .tag("en")
+                Text("简体中文", comment: "Language name: Simplified Chinese (native form)")
+                    .tag("zh-Hans")
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.quaternary)
+        )
     }
 
     #if !os(macOS)
@@ -199,12 +230,12 @@ struct ProfileView: View {
                         .foregroundStyle(Color.accentColor)
                 }
                 Text(credit.frozen > 0
-                     ? "剩余积分（含 \(credit.frozen) 冻结）"
-                     : "剩余积分")
+                     ? "Credits remaining (\(credit.frozen) frozen)"
+                     : "Credits remaining")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Text("积分信息不可用")
+                Text("Credit info unavailable")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 8)
@@ -225,7 +256,7 @@ struct ProfileView: View {
                 CreditLedgerView(store: store)
             } label: {
                 HStack(spacing: 2) {
-                    Text("积分明细")
+                    Text("Credit history")
                     Image(systemName: "chevron.right")
                         .font(.caption2.weight(.semibold))
                 }
@@ -274,9 +305,9 @@ struct ProfileView: View {
         if response == .OK, let url = panel.url {
             do {
                 try data.write(to: url)
-                collectionStore.toast = "导出成功"
+                collectionStore.toast = "Exported"
             } catch {
-                collectionStore.toast = "导出失败，请重试。"
+                collectionStore.toast = "Export failed. Please try again."
             }
         }
         #else
@@ -286,7 +317,7 @@ struct ProfileView: View {
             try data.write(to: url)
             exportedFileURL = url
         } catch {
-            collectionStore.toast = "导出失败，请重试。"
+            collectionStore.toast = "Export failed. Please try again."
         }
         #endif
     }
@@ -314,7 +345,7 @@ struct RedeemSheet: View {
             HStack(spacing: 8) {
                 Image(systemName: "giftcard.fill")
                     .foregroundStyle(Color.accentColor)
-                Text("兑换积分")
+                Text("Redeem points")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -326,7 +357,7 @@ struct RedeemSheet: View {
                 .buttonStyle(.plain)
                 .disabled(store.isRedeeming)
             }
-            Text("输入兑换码，积分将立即到账。")
+            Text("Enter a redemption code — credits will be added instantly.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             codeField
@@ -346,19 +377,19 @@ struct RedeemSheet: View {
                 Section {
                     codeField
                 } header: {
-                    Text("兑换码")
+                    Text("Redemption code")
                 } footer: {
                     feedback
                 }
             }
-            .navigationTitle("兑换积分")
+            .navigationTitle("Redeem points")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
+                    Button("Close") { dismiss() }
                         .disabled(store.isRedeeming)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(store.isRedeeming ? "兑换中…" : "兑换") {
+                    Button(store.isRedeeming ? "Redeeming…" : "Redeem") {
                         Task { await redeem() }
                     }
                     .disabled(
@@ -372,7 +403,7 @@ struct RedeemSheet: View {
     #endif
 
     private var codeField: some View {
-        TextField("请输入兑换码", text: $code)
+        TextField("Enter your redemption code", text: $code)
             .focused($isCodeFocused)
             #if os(macOS)
             .textFieldStyle(.plain)
@@ -402,7 +433,7 @@ struct RedeemSheet: View {
                         .controlSize(.small)
                         .tint(.white)
                 }
-                Text(store.isRedeeming ? "兑换中…" : "兑换")
+                Text(store.isRedeeming ? "Redeeming…" : "Redeem")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             }
@@ -418,7 +449,7 @@ struct RedeemSheet: View {
     private var feedback: some View {
         if let successBalance {
             Label(
-                "兑换成功，当前余额 \(successBalance) 积分。",
+                "Redeemed successfully. Current balance: \(successBalance) points.",
                 systemImage: "checkmark.circle.fill"
             )
             .font(.caption)

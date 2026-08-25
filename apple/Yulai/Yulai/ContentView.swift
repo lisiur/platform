@@ -15,12 +15,32 @@ enum AppTab: Hashable {
     /// intercepted to present the quick-add sheet instead of navigating.
     case quickAdd
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .today: "学习"
-        case .collection: "收藏"
-        case .profile: "我的"
-        case .quickAdd: "添加"
+        case .today:
+            LocalizedStringResource(
+                "Learning",
+                defaultValue: "Learning",
+                comment: "Bottom tab: learning deck (Chinese 学习)"
+            )
+        case .collection:
+            LocalizedStringResource(
+                "Collection",
+                defaultValue: "Collection",
+                comment: "Bottom tab: full collection"
+            )
+        case .profile:
+            LocalizedStringResource(
+                "Profile",
+                defaultValue: "Profile",
+                comment: "Bottom tab: profile and settings"
+            )
+        case .quickAdd:
+            LocalizedStringResource(
+                "Add",
+                defaultValue: "Add",
+                comment: "Bottom tab: quick-add pill (search-style)"
+            )
         }
     }
 
@@ -60,7 +80,7 @@ struct ContentView: View {
                 ) {
                     NavigationStack {
                         TodayView()
-                            .navigationTitle(AppTab.today.label)
+                            .navigationTitle(Text(AppTab.today.label))
                             .navigationBarTitleDisplayMode(.inline)
                     }
                     .environment(todayStore)
@@ -72,7 +92,7 @@ struct ContentView: View {
                 ) {
                     NavigationStack {
                         CollectionListView()
-                            .navigationTitle(AppTab.collection.label)
+                            .navigationTitle(Text(AppTab.collection.label))
                             .navigationBarTitleDisplayMode(.inline)
                     }
                 }
@@ -83,7 +103,7 @@ struct ContentView: View {
                 ) {
                     NavigationStack {
                         ProfileView()
-                            .navigationTitle(AppTab.profile.label)
+                            .navigationTitle(Text(AppTab.profile.label))
                             .navigationBarTitleDisplayMode(.inline)
                     }
                 }
@@ -121,7 +141,7 @@ struct ContentView: View {
                 set: { if !$0 { store.toast = nil } }
             )
         ) {
-            Button("好", role: .cancel) {}
+            Button("OK", role: .cancel) {}
         }
     }
 
@@ -144,10 +164,10 @@ struct ContentView: View {
     private var quickAddSheet: some View {
         NavigationStack {
             QuickAddView()
-                .navigationTitle("添加")
+                .navigationTitle("Add")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("关闭") { isQuickAddPresented = false }
+                        Button("Close") { isQuickAddPresented = false }
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
@@ -162,18 +182,18 @@ struct ContentView: View {
         case .today:
             NavigationStack {
                 TodayView()
-                    .navigationTitle(AppTab.today.label)
+                    .navigationTitle(Text(AppTab.today.label))
             }
             .environment(todayStore)
         case .collection:
             NavigationStack {
                 CollectionListView()
-                    .navigationTitle(AppTab.collection.label)
+                    .navigationTitle(Text(AppTab.collection.label))
             }
         case .profile:
             NavigationStack {
                 ProfileView()
-                    .navigationTitle(AppTab.profile.label)
+                    .navigationTitle(Text(AppTab.profile.label))
             }
         case .quickAdd:
             EmptyView()

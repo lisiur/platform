@@ -46,12 +46,32 @@ enum CreditLedgerFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .all: "全部类型"
-        case .redeem: "兑换积分"
-        case .aiUsage: "AI 使用"
-        case .seed: "系统发放"
+        case .all:
+            LocalizedStringResource(
+                "All types",
+                defaultValue: "All types",
+                comment: "Credit ledger filter: all types"
+            )
+        case .redeem:
+            LocalizedStringResource(
+                "Redeem points",
+                defaultValue: "Redeem points",
+                comment: "Credit ledger filter: redeem entries"
+            )
+        case .aiUsage:
+            LocalizedStringResource(
+                "AI usage",
+                defaultValue: "AI usage",
+                comment: "Credit ledger filter: AI usage entries"
+            )
+        case .seed:
+            LocalizedStringResource(
+                "System credit",
+                defaultValue: "System credit",
+                comment: "Credit ledger filter: system-issued credit"
+            )
         }
     }
 }
@@ -64,12 +84,32 @@ enum CreditLedgerDateRange: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .last7Days: "最近 7 天"
-        case .last30Days: "最近 30 天"
-        case .last90Days: "最近 90 天"
-        case .all: "全部时间"
+        case .last7Days:
+            LocalizedStringResource(
+                "Last 7 days",
+                defaultValue: "Last 7 days",
+                comment: "Credit ledger date range: last 7 days"
+            )
+        case .last30Days:
+            LocalizedStringResource(
+                "Last 30 days",
+                defaultValue: "Last 30 days",
+                comment: "Credit ledger date range: last 30 days"
+            )
+        case .last90Days:
+            LocalizedStringResource(
+                "Last 90 days",
+                defaultValue: "Last 90 days",
+                comment: "Credit ledger date range: last 90 days"
+            )
+        case .all:
+            LocalizedStringResource(
+                "All time",
+                defaultValue: "All time",
+                comment: "Credit ledger date range: all time"
+            )
         }
     }
 
@@ -144,7 +184,7 @@ final class ProfileStore {
     func redeem(code: String) async -> Int? {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            redeemError = "请输入兑换码。"
+            redeemError = "Please enter a redemption code."
             return nil
         }
         isRedeeming = true
@@ -179,7 +219,7 @@ final class ProfileStore {
         } catch {
             ledgerEntries = []
             ledgerTotal = 0
-            ledgerError = "积分明细加载失败，请重试。"
+            ledgerError = "Failed to load credit history. Please try again."
         }
     }
 

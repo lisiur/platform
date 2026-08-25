@@ -36,7 +36,7 @@ struct LoginView: View {
                 header
 
                 VStack(spacing: 16) {
-                    FormField(title: "邮箱", error: emailError) {
+                    FormField(title: "Email", error: emailError) {
                         TextField("you@example.com", text: $email)
                             .textFieldStyle(.plain)
                             .textContentType(.emailAddress)
@@ -50,8 +50,8 @@ struct LoginView: View {
                             .onSubmit { focusedField = .password }
                     }
 
-                    FormField(title: "密码", error: passwordError) {
-                        SecureField("输入密码", text: $password)
+                    FormField(title: "Password", error: passwordError) {
+                        SecureField("Enter your password", text: $password)
                             .textFieldStyle(.plain)
                             .textContentType(.password)
                             .focused($focusedField, equals: .password)
@@ -62,15 +62,15 @@ struct LoginView: View {
                             }
                     }
 
-                    Button("忘记密码？") {
+                    Button("Forgot password?") {
                         isShowingResetAlert = true
                     }
                     .font(.footnote)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .alert("重置密码", isPresented: $isShowingResetAlert) {
-                        Button("好", role: .cancel) {}
+                    .alert("Reset password", isPresented: $isShowingResetAlert) {
+                        Button("OK", role: .cancel) {}
                     } message: {
-                        Text("密码重置功能即将上线。")
+                        Text("Password reset is coming soon.")
                     }
 
                     if let formError {
@@ -90,7 +90,7 @@ struct LoginView: View {
                                     .controlSize(.small)
                                     .tint(.white)
                             }
-                            Text(isSubmitting ? "登录中…" : "登录")
+                            Text(isSubmitting ? "Signing in…" : "Sign in")
                                 .font(.headline)
                         }
                         .foregroundStyle(.white)
@@ -106,14 +106,14 @@ struct LoginView: View {
                             Button {
                                 Task { await unlockWithBiometrics() }
                             } label: {
-                                Label("使用 \(biometryName)", systemImage: biometryIcon)
+                                Label("Used \(biometryName)", systemImage: biometryIcon)
                                     .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 48)
                                     .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                             }
                             .buttonStyle(.plain)
-                            Text("将登录 \(email)")
+                            Text("Sign in as \(email)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -136,8 +136,8 @@ struct LoginView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Text("还没有账号？")
-                    Button("注册") {
+                    Text("No account yet?")
+                    Button("Sign up") {
                         isShowingSignUp = true
                     }
                     .bold()
@@ -173,9 +173,9 @@ struct LoginView: View {
                 .scaledToFit()
                 .frame(width: 84, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            Text("语来")
+            Text("Yulai")
                 .font(.largeTitle.bold())
-            Text("欢迎回来！登录以继续。")
+            Text("Welcome back! Sign in to continue.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -188,7 +188,7 @@ struct LoginView: View {
         case .faceID: "Face ID"
         case .touchID: "Touch ID"
         case .opticID: "Optic ID"
-        default: "设备密码"
+        default: "Device passcode"
         }
     }
 
@@ -239,7 +239,7 @@ struct LoginView: View {
                   let tokenData = credential.identityToken,
                   let identityToken = String(data: tokenData, encoding: .utf8)
             else {
-                formError = "Apple 登录未返回凭证，请重试。"
+                formError = "Apple Sign-In didn't return credentials. Please try again."
                 return
             }
 
@@ -263,12 +263,12 @@ struct LoginView: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !LoginValidator.isValidEmail(trimmedEmail) {
-            emailError = "请输入有效的邮箱地址。"
+            emailError = "Please enter a valid email address."
             focusedField = .email
             return
         }
         if password.isEmpty {
-            passwordError = "请输入密码。"
+            passwordError = "Please enter your password."
             focusedField = .password
             return
         }
@@ -313,12 +313,12 @@ struct SignUpView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                Text("创建账号")
+                Text("Create account")
                     .font(.title2.bold())
 
                 VStack(spacing: 16) {
-                    FormField(title: "昵称", error: nameError) {
-                        TextField("你的昵称", text: $name)
+                    FormField(title: "Nickname", error: nameError) {
+                        TextField("Your nickname", text: $name)
                             .textFieldStyle(.plain)
                             .textContentType(.name)
                             .focused($focusedField, equals: .name)
@@ -326,7 +326,7 @@ struct SignUpView: View {
                             .onSubmit { focusedField = .email }
                     }
 
-                    FormField(title: "邮箱", error: emailError) {
+                    FormField(title: "Email", error: emailError) {
                         TextField("you@example.com", text: $email)
                             .textFieldStyle(.plain)
                             .textContentType(.emailAddress)
@@ -340,8 +340,8 @@ struct SignUpView: View {
                             .onSubmit { focusedField = .password }
                     }
 
-                    FormField(title: "密码", error: passwordError) {
-                        SecureField("至少 10 个字符", text: $password)
+                    FormField(title: "Password", error: passwordError) {
+                        SecureField("At least 10 characters", text: $password)
                             .textFieldStyle(.plain)
                             .textContentType(.newPassword)
                             .focused($focusedField, equals: .password)
@@ -369,7 +369,7 @@ struct SignUpView: View {
                                     .controlSize(.small)
                                     .tint(.white)
                             }
-                            Text(isSubmitting ? "创建中…" : "注册")
+                            Text(isSubmitting ? "Creating…" : "Sign up")
                                 .font(.headline)
                         }
                         .frame(maxWidth: .infinity)
@@ -393,17 +393,17 @@ struct SignUpView: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedName.isEmpty {
-            nameError = "请输入昵称。"
+            nameError = "Please enter a nickname."
             focusedField = .name
             return
         }
         if !LoginValidator.isValidEmail(trimmedEmail) {
-            emailError = "请输入有效的邮箱地址。"
+            emailError = "Please enter a valid email address."
             focusedField = .email
             return
         }
         if password.count < 10 {
-            passwordError = "密码至少需要 10 个字符。"
+            passwordError = "Password must be at least 10 characters."
             focusedField = .password
             return
         }

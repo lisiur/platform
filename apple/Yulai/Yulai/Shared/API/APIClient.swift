@@ -183,12 +183,12 @@ final class APIClient {
         switch status {
         case 401:
             return (path == "auth/sign-in" || path == "auth/sign-up")
-                ? "邮箱或密码错误。"
-                : "登录已过期，请重新登录。"
+                ? "Incorrect email or password."
+                : "Your session has expired. Please sign in again."
         case 403:
-            return "没有权限执行此操作。"
+            return "You don't have permission to perform this action."
         default:
-            return "请求失败（\(status)）。"
+            return "Request failed (\(status)）。"
         }
     }
 }

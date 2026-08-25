@@ -21,9 +21,22 @@
 		7E57A10130357BDB000F3F45 /* YulaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YulaiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7E57A11130357BDB000F3F45 /* Exceptions for "Yulai" folder in "Yulai" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 25A4A06630357BDB000F3F45 /* Yulai */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		25A4A06930357BDB000F3F45 /* Yulai */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7E57A11130357BDB000F3F45 /* Exceptions for "Yulai" folder in "Yulai" target */,
+			);
 			path = Yulai;
 			sourceTree = "<group>";
 		};
@@ -143,6 +156,7 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 25A4A05E30357BDB000F3F45;
 			minimizedProjectReferenceProxies = 1;
@@ -332,6 +346,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INFOPLIST_FILE[sdk=macosx*]" = Yulai/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "语来";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "语来使用 Face ID 解锁账号，无需输入密码。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -381,6 +396,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
+				"INFOPLIST_FILE[sdk=macosx*]" = Yulai/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "语来";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "语来使用 Face ID 解锁账号，无需输入密码。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;

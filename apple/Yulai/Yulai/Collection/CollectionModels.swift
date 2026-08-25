@@ -8,11 +8,26 @@ enum CollectionItemType: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .word: "单词"
-        case .phrase: "短语"
-        case .sentence: "句子"
+        case .word:
+            LocalizedStringResource(
+                "Word",
+                defaultValue: "Word",
+                comment: "Collection item type: a single word"
+            )
+        case .phrase:
+            LocalizedStringResource(
+                "Phrase",
+                defaultValue: "Phrase",
+                comment: "Collection item type: a short phrase"
+            )
+        case .sentence:
+            LocalizedStringResource(
+                "Sentence",
+                defaultValue: "Sentence",
+                comment: "Collection item type: a full sentence"
+            )
         }
     }
 
@@ -47,11 +62,26 @@ enum CollectionItemStatus: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .active: "学习中"
-        case .archived: "已归档"
-        case .learned: "已学习"
+        case .active:
+            LocalizedStringResource(
+                "Studying",
+                defaultValue: "Studying",
+                comment: "Collection item status: being studied"
+            )
+        case .archived:
+            LocalizedStringResource(
+                "Archived",
+                defaultValue: "Archived",
+                comment: "Collection item status: archived"
+            )
+        case .learned:
+            LocalizedStringResource(
+                "Learned",
+                defaultValue: "Learned",
+                comment: "Collection item status: fully learned"
+            )
         }
     }
 }
@@ -72,13 +102,38 @@ enum EnrichmentKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .translation: "翻译"
-        case .etymology: "词源"
-        case .examples: "例句"
-        case .synonyms: "同义词与反义词"
-        case .grammar: "语法"
+        case .translation:
+            LocalizedStringResource(
+                "Translation",
+                defaultValue: "Translation",
+                comment: "Enrichment kind: translation"
+            )
+        case .etymology:
+            LocalizedStringResource(
+                "Etymology",
+                defaultValue: "Etymology",
+                comment: "Enrichment kind: etymology"
+            )
+        case .examples:
+            LocalizedStringResource(
+                "Examples",
+                defaultValue: "Examples",
+                comment: "Enrichment kind: example sentences"
+            )
+        case .synonyms:
+            LocalizedStringResource(
+                "Synonyms & Antonyms",
+                defaultValue: "Synonyms & Antonyms",
+                comment: "Enrichment kind: synonyms and antonyms"
+            )
+        case .grammar:
+            LocalizedStringResource(
+                "Grammar",
+                defaultValue: "Grammar",
+                comment: "Enrichment kind: grammar analysis"
+            )
         }
     }
 }

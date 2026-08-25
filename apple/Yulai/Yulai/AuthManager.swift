@@ -196,7 +196,7 @@ final class AuthManager {
         // device password instead of throwing .userFallback.
         try await context.evaluatePolicy(
             .deviceOwnerAuthentication,
-            localizedReason: "解锁你的语来账号。"
+            localizedReason: "Unlock your Yulai account."
         )
 
         // The keychain item is user-presence protected; passing the context
@@ -257,8 +257,8 @@ enum QuickLoginError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noStoredCredentials: "没有已保存的账号，请先用密码登录。"
-        case .biometricsUnavailable: "此设备未设置生物识别。"
+        case .noStoredCredentials: "No saved account. Please sign in with your password first."
+        case .biometricsUnavailable: "Biometrics aren't set up on this device."
         }
     }
 }

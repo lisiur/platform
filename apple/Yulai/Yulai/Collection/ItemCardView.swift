@@ -42,9 +42,9 @@ struct ItemCardView: View {
 
     private var statusBadge: some View {
         switch item.status {
-        case "learned": BadgeView(text: "已学习", color: .green, font: CardFonts.badge)
-        case "archived": BadgeView(text: "已归档", outlined: true, font: CardFonts.badge)
-        default: BadgeView(text: "学习中", color: .orange, font: CardFonts.badge)
+        case "learned": BadgeView(text: "Learned", color: .green, font: CardFonts.badge)
+        case "archived": BadgeView(text: "Archived", outlined: true, font: CardFonts.badge)
+        default: BadgeView(text: "Studying", color: .orange, font: CardFonts.badge)
         }
     }
 
@@ -54,7 +54,7 @@ struct ItemCardView: View {
                 if item.enrichStatus == .pending {
                     HStack(spacing: 4) {
                         ProgressView().controlSize(.small)
-                        Text("生成中…")
+                        Text("Generating…")
                     }
                     .font(CardFonts.badge)
                     .foregroundStyle(.secondary)
@@ -63,7 +63,7 @@ struct ItemCardView: View {
                     .background(Capsule().fill(Color.primary.opacity(0.06)))
                 }
                 if item.enrichStatus == .failed {
-                    BadgeView(text: "生成释义失败", color: .red, font: CardFonts.badge)
+                    BadgeView(text: "Enrichment failed", color: .red, font: CardFonts.badge)
                 }
             }
             Text(item.title ?? item.source)

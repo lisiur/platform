@@ -17,12 +17,12 @@ struct EnrichmentSectionView: View {
             } else if pending {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
-                    Text("条目添加后将自动生成全部释义…")
+                    Text("Enrichments will be auto-generated after the item is added…")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
             } else {
-                Text("尚未生成。")
+                Text("Not yet generated.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -85,10 +85,10 @@ struct EnrichmentContentView: View {
                 let antonyms = content["antonyms"]?.arrayValue?
                     .compactMap(\.stringValue) ?? []
                 if !synonyms.isEmpty {
-                    wordRow(label: "同义词", words: synonyms, outlined: false)
+                    wordRow(label: "Synonyms", words: synonyms, outlined: false)
                 }
                 if !antonyms.isEmpty {
-                    wordRow(label: "反义词", words: antonyms, outlined: true)
+                    wordRow(label: "Antonyms", words: antonyms, outlined: true)
                 }
             }
         case .grammar:
@@ -114,7 +114,7 @@ struct EnrichmentContentView: View {
 
     private func wordRow(label: String, words: [String], outlined: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(label)：")
+            Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             WrapLayout(spacing: 5) {

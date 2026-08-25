@@ -27,7 +27,7 @@ struct TodayView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("添加")
+                .accessibilityLabel("Add")
             }
         }
         .sheet(isPresented: $isQuickAddPresented) {
@@ -64,7 +64,7 @@ struct TodayView: View {
                 set: { if !$0 { store.toast = nil } }
             )
         ) {
-            Button("好", role: .cancel) {}
+            Button("OK", role: .cancel) {}
         }
     }
 
@@ -75,9 +75,9 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if store.items.isEmpty {
             ContentUnavailableView {
-                Label("全部已学完", systemImage: "checkmark.seal")
+                Label("All learned", systemImage: "checkmark.seal")
             } description: {
-                Text("没有待学习的内容了，收藏新内容后再来吧。")
+                Text("Nothing left to learn. Collect new items and come back.")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -113,7 +113,7 @@ struct TodayView: View {
                     } else {
                         Image(systemName: "checkmark.circle")
                     }
-                    Text("标记已学习")
+                    Text("Mark as learned")
                 }
             }
             .buttonStyle(.bordered)
@@ -160,10 +160,10 @@ struct TodayView: View {
     private var quickAddSheet: some View {
         NavigationStack {
             QuickAddView()
-                .navigationTitle("添加")
+                .navigationTitle("Add")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("关闭") { isQuickAddPresented = false }
+                        Button("Close") { isQuickAddPresented = false }
                     }
                 }
         }
@@ -196,7 +196,7 @@ struct TodayView: View {
 
     private var positionLabel: String {
         let shown = store.items.isEmpty ? 0 : currentIndex + 1
-        return "第 \(shown) / \(store.items.count) 张"
+        return "Card \(shown) / \(store.items.count)"
     }
 
     private func moveBy(_ delta: Int) {
@@ -245,7 +245,7 @@ struct TodayView: View {
 #Preview {
     NavigationStack {
         TodayView()
-            .navigationTitle("学习")
+            .navigationTitle("Learning")
     }
     .environment(TodayStore())
     .environment(CollectionStore())
