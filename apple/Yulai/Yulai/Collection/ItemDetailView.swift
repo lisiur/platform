@@ -159,7 +159,8 @@ struct ItemDetailContent: View {
                         EnrichmentSectionView(
                             kind: kind,
                             data: item.enrichments?.first { $0.kind == kind.rawValue },
-                            pending: item.enrichStatus == .pending
+                            pending: item.enrichStatus == .pending,
+                            word: item.source
                         )
                     }
                 }

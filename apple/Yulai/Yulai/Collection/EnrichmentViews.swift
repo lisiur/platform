@@ -4,6 +4,9 @@ struct EnrichmentSectionView: View {
     let kind: EnrichmentKind
     let data: ItemEnrichment?
     let pending: Bool
+    /// The collected term (`item.source`); occurrences inside example
+    /// sentences are highlighted.
+    var word: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -15,7 +18,7 @@ struct EnrichmentSectionView: View {
                     .foregroundStyle(.secondary)
             }
             if let data {
-                EnrichmentContentView(kind: kind, content: data.content)
+                EnrichmentContentView(kind: kind, content: data.content, word: word)
                 Text("\(data.model) · \(CollectionTime.full(data.generatedAt))")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -48,6 +51,7 @@ struct EnrichmentSectionView: View {
 struct EnrichmentContentView: View {
     let kind: EnrichmentKind
     let content: [String: EnrichValue]
+    var word: String = ""
 
     var body: some View {
         switch kind {
@@ -82,9 +86,9 @@ struct EnrichmentContentView: View {
                 ) { _, sentence in
                     let object = sentence.objectValue ?? [:]
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(object["en"]?.stringValue ?? "")
+                        highlighted(object["en"]?.stringValue ?? "", base: .callout)
                             .font(.callout)
-                        Text(object["zh"]?.stringValue ?? "")
+                        highlighted(object["zh"]?.stringValue ?? "", base: .caption)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -135,5 +139,46 @@ struct EnrichmentContentView: View {
                 }
             }
         }
+    }
+
+    /// The sentence with every occurrence of the collected term emphasized
+    /// (semibold, accent color). Built as an AttributedString because
+    /// `Text + Text` concatenation is deprecated as of macOS 26 / iOS 26;
+    /// in-Text styling wins over the ambient `.foregroundStyle(.secondary)`
+    /// on the zh line, keeping highlights visible in both languages.
+    private func highlighted(_ sentence: String, base: Font) -> Text {
+        var attributed = AttributedString(sentence)
+        for range in termRanges(in: sentence) {
+            guard
+                let attributedRange = Range(
+                    NSRange(range, in: sentence),
+                    in: attributed
+                )
+            else { continue }
+            attributed[attributedRange].swiftUI.foregroundColor = .accentColor
+            attributed[attributedRange].swiftUI.font = base.weight(.semibold)
+        }
+        return Text(attributed)
+    }
+
+    /// Case-insensitive occurrences of the term in the sentence. Phrases
+    /// match verbatim; single words also catch simple English inflections
+    /// (tests / tested / testing) via word boundaries.
+    private func termRanges(in sentence: String) -> [Range<String.Index>] {
+        let term = word.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty, !sentence.isEmpty else { return [] }
+        let pattern: String
+        let escaped = NSRegularExpression.escapedPattern(for: term)
+        if term.contains(where: \.isWhitespace) {
+            pattern = "(?i)\(escaped)"
+        } else {
+            pattern = "(?i)\\b\(escaped)(?:es|s|ed|ing)?\\b"
+        }
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return []
+        }
+        return regex
+            .matches(in: sentence, range: NSRange(sentence.startIndex..., in: sentence))
+            .compactMap { Range($0.range, in: sentence) }
     }
 }
