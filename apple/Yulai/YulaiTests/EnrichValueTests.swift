@@ -35,4 +35,16 @@ final class EnrichValueTests: XCTestCase {
     func testDecodeInvalidJSONThrows() {
         XCTAssertThrowsError(try decode(#"{"a":}"#))
     }
+
+    func testEncodeRoundTripsAsPlainJSON() throws {
+        let original = #"{"b":true,"n":1.5,"s":"x","a":[1,"two",null],"o":{"k":null}}"#
+        let value = try decode(original)
+        let encoded = try JSONEncoder().encode(value)
+        XCTAssertEqual(
+            try JSONDecoder().decode(EnrichValue.self, from: encoded),
+            value
+        )
+        let roundTripped = String(data: encoded, encoding: .utf8)
+        XCTAssertFalse(roundTripped?.contains("_0") ?? true)
+    }
 }

@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var store = ProfileStore()
     @State private var isShowingRedeem = false
     @State private var isShowingImporter = false
+    @State private var isShowingImportConfirm = false
     #if !os(macOS)
     @State private var exportedFileURL: URL?
     #endif
@@ -27,23 +28,36 @@ struct ProfileView: View {
                 allowedContentTypes: [.json]
             ) { result in
                 if case .success(let url) = result {
-                    Task { await collectionStore.prepareImport(from: url) }
+                    Task {
+                        await collectionStore.prepareImport(from: url)
+                        if collectionStore.pendingImport != nil {
+                            isShowingImportConfirm = true
+                        }
+                    }
                 }
             }
             .confirmationDialog(
                 collectionStore.pendingImport.map { "找到 \($0.count) 条条目" } ?? "导入",
-                isPresented: Binding(
-                    get: { collectionStore.pendingImport != nil },
-                    set: { if !$0 { collectionStore.pendingImport = nil } }
-                ),
+                isPresented: $isShowingImportConfirm,
                 titleVisibility: .visible
             ) {
                 Button("导入") {
-                    Task { await collectionStore.confirmImport() }
+                    collectionStore.confirmImport()
                 }
-                Button("取消", role: .cancel) {}
+                Button("取消", role: .cancel) {
+                    collectionStore.cancelImport()
+                }
             } message: {
                 Text("从语来导出文件恢复条目。收藏中已存在的条目将被跳过。")
+            }
+            .alert(
+                collectionStore.toast ?? "",
+                isPresented: Binding(
+                    get: { collectionStore.toast != nil },
+                    set: { if !$0 { collectionStore.toast = nil } }
+                )
+            ) {
+                Button("好", role: .cancel) {}
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

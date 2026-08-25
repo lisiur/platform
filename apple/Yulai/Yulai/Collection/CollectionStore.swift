@@ -160,8 +160,18 @@ final class CollectionStore {
         )
     }
 
-    func confirmImport() async {
+    /// Must be called synchronously from the dialog button so the payload is
+    /// captured before the dialog's dismissal mutates view state.
+    func confirmImport() {
         guard let pending = pendingImport else { return }
+        Task { await performImport(pending) }
+    }
+
+    func cancelImport() {
+        pendingImport = nil
+    }
+
+    private func performImport(_ pending: PendingImport) async {
         isImporting = true
         defer { isImporting = false }
         do {
