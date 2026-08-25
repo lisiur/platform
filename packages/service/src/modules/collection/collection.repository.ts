@@ -50,6 +50,13 @@ export const collectionRepository = {
     return new Set(rows.map((r) => r.source));
   },
 
+  findBySourceLean(ownerId: string, source: string) {
+    return prisma.collectionItem.findFirst({
+      where: { ownerId, source },
+      select: { id: true, status: true },
+    });
+  },
+
   createImported(
     data: {
       ownerId: string;

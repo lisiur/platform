@@ -8,8 +8,8 @@ import {
 } from "#lib/openapi";
 import { createItem } from "#modules/collection/collection.service";
 import {
-  collectionItemDetailSchema,
   createItemBodySchema,
+  createItemResponseSchema,
   serializeItemDetail,
 } from "./schema";
 
@@ -21,7 +21,7 @@ export const createItemRoute = defineOpenAPIRoute({
     tags: ["Collection"],
     summary: "Create a collection item",
     description:
-      "Captures an English word, phrase, sentence, article, or link into the current user's personal collection. Accepts session or Bearer-token (API token) auth, so external clients (browser extensions, share-sheets) can capture via a personal API token.",
+      "Captures an English word, phrase, sentence, article, or link into the current user's personal collection. Accepts session or Bearer-token (API token) auth, so external clients (browser extensions, share-sheets) can capture via a personal API token. When an item with the same source text already exists for the user, no duplicate is created: the stored item is reset to active (learning) so it reappears in the study deck immediately, and the response carries alreadyExists=true.",
     request: {
       body: {
         content: {
@@ -34,8 +34,8 @@ export const createItemRoute = defineOpenAPIRoute({
       ...unauthorizedResponse,
       ...badRequestResponse,
       ...createdResponseFn(
-        collectionItemDetailSchema,
-        "The created collection item",
+        createItemResponseSchema,
+        "The created (or deduplicated) collection item",
       ),
     },
   }),
@@ -59,6 +59,9 @@ export const createItemRoute = defineOpenAPIRoute({
       c,
     });
 
-    return c.json(serializeItemDetail(item), 201);
+    return c.json(
+      { ...serializeItemDetail(item), alreadyExists: item.alreadyExists },
+      201,
+    );
   },
 });

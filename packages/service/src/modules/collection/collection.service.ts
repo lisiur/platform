@@ -307,6 +307,20 @@ export async function retryItemEnrichment(ownerId: string, itemId: string) {
 export async function createItem(input: CreateItemInput) {
   const appId = input.appId ?? (await resolveStudybuddyAppId());
 
+  // Dedupe on capture: re-adding an existing source never creates a second
+  // row. The stored item is flipped back to active instead, so it shows up
+  // in the 学习 deck immediately; `alreadyExists` lets clients toast it.
+  const existing = await collectionRepository.findBySourceLean(
+    input.ownerId,
+    input.source,
+  );
+  if (existing) {
+    if (existing.status !== "active") {
+      await collectionRepository.update(existing.id, { status: "active" });
+    }
+    return readItemDetail(existing.id, input.ownerId, true);
+  }
+
   const item = await collectionRepository.create({
     ownerId: input.ownerId,
     appId,
@@ -324,15 +338,20 @@ export async function createItem(input: CreateItemInput) {
   // the UI can surface them.
   void runAutoEnrichment(input.ownerId, item.id);
 
-  const detail = await collectionRepository.findOwnedById(
-    input.ownerId,
-    item.id,
-  );
+  return readItemDetail(item.id, input.ownerId, false);
+}
+
+async function readItemDetail(
+  itemId: string,
+  ownerId: string,
+  alreadyExists: boolean,
+) {
+  const detail = await collectionRepository.findOwnedById(ownerId, itemId);
   if (!detail) {
     throw new HTTPException(500, { message: "Failed to read created item" });
   }
-  const attachments = await fetchItemAttachments(item.id);
-  return { ...detail, attachments };
+  const attachments = await fetchItemAttachments(itemId);
+  return { ...detail, attachments, alreadyExists };
 }
 
 export async function updateItem(

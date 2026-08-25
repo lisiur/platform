@@ -67,6 +67,16 @@ export const collectionItemDetailSchema = z
   })
   .openapi("CollectionItemDetail");
 
+export const createItemResponseSchema = collectionItemDetailSchema
+  .extend({
+    alreadyExists: z.boolean().openapi({
+      description:
+        "True when an item with the same source text already existed — no duplicate was created; the stored item was reset to active (learning) instead",
+      example: false,
+    }),
+  })
+  .openapi("CreateCollectionItemResponse");
+
 export const itemIdParamSchema = idParamSchema();
 
 export const retryEnrichResponseSchema = z
