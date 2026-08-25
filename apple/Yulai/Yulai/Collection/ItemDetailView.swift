@@ -154,10 +154,7 @@ struct ItemDetailContent: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
             } else {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 320), spacing: 12)],
-                    spacing: 12
-                ) {
+                LazyVStack(spacing: 12) {
                     ForEach(kinds) { kind in
                         EnrichmentSectionView(
                             kind: kind,
