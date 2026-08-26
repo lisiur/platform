@@ -16,9 +16,9 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .server(_, let message): message
-        case .transport: "Network connection failed. Check your connection and try again."
-        case .invalidResponse: "Server returned an unexpected response. Please try again later."
-        case .decodingFailed: "Couldn't parse the server response."
+        case .transport: L10n.string("api.error.network", defaultValue: "Network connection failed. Check your connection and try again.")
+        case .invalidResponse: L10n.string("api.error.server", defaultValue: "Server returned an unexpected response. Please try again later.")
+        case .decodingFailed: L10n.string("api.error.decoding", defaultValue: "Couldn't parse the server response.")
         }
     }
 }

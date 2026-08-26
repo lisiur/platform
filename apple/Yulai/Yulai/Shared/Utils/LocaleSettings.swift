@@ -13,7 +13,7 @@ final class LocaleSettings {
         "zh-Hans",
     ]
 
-    private static let storageKey = "app.preferredLocale"
+    static let storageKey = "app.preferredLocale"
 
     private(set) var identifier: String
 

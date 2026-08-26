@@ -1,7 +1,22 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "%lld": {},
+    "%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
     "%lld d ago": {
       "extractionState": "manual",
       "localizations": {
@@ -138,56 +153,18 @@
         }
       }
     },
-    "•": {},
-    "+%lld": {},
-    "Add": {
-      "extractionState": "manual",
+    "+%lld": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add"
+            "value": "+%lld"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加"
-          }
-        }
-      }
-    },
-    "Added to collection (%@)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Added to collection (%@)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已加入收藏（%@）"
-          }
-        }
-      }
-    },
-    "Added to collection (%@）": {},
-    "adjective, daily": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "adjective, daily"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "adjective, daily"
+            "value": "+%lld"
           }
         }
       }
@@ -222,6 +199,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "AI 使用"
+          }
+        }
+      }
+    },
+    "Add": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加"
+          }
+        }
+      }
+    },
+    "Added to collection (%@)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added to collection (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已加入收藏（%@）"
+          }
+        }
+      }
+    },
+    "Added to collection (%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added to collection (%@）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已收藏（%@）"
           }
         }
       }
@@ -1045,7 +1072,6 @@
         }
       }
     },
-    "https://…": {},
     "Import": {
       "extractionState": "manual",
       "localizations": {
@@ -1199,23 +1225,6 @@
         }
       }
     },
-    "just now": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "just now"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刚刚"
-          }
-        }
-      }
-    },
     "Language": {
       "extractionState": "manual",
       "localizations": {
@@ -1233,23 +1242,6 @@
         }
       }
     },
-    "Last 7 days": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last 7 days"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近 7 天"
-          }
-        }
-      }
-    },
     "Last 30 days": {
       "extractionState": "manual",
       "localizations": {
@@ -1263,6 +1255,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近 30 天"
+          }
+        }
+      }
+    },
+    "Last 7 days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last 7 days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近 7 天"
           }
         }
       }
@@ -1297,6 +1306,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "已学习"
+          }
+        }
+      }
+    },
+    "Learning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learning"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学习"
           }
         }
       }
@@ -1630,6 +1656,12 @@
           "stringUnit": {
             "state": "new",
             "value": "Page %1$lld / %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$lld / %2$lld 页"
           }
         }
       }
@@ -2518,7 +2550,6 @@
         }
       }
     },
-    "you@example.com": {},
     "Your nickname": {
       "extractionState": "manual",
       "localizations": {
@@ -2566,6 +2597,190 @@
           "stringUnit": {
             "state": "translated",
             "value": "语来"
+          }
+        }
+      }
+    },
+    "adjective, daily": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "adjective, daily"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "adjective, daily"
+          }
+        }
+      }
+    },
+    "api.error.decoding": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't parse the server response."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解析服务器响应。"
+          }
+        }
+      }
+    },
+    "api.error.network": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network connection failed. Check your connection and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络连接失败，请检查网络后重试。"
+          }
+        }
+      }
+    },
+    "api.error.server": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server returned an unexpected response. Please try again later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器响应异常，请稍后重试。"
+          }
+        }
+      }
+    },
+    "auth.biometricReason": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock your Yulai account."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解锁你的语来账户。"
+          }
+        }
+      }
+    },
+    "auth.quickLogin.biometricsUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biometrics aren't set up on this device."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此设备未设置生物识别。"
+          }
+        }
+      }
+    },
+    "auth.quickLogin.noStoredCredentials": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved account. Please sign in with your password first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未保存账号，请先用密码登录。"
+          }
+        }
+      }
+    },
+    "https://…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://…"
+          }
+        }
+      }
+    },
+    "just now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "just now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚刚"
+          }
+        }
+      }
+    },
+    "you@example.com": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you@example.com"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you@example.com"
+          }
+        }
+      }
+    },
+    "•": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "•"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "•"
           }
         }
       }
@@ -2648,23 +2863,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "请输入有效的 http(s) 链接。"
-          }
-        }
-      }
-    },
-    "Learning": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Learning"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "学习"
           }
         }
       }
