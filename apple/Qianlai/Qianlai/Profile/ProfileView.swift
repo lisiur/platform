@@ -9,7 +9,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Account hub: avatar/name/password management plus links to real accounts,
-/// ledger management, chart of accounts, reports, language, and sign out.
+/// ledger management, and language — with chart of accounts and reports
+/// grouped under the active ledger.
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(LedgerStore.self) private var ledgerStore
@@ -24,6 +25,7 @@ struct ProfileView: View {
         List {
             userSection
             manageSection
+            ledgerSection
             languageSection
             Section {
                 Button(role: .destructive) {
@@ -99,6 +101,13 @@ struct ProfileView: View {
             } label: {
                 Label("Ledgers", systemImage: "book")
             }
+        }
+    }
+
+    /// Accounts and reports belong to a ledger, so they live under the
+    /// active ledger's name.
+    private var ledgerSection: some View {
+        Section {
             NavigationLink {
                 AccountsView()
             } label: {
@@ -109,6 +118,8 @@ struct ProfileView: View {
             } label: {
                 Label("Reports", systemImage: "chart.pie")
             }
+        } header: {
+            Text(ledgerStore.activeLedger?.name ?? L10n.string("ledger.none", defaultValue: "No ledger"))
         }
     }
 
