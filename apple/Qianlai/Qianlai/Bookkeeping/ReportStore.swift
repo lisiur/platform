@@ -30,8 +30,21 @@ final class ReportStore {
 
     private(set) var ledgerId: String?
 
-    var fromDate: Date? { didSet { Task { await reloadWindowed() } } }
-    var toDate: Date? { didSet { Task { await reloadWindowed() } } }
+    var fromDate: Date? { didSet { scheduleWindowedReload() } }
+    var toDate: Date? { didSet { scheduleWindowedReload() } }
+
+    /// Coalesces preset commits (both bounds write back-to-back) into one
+    /// windowed refresh instead of two overlapping ones.
+    private var reloadTask: Task<Void, Never>?
+
+    private func scheduleWindowedReload() {
+        reloadTask?.cancel()
+        reloadTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            await reloadWindowed()
+        }
+    }
 
     func load(ledgerId: String) async {
         let ledgerChanged = self.ledgerId != ledgerId

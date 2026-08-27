@@ -23,11 +23,31 @@ final class JournalStore {
     private(set) var isLoadingMore = false
     private(set) var loadError: String?
     private(set) var ledgerId: String?
+    /// True once the first reload finished. Background refetches afterwards
+    /// must keep the current content (rows or empty state) on screen instead
+    /// of swapping in a blocking spinner — that swap was flashing the empty
+    /// state and bouncing the layout under the search bar.
+    private(set) var hasLoadedOnce = false
 
-    var searchQuery = "" { didSet { if oldValue != searchQuery { Task { await reload() } } } }
-    var fromDate: Date? { didSet { Task { await reload() } } }
-    var toDate: Date? { didSet { Task { await reload() } } }
-    var participantMemberId: String? { didSet { Task { await reload() } } }
+    var searchQuery = "" { didSet { guard !suppressReload, oldValue != searchQuery else { return }; scheduleReload() } }
+    var fromDate: Date? { didSet { scheduleReload() } }
+    var toDate: Date? { didSet { scheduleReload() } }
+    var participantMemberId: String? { didSet { scheduleReload() } }
+
+    /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
+    /// a single delayed reload so the list doesn't thrash mid-transition.
+    private var reloadTask: Task<Void, Never>?
+    private var suppressReload = false
+
+    private func scheduleReload() {
+        guard !suppressReload else { return }
+        reloadTask?.cancel()
+        reloadTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            await reload()
+        }
+    }
 
     var hasMore: Bool { entries.count < total }
 
@@ -37,13 +57,15 @@ final class JournalStore {
         entries = []
         total = 0
         loadError = nil
+        // New ledger is a genuine first load again.
+        hasLoadedOnce = false
         await reload()
     }
 
     func reload() async {
         guard let ledgerId else { return }
         isLoading = true
-        defer { isLoading = false }
+        defer { isLoading = false; hasLoadedOnce = true }
         do {
             let response: EntriesResponse = try await client.request(
                 "GET",
@@ -110,11 +132,16 @@ final class JournalStore {
         await reload()
     }
 
+    /// Batched clear: suppresses the per-key didSet storms so exactly one
+    /// coalesced reload runs for all four filters.
     func clearFilters() {
+        suppressReload = true
         searchQuery = ""
         fromDate = nil
         toDate = nil
         participantMemberId = nil
+        suppressReload = false
+        scheduleReload()
     }
 
     var hasActiveFilters: Bool {

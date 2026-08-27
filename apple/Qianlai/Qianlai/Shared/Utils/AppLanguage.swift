@@ -18,6 +18,16 @@ enum AppLanguage {
     private static let lock = NSLock()
     private static var bundleCache: [String: Bundle] = [:]
 
+    /// The locale matching the stored override, `.autoupdatingCurrent` when
+    /// following system. Formatters and calendars must use this instead of
+    /// the raw device locale, or their output ignores the in-app language.
+    /// Delegates to the observable `LocaleSettings` so tracking still works;
+    /// MainActor because `LocaleSettings` is.
+    @MainActor
+    static var preferredLocale: Locale {
+        LocaleSettings.shared.preferredLocale
+    }
+
     /// The override bundle for the stored identifier, or nil when following
     /// the system language.
     static var overrideBundle: Bundle? {

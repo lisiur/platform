@@ -25,14 +25,6 @@ struct QianlaiApp: App {
         self.toast = ToastCenter()
     }
 
-    private var preferredLocale: Locale {
-        switch localeSettings.identifier {
-        case "en": Locale(identifier: "en")
-        case "zh-Hans": Locale(identifier: "zh-Hans")
-        default: .autoupdatingCurrent
-        }
-    }
-
     var body: some Scene {
         WindowGroup(id: "main") {
             Group {
@@ -52,7 +44,7 @@ struct QianlaiApp: App {
             .environment(reportStore)
             .environment(toast)
             .environment(localeSettings)
-            .environment(\.locale, preferredLocale)
+            .environment(\.locale, localeSettings.preferredLocale)
             #if os(macOS)
             .frame(minWidth: 640, minHeight: 640)
             #endif

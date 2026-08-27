@@ -16,6 +16,10 @@ struct JournalView: View {
     @Environment(ReportStore.self) private var reportStore
     @State private var memberStore = MemberStore()
     @State private var entryPendingDelete: JournalEntry?
+    /// Local text for `.searchable`: bound straight from store via a computed
+    /// Binding, any unrelated store write (reload flags, filter commits)
+    /// re-renders the search field mid-animation and makes it flash.
+    @State private var searchField = ""
 
     private let debouncer = Debouncer()
 
@@ -39,7 +43,7 @@ struct JournalView: View {
                 LedgerSwitcherMenu()
             }
             ToolbarItem(placement: .navigation) {
-                filterMenu
+                filterButton
             }
         }
         .task(id: ledgerStore.activeLedger?.id) {
@@ -71,7 +75,11 @@ struct JournalView: View {
     @ViewBuilder
     private func list(_ ledger: QianlaiLedger) -> some View {
         List {
-            if store.isLoading, store.entries.isEmpty {
+            // Blocking spinner only before anything has ever loaded; later
+            // refetches keep the current content (rows or empty state) until
+            // the response replaces it atomically — swapping content on every
+            // refetch flashed "No entries yet" and bounced the search bar.
+            if store.isLoading, store.entries.isEmpty, !store.hasLoadedOnce {
                 HStack {
                     Spacer()
                     ProgressView()
@@ -130,83 +138,63 @@ struct JournalView: View {
             }
         }
         #if os(iOS)
-        .searchable(
-            text: Binding(
-                get: { store.searchQuery },
-                set: { newValue in
-                    debouncer.run {
-                        store.searchQuery = newValue
-                    }
-                }
-            ),
-            prompt: Text("Search memos…")
-        )
+        .searchable(text: $searchField, prompt: Text("Search memos…"))
         #else
         .searchable(
-            text: Binding(
-                get: { store.searchQuery },
-                set: { newValue in
-                    debouncer.run {
-                        store.searchQuery = newValue
-                    }
-                }
-            ),
+            text: $searchField,
             placement: .toolbar,
             prompt: Text("Search memos…")
         )
         #endif
+        .onChange(of: searchField) { _, newValue in
+            debouncer.run {
+                store.searchQuery = newValue
+            }
+        }
+        // Keep the local field in step when the store resets it (Clear).
+        .onChange(of: store.searchQuery) { _, newValue in
+            if newValue != searchField {
+                // Cancel any pending debounced write or it would commit the
+                // pre-clear text right after this sync.
+                debouncer.cancel()
+                searchField = newValue
+            }
+        }
         .refreshable {
             await store.reload()
         }
     }
 
-    private var filterMenu: some View {
-        Menu {
-            Section {
-                DatePicker(
-                    "From",
-                    selection: Binding(
-                        get: { store.fromDate ?? Date.distantPast },
-                        set: { store.fromDate = $0 == .distantPast ? nil : $0 }
-                    ),
-                    displayedComponents: .date
-                )
-                DatePicker(
-                    "To",
-                    selection: Binding(
-                        get: { store.toDate ?? Date.distantPast },
-                        set: { store.toDate = $0 == .distantPast ? nil : $0 }
-                    ),
-                    displayedComponents: .date
-                )
-            }
+    private var filterButton: some View {
+        FilterSheetButton(
+            fromDate: Binding(
+                get: { store.fromDate },
+                set: { store.fromDate = $0 }
+            ),
+            toDate: Binding(
+                get: { store.toDate },
+                set: { store.toDate = $0 }
+            ),
+            isActive: store.hasActiveFilters,
+            icon: "line.3.horizontal.decrease.circle",
+            onClear: { store.clearFilters() }
+        ) {
             if !memberStore.members.isEmpty {
                 Section {
-                    Button("All Members") { store.participantMemberId = nil }
-                    ForEach(memberStore.members) { member in
-                        Button {
-                            store.participantMemberId = member.id
-                        } label: {
-                            if store.participantMemberId == member.id {
-                                Label(member.displayName, systemImage: "checkmark")
-                            } else {
-                                Text(member.displayName)
-                            }
+                    Picker(
+                        "Participant",
+                        selection: Binding(
+                            get: { store.participantMemberId ?? "" },
+                            set: { store.participantMemberId = $0.isEmpty ? nil : $0 }
+                        )
+                    ) {
+                        Text("All Members").tag("")
+                        ForEach(memberStore.members) { member in
+                            Text(member.displayName).tag(member.id)
                         }
                     }
                 }
             }
-            if store.hasActiveFilters {
-                Section {
-                    Button(role: .destructive) {
-                        store.clearFilters()
-                    } label: {
-                        Label("Clear Filters", systemImage: "xmark.circle")
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: store.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
         }
     }
 
@@ -234,5 +222,10 @@ final class Debouncer: @unchecked Sendable {
                 action()
             }
         }
+    }
+
+    func cancel() {
+        task?.cancel()
+        task = nil
     }
 }

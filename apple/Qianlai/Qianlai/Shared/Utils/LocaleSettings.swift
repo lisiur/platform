@@ -37,4 +37,15 @@ final class LocaleSettings {
         self.identifier = identifier
         UserDefaults.standard.set(identifier, forKey: Self.storageKey)
     }
+
+    /// The locale matching `identifier`, `.autoupdatingCurrent` when
+    /// following system. Reading this in the scene content keeps the
+    /// Observation dependency on `identifier`, so an in-app language switch
+    /// re-injects `\.locale` without a relaunch.
+    var preferredLocale: Locale {
+        switch identifier {
+        case Self.systemIdentifier: .autoupdatingCurrent
+        default: Locale(identifier: identifier)
+        }
+    }
 }

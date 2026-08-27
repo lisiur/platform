@@ -50,7 +50,7 @@ struct ReportsView: View {
                 LedgerSwitcherMenu()
             }
             ToolbarItem(placement: .navigation) {
-                dateFilterMenu
+                dateFilterButton
             }
         }
         .task(id: ledgerStore.activeLedger?.id) {
@@ -59,39 +59,19 @@ struct ReportsView: View {
         }
     }
 
-    private var dateFilterMenu: some View {
-        Menu {
-            DatePicker(
-                "From",
-                selection: Binding(
-                    get: { store.fromDate ?? Date.distantPast },
-                    set: { store.fromDate = $0 == .distantPast ? nil : $0 }
-                ),
-                displayedComponents: .date
-            )
-            DatePicker(
-                "To",
-                selection: Binding(
-                    get: { store.toDate ?? Date.distantPast },
-                    set: { store.toDate = $0 == .distantPast ? nil : $0 }
-                ),
-                displayedComponents: .date
-            )
-            if store.fromDate != nil || store.toDate != nil {
-                Button(role: .destructive) {
-                    store.fromDate = nil
-                    store.toDate = nil
-                } label: {
-                    Label("Clear Filters", systemImage: "xmark.circle")
-                }
-            }
-        } label: {
-            Image(
-                systemName: (store.fromDate != nil || store.toDate != nil)
-                    ? "calendar.badge.clock"
-                    : "calendar"
-            )
-        }
+    private var dateFilterButton: some View {
+        FilterSheetButton(
+            fromDate: Binding(
+                get: { store.fromDate },
+                set: { store.fromDate = $0 }
+            ),
+            toDate: Binding(
+                get: { store.toDate },
+                set: { store.toDate = $0 }
+            ),
+            isActive: store.fromDate != nil || store.toDate != nil,
+            icon: "calendar"
+        ) {}
     }
 
     private var content: some View {
