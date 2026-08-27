@@ -56,18 +56,6 @@ export function LedgersTable() {
     queryClient.invalidateQueries({ queryKey: ["qianlai", "ledgers"] });
   }
 
-  const setDefault = useMutation({
-    mutationFn: async (ledger: QianlaiLedger) => {
-      await withApiFeedback(
-        appClient.api.bookkeeping.ledgers[":id"].default.$post,
-      )({ param: { id: ledger.id } });
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success(t("updateSuccess"));
-    },
-  });
-
   const archiveToggle = useMutation({
     mutationFn: async (ledger: QianlaiLedger) => {
       const archiving = ledger.status === "active";
@@ -207,14 +195,6 @@ export function LedgersTable() {
                               <Pencil />
                               {t("edit")}
                             </DropdownMenuItem>
-                            {!ledger.isDefault && (
-                              <DropdownMenuItem
-                                onClick={() => setDefault.mutate(ledger)}
-                              >
-                                <Star />
-                                {t("setDefault")}
-                              </DropdownMenuItem>
-                            )}
                             <DropdownMenuItem
                               onClick={() => archiveToggle.mutate(ledger)}
                             >

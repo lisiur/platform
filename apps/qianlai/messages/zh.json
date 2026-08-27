@@ -138,7 +138,6 @@
     "createSuccess": "账本已创建",
     "updateSuccess": "账本已更新",
     "deleteSuccess": "账本已删除",
-    "setDefault": "设为默认",
     "archive": "归档",
     "unarchive": "取消归档",
     "archiveSuccess": "账本已归档",

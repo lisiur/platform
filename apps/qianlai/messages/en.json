@@ -138,7 +138,6 @@
     "createSuccess": "Ledger created",
     "updateSuccess": "Ledger updated",
     "deleteSuccess": "Ledger deleted",
-    "setDefault": "Set as Default",
     "archive": "Archive",
     "unarchive": "Unarchive",
     "archiveSuccess": "Ledger archived",

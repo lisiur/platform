@@ -10,7 +10,6 @@ import SwiftUI
 /// Ledger management: create, join by share code, edit, set default,
 /// archive/unarchive, delete, leave, and open the members manager.
 struct LedgersView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ToastCenter.self) private var toast
     @State private var editingLedger: QianlaiLedger?
@@ -67,11 +66,8 @@ struct LedgersView: View {
                 }
                 .accessibilityLabel(Text("Create Ledger"))
             }
-            ToolbarItem(placement: .navigation) {
-                Button("Join") { isShowingJoin = true }
-            }
             ToolbarItem(placement: .cancellationAction) {
-                Button("Done") { dismiss() }
+                Button("Join") { isShowingJoin = true }
             }
         }
         .task {
@@ -150,7 +146,6 @@ struct LedgersView: View {
     }
 
     private func row(_ ledger: QianlaiLedger) -> some View {
-        let isActive = ledger.id == ledgerStore.activeLedger?.id
         let isOwner = ledger.myRole == .owner
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
@@ -165,10 +160,6 @@ struct LedgersView: View {
                     BadgeView(text: L10n.string("ledgers.shared", defaultValue: "Shared"), outlined: true)
                 }
                 Spacer()
-                if isActive {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.accentColor)
-                }
             }
             HStack(spacing: 8) {
                 Text(ledger.currency)
@@ -194,7 +185,9 @@ struct LedgersView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture {
-            ledgerStore.setActive(ledger.id)
+            if isOwner {
+                editingLedger = ledger
+            }
         }
         .contextMenu {
             Button {
@@ -207,20 +200,6 @@ struct LedgersView: View {
                     editingLedger = ledger
                 } label: {
                     Label("Edit", systemImage: "pencil")
-                }
-                if !ledger.isDefault {
-                    Button {
-                        Task {
-                            do {
-                                try await ledgerStore.setDefault(ledger)
-                                toast.show(L10n.string("ledgers.updateSuccess", defaultValue: "Ledger updated"))
-                            } catch {
-                                toast.show(error.localizedDescription)
-                            }
-                        }
-                    } label: {
-                        Label("Set as Default", systemImage: "star")
-                    }
                 }
                 Button {
                     Task {
@@ -276,13 +255,14 @@ struct LedgerFormView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "Name", error: nameError) {
-                    TextField("e.g. Family, Travel 2026", text: $name)
-                        .textFieldStyle(.plain)
-                        .submitLabel(.done)
-                        .onSubmit { dismissKeyboard() }
+                TextField("Name", text: $name)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
+                if let nameError {
+                    Label(nameError, systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.red)
                 }
-                .listRowBackground(Color.clear)
                 TextField("Description (optional)", text: $description, axis: .vertical)
                 Picker("Currency", selection: $currency) {
                     ForEach(currencies, id: \.self) { code in

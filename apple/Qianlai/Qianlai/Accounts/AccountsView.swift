@@ -56,6 +56,16 @@ struct AccountsView: View {
                 }
             }
             #endif
+            if canManage {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isShowingCreate = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(Text("New Account"))
+                }
+            }
         }
         .environment(store)
         .environment(realAccountStore)
@@ -164,22 +174,6 @@ struct AccountsView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .listRowSeparator(.hidden)
-            }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            if canManage {
-                Button {
-                    isShowingCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .background(Circle().fill(Color.accentColor))
-                        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
-                        .padding(20)
-                }
-                .accessibilityLabel(Text("New Account"))
             }
         }
         #if os(iOS)

@@ -109,11 +109,6 @@ final class LedgerStore {
         await load()
     }
 
-    func setDefault(_ ledger: QianlaiLedger) async throws {
-        _ = try await client.send("POST", "bookkeeping/ledgers/\(ledger.id)/default")
-        await load()
-    }
-
     func archiveToggle(_ ledger: QianlaiLedger) async throws {
         let status = ledger.isActive ? "archived" : "active"
         _ = try await client.send(
