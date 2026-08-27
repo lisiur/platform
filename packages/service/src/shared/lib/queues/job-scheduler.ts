@@ -4,6 +4,12 @@ import type { JobExecutorContext } from "./job-executor-context";
 import type { JobQueue } from "./job-queue";
 
 const MAX_TIMER_DURATION_MS = 24 * 60 * 60 * 1000;
+// Re-arm cadence after a failed DB round-trip: keeps the scheduler alive
+// across transient outages (e.g. pool exhaustion) instead of dying silently.
+const ERROR_RETRY_MS = 60_000;
+// Minimum delay before re-querying when jobs are already due. Prevents a
+// hot claim/findNext loop when a due row exists that can never be claimed.
+const MIN_DUE_RELOAD_DELAY_MS = 1_000;
 
 interface JobSchedulerDeps {
   repository: JobInstanceRepository;
@@ -39,12 +45,10 @@ export class JobScheduler {
       await this.loadExpiredJobs();
     } catch (err) {
       // Recovery succeeded but initial load failed. Don't reset `started`:
-      // onJobCreated still works, and the template scheduler's dispatch will
-      // eventually arm a timer. If all pending rows are already due and no
-      // future-scheduled job exists, they sit until the next job:created
-      // event — a best-effort boot edge case, not a regression (the old code
-      // had the same gap when loadExpiredJobs threw).
+      // onJobCreated still works, and the fallback timer keeps the scheduler
+      // polling until the DB recovers.
       console.error("[job-scheduler] initial loadExpiredJobs failed:", err);
+      this.armErrorRetryTimer();
     }
   }
 
@@ -85,15 +89,41 @@ export class JobScheduler {
     } else if (delay > 0) {
       this.timer = setTimeout(() => this.onTimerFire(), delay);
     } else {
-      await this.loadExpiredJobs();
+      // Due now, but reload through a timer instead of recursing directly:
+      // a row that stays due-but-unclaimable must not spin this loop hot.
+      this.timer = setTimeout(
+        () => this.onTimerFire(),
+        MIN_DUE_RELOAD_DELAY_MS,
+      );
     }
   }
 
-  private async onTimerFire(): Promise<void> {
-    await this.loadExpiredJobs();
+  private onTimerFire(): void {
+    this.loadExpiredJobs().catch((err) => {
+      // A thrown load (e.g. pool exhaustion) must not kill the timer chain:
+      // re-arm a slower poll so dispatch resumes once the DB recovers.
+      console.error("[job-scheduler] scheduled load failed:", err);
+      this.armErrorRetryTimer();
+    });
   }
 
-  private async onJobCreated(job: JobInstance): Promise<void> {
+  /** Rearms the timer at the slower error-retry cadence. */
+  private armErrorRetryTimer(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+    this.timer = setTimeout(() => this.onTimerFire(), ERROR_RETRY_MS);
+  }
+
+  private onJobCreated(job: JobInstance): void {
+    // Invoked synchronously from emit(); catch here so a DB failure never
+    // surfaces as an unhandled rejection.
+    this.handleJobCreated(job).catch((err) =>
+      console.error("[job-scheduler] onJobCreated failed:", err),
+    );
+  }
+
+  private async handleJobCreated(job: JobInstance): Promise<void> {
     const now = new Date();
     if (job.scheduledAt <= now) {
       const claimed = await this.deps.repository.claimJobById(job.id, now);

@@ -5,6 +5,14 @@ import type { JobInstanceRepository } from "#modules/jobs/job-instance.repositor
 import type { JobExecutorContext } from "./job-executor-context";
 
 const MAX_TIMER_DURATION_MS = 24 * 60 * 60 * 1000;
+// When no future-scheduled template is found (or the lookup fails), re-poll
+// at this cadence instead of leaving the scheduler unarmed: during a DB
+// outage a failed claim can leave every nextRunAt in the past, and without
+// this fallback the scheduler would silently stop until a restart.
+const FALLBACK_POLL_MS = 60_000;
+// Minimum delay before dispatching when a template is already due, so a
+// claim that keeps failing cannot spin dispatchDue hot.
+const MIN_DUE_DISPATCH_DELAY_MS = 1_000;
 
 interface JobTemplateSchedulerDeps {
   jobRepository: JobRepository;
@@ -75,16 +83,30 @@ export class JobTemplateScheduler {
       this.timer = null;
     }
 
-    const nextTemplate = await this.deps.jobRepository.findNextDueTemplate();
-    if (!nextTemplate?.nextRunAt) return;
-
-    const delay = nextTemplate.nextRunAt.getTime() - Date.now();
-
-    if (delay > MAX_TIMER_DURATION_MS) {
-      this.timer = setTimeout(() => this.onTimerFire(), MAX_TIMER_DURATION_MS);
-    } else if (delay > 0) {
-      this.timer = setTimeout(() => this.onTimerFire(), delay);
+    // A failed lookup must not leave the scheduler unarmed: fall back to a
+    // slow poll so dispatch resumes once the DB recovers.
+    let delay: number | null = null;
+    try {
+      const nextTemplate = await this.deps.jobRepository.findNextDueTemplate();
+      if (nextTemplate?.nextRunAt) {
+        delay = Math.max(
+          nextTemplate.nextRunAt.getTime() - Date.now(),
+          MIN_DUE_DISPATCH_DELAY_MS,
+        );
+      }
+    } catch (err) {
+      console.error(
+        "[job-template-scheduler] findNextDueTemplate failed:",
+        err,
+      );
     }
+
+    this.timer = setTimeout(
+      () => this.onTimerFire(),
+      delay === null
+        ? FALLBACK_POLL_MS
+        : Math.min(delay, MAX_TIMER_DURATION_MS),
+    );
   }
 
   private onTimerFire(): void {

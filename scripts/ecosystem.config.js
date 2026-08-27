@@ -90,6 +90,9 @@ module.exports = {
     instances: 1,
     autorestart: true,
     max_memory_restart: "1G",
+    // Timestamp every log line: post-mortems shouldn't have to guess when an
+    // error was emitted (see the 2026-08-27 CPU incident analysis).
+    log_date_format: "YYYY-MM-DD HH:mm:ss Z",
     env: {
       ...systemEnv,
       ...appEnv,

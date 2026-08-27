@@ -1,14 +1,38 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEPLOY_ROOT } from "./config";
 import { log } from "./log";
 import { type SpawnResult, spawnAsync } from "./spawn";
 import { patch } from "./state";
 
-// The three application processes. The updater runs in its OWN ecosystem file
-// (updater.config.js), so these names never include itself — every helper here
-// is structurally incapable of restarting the daemon mid-update.
-const APPS = ["gateway", "admin", "organization"];
+// The application processes, derived from the manifest.json shipped in the
+// deploy root — the same source of truth ecosystem.config.js uses. The updater
+// runs in its OWN ecosystem file (updater.config.js), so this list never
+// includes itself — every helper here is structurally incapable of restarting
+// the daemon mid-update. Deriving (not hard-coding) the list keeps restarts
+// and deletes in lockstep when apps are added to manifest.json: a stale list
+// would leave the missed app running OLD code forever (exactly how the
+// 2026-08-27 incident's stale-gateway symptom arises).
+function readAppNames(): string[] {
+  try {
+    const manifest = JSON.parse(
+      readFileSync(join(DEPLOY_ROOT, "manifest.json"), "utf8"),
+    ) as { apps?: Array<{ name?: string }> };
+    const names = (manifest.apps ?? [])
+      .map((a) => a.name)
+      .filter((n): n is string => typeof n === "string");
+    if (names.length === 0) throw new Error("manifest has no apps");
+    return names;
+  } catch (err) {
+    // Unreadable/invalid manifest: refuse to run blind pm2 operations rather
+    // than touching the wrong set of processes.
+    throw new Error(
+      `Cannot read app list from ${join(DEPLOY_ROOT, "manifest.json")}: ${(err as Error).message}`,
+    );
+  }
+}
+
+const APPS = readAppNames();
 const ECOSYSTEM_FILE = join(DEPLOY_ROOT, "ecosystem.config.js");
 
 interface RunOpts {
