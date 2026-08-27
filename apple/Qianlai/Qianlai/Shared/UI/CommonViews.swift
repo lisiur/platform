@@ -283,7 +283,7 @@ private enum FilterPickerData {
     static var monthSymbols: [String] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = AppLanguage.preferredLocale
-        return calendar.standaloneMonthSymbols ?? []
+        return calendar.standaloneMonthSymbols
     }
 
     static var currentYear: Int { Calendar.current.component(.year, from: .now) }
