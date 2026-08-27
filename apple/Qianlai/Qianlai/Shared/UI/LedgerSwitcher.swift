@@ -45,7 +45,6 @@ struct LedgerSwitcherMenu: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(.quaternary))
         }
         .sheet(isPresented: $isShowingManage) {
             NavigationStack {
