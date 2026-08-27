@@ -387,6 +387,8 @@ struct BalanceAdjustmentView: View {
                 .listRowBackground(Color.clear)
                 DatePicker("As of", selection: $date, displayedComponents: .date)
                 TextField("Memo (e.g. cash count)", text: $memo)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
             } footer: {
                 Text("A balanced entry against the system equity account is posted automatically. Entries after the as-of date are left untouched.")
             }

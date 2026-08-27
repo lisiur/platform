@@ -89,6 +89,8 @@ struct QuickEntryView: View {
 
             Section {
                 TextField("Memo (e.g. weekly groceries)", text: $draft.memo)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
             }
 
             if !memberStore.members.isEmpty {

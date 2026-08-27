@@ -245,6 +245,8 @@ struct RealAccountFormView: View {
                     TextField("e.g. CMB Savings Card", text: $name)
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 if let nameError {
                     Label(nameError, systemImage: "exclamationmark.circle")
@@ -257,6 +259,8 @@ struct RealAccountFormView: View {
                     TextField("Emoji, e.g. 🏦", text: $icon)
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                         #if os(iOS)
                         .frame(width: 160)
                         #endif
@@ -268,9 +272,13 @@ struct RealAccountFormView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         TextField("Label", text: $entry.key)
                             .font(.subheadline)
+                            .submitLabel(.done)
+                            .onSubmit { dismissKeyboard() }
                         TextField("Value", text: $entry.value)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .submitLabel(.done)
+                            .onSubmit { dismissKeyboard() }
                     }
                 }
                 .onDelete { metaEntries.remove(atOffsets: $0) }

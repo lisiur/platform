@@ -14,6 +14,17 @@ import AppKit
 import Observation
 import SwiftUI
 
+/// Ends editing so an open keyboard closes. For `.onSubmit` handlers whose
+/// return key should only dismiss.
+func dismissKeyboard() {
+    #if canImport(UIKit)
+    UIApplication.shared.sendAction(
+        #selector(UIResponder.resignFirstResponder),
+        to: nil, from: nil, for: nil
+    )
+    #endif
+}
+
 struct BadgeView: View {
     let text: String
     var color: Color = .accentColor

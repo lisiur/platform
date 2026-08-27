@@ -216,6 +216,8 @@ struct EditNameView: View {
                 FormField(title: "Name", error: nil) {
                     TextField("Your name", text: $name)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
             }
@@ -282,16 +284,22 @@ struct ChangePasswordView: View {
                 FormField(title: "Current Password", error: nil) {
                     SecureField("Enter your current password", text: $currentPassword)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
                 FormField(title: "New Password", error: nil) {
                     SecureField("At least 10 characters", text: $newPassword)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
                 FormField(title: "Confirm New Password", error: nil) {
                     SecureField("Repeat the new password", text: $confirmPassword)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
             } footer: {

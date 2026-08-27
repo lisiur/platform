@@ -92,6 +92,8 @@ struct AccountFormView: View {
                     )
                     .multilineTextAlignment(.trailing)
                     .textFieldStyle(.plain)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
                 }
                 if let nameError {
                     Label(nameError, systemImage: "exclamationmark.circle")
@@ -104,6 +106,8 @@ struct AccountFormView: View {
                     TextField("Emoji, e.g. 💳", text: $icon)
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                         #if os(iOS)
                         .frame(width: 160)
                         #endif
@@ -140,9 +144,13 @@ struct AccountFormView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         TextField("Label", text: $entry.key)
                             .font(.subheadline)
+                            .submitLabel(.done)
+                            .onSubmit { dismissKeyboard() }
                         TextField("Value", text: $entry.value)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .submitLabel(.done)
+                            .onSubmit { dismissKeyboard() }
                     }
                 }
                 .onDelete { metaEntries.remove(atOffsets: $0) }

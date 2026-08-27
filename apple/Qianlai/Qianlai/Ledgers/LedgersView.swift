@@ -279,6 +279,8 @@ struct LedgerFormView: View {
                 FormField(title: "Name", error: nameError) {
                     TextField("e.g. Family, Travel 2026", text: $name)
                         .textFieldStyle(.plain)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
                 TextField("Description (optional)", text: $description, axis: .vertical)
@@ -371,6 +373,8 @@ struct JoinLedgerView: View {
                         #endif
                         .autocorrectionDisabled()
                         .focused($isCodeFocused)
+                        .submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
             } header: {
