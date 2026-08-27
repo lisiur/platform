@@ -190,48 +190,85 @@ struct LedgersView: View {
             }
         }
         .contextMenu {
-            Button {
-                membersLedger = ledger
-            } label: {
-                Label("Members", systemImage: "person.2")
-            }
+            membersAction(ledger)
             if isOwner {
-                Button {
-                    editingLedger = ledger
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                Button {
-                    Task {
-                        do {
-                            try await ledgerStore.archiveToggle(ledger)
-                            toast.show(
-                                ledger.isActive
-                                    ? L10n.string("ledgers.archiveSuccess", defaultValue: "Ledger archived")
-                                    : L10n.string("ledgers.unarchiveSuccess", defaultValue: "Ledger unarchived")
-                            )
-                        } catch {
-                            toast.show(error.localizedDescription)
-                        }
-                    }
-                } label: {
-                    Label(
-                        ledger.isActive ? "Archive" : "Unarchive",
-                        systemImage: ledger.isActive ? "archivebox" : "archivebox.fill"
-                    )
-                }
-                Button(role: .destructive) {
-                    ledgerPendingDelete = ledger
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
+                editAction(ledger)
+                archiveAction(ledger)
+                deleteAction(ledger)
             } else {
-                Button(role: .destructive) {
-                    ledgerPendingLeave = ledger
-                } label: {
-                    Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
-                }
+                leaveAction(ledger)
             }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            editAction(ledger)
+            membersAction(ledger)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if isOwner {
+                deleteAction(ledger)
+                archiveAction(ledger)
+            } else {
+                leaveAction(ledger)
+            }
+        }
+    }
+
+    // Shared row actions used by both the context menu and the swipe actions.
+    private func membersAction(_ ledger: QianlaiLedger) -> some View {
+        Button {
+            membersLedger = ledger
+        } label: {
+            Label("Members", systemImage: "person.2")
+        }
+    }
+
+    private func editAction(_ ledger: QianlaiLedger) -> some View {
+        Button {
+            editingLedger = ledger
+        } label: {
+            Label("Edit", systemImage: "pencil")
+        }
+        .tint(.indigo)
+    }
+
+    private func archiveAction(_ ledger: QianlaiLedger) -> some View {
+        Button {
+            Task { await toggleArchive(ledger) }
+        } label: {
+            Label(
+                ledger.isActive ? "Archive" : "Unarchive",
+                systemImage: ledger.isActive ? "archivebox" : "archivebox.fill"
+            )
+        }
+        .tint(.orange)
+    }
+
+    private func deleteAction(_ ledger: QianlaiLedger) -> some View {
+        Button(role: .destructive) {
+            ledgerPendingDelete = ledger
+        } label: {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+
+    private func leaveAction(_ ledger: QianlaiLedger) -> some View {
+        Button(role: .destructive) {
+            ledgerPendingLeave = ledger
+        } label: {
+            Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
+        }
+    }
+
+    private func toggleArchive(_ ledger: QianlaiLedger) async {
+        do {
+            try await ledgerStore.archiveToggle(ledger)
+            toast.show(
+                ledger.isActive
+                    ? L10n.string("ledgers.archiveSuccess", defaultValue: "Ledger archived")
+                    : L10n.string("ledgers.unarchiveSuccess", defaultValue: "Ledger unarchived")
+            )
+        } catch {
+            toast.show(error.localizedDescription)
         }
     }
 }
