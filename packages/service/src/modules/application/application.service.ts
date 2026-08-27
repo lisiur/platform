@@ -1,4 +1,5 @@
 import { HTTPException } from "hono/http-exception";
+import { invalidateAppCache } from "#extractors/current-app";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 
@@ -46,7 +47,13 @@ export async function updateApplication(
     }
   }
 
-  return prisma.application.update({ where: { id }, data });
+  const app = await prisma.application.update({ where: { id }, data });
+  invalidateAppCache(app.code);
+  // A code change orphans the old cache entry too — drop both codes.
+  if (data.code && data.code !== existing.code) {
+    invalidateAppCache(existing.code);
+  }
+  return app;
 }
 
 export async function uploadApplicationLogo(
@@ -76,6 +83,7 @@ export async function uploadApplicationLogo(
         logoId: result.attachmentId,
       },
     });
+    invalidateAppCache(app.code);
 
     return {
       url: result.url,
@@ -112,6 +120,7 @@ export async function uploadApplicationFavicon(
         faviconId: result.attachmentId,
       },
     });
+    invalidateAppCache(app.code);
 
     return {
       url: result.url,

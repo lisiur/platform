@@ -1,5 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { __resetAppCacheForTests } from "#extractors/current-app";
 import { serializeHTTPException } from "#lib/http-error";
 
 // Mock prisma
@@ -110,6 +111,7 @@ async function testRoute(
 describe("GET /current - Current Application", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    __resetAppCacheForTests();
     mockGetSession.mockResolvedValue({
       user: { id: "u1" },
       session: { id: "s1" },
@@ -211,6 +213,202 @@ describe("GET /current - Current Application", () => {
     expect(res.status).toBe(404);
     await expect(res.json()).resolves.toMatchObject({
       message: "Application not found: missing",
+    });
+  });
+});
+
+// ─── CURRENT · CACHE ────────────────────────────────────────────────────────
+
+describe("GET /current - Application cache", () => {
+  const appRow = {
+    id: "app1",
+    name: "Organization",
+    code: "organization",
+    description: "Organization workspace",
+    logo: "/api/upload/logo1",
+    sortOrder: 10,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    __resetAppCacheForTests();
+    mockGetSession.mockResolvedValue(null);
+    mockGetApiTokenByBearer.mockResolvedValue(null);
+    mockGetUserPermissions.mockResolvedValue([]);
+  });
+
+  async function getCurrent(headers?: Record<string, string>) {
+    const { getCurrentApplication } = await import("../getCurrentApplication");
+    return testRoute(getCurrentApplication, {
+      method: "GET",
+      path: "/current",
+      headers: { "X-App-Code": "organization", cookie: "", ...headers },
+    });
+  }
+
+  it("serves a cache hit within TTL without re-querying", async () => {
+    mockPrisma.application.findFirst.mockResolvedValue(appRow);
+
+    const first = await getCurrent();
+    const second = await getCurrent();
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches negative lookups (non-existent code)", async () => {
+    mockPrisma.application.findFirst.mockResolvedValue(null);
+
+    await getCurrent({ "X-App-Code": "nope" });
+    await getCurrent({ "X-App-Code": "nope" });
+
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces concurrent misses via singleflight", async () => {
+    let resolveQuery: ((v: any) => void) | null = null;
+    mockPrisma.application.findFirst.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveQuery = resolve;
+        }),
+    );
+
+    const first = getCurrent();
+    const second = getCurrent();
+    // Wait until the query has actually been issued before resolving.
+    const resolver: { fn: ((v: any) => void) | null } = { fn: null };
+    await vi.waitFor(() => {
+      expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+      resolver.fn = resolveQuery;
+      expect(resolver.fn).not.toBeNull();
+    });
+    resolver.fn?.(appRow);
+    const [a, b] = await Promise.all([first, second]);
+    await Promise.all([a.json(), b.json()]);
+
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it("expires after the TTL and re-queries", async () => {
+    vi.useFakeTimers();
+    try {
+      mockPrisma.application.findFirst.mockResolvedValue(appRow);
+
+      await getCurrent();
+      await vi.advanceTimersByTimeAsync(60_001);
+      await getCurrent();
+
+      expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops the in-flight stale result when invalidated mid-query", async () => {
+    let resolveQuery: ((v: any) => void) | null = null;
+    mockPrisma.application.findFirst.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveQuery = resolve;
+        }),
+    );
+
+    const inflight = getCurrent();
+    // Wait until the query is in flight, then invalidate while it runs.
+    const resolver: { fn: ((v: any) => void) | null } = { fn: null };
+    await vi.waitFor(() => {
+      expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+      resolver.fn = resolveQuery;
+      expect(resolver.fn).not.toBeNull();
+    });
+    const { invalidateAppCache } = await import("#extractors/current-app");
+    invalidateAppCache("organization");
+    resolver.fn?.(appRow);
+    await inflight;
+
+    // The stale result must NOT be cached: next call re-queries.
+    mockPrisma.application.findFirst.mockResolvedValue(appRow);
+    await getCurrent();
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(2);
+  });
+
+  it("backs off after a failed lookup instead of hammering the DB", async () => {
+    vi.useFakeTimers();
+    try {
+      mockPrisma.application.findFirst.mockRejectedValue(
+        new Error("pool exhausted"),
+      );
+
+      // First attempt surfaces as a 500 (Hono onError converts the throw).
+      const first = await getCurrent();
+      expect(first.status).toBe(500);
+
+      // Immediate retries within the error window do NOT hit the DB again:
+      // the failed lookup is negatively cached for ERROR_TTL_MS, so requests
+      // fail fast (404 "not found") while the DB is probed at most 1/s.
+      const second = await getCurrent();
+      expect(second.status).toBe(404);
+      expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+
+      // After the error TTL the probe is allowed through again.
+      await vi.advanceTimersByTimeAsync(1_001);
+      const third = await getCurrent();
+      expect(third.status).toBe(500);
+      expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("invalidates the cache when updateApplication runs", async () => {
+    mockPrisma.application.findFirst.mockResolvedValue(appRow);
+    await getCurrent();
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(1);
+
+    // Simulate a completed admin update (service-level invalidation).
+    const { invalidateAppCache } = await import("#extractors/current-app");
+    invalidateAppCache("organization");
+
+    mockPrisma.application.findFirst.mockResolvedValue(appRow);
+    await getCurrent();
+    expect(mockPrisma.application.findFirst).toHaveBeenCalledTimes(2);
+  });
+
+  it("updateApplication service invalidates by code", async () => {
+    const { updateApplication: updateApp } = await import(
+      "#modules/application/application.service"
+    );
+
+    // First findFirst: the existing row; second: the code-uniqueness check.
+    mockPrisma.application.findFirst
+      .mockResolvedValueOnce({
+        id: "app1",
+        name: "OA",
+        code: "oa",
+      })
+      .mockResolvedValueOnce(null);
+    mockPrisma.application.update.mockResolvedValue({
+      id: "app1",
+      name: "Updated",
+      code: "oa-new",
+    });
+
+    await updateApp("app1", { name: "Updated", code: "oa-new" });
+
+    // Both old and new codes were invalidated: after invalidating "oa", a
+    // lookup for it must re-query (a stale cache would skip the DB).
+    mockPrisma.application.findFirst.mockResolvedValue({
+      id: "app1",
+      name: "Updated",
+      code: "oa-new",
+    });
+    await getCurrent({ "X-App-Code": "oa" });
+    expect(mockPrisma.application.findFirst).toHaveBeenLastCalledWith({
+      where: { code: "oa" },
     });
   });
 });
