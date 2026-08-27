@@ -20,14 +20,61 @@ const STALL_TIMEOUT_MS = 30_000;
 // not let attacker-controlled entries dictate ownership or directory metadata.
 const TAR_EXTRACT_FLAGS = ["--no-same-owner", "--no-overwrite-dir"];
 
-// True for a tar entry name or symlink target that would escape DEPLOY_ROOT:
-// an absolute path, a backslash-variant of one, or any ".." path segment. Such
-// an entry is the tar-slip / path-traversal vector (e.g.
-// "../../../.ssh/authorized_keys") and means code execution on extraction.
-function isEscapingTarPath(raw: string): boolean {
+// True for a tar entry name that would escape DEPLOY_ROOT: an absolute path,
+// a backslash-variant of one, or any ".." path segment. Such an entry is the
+// tar-slip / path-traversal vector (e.g. "../../../.ssh/authorized_keys") and
+// means code execution on extraction.
+export function isEscapingTarPath(raw: string): boolean {
   const p = raw.replace(/\\/g, "/").trim();
   if (!p || p.startsWith("/")) return true;
   return p.split("/").some((seg) => seg === "..");
+}
+
+// True for a symlink target that, when resolved from the symlink's location
+// inside DEPLOY_ROOT, escapes DEPLOY_ROOT. Absolute targets are always unsafe
+// (the symlink would point at an arbitrary filesystem path). For relative
+// targets we count the leading ".." segments and compare against how deep the
+// symlink sits under DEPLOY_ROOT: anything beyond that depth walks past
+// DEPLOY_ROOT when the OS follows the symlink. Legitimate pnpm + Next.js
+// standalone output hops within .pnpm/ via ".." chains (e.g. three ".." to
+// reach a sibling package); those stay within DEPLOY_ROOT because the
+// symlink sits four levels deep. A naive "any .." rule rejects both, which
+// breaks every release (see v0.0.52/v0.0.53 deploy failures).
+export function isSymlinkTargetEscaping(
+  entryName: string,
+  target: string,
+): boolean {
+  const t = target.replace(/\\/g, "/").trim();
+  if (!t) return true;
+  if (t.startsWith("/")) return true;
+  const parentSegments = entryName.split("/").slice(0, -1);
+  const parentDepth = parentSegments.length;
+  let upCount = 0;
+  for (const seg of t.split("/")) {
+    if (seg === "..") upCount++;
+    else break;
+  }
+  return upCount > parentDepth;
+}
+
+// Parse a tar verbose listing line for a symlink entry. The default format
+// is roughly: `<mode> [<nlinks>] <owner>[/<group>] <size> <date> <name> -> <target>`
+// with owner/group shape and date width varying between GNU tar and bsdtar
+// ("hapaul/hapaul" vs "hapaul hapaul", "Aug  5 11:50" vs "2026-08-27
+// 07:29:24"). Rather than matching each metadata column, anchor on the two
+// invariants: the line starts with "l" (symlink) and the date ends with a
+// time token (HH:MM or HH:MM:SS) followed by the entry name.
+export function parseTarSymlinkLine(
+  line: string,
+): { name: string; target: string } | null {
+  if (line?.[0] !== "l") return null;
+  const arrow = line.lastIndexOf(" -> ");
+  if (arrow === -1) return null;
+  const left = line.slice(0, arrow);
+  const target = line.slice(arrow + 4).trim();
+  const m = left.match(/^l\S+\s+.+?(?:\d+:\d+(?::\d+)?)\s+(.+)$/);
+  if (!m) return null;
+  return { name: m[1], target };
 }
 
 // Active download controller — the only cancellable phase. null outside the
@@ -296,8 +343,8 @@ async function verifyTarball(file: string): Promise<void> {
   }
 
   // Symlink vector: a symlink pointing outside DEPLOY_ROOT lets a later entry
-  // write through it. Inspect the verbose listing for symlink ("l") entries and
-  // reject escaping link targets.
+  // write through it. Inspect the verbose listing for symlink ("l") entries
+  // and reject targets that resolve past DEPLOY_ROOT.
   let verbose: SpawnResult;
   try {
     verbose = await spawnAsync("tar", ["-tvf", file], { cwd: DEPLOY_ROOT });
@@ -308,12 +355,12 @@ async function verifyTarball(file: string): Promise<void> {
     throw new Error(`Tarball listing failed: ${verbose.stderr}`);
   }
   for (const line of verbose.stdout.split("\n")) {
-    if (line?.[0] !== "l") continue;
-    const arrow = line.lastIndexOf(" -> ");
-    if (arrow === -1) continue;
-    const target = line.slice(arrow + 4).trim();
-    if (isEscapingTarPath(target)) {
-      throw new Error(`Refusing tarball: unsafe symlink target "${target}"`);
+    const parts = parseTarSymlinkLine(line);
+    if (!parts) continue;
+    if (isSymlinkTargetEscaping(parts.name, parts.target)) {
+      throw new Error(
+        `Refusing tarball: unsafe symlink target "${parts.target}" in "${parts.name}"`,
+      );
     }
   }
 }

@@ -7,11 +7,13 @@
   "types": "./src/main.ts",
   "scripts": {
     "build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/updater.mjs --log-level=info",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --run"
   },
   "devDependencies": {
     "@types/node": "^24.0.6",
     "esbuild": "^0.28.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.6"
   }
 }
