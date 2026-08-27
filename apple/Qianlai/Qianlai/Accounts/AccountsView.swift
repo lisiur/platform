@@ -83,7 +83,10 @@ struct AccountsView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .accessibilityLabel(Text("New Account"))
+                    .accessibilityLabel(Text(L10n.string(
+                        collapsible ? "categories.new" : "New Account",
+                        defaultValue: collapsible ? "New Category" : "New Account"
+                    )))
                 }
             }
         }
@@ -137,7 +140,11 @@ struct AccountsView: View {
             Button("Cancel", role: .cancel) { accountPendingDelete = nil }
         } message: {
             if let account = accountPendingDelete {
-                Text("Delete account “\(account.displayName)”?")
+                Text(L10n.string(
+                    collapsible ? "categories.deleteConfirm" : "Delete account “%@”?",
+                    defaultValue: collapsible ? "Delete category “%@”?" : "Delete account “%@”?",
+                    account.displayName
+                ))
             }
         }
     }
@@ -162,7 +169,10 @@ struct AccountsView: View {
 
             if entries.isEmpty {
                 EmptyStateView(
-                    message: L10n.string("No accounts", defaultValue: "No accounts"),
+                    message: L10n.string(
+                        collapsible ? "categories.empty" : "No accounts",
+                        defaultValue: collapsible ? "No categories" : "No accounts"
+                    ),
                     systemImage: "chart.bar.doc.horizontal"
                 )
                     .listRowSeparator(.hidden)
@@ -187,7 +197,14 @@ struct AccountsView: View {
 
             if !ledger.canPost {
                 Label(
-                    "Editor access or higher is required to manage accounts.",
+                    L10n.string(
+                        collapsible
+                            ? "categories.editorRequired"
+                            : "Editor access or higher is required to manage accounts.",
+                        defaultValue: collapsible
+                            ? "Editor access or higher is required to manage categories."
+                            : "Editor access or higher is required to manage accounts."
+                    ),
                     systemImage: "lock"
                 )
                 .font(.footnote)
@@ -307,7 +324,13 @@ struct AccountsView: View {
                     Button {
                         createParent = account
                     } label: {
-                        Label("Add Sub-account", systemImage: "arrow.turn.down.right")
+                        Label(
+                            L10n.string(
+                                collapsible ? "categories.addSub" : "Add Sub-account",
+                                defaultValue: collapsible ? "Add Sub-category" : "Add Sub-account"
+                            ),
+                            systemImage: "arrow.turn.down.right"
+                        )
                     }
                 }
                 if !account.isBuiltin {
@@ -347,7 +370,10 @@ struct AccountsView: View {
                 meta: result.meta,
                 realAccountId: result.realAccountId
             )
-            toast.show(L10n.string("accounts.createSuccess", defaultValue: "Account created"))
+            toast.show(L10n.string(
+                collapsible ? "categories.createSuccess" : "accounts.createSuccess",
+                defaultValue: collapsible ? "Category created" : "Account created"
+            ))
             createParent = nil
             return true
         } catch {
@@ -370,7 +396,10 @@ struct AccountsView: View {
             if result.linkChanged {
                 await realAccountStore.load()
             }
-            toast.show(L10n.string("accounts.updateSuccess", defaultValue: "Account updated"))
+            toast.show(L10n.string(
+                collapsible ? "categories.updateSuccess" : "accounts.updateSuccess",
+                defaultValue: collapsible ? "Category updated" : "Account updated"
+            ))
             editingAccount = nil
             return true
         } catch {
@@ -384,8 +413,14 @@ struct AccountsView: View {
             try await store.archiveToggle(account)
             toast.show(
                 account.isArchived
-                    ? L10n.string("accounts.unarchiveSuccess", defaultValue: "Account unarchived")
-                    : L10n.string("accounts.archiveSuccess", defaultValue: "Account archived")
+                    ? L10n.string(
+                        collapsible ? "categories.unarchiveSuccess" : "accounts.unarchiveSuccess",
+                        defaultValue: collapsible ? "Category unarchived" : "Account unarchived"
+                    )
+                    : L10n.string(
+                        collapsible ? "categories.archiveSuccess" : "accounts.archiveSuccess",
+                        defaultValue: collapsible ? "Category archived" : "Account archived"
+                    )
             )
         } catch {
             toast.show(friendlyAccountError(error))
@@ -395,7 +430,10 @@ struct AccountsView: View {
     private func delete(_ account: BookAccount) async {
         do {
             try await store.delete(account)
-            toast.show(L10n.string("accounts.deleteSuccess", defaultValue: "Account deleted"))
+            toast.show(L10n.string(
+                collapsible ? "categories.deleteSuccess" : "accounts.deleteSuccess",
+                defaultValue: collapsible ? "Category deleted" : "Account deleted"
+            ))
         } catch {
             toast.show(friendlyAccountError(error))
         }
@@ -406,13 +444,28 @@ struct AccountsView: View {
     private func friendlyAccountError(_ error: Error) -> String {
         let message = error.localizedDescription
         if message.range(of: "journal lines", options: .caseInsensitive) != nil {
-            return L10n.string("accounts.hasLinesError", defaultValue: "This account has journal lines. Archive it instead.")
+            return L10n.string(
+                collapsible ? "categories.hasLinesError" : "accounts.hasLinesError",
+                defaultValue: collapsible
+                    ? "This category has journal lines. Archive it instead."
+                    : "This account has journal lines. Archive it instead."
+            )
         }
         if message.range(of: "children", options: .caseInsensitive) != nil {
-            return L10n.string("accounts.hasChildrenError", defaultValue: "Delete or move its sub-accounts first.")
+            return L10n.string(
+                collapsible ? "categories.hasChildrenError" : "accounts.hasChildrenError",
+                defaultValue: collapsible
+                    ? "Delete or move its sub-categories first."
+                    : "Delete or move its sub-accounts first."
+            )
         }
         if message.range(of: "Built-in", options: .caseInsensitive) != nil {
-            return L10n.string("accounts.builtinError", defaultValue: "Built-in accounts can't be modified this way.")
+            return L10n.string(
+                collapsible ? "categories.builtinError" : "accounts.builtinError",
+                defaultValue: collapsible
+                    ? "System categories can't be modified this way."
+                    : "Built-in accounts can't be modified this way."
+            )
         }
         return message
     }

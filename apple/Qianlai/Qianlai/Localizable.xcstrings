@@ -162,7 +162,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将自动生成一笔与系统权益科目对冲的平衡分录。截至日期之后的流水不会被改动。"
+            "value" : "将自动生成一笔与系统权益账户对冲的平衡分录。截至日期之后的流水不会被改动。"
           }
         }
       }
@@ -196,7 +196,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将自动预置科目表。"
+            "value" : "将自动预置账户与分类。"
           }
         }
       }
@@ -944,7 +944,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目已归档"
+            "value" : "账户已归档"
           }
         }
       }
@@ -978,7 +978,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系统科目无法如此操作。"
+            "value" : "系统账户无法如此操作。"
           }
         }
       }
@@ -995,7 +995,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目已创建"
+            "value" : "账户已创建"
           }
         }
       }
@@ -1029,7 +1029,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目已删除"
+            "value" : "账户已删除"
           }
         }
       }
@@ -1046,7 +1046,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请先删除或移走其子科目。"
+            "value" : "请先删除或移走其子账户。"
           }
         }
       }
@@ -1063,7 +1063,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "该科目已有流水，请改为归档。"
+            "value" : "该账户已有流水，请改为归档。"
           }
         }
       }
@@ -1131,7 +1131,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目已取消归档"
+            "value" : "账户已取消归档"
           }
         }
       }
@@ -1148,7 +1148,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目已更新"
+            "value" : "账户已更新"
           }
         }
       }
@@ -1216,7 +1216,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新增子科目"
+            "value" : "新增子账户"
           }
         }
       }
@@ -1663,6 +1663,244 @@
         }
       }
     },
+    "categories.addSub" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Sub-category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增子分类"
+          }
+        }
+      }
+    },
+    "categories.archiveSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category archived"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类已归档"
+          }
+        }
+      }
+    },
+    "categories.builtinError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System categories can't be modified this way."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统分类无法如此操作。"
+          }
+        }
+      }
+    },
+    "categories.createSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category created"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类已创建"
+          }
+        }
+      }
+    },
+    "categories.deleteConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete category “%@”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定删除分类「%@」？"
+          }
+        }
+      }
+    },
+    "categories.deleteSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category deleted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类已删除"
+          }
+        }
+      }
+    },
+    "categories.editorRequired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editor access or higher is required to manage categories."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要记账人及以上角色才能管理分类。"
+          }
+        }
+      }
+    },
+    "categories.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No categories"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无分类"
+          }
+        }
+      }
+    },
+    "categories.hasChildrenError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete or move its sub-categories first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先删除或移走其子分类。"
+          }
+        }
+      }
+    },
+    "categories.hasLinesError" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This category has journal lines. Archive it instead."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该分类已有流水，请改为归档。"
+          }
+        }
+      }
+    },
+    "categories.new" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建分类"
+          }
+        }
+      }
+    },
+    "categories.parent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上级分类"
+          }
+        }
+      }
+    },
+    "categories.unarchiveSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category unarchived"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类已取消归档"
+          }
+        }
+      }
+    },
+    "categories.updateSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category updated"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类已更新"
+          }
+        }
+      }
+    },
     "Change" : {
       "localizations" : {
         "en" : {
@@ -2065,7 +2303,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "确定删除「%@」？其科目、流水和成员都将被删除，且不可恢复。"
+            "value" : "确定删除「%@」？其账户、流水和成员都将被删除，且不可恢复。"
           }
         }
       }
@@ -2082,7 +2320,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "确定删除科目「%@」？"
+            "value" : "确定删除账户「%@」？"
           }
         }
       }
@@ -2422,7 +2660,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑科目"
+            "value" : "编辑账户"
           }
         }
       }
@@ -2507,7 +2745,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要记账人及以上角色才能管理科目。"
+            "value" : "需要记账人及以上角色才能管理账户。"
           }
         }
       }
@@ -3495,7 +3733,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关联的账本科目"
+            "value" : "关联的账本账户"
           }
         }
       }
@@ -3764,7 +4002,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新建科目"
+            "value" : "新建账户"
           }
         }
       }
@@ -3866,7 +4104,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂无科目"
+            "value" : "暂无账户"
           }
         }
       }
@@ -3934,7 +4172,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有关联科目 — 到账本科目页关联。"
+            "value" : "还没有关联账户 — 到账本账户页关联。"
           }
         }
       }
@@ -4053,7 +4291,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "上级科目"
+            "value" : "上级账户"
           }
         }
       }
@@ -4666,7 +4904,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "真实账户跨账本归集现实中的银行卡或钱包。到各账本的科目页关联。仅自己可见。"
+            "value" : "真实账户跨账本归集现实中的银行卡或钱包。到各账本的账户页关联。仅自己可见。"
           }
         }
       }
@@ -4768,7 +5006,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请先解除关联的账本科目。"
+            "value" : "请先解除关联的账本账户。"
           }
         }
       }
@@ -5040,7 +5278,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目余额表"
+            "value" : "账户余额表"
           }
         }
       }
@@ -5735,7 +5973,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "科目余额表"
+            "value" : "账户余额表"
           }
         }
       }

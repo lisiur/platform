@@ -78,6 +78,28 @@ struct AccountFormView: View {
         fixedType == .asset || fixedType == .liability
     }
 
+    /// Income/expense forms speak of categories (分类) rather than
+    /// accounts (科目).
+    private var isCategory: Bool {
+        fixedType == .income || fixedType == .expense
+    }
+
+    private var formTitle: String {
+        let key: String
+        let fallback: String
+        if account != nil {
+            key = isCategory ? "categories.edit" : "Edit Account"
+            fallback = isCategory ? "Edit Category" : "Edit Account"
+        } else if parent != nil {
+            key = isCategory ? "categories.addSub" : "Add Sub-account"
+            fallback = isCategory ? "Add Sub-category" : "Add Sub-account"
+        } else {
+            key = isCategory ? "categories.new" : "New Account"
+            fallback = isCategory ? "New Category" : "New Account"
+        }
+        return L10n.string(key, defaultValue: fallback)
+    }
+
     var body: some View {
         Form {
             Section {
@@ -114,7 +136,10 @@ struct AccountFormView: View {
                 }
                 if let parent {
                     HStack {
-                        Text("Parent")
+                        Text(L10n.string(
+                            isCategory ? "categories.parent" : "Parent",
+                            defaultValue: "Parent"
+                        ))
                         Spacer()
                         Text("\(parent.icon ?? "") \(parent.displayName)")
                             .foregroundStyle(.secondary)
@@ -165,7 +190,7 @@ struct AccountFormView: View {
                 Text("Custom info such as card numbers.")
             }
         }
-        .navigationTitle(Text(account != nil ? "Edit Account" : (parent != nil ? "Add Sub-account" : "New Account")))
+        .navigationTitle(Text(formTitle))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
