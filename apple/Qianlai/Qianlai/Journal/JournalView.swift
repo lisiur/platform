@@ -40,9 +40,6 @@ struct JournalView: View {
         .navigationTitle(Text("Journal"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                LedgerSwitcherMenu()
-            }
-            ToolbarItem(placement: .navigation) {
                 filterButton
             }
         }

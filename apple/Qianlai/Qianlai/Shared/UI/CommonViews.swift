@@ -413,7 +413,7 @@ struct FilterSheetButton<FilterFields: View>: View {
                                 }
                                 isPresented = false
                             } label: {
-                                Label("Clear Filters", systemImage: "xmark.circle")
+                                Text("Clear")
                             }
                         }
                     }

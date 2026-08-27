@@ -46,9 +46,6 @@ struct ReportsView: View {
         }
         .navigationTitle(Text("Reports"))
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                LedgerSwitcherMenu()
-            }
             ToolbarItem(placement: .navigation) {
                 dateFilterButton
             }

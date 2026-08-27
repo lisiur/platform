@@ -45,9 +45,6 @@ struct AccountsView: View {
         }
         .navigationTitle(Text("Accounts"))
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                LedgerSwitcherMenu()
-            }
             #if os(iOS)
             if canManage {
                 ToolbarItem(placement: .navigation) {

@@ -1713,13 +1713,13 @@
         }
       }
     },
-    "Clear Filters" : {
+    "Clear" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Clear Filters"
+            "value" : "Clear"
           }
         },
         "zh-Hans" : {
