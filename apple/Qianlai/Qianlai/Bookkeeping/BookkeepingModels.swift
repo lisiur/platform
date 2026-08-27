@@ -179,9 +179,7 @@ struct BookAccount: Codable, Identifiable, Hashable {
     var displayName: String {
         if let name, !name.isEmpty { return name }
         if let code {
-            let key = "account.name.\(code)"
-            let localized = NSLocalizedString(key, comment: "Seeded account name")
-            return localized != key ? localized : code
+            return L10n.string("account.name.\(code)", defaultValue: code)
         }
         return name ?? "—"
     }
@@ -244,9 +242,7 @@ struct JournalLineAccountRef: Codable, Hashable {
     var displayName: String {
         if let name, !name.isEmpty { return name }
         if let code {
-            let key = "account.name.\(code)"
-            let localized = NSLocalizedString(key, comment: "Seeded account name")
-            return localized != key ? localized : code
+            return L10n.string("account.name.\(code)", defaultValue: code)
         }
         return "—"
     }
@@ -338,9 +334,7 @@ struct RealAccountPocket: Codable, Identifiable, Hashable {
     var displayName: String {
         if let name, !name.isEmpty { return name }
         if let code {
-            let key = "account.name.\(code)"
-            let localized = NSLocalizedString(key, comment: "Seeded account name")
-            return localized != key ? localized : code
+            return L10n.string("account.name.\(code)", defaultValue: code)
         }
         return "—"
     }
@@ -381,9 +375,7 @@ struct StatementRow: Codable, Identifiable, Hashable {
     var displayName: String {
         if let name, !name.isEmpty { return name }
         if let code {
-            let key = "account.name.\(code)"
-            let localized = NSLocalizedString(key, comment: "Seeded account name")
-            return localized != key ? localized : code
+            return L10n.string("account.name.\(code)", defaultValue: code)
         }
         return "—"
     }
@@ -425,9 +417,7 @@ struct TrialBalanceRow: Codable, Identifiable, Hashable {
     var displayName: String {
         if let name, !name.isEmpty { return name }
         if let code {
-            let key = "account.name.\(code)"
-            let localized = NSLocalizedString(key, comment: "Seeded account name")
-            return localized != key ? localized : code
+            return L10n.string("account.name.\(code)", defaultValue: code)
         }
         return "—"
     }
@@ -686,7 +676,7 @@ enum QuickEntryKind: String, CaseIterable, Identifiable {
 struct QuickEntryDraft: Equatable {
     var kind: QuickEntryKind = .expense
     var amount: Double = 0
-    var date: Date = UTCDates.utcNow
+    var date: Date = Date()
     var debitAccountId: String?
     var creditAccountId: String?
     var memo: String = ""
@@ -710,7 +700,7 @@ struct QuickEntryDraft: Equatable {
 
     var body: CreateEntryBody {
         CreateEntryBody(
-            date: UTCDates.startOfUTCDay(date),
+            date: UTCDates.utcWallClock(date),
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
                 : memo.trimmingCharacters(in: .whitespacesAndNewlines),

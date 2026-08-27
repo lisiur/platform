@@ -11,7 +11,7 @@ import SwiftUI
 /// optional date window.
 struct ReportsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
-    @State private var store = ReportStore()
+    @Environment(ReportStore.self) private var store
     @State private var tab: ReportTab = .trialBalance
 
     enum ReportTab: String, CaseIterable, Identifiable {
@@ -192,7 +192,7 @@ struct ReportsView: View {
                     Spacer()
                     Text(Money.format(statement.net))
                         .font(.body.weight(.bold).monospacedDigit())
-                        .foregroundStyle(statement.net >= 0 ? Color.green : Color.red)
+                        .foregroundStyle(statement.net >= 0 ? Color.income : Color.expense)
                 }
             }
         } else {

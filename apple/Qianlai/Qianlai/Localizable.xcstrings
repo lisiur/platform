@@ -2643,6 +2643,23 @@
         }
       }
     },
+    "Search accounts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search accounts"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索账户"
+          }
+        }
+      }
+    },
     "Search memos…": {
       "extractionState": "manual",
       "localizations": {
@@ -3190,7 +3207,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.alipay"
+            "value": "Alipay"
           }
         },
         "zh-Hans": {
@@ -3207,7 +3224,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.apparel"
+            "value": "Apparel"
           }
         },
         "zh-Hans": {
@@ -3224,7 +3241,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.balanceAdjustment"
+            "value": "Balance Adjustment"
           }
         },
         "zh-Hans": {
@@ -3241,7 +3258,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.bankCard"
+            "value": "Bank Card"
           }
         },
         "zh-Hans": {
@@ -3258,7 +3275,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.benefits"
+            "value": "Benefits"
           }
         },
         "zh-Hans": {
@@ -3275,7 +3292,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.bonus"
+            "value": "Bonus"
           }
         },
         "zh-Hans": {
@@ -3292,7 +3309,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.cash"
+            "value": "Cash"
           }
         },
         "zh-Hans": {
@@ -3309,7 +3326,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.childcare"
+            "value": "Childcare"
           }
         },
         "zh-Hans": {
@@ -3326,7 +3343,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.creditCard"
+            "value": "Credit Card"
           }
         },
         "zh-Hans": {
@@ -3343,7 +3360,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.defaultAccount"
+            "value": "Default Account"
           }
         },
         "zh-Hans": {
@@ -3360,7 +3377,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.education"
+            "value": "Education"
           }
         },
         "zh-Hans": {
@@ -3377,7 +3394,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.entertainment"
+            "value": "Entertainment"
           }
         },
         "zh-Hans": {
@@ -3394,7 +3411,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.food"
+            "value": "Food"
           }
         },
         "zh-Hans": {
@@ -3411,7 +3428,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.fruit"
+            "value": "Fruit"
           }
         },
         "zh-Hans": {
@@ -3428,7 +3445,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.gifts"
+            "value": "Gifts"
           }
         },
         "zh-Hans": {
@@ -3445,7 +3462,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.groceries"
+            "value": "Groceries"
           }
         },
         "zh-Hans": {
@@ -3462,7 +3479,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.housing"
+            "value": "Housing"
           }
         },
         "zh-Hans": {
@@ -3479,7 +3496,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.investment"
+            "value": "Investment"
           }
         },
         "zh-Hans": {
@@ -3496,7 +3513,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.meals"
+            "value": "Meals"
           }
         },
         "zh-Hans": {
@@ -3513,7 +3530,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.medical"
+            "value": "Medical"
           }
         },
         "zh-Hans": {
@@ -3530,7 +3547,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.openingBalance"
+            "value": "Opening Balance"
           }
         },
         "zh-Hans": {
@@ -3547,7 +3564,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.otherIncome"
+            "value": "Other"
           }
         },
         "zh-Hans": {
@@ -3564,7 +3581,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.overtime"
+            "value": "Overtime"
           }
         },
         "zh-Hans": {
@@ -3581,7 +3598,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.partTime"
+            "value": "Part-time Job"
           }
         },
         "zh-Hans": {
@@ -3598,7 +3615,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.pets"
+            "value": "Pets"
           }
         },
         "zh-Hans": {
@@ -3615,7 +3632,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.redPacket"
+            "value": "Red Packet"
           }
         },
         "zh-Hans": {
@@ -3632,7 +3649,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.salary"
+            "value": "Salary"
           }
         },
         "zh-Hans": {
@@ -3649,7 +3666,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.shopping"
+            "value": "Shopping"
           }
         },
         "zh-Hans": {
@@ -3666,7 +3683,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.sideBusiness"
+            "value": "Side Business"
           }
         },
         "zh-Hans": {
@@ -3683,7 +3700,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.snacks"
+            "value": "Snacks"
           }
         },
         "zh-Hans": {
@@ -3700,7 +3717,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.taxRefund"
+            "value": "Tax Refund"
           }
         },
         "zh-Hans": {
@@ -3717,7 +3734,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.telecom"
+            "value": "Telecom"
           }
         },
         "zh-Hans": {
@@ -3734,7 +3751,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.transport"
+            "value": "Transport"
           }
         },
         "zh-Hans": {
@@ -3751,7 +3768,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.travel"
+            "value": "Travel"
           }
         },
         "zh-Hans": {
@@ -3768,7 +3785,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.wechatPay"
+            "value": "WeChat Pay"
           }
         },
         "zh-Hans": {
@@ -3785,7 +3802,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "account.name.windfall"
+            "value": "Unexpected Income"
           }
         },
         "zh-Hans": {

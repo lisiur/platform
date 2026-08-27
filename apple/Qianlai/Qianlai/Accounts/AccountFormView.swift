@@ -81,16 +81,23 @@ struct AccountFormView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "Name", error: nameError) {
+                HStack {
+                    Text("Name")
+                    Spacer()
                     TextField(
                         account?.code != nil
                             ? L10n.string("accounts.nameOptional", defaultValue: "Leave empty to keep the default label")
                             : L10n.string("accounts.namePlaceholder", defaultValue: "e.g. USD Cash"),
                         text: $name
                     )
+                    .multilineTextAlignment(.trailing)
                     .textFieldStyle(.plain)
                 }
-                .listRowBackground(Color.clear)
+                if let nameError {
+                    Label(nameError, systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
                 HStack {
                     Text("Icon")
                     Spacer()

@@ -71,7 +71,9 @@ final class QianlaiModelsTests: XCTestCase {
 
     func testAccountDisplayNamePrefersOverrideThenCode() {
         XCTAssertEqual(makeAccount(id: "1", name: "Custom").displayName, "Custom")
-        XCTAssertEqual(makeAccount(id: "1", code: "cash").displayName, "cash")
+        // Seeded codes resolve through the string catalog (L10n-aware).
+        XCTAssertEqual(makeAccount(id: "1", code: "cash").displayName, "Cash")
+        XCTAssertEqual(makeAccount(id: "1", code: "notARealCode").displayName, "notARealCode")
         XCTAssertEqual(makeAccount(id: "1").displayName, "—")
     }
 

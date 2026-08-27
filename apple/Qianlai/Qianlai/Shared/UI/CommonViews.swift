@@ -78,6 +78,14 @@ struct FormField<Content: View>: View {
     }
 }
 
+/// Chinese finance convention for money direction: income/inflows render
+/// red (红涨), expenses/outflows render green (绿跌) — used everywhere an
+/// amount is colored by its sign.
+extension Color {
+    static let income = Color.red
+    static let expense = Color.green
+}
+
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
 /// totals rows.
 struct StatCard: View {
@@ -92,8 +100,8 @@ struct StatCard: View {
         var color: Color? {
             switch self {
             case .default: nil
-            case .positive: .green
-            case .negative: .red
+            case .positive: .income
+            case .negative: .expense
             }
         }
     }
@@ -171,19 +179,56 @@ struct ErrorRetryView: View {
     }
 }
 
-/// App-wide lightweight toast, surfaced once by `ContentView` as an alert.
-/// Feature stores and views call `toast.show(...)` after mutations.
+/// App-wide lightweight toast, surfaced by `ContentView` as a floating
+/// capsule just above the tab bar that self-dismisses — never a blocking
+/// alert. Feature stores and views call `toast.show(...)` after mutations.
 @MainActor
 @Observable
 final class ToastCenter {
-    var message: String?
+    private(set) var message: String?
+    /// Changes on every `show`, so a repeated identical message still resets
+    /// the auto-dismiss countdown (`task(id:)` needs a distinct id).
+    private(set) var token = UUID()
 
     func show(_ text: String) {
         message = text
+        token = UUID()
     }
 
     func clear() {
         message = nil
+    }
+}
+
+/// The floating capsule that renders `ToastCenter`: slides up from the
+/// bottom, stays briefly, then fades away on its own; tapping skips the
+/// wait. Mirrors Yulai's lightweight toast. No user confirmation is ever
+/// required. Position with `.overlay(alignment: .bottom)`.
+struct ToastOverlay: View {
+    @Environment(ToastCenter.self) private var toast
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let message = toast.message {
+                Label(message, systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.regularMaterial, in: Capsule())
+                    .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
+                    .padding(.bottom, 20)
+                    .onTapGesture { toast.clear() }
+                    .task(id: toast.token) {
+                        try? await Task.sleep(for: .seconds(1.6))
+                        guard !Task.isCancelled else { return }
+                        toast.clear()
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: toast.message)
     }
 }
 

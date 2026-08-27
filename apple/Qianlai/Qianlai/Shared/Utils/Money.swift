@@ -74,14 +74,36 @@ enum UTCDates {
         return nextDay.addingTimeInterval(-0.001)
     }
 
-    /// Entry display: entry dates are UTC-midnight instants, so render the
-    /// date part in a UTC calendar to avoid off-by-one drift.
+    /// The UTC instant carrying the same wall-clock date/time the user
+    /// picked in their local calendar. Entry dates are stored and read back
+    /// as UTC instants, so the picked clock must survive the local→UTC
+    /// conversion instead of being re-anchored to the local timezone.
+    static func utcWallClock(_ date: Date) -> Date {
+        let picked = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: date
+        )
+        var components = DateComponents()
+        components.year = picked.year
+        components.month = picked.month
+        components.day = picked.day
+        components.hour = picked.hour
+        components.minute = picked.minute
+        components.timeZone = TimeZone(identifier: "UTC")
+        return utcCalendar.date(from: components) ?? startOfUTCDay(date)
+    }
+
+    /// Entry display: entry dates are UTC instants, so render them in a UTC
+    /// calendar to avoid off-by-one drift; the time part shows only when it
+    /// was set, so legacy UTC-midnight entries stay date-only.
     static func formatEntryDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        let clock = utcCalendar.dateComponents([.hour, .minute, .second], from: date)
+        formatter.timeStyle =
+            (clock.hour == 0 && clock.minute == 0 && clock.second == 0) ? .none : .short
         return formatter.string(from: date)
     }
 

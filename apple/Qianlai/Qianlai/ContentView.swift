@@ -55,7 +55,6 @@ enum AppTab: Hashable {
 }
 
 struct ContentView: View {
-    @Environment(ToastCenter.self) private var toast
     @Environment(LedgerStore.self) private var ledgerStore
 
     var body: some View {
@@ -71,21 +70,21 @@ struct ContentView: View {
             TabView(selection: tabSelection) {
                 Tab(AppTab.dashboard.label, systemImage: AppTab.dashboard.icon, value: AppTab.dashboard) {
                     NavigationStack {
-                        page(.dashboard)
+                        tabPage(.dashboard)
                             .navigationTitle(Text(AppTab.dashboard.label))
                             .inlineNavigationBarTitle()
                     }
                 }
                 Tab(AppTab.journal.label, systemImage: AppTab.journal.icon, value: AppTab.journal) {
                     NavigationStack {
-                        page(.journal)
+                        tabPage(.journal)
                             .navigationTitle(Text(AppTab.journal.label))
                             .inlineNavigationBarTitle()
                     }
                 }
                 Tab(AppTab.profile.label, systemImage: AppTab.profile.icon, value: AppTab.profile) {
                     NavigationStack {
-                        page(.profile)
+                        tabPage(.profile)
                             .navigationTitle(Text(AppTab.profile.label))
                             .inlineNavigationBarTitle()
                     }
@@ -109,15 +108,6 @@ struct ContentView: View {
             NavigationStack {
                 QuickEntryView()
             }
-        }
-        .alert(
-            toast.message ?? "",
-            isPresented: Binding(
-                get: { toast.message != nil },
-                set: { if !$0 { toast.clear() } }
-            )
-        ) {
-            Button("OK", role: .cancel) {}
         }
     }
 
@@ -152,9 +142,20 @@ struct ContentView: View {
         }
     }
 
+    /// Page content plus the shared toast host. Mounted per-tab (inside the
+    /// stack's safe area) so the capsule floats just above the tab bar,
+    /// matching Yulai's lightweight toast placement.
+    @ViewBuilder
+    private func tabPage(_ tab: AppTab) -> some View {
+        page(tab)
+            .overlay(alignment: .bottom) {
+                ToastOverlay()
+            }
+    }
+
     private var currentTab: some View {
         NavigationStack {
-            page(tab)
+            tabPage(tab)
                 .navigationTitle(Text(tab.label))
         }
     }

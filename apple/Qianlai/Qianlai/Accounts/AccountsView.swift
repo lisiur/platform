@@ -362,6 +362,7 @@ struct AccountsView: View {
 struct BalanceAdjustmentView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AccountStore.self) private var store
+    @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
 
     let account: BookAccount
@@ -446,6 +447,9 @@ struct BalanceAdjustmentView: View {
                     ? L10n.string("balance.success", defaultValue: "Balance adjusted")
                     : L10n.string("balance.alreadyAtBalance", defaultValue: "The account already has this balance — nothing to adjust")
             )
+            if adjusted {
+                Task { await reportStore.refreshAfterPosting() }
+            }
             dismiss()
         } catch {
             self.error = error.localizedDescription

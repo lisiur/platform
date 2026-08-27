@@ -55,6 +55,14 @@ final class ReportStore {
         _ = await (trial, statement, turnover)
     }
 
+    /// Refreshes every surface a posting can change: the dashboard cards
+    /// (always month-to-date) and the windowed reports.
+    func refreshAfterPosting() async {
+        async let dash: () = loadDashboard()
+        async let windowed: () = reloadWindowed()
+        _ = await (dash, windowed)
+    }
+
     func loadDashboard() async {
         guard let ledgerId else { return }
         isLoadingDashboard = true

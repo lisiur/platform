@@ -12,7 +12,8 @@ import SwiftUI
 struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ToastCenter.self) private var toast
-    @State private var store = JournalStore()
+    @Environment(JournalStore.self) private var store
+    @Environment(ReportStore.self) private var reportStore
     @State private var memberStore = MemberStore()
     @State private var entryPendingDelete: JournalEntry?
 
@@ -213,6 +214,7 @@ struct JournalView: View {
         do {
             try await store.delete(entry)
             toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
+            Task { await reportStore.refreshAfterPosting() }
         } catch {
             toast.show(error.localizedDescription)
         }

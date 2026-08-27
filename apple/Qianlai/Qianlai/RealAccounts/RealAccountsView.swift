@@ -172,7 +172,8 @@ struct RealAccountsView: View {
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.35)))
+        .contentShape(Rectangle())
+        .onTapGesture { editing = real }
         .contextMenu {
             Button {
                 editing = real
@@ -233,16 +234,23 @@ struct RealAccountFormView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "Name", error: nameError) {
-                    TextField("e.g. CMB Savings Card", text: $name)
-                        .textFieldStyle(.plain)
-                }
-                .listRowBackground(Color.clear)
                 Picker("Account Type", selection: $type) {
                     Text(AccountType.asset.label).tag(AccountType.asset)
                     Text(AccountType.liability.label).tag(AccountType.liability)
                 }
                 .pickerStyle(.segmented)
+                HStack {
+                    Text("Name")
+                    Spacer()
+                    TextField("e.g. CMB Savings Card", text: $name)
+                        .multilineTextAlignment(.trailing)
+                        .textFieldStyle(.plain)
+                }
+                if let nameError {
+                    Label(nameError, systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
                 HStack {
                     Text("Icon")
                     Spacer()

@@ -14,9 +14,10 @@ struct QuickEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ToastCenter.self) private var toast
+    @Environment(JournalStore.self) private var journalStore
+    @Environment(ReportStore.self) private var reportStore
     @State private var accountStore = AccountStore()
     @State private var memberStore = MemberStore()
-    @State private var journalStore = JournalStore()
     @State private var draft = QuickEntryDraft()
     @State private var amountText = ""
     @State private var validationError: String?
@@ -57,22 +58,22 @@ struct QuickEntryView: View {
                 DatePicker(
                     "Date",
                     selection: $draft.date,
-                    displayedComponents: .date
+                    displayedComponents: [.date, .hourAndMinute]
                 )
             }
 
             Section {
-                accountPicker(
+                accountField(
                     title: debitLabel,
                     selection: $draft.debitAccountId,
                     entries: debitEntries,
-                    optional: draft.kind == .income
+                    allowsEmpty: draft.kind == .income
                 )
-                accountPicker(
+                accountField(
                     title: creditLabel,
                     selection: $draft.creditAccountId,
                     entries: creditEntries,
-                    optional: draft.kind == .expense
+                    allowsEmpty: draft.kind == .expense
                 )
                 if draft.isSameAccount {
                     Label(
@@ -106,6 +107,7 @@ struct QuickEntryView: View {
                                 }
                             }
                         }
+                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Participants")
@@ -121,17 +123,38 @@ struct QuickEntryView: View {
                         .font(.footnote)
                 }
             }
+
+            Section {
+                Button {
+                    Task { await post() }
+                } label: {
+                    Group {
+                        if isPosting {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Posting…")
+                            }
+                        } else {
+                            Text("Save")
+                        }
+                    }
+                    .font(.body.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 36)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .disabled(isPosting || draft.isSameAccount)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         }
         .navigationTitle(Text("Add Entry"))
+        .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button(isPosting ? "Posting…" : "Save") {
-                    Task { await post() }
-                }
-                .disabled(isPosting || draft.isSameAccount)
             }
         }
         .disabled(!canPost)
@@ -200,26 +223,39 @@ struct QuickEntryView: View {
         }
     }
 
-    /// Pocket sides may stay unselected — the backend then falls back to the
-    /// ledger's flagged default pocket for that side.
-    @ViewBuilder
-    private func accountPicker(
+    /// Field row that pushes `AccountSelectionView`: the tree of accounts is
+    /// too large for an inline menu, so the form only shows the current value
+    /// and the full hierarchy opens on tap.
+    private func accountField(
         title: String,
         selection: Binding<String?>,
         entries: [AccountTreeEntry],
-        optional: Bool
+        allowsEmpty: Bool
     ) -> some View {
-        Picker(selection: selection) {
-            if optional {
-                Text("Not selected").tag(String?.none)
-            }
-            ForEach(entries) { entry in
-                Text(String(repeating: "    ", count: entry.depth) + entry.account.displayName)
-                    .tag(String?.some(entry.account.id))
-            }
+        NavigationLink {
+            AccountSelectionView(
+                title: title,
+                entries: entries,
+                allowsEmpty: allowsEmpty,
+                selection: selection
+            )
         } label: {
-            Text(title)
+            HStack {
+                Text(title)
+                Spacer()
+                Text(accountValue(entries, selection.wrappedValue))
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
+
+    /// The selected account's display name, or the "Not selected" sentinel —
+    /// never a blank trailing label.
+    private func accountValue(_ entries: [AccountTreeEntry], _ selected: String?) -> String {
+        guard let selected,
+              let entry = entries.first(where: { $0.account.id == selected })
+        else { return L10n.string("Not selected", defaultValue: "Not selected") }
+        return entry.account.displayName
     }
 
     private func toggleParticipant(_ member: LedgerMember) {
@@ -248,6 +284,9 @@ struct QuickEntryView: View {
             try await journalStore.post(draft)
             toast.show(L10n.string("journal.createSuccess", defaultValue: "Entry posted"))
             dismiss()
+            // The posting moved balances; refresh dashboard and reports in
+            // the background so they never show stale numbers.
+            Task { await reportStore.refreshAfterPosting() }
         } catch {
             validationError = error.localizedDescription
         }

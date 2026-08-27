@@ -11,7 +11,7 @@ import SwiftUI
 /// the most recent entries.
 struct DashboardView: View {
     @Environment(LedgerStore.self) private var ledgerStore
-    @State private var store = ReportStore()
+    @Environment(ReportStore.self) private var store
     @State private var isShowingLedgerManagement = false
 
     var body: some View {
@@ -173,7 +173,7 @@ struct EntryRow: View {
                     Spacer()
                     Text(line.debit > 0 ? "+\(Money.format(line.debit))" : "−\(Money.format(line.credit))")
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(line.debit > 0 ? Color.green : Color.secondary)
+                        .foregroundStyle(line.debit > 0 ? Color.income : Color.expense)
                 }
             }
             HStack(spacing: 6) {
