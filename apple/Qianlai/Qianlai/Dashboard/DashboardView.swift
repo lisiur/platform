@@ -58,7 +58,6 @@ struct DashboardView: View {
     private func content(_ ledger: QianlaiLedger) -> some View {
         ScrollView {
             VStack(spacing: 20) {
-                statCards
                 monthCards
                 recentEntries
             }
@@ -66,23 +65,13 @@ struct DashboardView: View {
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
-    }
-
-    private var statCards: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                StatCard(
-                    icon: "wallet.pass",
-                    label: "Net Worth",
-                    value: store.dashboard?.netWorth,
-                    tone: (store.dashboard?.netWorth ?? 0) < 0 ? .negative : .default
-                )
-            }
-            HStack(spacing: 10) {
-                StatCard(icon: "scalemass", label: "Assets", value: store.dashboard?.assets)
-                StatCard(icon: "banknote", label: "Liabilities", value: store.dashboard?.liabilities)
-            }
-        }
+        // Match the grouped background that List/Form pages get by default;
+        // a bare ScrollView would otherwise show plain systemBackground.
+        #if canImport(UIKit)
+        .background(Color(.systemGroupedBackground), ignoresSafeAreaEdges: .all)
+        #elseif canImport(AppKit)
+        .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: .all)
+        #endif
     }
 
     private var monthCards: some View {
@@ -106,7 +95,7 @@ struct DashboardView: View {
             StatCard(icon: "equal", label: "Net (this month)", value: store.dashboard?.month.net)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.quaternary.opacity(0.4)))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardSurface))
     }
 
     @ViewBuilder
@@ -128,7 +117,7 @@ struct DashboardView: View {
                         EntryRow(entry: entry)
                     }
                 }
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.35)))
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.cardSurface))
             } else {
                 EmptyStateView(
                     message: L10n.string("dashboard.noRecentEntries", defaultValue: "No entries yet. Post your first entry in the journal."),

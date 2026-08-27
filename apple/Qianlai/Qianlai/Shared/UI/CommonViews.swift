@@ -95,6 +95,17 @@ struct FormField<Content: View>: View {
 extension Color {
     static let income = Color.red
     static let expense = Color.green
+
+    /// Surface of a card that sits on the grouped background — mirrors the
+    /// default grouped-List row color: white in light mode, elevated
+    /// near-black in dark mode.
+    static var cardSurface: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .secondarySystemGroupedBackground)
+        #elseif canImport(AppKit)
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
 }
 
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
@@ -143,7 +154,7 @@ struct StatCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.quaternary.opacity(0.5))
+                .fill(Color.cardSurface)
         )
     }
 }
