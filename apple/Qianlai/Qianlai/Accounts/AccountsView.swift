@@ -9,12 +9,19 @@ import SwiftUI
 
 /// Chart of accounts of the active ledger: type tabs, a flat parent-first
 /// tree list with create/edit/archive/delete/set-balance, and drag reorder.
+/// Configured with the account types it manages — asset/liability live under
+/// "Accounts" on the Me page, income/expense under "Categories".
+///
+/// Collapsible mode (categories) shows only top-level rows by default and
+/// taps toggle a parent's sub-accounts open/closed instead of opening the
+/// editor, which stays reachable through the context menu.
 struct AccountsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(RealAccountStore.self) private var realAccountStore
     @Environment(ToastCenter.self) private var toast
     @State private var store = AccountStore()
-    @State private var selectedType: AccountType = .asset
+    @State private var selectedType: AccountType
+    @State private var expandedIds: Set<String> = []
     @State private var editingAccount: BookAccount?
     @State private var createParent: BookAccount?
     @State private var isShowingCreate = false
@@ -22,8 +29,21 @@ struct AccountsView: View {
     @State private var accountPendingDelete: BookAccount?
     @State private var isReordering = false
 
-    /// Types shown to users; equity is system-managed.
-    private static let userTypes: [AccountType] = [.asset, .liability, .income, .expense]
+    /// Types shown in the tabs; equity is system-managed.
+    private let managedTypes: [AccountType]
+    private let navigationTitle: LocalizedStringKey
+    private let collapsible: Bool
+
+    init(
+        managing types: [AccountType] = [.asset, .liability],
+        title: LocalizedStringKey = "Accounts",
+        collapsible: Bool = false
+    ) {
+        managedTypes = types
+        navigationTitle = title
+        self.collapsible = collapsible
+        _selectedType = State(initialValue: types.first ?? .asset)
+    }
 
     private var canManage: Bool {
         ledgerStore.canPost
@@ -43,7 +63,7 @@ struct AccountsView: View {
                 )
             }
         }
-        .navigationTitle(Text("Accounts"))
+        .navigationTitle(navigationTitle)
         .toolbar {
             #if os(iOS)
             if canManage {
@@ -127,7 +147,7 @@ struct AccountsView: View {
         List {
             Section {
                 Picker("Type", selection: $selectedType) {
-                    ForEach(Self.userTypes, id: \.self) { type in
+                    ForEach(managedTypes, id: \.self) { type in
                         Text(type.label).tag(type)
                     }
                 }
@@ -136,10 +156,9 @@ struct AccountsView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
             }
 
-            let entries = AccountTreeEntry.build(
-                store.items.filter { $0.type == selectedType },
-                includeArchived: true
-            )
+            let entries = treeEntries
+            let parentIds = Set(entries.compactMap(\.account.parentId))
+            let visible = revealedEntries
 
             if entries.isEmpty {
                 EmptyStateView(
@@ -149,8 +168,8 @@ struct AccountsView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             } else {
-                ForEach(entries) { entry in
-                    row(entry.account)
+                ForEach(visible) { entry in
+                    row(entry.account, hasChildren: parentIds.contains(entry.account.id))
                         .listRowInsets(EdgeInsets(top: 6, leading: 12 + CGFloat(entry.depth) * 18, bottom: 6, trailing: 12))
                 }
                 .onMove { source, destination in
@@ -158,7 +177,7 @@ struct AccountsView: View {
                     guard !accountId.isEmpty else { return }
                     Task {
                         do {
-                            try await store.move(accountId, flatTargetIndex: destination)
+                            try await store.move(accountId, flatTargetIndex: flatIndexOfDrop(at: destination))
                         } catch {
                             toast.show(error.localizedDescription)
                         }
@@ -185,17 +204,52 @@ struct AccountsView: View {
         }
     }
 
-    private func movedAccountId(from source: IndexSet) -> String {
-        // Single-item drags only; take the first moved id.
-        let entries = AccountTreeEntry.build(
-            store.items.filter { $0.type == selectedType },
-            includeArchived: true
-        )
-        guard let index = source.first, index < entries.count else { return "" }
-        return entries[index].account.id
+    private var typedAccounts: [BookAccount] {
+        store.items.filter { $0.type == selectedType }
     }
 
-    private func row(_ account: BookAccount) -> some View {
+    /// Flat parent-first list of the selected type, including archived rows.
+    private var treeEntries: [AccountTreeEntry] {
+        AccountTreeEntry.build(typedAccounts, includeArchived: true)
+    }
+
+    /// Tree entries revealed under the current expansion state — all of them
+    /// unless collapsible mode hides unexpanded parents' descendants.
+    private var revealedEntries: [AccountTreeEntry] {
+        let entries = treeEntries
+        guard collapsible else { return entries }
+        let byId = Dictionary(uniqueKeysWithValues: typedAccounts.map { ($0.id, $0) })
+        return entries.filter { entry in
+            var parent = entry.account.parentId.flatMap { byId[$0] }
+            while let current = parent {
+                guard expandedIds.contains(current.id) else { return false }
+                parent = current.parentId.flatMap { byId[$0] }
+            }
+            return true
+        }
+    }
+
+    private func movedAccountId(from source: IndexSet) -> String {
+        // Single-item drags only; take the first moved id.
+        let visible = revealedEntries
+        guard let index = source.first, index < visible.count else { return "" }
+        return visible[index].account.id
+    }
+
+    /// Maps a List drop position among the revealed rows onto the flat
+    /// parent-first index `AccountStore.move` expects; a drop past the end
+    /// anchors to the full list's tail.
+    private func flatIndexOfDrop(at destination: Int) -> Int {
+        guard collapsible else { return destination }
+        let visible = revealedEntries
+        let all = treeEntries
+        guard destination < visible.count,
+              let anchor = all.firstIndex(where: { $0.id == visible[destination].id })
+        else { return all.count }
+        return anchor
+    }
+
+    private func row(_ account: BookAccount, hasChildren: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 if let icon = account.icon, !icon.isEmpty {
@@ -211,11 +265,27 @@ struct AccountsView: View {
                     BadgeView(text: L10n.string("status.archived", defaultValue: "Archived"), color: .orange)
                 }
                 Spacer()
+                if collapsible {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(expandedIds.contains(account.id) ? 90 : 0))
+                        .opacity(hasChildren ? 1 : 0)
+                }
             }
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if canManage {
+            if collapsible {
+                guard hasChildren else { return }
+                withAnimation(.snappy) {
+                    if expandedIds.contains(account.id) {
+                        expandedIds.remove(account.id)
+                    } else {
+                        expandedIds.insert(account.id)
+                    }
+                }
+            } else if canManage {
                 editingAccount = account
             }
         }

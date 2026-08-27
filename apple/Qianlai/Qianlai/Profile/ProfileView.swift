@@ -114,6 +114,11 @@ struct ProfileView: View {
                 Label("Accounts", systemImage: "chart.bar.doc.horizontal")
             }
             NavigationLink {
+                CategoriesView()
+            } label: {
+                Label("Categories", systemImage: "tag")
+            }
+            NavigationLink {
                 ReportsView()
             } label: {
                 Label("Reports", systemImage: "chart.pie")
