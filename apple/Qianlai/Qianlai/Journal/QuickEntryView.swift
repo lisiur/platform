@@ -22,8 +22,17 @@ struct QuickEntryView: View {
     @State private var amountText = ""
     @State private var isCalculatorPresented = false
     @State private var isParticipantsPresented = false
+    @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
     @State private var isPosting = false
+
+    /// Which side's account picker the sheet is showing — one presentation
+    /// state serves both fields.
+    private enum AccountSide: String, Identifiable {
+        case debit, credit
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
         Form {
@@ -39,6 +48,7 @@ struct QuickEntryView: View {
                     draft.debitAccountId = nil
                     draft.creditAccountId = nil
                     validationError = nil
+                    applyExpenseCategoryDefault()
                 }
             }
 
@@ -72,15 +82,15 @@ struct QuickEntryView: View {
             Section {
                 accountField(
                     title: debitLabel,
+                    side: .debit,
                     selection: $draft.debitAccountId,
-                    entries: debitEntries,
-                    allowsEmpty: draft.kind == .income
+                    entries: debitEntries
                 )
                 accountField(
                     title: creditLabel,
+                    side: .credit,
                     selection: $draft.creditAccountId,
-                    entries: creditEntries,
-                    allowsEmpty: draft.kind == .expense
+                    entries: creditEntries
                 )
                 if draft.isSameAccount {
                     Label(
@@ -169,6 +179,23 @@ struct QuickEntryView: View {
         .sheet(isPresented: $isCalculatorPresented) {
             CalculatorSheet(initialAmount: amountText) { amountText = $0 }
         }
+        .sheet(item: $activeAccountSide) { side in
+            NavigationStack {
+                AccountSelectionView(
+                    title: side == .debit ? debitLabel : creditLabel,
+                    entries: side == .debit ? debitEntries : creditEntries,
+                    allowsEmpty: side == .debit
+                        ? draft.kind == .income
+                        : draft.kind == .expense,
+                    selection: side == .debit
+                        ? $draft.debitAccountId
+                        : $draft.creditAccountId
+                )
+            }
+            #if os(iOS)
+            .presentationDetents([.medium, .large])
+            #endif
+        }
         .sheet(isPresented: $isParticipantsPresented) {
             ParticipantSelectionView(
                 members: memberStore.members,
@@ -189,6 +216,7 @@ struct QuickEntryView: View {
             guard let ledger = ledgerStore.activeLedger else { return }
             await accountStore.load(ledgerId: ledger.id)
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
+            applyExpenseCategoryDefault()
         }
     }
 
@@ -241,39 +269,71 @@ struct QuickEntryView: View {
         }
     }
 
-    /// Field row that pushes `AccountSelectionView`: the tree of accounts is
-    /// too large for an inline menu, so the form only shows the current value
-    /// and the full hierarchy opens on tap.
+    /// The expense category to prefill: the one on the most recent expense
+    /// entry in the journal — repeated spending is the common case — falling
+    /// back to the first category in picker order for a fresh ledger.
+    private var defaultExpenseCategoryId: String? {
+        let categories = AccountTreeEntry.build(accountStore.pickable.filter { $0.type == .expense })
+        let categoryIds = Set(categories.map(\.account.id))
+        // Entries are newest-first; the debit line of an expense is its category.
+        for entry in journalStore.entries {
+            if let line = entry.lines.first(where: { $0.debit > 0 && categoryIds.contains($0.accountId) }) {
+                return line.accountId
+            }
+        }
+        return categories.first?.account.id
+    }
+
+    /// Seeds the expense category once accounts are in; an explicit pick is
+    /// never overwritten, and no-op for the other scenarios.
+    private func applyExpenseCategoryDefault() {
+        guard draft.kind == .expense, draft.debitAccountId == nil else { return }
+        draft.debitAccountId = defaultExpenseCategoryId
+    }
+
+    /// Field row that opens the account picker as a bottom sheet: the tree
+    /// of accounts is too large for an inline menu, so the form only shows
+    /// the current value and the full hierarchy opens on tap.
     private func accountField(
         title: String,
+        side: AccountSide,
         selection: Binding<String?>,
-        entries: [AccountTreeEntry],
-        allowsEmpty: Bool
+        entries: [AccountTreeEntry]
     ) -> some View {
-        NavigationLink {
-            AccountSelectionView(
-                title: title,
-                entries: entries,
-                allowsEmpty: allowsEmpty,
-                selection: selection
-            )
+        Button {
+            activeAccountSide = side
         } label: {
             HStack {
                 Text(title)
                 Spacer()
-                Text(accountValue(entries, selection.wrappedValue))
-                    .foregroundStyle(.secondary)
+                accountValue(entries, selection.wrappedValue)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
-    /// The selected account's display name, or the "Not selected" sentinel —
-    /// never a blank trailing label.
-    private func accountValue(_ entries: [AccountTreeEntry], _ selected: String?) -> String {
-        guard let selected,
-              let entry = entries.first(where: { $0.account.id == selected })
-        else { return L10n.string("Not selected", defaultValue: "Not selected") }
-        return entry.account.displayName
+    /// The selected account's icon + display name — the icon mirrors the
+    /// picker rows so the value reads the same in both places — or the
+    /// "Not selected" sentinel; never a blank trailing label.
+    @ViewBuilder
+    private func accountValue(_ entries: [AccountTreeEntry], _ selected: String?) -> some View {
+        if let selected,
+           let entry = entries.first(where: { $0.account.id == selected }) {
+            HStack(spacing: 8) {
+                if let icon = entry.account.icon, !icon.isEmpty {
+                    Text(icon)
+                }
+                Text(entry.account.displayName)
+            }
+            .foregroundStyle(.secondary)
+        } else {
+            Text(L10n.string("Not selected", defaultValue: "Not selected"))
+                .foregroundStyle(.secondary)
+        }
     }
 
     /// Trailing label of the Participants row: selected names, or the
