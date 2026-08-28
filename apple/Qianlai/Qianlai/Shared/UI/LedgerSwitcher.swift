@@ -59,7 +59,7 @@ struct LedgerSwitcherMenu: View {
         } label: {
             HStack {
                 Text(ledger.name)
-                if ledger.isDefault {
+                if ledgerStore.activeLedger?.id == ledger.id {
                     Image(systemName: "star.fill")
                 }
                 Text(ledger.myRole.label)
