@@ -21,6 +21,7 @@ struct QuickEntryView: View {
     @State private var draft = QuickEntryDraft()
     @State private var amountText = ""
     @State private var isCalculatorPresented = false
+    @State private var isParticipantsPresented = false
     @State private var validationError: String?
     @State private var isPosting = false
 
@@ -101,24 +102,24 @@ struct QuickEntryView: View {
 
             if !memberStore.members.isEmpty {
                 Section {
-                    ForEach(memberStore.members) { member in
-                        Button {
-                            toggleParticipant(member)
-                        } label: {
-                            HStack {
-                                Text(member.displayName)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if draft.participants.contains(member.id) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
-                                }
-                            }
+                    // Opens the participant sheet instead of listing members
+                    // inline: the form stays compact once a ledger grows.
+                    Button {
+                        isParticipantsPresented = true
+                    } label: {
+                        HStack {
+                            Text("Participants")
+                            Spacer()
+                            Text(participantSummary)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
                     }
-                } header: {
-                    Text("Participants")
+                    .buttonStyle(.plain)
                 } footer: {
                     Text("Member turnover reports aggregate every entry a member is tagged on.")
                 }
@@ -167,6 +168,12 @@ struct QuickEntryView: View {
         }
         .sheet(isPresented: $isCalculatorPresented) {
             CalculatorSheet(initialAmount: amountText) { amountText = $0 }
+        }
+        .sheet(isPresented: $isParticipantsPresented) {
+            ParticipantSelectionView(
+                members: memberStore.members,
+                selection: $draft.participants
+            )
         }
         .disabled(!canPost)
         .overlay {
@@ -269,12 +276,16 @@ struct QuickEntryView: View {
         return entry.account.displayName
     }
 
-    private func toggleParticipant(_ member: LedgerMember) {
-        if draft.participants.contains(member.id) {
-            draft.participants.remove(member.id)
-        } else {
-            draft.participants.insert(member.id)
+    /// Trailing label of the Participants row: selected names, or the
+    /// "Not selected" sentinel — never a blank trailing label.
+    private var participantSummary: String {
+        let names = memberStore.members
+            .filter { draft.participants.contains($0.id) }
+            .map(\.displayName)
+        guard !names.isEmpty else {
+            return L10n.string("Not selected", defaultValue: "Not selected")
         }
+        return names.joined(separator: ", ")
     }
 
     private func post() async {
