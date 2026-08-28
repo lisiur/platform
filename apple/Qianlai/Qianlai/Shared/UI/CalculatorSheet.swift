@@ -183,15 +183,15 @@ struct CalculatorEngine {
     }
 }
 
-/// Amount calculator presented as a sheet by entry forms: a hand-held pad
-/// (digits, `+ − × ÷`, `%`, backspace) with the current entry as the big
-/// display. The confirmation button commits `engine.entry` — always plain
-/// dot-decimal text — back to the caller.
-struct CalculatorSheet: View {
-    private let initialAmount: String
+/// Amount calculator pad: a hand-held editor (digits, `+ − × ÷`, `%`,
+/// backspace, paste) with the current entry as the big display. Shared by
+/// entry forms — embedded inline in quick entry, or hosted by
+/// `CalculatorSheet`. The confirmation button commits `engine.entry` —
+/// always plain dot-decimal text — back to the caller.
+struct CalculatorPad: View {
+    private let showsCommitButton: Bool
     private let onCommit: (String) -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var engine: CalculatorEngine
     /// Entry size when the hint line is idle — bigger than `.largeTitle`
     /// so a lone amount gets the headline treatment, while still tracking
@@ -201,41 +201,34 @@ struct CalculatorSheet: View {
     /// 56pt entry + padding); scales with Dynamic Type like the fonts do.
     @ScaledMetric(relativeTo: .largeTitle) private var displayHeight = 56
 
-    init(initialAmount: String, onCommit: @escaping (String) -> Void) {
-        self.initialAmount = initialAmount
+    init(
+        initialAmount: String = "",
+        showsCommitButton: Bool = true,
+        onCommit: @escaping (String) -> Void
+    ) {
+        self.showsCommitButton = showsCommitButton
         self.onCommit = onCommit
         _engine = State(initialValue: CalculatorEngine(initialText: initialAmount))
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 14) {
-                display
-                pad
-            }
-            .padding(14)
-            .frame(maxWidth: 420)
-            .frame(maxWidth: .infinity)
-            .navigationTitle(Text("Calculator"))
-            .inlineNavigationBarTitle()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+        VStack(spacing: 14) {
+            display
+            pad
+            if showsCommitButton {
+                Button {
+                    onCommit(engine.entry)
+                } label: {
+                    Text("Use Amount")
+                        .font(.body.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 36)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Use Amount") {
-                        onCommit(engine.entry)
-                        dismiss()
-                    }
-                    .disabled(engine.isError)
-                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .disabled(engine.isError)
             }
         }
-        #if os(iOS)
-        // `.large` as an escape hatch: on small devices the fixed-height pad
-        // can overflow a `.medium` detent, so users can pull the sheet tall.
-        .presentationDetents([.medium, .large])
-        #endif
     }
 
     private var errorText: String? {
@@ -401,5 +394,44 @@ struct CalculatorSheet: View {
             case .digit: .primary.opacity(0.05)
             }
         }
+    }
+}
+
+/// The pad hosted in a sheet with calculator chrome: medium detent by
+/// default, `.large` escape hatch, Cancel backs out without committing.
+struct CalculatorSheet: View {
+    private let initialAmount: String
+    private let onCommit: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    init(initialAmount: String, onCommit: @escaping (String) -> Void) {
+        self.initialAmount = initialAmount
+        self.onCommit = onCommit
+    }
+
+    var body: some View {
+        NavigationStack {
+            CalculatorPad(initialAmount: initialAmount) {
+                onCommit($0)
+                dismiss()
+            }
+            .padding(14)
+            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity)
+            .navigationTitle(Text("Calculator"))
+            .inlineNavigationBarTitle()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+        #if os(iOS)
+        // Sized to the display, the five key rows, and the commit button —
+        // the pad no longer fits a `.medium` detent. `.large` stays as the
+        // escape hatch for Dynamic Type growth on small devices.
+        .presentationDetents([.height(500), .large])
+        #endif
     }
 }

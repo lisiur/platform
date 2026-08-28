@@ -21,6 +21,9 @@ struct QuickEntryView: View {
     @State private var draft = QuickEntryDraft()
     @State private var amountText = ""
     @State private var isCalculatorPresented = false
+    /// The pad lives in the form itself on open — no second sheet waiting
+    /// for this one to land — and hands off to the sheet after first commit.
+    @State private var isAmountPadVisible = true
     @State private var isParticipantsPresented = false
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
@@ -36,138 +39,21 @@ struct QuickEntryView: View {
 
     var body: some View {
         Form {
-            Section {
-                Picker("Account Type", selection: $draft.kind) {
-                    ForEach(QuickEntryKind.allCases) { kind in
-                        Text(kind.label).tag(kind)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: draft.kind) {
-                    // Both sides restart unselected when the scenario changes.
-                    draft.debitAccountId = nil
-                    draft.creditAccountId = nil
-                    validationError = nil
-                    applyExpenseCategoryDefault()
-                }
-            }
-
-            Section {
-                // Tapping Amount opens the calculator sheet instead of the
-                // keyboard: multi-step math (splits, discounts) is the norm
-                // for entry amounts, so the pad doubles as the editor.
-                Button {
-                    isCalculatorPresented = true
-                } label: {
-                    HStack {
-                        Text("Amount")
-                        Spacer()
-                        Text(amountText.isEmpty ? "0.00" : amountText)
-                            .foregroundStyle(amountText.isEmpty ? Color.secondary : Color.primary)
-                            .font(.body.monospacedDigit())
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                DatePicker(
-                    "Date",
-                    selection: $draft.date,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-            }
-
-            Section {
-                accountField(
-                    title: debitLabel,
-                    side: .debit,
-                    selection: $draft.debitAccountId,
-                    entries: debitEntries
-                )
-                accountField(
-                    title: creditLabel,
-                    side: .credit,
-                    selection: $draft.creditAccountId,
-                    entries: creditEntries
-                )
-                if draft.isSameAccount {
-                    Label(
-                        "The transfer's origin and destination can't be the same account.",
-                        systemImage: "exclamationmark.triangle"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                }
-            } header: {
-                Text("Accounts")
-            }
-
-            Section {
-                TextField("Memo (e.g. weekly groceries)", text: $draft.memo)
-                    .submitLabel(.done)
-                    .onSubmit { dismissKeyboard() }
-            }
-
-            if !memberStore.members.isEmpty {
+            leadSections
+            if isAmountPadVisible {
+                // First-run amount entry: everything after the pad stays
+                // hidden until the amount is committed.
                 Section {
-                    // Opens the participant sheet instead of listing members
-                    // inline: the form stays compact once a ledger grows.
-                    Button {
-                        isParticipantsPresented = true
-                    } label: {
-                        HStack {
-                            Text("Participants")
-                            Spacer()
-                            Text(participantSummary)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                            Image(systemName: "chevron.right")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .contentShape(Rectangle())
+                    CalculatorPad(initialAmount: amountText) { committed in
+                        amountText = committed
+                        isAmountPadVisible = false
                     }
-                    .buttonStyle(.plain)
-                } footer: {
-                    Text("Member turnover reports aggregate every entry a member is tagged on.")
-                }
-            }
-
-            if let validationError {
-                Section {
-                    Label(validationError, systemImage: "exclamationmark.circle")
-                        .foregroundStyle(.red)
-                        .font(.footnote)
-                }
-            }
-
-            Section {
-                Button {
-                    Task { await post() }
-                } label: {
-                    Group {
-                        if isPosting {
-                            HStack(spacing: 8) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Posting…")
-                            }
-                        } else {
-                            Text("Save")
-                        }
-                    }
-                    .font(.body.weight(.medium))
+                    .frame(maxWidth: 420)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 36)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .disabled(isPosting || draft.isSameAccount)
+            } else {
+                trailingSections
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         }
         .navigationTitle(Text("Add Entry"))
         .inlineNavigationBarTitle()
@@ -218,6 +104,148 @@ struct QuickEntryView: View {
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             applyExpenseCategoryDefault()
         }
+    }
+
+    /// The fields that lead every layout: scenario, then amount and date.
+    @ViewBuilder
+    private var leadSections: some View {
+        Section {
+            Picker("Account Type", selection: $draft.kind) {
+                ForEach(QuickEntryKind.allCases) { kind in
+                    Text(kind.label).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: draft.kind) {
+                // Both sides restart unselected when the scenario changes.
+                draft.debitAccountId = nil
+                draft.creditAccountId = nil
+                validationError = nil
+                applyExpenseCategoryDefault()
+            }
+        }
+
+        Section {
+            // Reopens the calculator as a sheet for edits — while the inline
+            // pad is up it already owns amount entry, so the row is inert.
+            Button {
+                isCalculatorPresented = true
+            } label: {
+                HStack {
+                    Text("Amount")
+                    Spacer()
+                    Text(amountText.isEmpty ? "0.00" : amountText)
+                        .foregroundStyle(amountText.isEmpty ? Color.secondary : Color.primary)
+                        .font(.body.monospacedDigit())
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isAmountPadVisible)
+            DatePicker(
+                "Date",
+                selection: $draft.date,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+        }
+    }
+
+    /// Everything after the amount is committed: accounts, memo,
+    /// participants, and the save action.
+    @ViewBuilder
+    private var trailingSections: some View {
+        Section {
+            accountField(
+                title: debitLabel,
+                side: .debit,
+                selection: $draft.debitAccountId,
+                entries: debitEntries
+            )
+            accountField(
+                title: creditLabel,
+                side: .credit,
+                selection: $draft.creditAccountId,
+                entries: creditEntries
+            )
+            if draft.isSameAccount {
+                Label(
+                    "The transfer's origin and destination can't be the same account.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+        } header: {
+            Text("Accounts")
+        }
+
+        Section {
+            TextField("Memo (e.g. weekly groceries)", text: $draft.memo)
+                .submitLabel(.done)
+                .onSubmit { dismissKeyboard() }
+        }
+
+        if !memberStore.members.isEmpty {
+            Section {
+                // Opens the participant sheet instead of listing members
+                // inline: the form stays compact once a ledger grows.
+                Button {
+                    isParticipantsPresented = true
+                } label: {
+                    HStack {
+                        Text("Participants")
+                        Spacer()
+                        Text(participantSummary)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } footer: {
+                Text("Member turnover reports aggregate every entry a member is tagged on.")
+            }
+        }
+
+        if let validationError {
+            Section {
+                Label(validationError, systemImage: "exclamationmark.circle")
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+            }
+        }
+
+        Section {
+            Button {
+                Task { await post() }
+            } label: {
+                Group {
+                    if isPosting {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Posting…")
+                        }
+                    } else {
+                        Text("Save")
+                    }
+                }
+                .font(.body.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 36)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+            .disabled(isPosting || draft.isSameAccount)
+        }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
     private var canPost: Bool {
