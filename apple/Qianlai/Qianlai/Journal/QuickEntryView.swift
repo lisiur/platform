@@ -20,6 +20,7 @@ struct QuickEntryView: View {
     @State private var memberStore = MemberStore()
     @State private var draft = QuickEntryDraft()
     @State private var amountText = ""
+    @State private var isCalculatorPresented = false
     @State private var validationError: String?
     @State private var isPosting = false
 
@@ -41,20 +42,25 @@ struct QuickEntryView: View {
             }
 
             Section {
-                HStack {
-                    Text("Amount")
-                    Spacer()
-                    TextField("0.00", text: $amountText)
-                        #if os(iOS)
-                        .keyboardType(.decimalPad)
-                        #endif
-                        .multilineTextAlignment(.trailing)
-                        .font(.body.monospacedDigit())
-                        .textFieldStyle(.plain)
-                        #if os(macOS)
-                        .frame(width: 140)
-                        #endif
+                // Tapping Amount opens the calculator sheet instead of the
+                // keyboard: multi-step math (splits, discounts) is the norm
+                // for entry amounts, so the pad doubles as the editor.
+                Button {
+                    isCalculatorPresented = true
+                } label: {
+                    HStack {
+                        Text("Amount")
+                        Spacer()
+                        Text(amountText.isEmpty ? "0.00" : amountText)
+                            .foregroundStyle(amountText.isEmpty ? Color.secondary : Color.primary)
+                            .font(.body.monospacedDigit())
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 DatePicker(
                     "Date",
                     selection: $draft.date,
@@ -158,6 +164,9 @@ struct QuickEntryView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
             }
+        }
+        .sheet(isPresented: $isCalculatorPresented) {
+            CalculatorSheet(initialAmount: amountText) { amountText = $0 }
         }
         .disabled(!canPost)
         .overlay {

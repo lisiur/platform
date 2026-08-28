@@ -272,8 +272,17 @@ struct ShareSheet: UIViewControllerRepresentable {
 }
 #endif
 
-/// Cross-platform clipboard write.
+/// Cross-platform clipboard access.
 enum Clipboard {
+    /// The clipboard's string contents, or nil when it holds none.
+    static var text: String? {
+        #if canImport(UIKit)
+        UIPasteboard.general.string
+        #elseif canImport(AppKit)
+        NSPasteboard.general.string(forType: .string)
+        #endif
+    }
+
     static func copy(_ text: String) {
         #if canImport(UIKit)
         UIPasteboard.general.string = text
