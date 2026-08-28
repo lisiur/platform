@@ -131,7 +131,6 @@ struct ProfileView: View {
     private var languageSection: some View {
         Section("Settings") {
             Picker(
-                "Language",
                 selection: Binding(
                     get: { localeSettings.identifier },
                     set: { localeSettings.set(identifier: $0) }
@@ -142,6 +141,8 @@ struct ProfileView: View {
                     .tag("en")
                 Text("简体中文", comment: "Language name: Simplified Chinese (native form)")
                     .tag("zh-Hans")
+            } label: {
+                Label("Language", systemImage: "globe")
             }
         }
     }
