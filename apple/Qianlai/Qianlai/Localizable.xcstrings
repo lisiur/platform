@@ -5,6 +5,7 @@
 
     },
     "#%lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2562,6 +2563,9 @@
           }
         }
       }
+    },
+    "Edit Entry" : {
+
     },
     "Edit Ledger" : {
       "extractionState" : "manual",
@@ -6044,6 +6048,9 @@
           }
         }
       }
+    },
+    "Update" : {
+
     },
     "Use Amount" : {
       "extractionState" : "manual",

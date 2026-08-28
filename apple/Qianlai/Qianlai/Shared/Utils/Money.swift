@@ -107,6 +107,52 @@ enum UTCDates {
         return formatter.string(from: date)
     }
 
+    /// Entry card timestamps: HH:mm in the entry's UTC wall clock — the
+    /// enclosing day-group header carries the date.
+    static func formatEntryTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    /// Day-group headers: medium date without time (entry days are UTC days).
+    static func formatEntryDay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    /// First-to-last day of the UTC month containing `date`, for month-wide
+    /// entry windows (the dashboard).
+    static func monthWindow(containing date: Date = Date()) -> (from: Date, to: Date) {
+        let components = utcCalendar.dateComponents([.year, .month], from: date)
+        let start = utcCalendar.date(
+            from: DateComponents(year: components.year, month: components.month, day: 1)
+        ) ?? startOfUTCDay(date)
+        guard let nextMonth = utcCalendar.date(byAdding: .month, value: 1, to: start),
+              let lastDay = utcCalendar.date(byAdding: .day, value: -1, to: nextMonth)
+        else { return (start, start) }
+        return (start, lastDay)
+    }
+
+    /// Re-anchors a stored UTC instant to the viewer's timezone carrying the
+    /// same wall clock — editing an entry shows the HH:mm it was stored with,
+    /// so an untouched save round-trips instead of drifting by the timezone
+    /// offset (the save re-applies `utcWallClock`).
+    static func localFromUTCWallClock(_ date: Date) -> Date {
+        let components = utcCalendar.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: date
+        )
+        return Calendar.current.date(from: components) ?? date
+    }
+
     /// Timestamp display (createdAt etc.) in the viewer's local timezone.
     static func formatTimestamp(_ date: Date) -> String {
         let formatter = DateFormatter()

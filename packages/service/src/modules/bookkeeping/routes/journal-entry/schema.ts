@@ -21,6 +21,13 @@ export const journalLineSchema = z
         .openapi({ example: "cash", description: "i18n key, null if custom" }),
       type: z.string().openapi({ example: "asset" }),
       sortOrder: z.number().int().openapi({ example: 10 }),
+      icon: z
+        .string()
+        .nullable()
+        .openapi({ example: null, description: "Emoji or icon name" }),
+      flags: z
+        .array(z.string())
+        .openapi({ example: [], description: 'e.g. "builtin"' }),
     }),
     debit: z.number().openapi({ example: 50 }),
     credit: z.number().openapi({ example: 0 }),
@@ -148,6 +155,8 @@ export function serializeEntry<
         code: string | null;
         type: string;
         sortOrder: number;
+        icon: string | null;
+        flags: string[];
       };
       debit: { toString(): string };
       credit: { toString(): string };

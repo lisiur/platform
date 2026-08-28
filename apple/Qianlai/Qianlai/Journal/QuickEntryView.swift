@@ -9,25 +9,39 @@ import SwiftUI
 
 /// One-click income/expense/transfer entry: pick a scenario, two accounts,
 /// and a single amount — the draft expands into the balanced two-line double
-/// entry the API expects.
+/// entry the API expects. Pass an `entry` to edit it instead: every field is
+/// prefilled and saving issues a full replace of the entry.
 struct QuickEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ToastCenter.self) private var toast
     @Environment(JournalStore.self) private var journalStore
     @Environment(ReportStore.self) private var reportStore
-    @State private var accountStore = AccountStore()
-    @State private var memberStore = MemberStore()
-    @State private var draft = QuickEntryDraft()
-    @State private var amountText = ""
+    private let editedEntry: JournalEntry?
+    @State private var draft: QuickEntryDraft
+    @State private var amountText: String
     @State private var isCalculatorPresented = false
     /// The pad lives in the form itself on open — no second sheet waiting
     /// for this one to land — and hands off to the sheet after first commit.
-    @State private var isAmountPadVisible = true
+    /// Editing skips the pad: the amount is already committed.
+    @State private var isAmountPadVisible: Bool
     @State private var isParticipantsPresented = false
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
     @State private var isPosting = false
+
+    /// Editing seeds every field from the entry; creating starts blank with
+    /// the amount pad up.
+    init(entry: JournalEntry? = nil) {
+        editedEntry = entry
+        _draft = State(initialValue: entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft())
+        // No grouping separator so post()'s Double parsing round-trips.
+        _amountText = State(initialValue: entry.map { String(format: "%.2f", $0.amount) } ?? "")
+        _isAmountPadVisible = State(initialValue: entry == nil)
+    }
+
+    @State private var accountStore = AccountStore()
+    @State private var memberStore = MemberStore()
 
     /// Which side's account picker the sheet is showing — one presentation
     /// state serves both fields.
@@ -55,7 +69,7 @@ struct QuickEntryView: View {
                 trailingSections
             }
         }
-        .navigationTitle(Text("Add Entry"))
+        .navigationTitle(Text(editedEntry == nil ? "Add Entry" : "Edit Entry"))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -244,17 +258,17 @@ struct QuickEntryView: View {
 
         Section {
             Button {
-                Task { await post() }
+                Task { await save() }
             } label: {
                 Group {
                     if isPosting {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("Posting…")
+                            Text(editedEntry == nil ? "Posting…" : "Saving…")
                         }
                     } else {
-                        Text("Save")
+                        Text(editedEntry == nil ? "Save" : "Update")
                     }
                 }
                 .font(.body.weight(.medium))
@@ -397,7 +411,7 @@ struct QuickEntryView: View {
         return names.joined(separator: ", ")
     }
 
-    private func post() async {
+    private func save() async {
         let normalized = amountText.replacingOccurrences(of: ",", with: ".")
         guard let amount = Double(normalized), amount > 0 else {
             validationError = L10n.string("quick.amountRequired", defaultValue: "Enter an amount greater than 0.")
@@ -412,8 +426,13 @@ struct QuickEntryView: View {
         isPosting = true
         defer { isPosting = false }
         do {
-            try await journalStore.post(draft)
-            toast.show(L10n.string("journal.createSuccess", defaultValue: "Entry posted"))
+            if let editedEntry {
+                try await journalStore.update(editedEntry, draft: draft)
+                toast.show(L10n.string("journal.updateSuccess", defaultValue: "Entry updated"))
+            } else {
+                try await journalStore.post(draft)
+                toast.show(L10n.string("journal.createSuccess", defaultValue: "Entry posted"))
+            }
             dismiss()
             // The posting moved balances; refresh dashboard and reports in
             // the background so they never show stale numbers.

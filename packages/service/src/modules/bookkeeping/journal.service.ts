@@ -305,9 +305,73 @@ function validateParticipants(
 }
 
 /**
- * Journal entries are immutable once posted; correction means delete + re-post.
- * Runs under the ledger row lock with the archived guard re-evaluated there,
- * so a ledger archived after the route's check still refuses the delete.
+ * Replaces an entry's date, memo, lines, and participants. Mirrors create:
+ * the ledger row is locked so line validation runs against a
+ * transaction-consistent account list and the archived guard is
+ * re-evaluated under the lock. entryNo and the original creator are kept —
+ * editing corrects values, it does not re-post the entry.
+ */
+export async function updateEntry(
+  ledgerId: string,
+  entryId: string,
+  data: {
+    date: Date;
+    memo?: string;
+    lines: JournalLineInput[];
+    participantMemberIds?: string[];
+  },
+) {
+  return prisma.$transaction(async (tx) => {
+    await lockLedgerRow(tx, ledgerId);
+    const ledger = await ledgerRepository.findById(ledgerId, tx);
+    if (!ledger) {
+      throw new HTTPException(404, { message: "Ledger not found" });
+    }
+    assertLedgerWritable(ledger);
+    const entry = await journalRepository.findById(entryId, tx);
+    if (!entry || entry.ledgerId !== ledgerId) {
+      throw new HTTPException(404, { message: "Journal entry not found" });
+    }
+    const [ledgerAccounts, ledgerMembers] = await Promise.all([
+      accountRepository.listByLedger(ledgerId, tx),
+      ledgerMemberRepository.listByLedger(ledgerId, tx),
+    ]);
+    const lines = validateJournalLines(data.lines, ledgerAccounts);
+    // Replace semantics: omitted participants clear the list, so an edit
+    // form fully specifies the entry.
+    const participantMemberIds =
+      validateParticipants(data.participantMemberIds, ledgerMembers) ?? [];
+    try {
+      return await journalRepository.updateEntry(
+        entry.id,
+        {
+          date: data.date,
+          memo: data.memo,
+          lines: lines.map((line) => ({
+            accountId: line.accountId,
+            debit: new Prisma.Decimal(line.debitCents).div(100),
+            credit: new Prisma.Decimal(line.creditCents).div(100),
+            memo: line.memo,
+          })),
+          participantMemberIds,
+        },
+        tx,
+      );
+    } catch (err) {
+      if (isForeignKeyViolation(err)) {
+        throw new HTTPException(400, {
+          message: "A referenced account no longer exists in this ledger",
+        });
+      }
+      throw err;
+    }
+  });
+}
+
+/**
+ * Deletes an entry outright (correction via re-posting). Runs under the
+ * ledger row lock with the archived guard re-evaluated there, so a ledger
+ * archived after the route's check still refuses the delete.
  */
 export async function deleteEntry(ledgerId: string, entryId: string) {
   await prisma.$transaction(async (tx) => {

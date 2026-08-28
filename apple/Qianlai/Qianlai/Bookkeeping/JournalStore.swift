@@ -132,6 +132,19 @@ final class JournalStore {
         await reload()
     }
 
+    /// Replaces an entry's date, memo, lines, and participants from the
+    /// same draft shape a fresh post uses; the server keeps entryNo and
+    /// the original creator.
+    func update(_ entry: JournalEntry, draft: QuickEntryDraft) async throws {
+        guard let ledgerId else { return }
+        _ = try await client.send(
+            "PUT",
+            "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)",
+            body: draft.body
+        )
+        await reload()
+    }
+
     /// Batched clear: suppresses the per-key didSet storms so exactly one
     /// coalesced reload runs for all four filters.
     func clearFilters() {

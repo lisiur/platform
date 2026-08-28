@@ -238,6 +238,15 @@ struct JournalLineAccountRef: Codable, Hashable {
     var code: String?
     var type: AccountType
     var sortOrder: Int
+    var icon: String?
+    var flags: [String]?
+
+    /// The seeded default pocket: a prefill-only system account, hidden from
+    /// entry rows so implicit quick-entry lines don't add noise.
+    var isDefaultPocket: Bool {
+        AccountFlags.contains(flags, AccountFlags.defaultDebit)
+            || AccountFlags.contains(flags, AccountFlags.defaultCredit)
+    }
 
     var displayName: String {
         if let name, !name.isEmpty { return name }
@@ -278,6 +287,16 @@ struct JournalEntry: Codable, Identifiable, Hashable {
 
     var amount: Double {
         lines.reduce(0) { $0 + $1.debit }
+    }
+}
+
+extension [JournalEntry] {
+    /// Entries grouped by UTC day, newest day first; within-group order is
+    /// preserved so the store's date/entryNo ordering carries over.
+    var groupedByDay: [(day: Date, entries: [JournalEntry])] {
+        Dictionary(grouping: self) { UTCDates.startOfUTCDay($0.date) }
+            .map { (day: $0.key, entries: $0.value) }
+            .sorted { $0.day > $1.day }
     }
 }
 
@@ -709,6 +728,46 @@ struct QuickEntryDraft: Equatable {
                 JournalLineInput(accountId: creditAccountId, debit: 0, credit: amount, memo: nil),
             ],
             participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted()
+        )
+    }
+}
+
+extension QuickEntryDraft {
+    /// Prefills the draft from an existing entry for editing. The scenario
+    /// is derived from the category lines; a counterparty line on the seeded
+    /// default pocket becomes nil so the server re-applies the default on
+    /// save. The date keeps the entry's stored UTC wall clock.
+    init(entry: JournalEntry) {
+        let expenseLine = entry.lines.first { $0.account.type == .expense }
+        let incomeLine = entry.lines.first { $0.account.type == .income }
+        let debitLine = entry.lines.first { $0.debit > 0 }
+        let creditLine = entry.lines.first { $0.credit > 0 }
+        let kind: QuickEntryKind
+        let debitAccountId: String?
+        let creditAccountId: String?
+        if let expenseLine {
+            kind = .expense
+            debitAccountId = expenseLine.accountId
+            creditAccountId = creditLine?.account.isDefaultPocket == true
+                ? nil : creditLine?.accountId
+        } else if let incomeLine {
+            kind = .income
+            creditAccountId = incomeLine.accountId
+            debitAccountId = debitLine?.account.isDefaultPocket == true
+                ? nil : debitLine?.accountId
+        } else {
+            kind = .transfer
+            debitAccountId = debitLine?.accountId
+            creditAccountId = creditLine?.accountId
+        }
+        self.init(
+            kind: kind,
+            amount: entry.amount,
+            date: UTCDates.localFromUTCWallClock(entry.date),
+            debitAccountId: debitAccountId,
+            creditAccountId: creditAccountId,
+            memo: entry.memo ?? "",
+            participants: Set(entry.participants?.map(\.ledgerMemberId) ?? [])
         )
     }
 }

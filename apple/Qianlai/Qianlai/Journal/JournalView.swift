@@ -11,11 +11,8 @@ import SwiftUI
 /// range and participant filters, plus quick entry and delete.
 struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
-    @Environment(ToastCenter.self) private var toast
     @Environment(JournalStore.self) private var store
-    @Environment(ReportStore.self) private var reportStore
     @State private var memberStore = MemberStore()
-    @State private var entryPendingDelete: JournalEntry?
     /// Local text for `.searchable`: bound straight from store via a computed
     /// Binding, any unrelated store write (reload flags, filter commits)
     /// re-renders the search field mid-animation and makes it flash.
@@ -29,7 +26,7 @@ struct JournalView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let ledger = ledgerStore.activeLedger {
-                list(ledger)
+                EntryListView(ledger: ledger, emptyMessage: L10n.string("No entries yet", defaultValue: "No entries yet"))
             } else {
                 EmptyStateView(
                     message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),
@@ -47,92 +44,6 @@ struct JournalView: View {
             guard let id = ledgerStore.activeLedger?.id else { return }
             await store.load(ledgerId: id)
             await memberStore.load(ledgerId: id, myUserId: nil)
-        }
-        .alert(
-            L10n.string("journal.delete", defaultValue: "Delete"),
-            isPresented: Binding(
-                get: { entryPendingDelete != nil },
-                set: { if !$0 { entryPendingDelete = nil } }
-            )
-        ) {
-            Button("Delete", role: .destructive) {
-                if let entry = entryPendingDelete {
-                    Task { await delete(entry) }
-                }
-                entryPendingDelete = nil
-            }
-            Button("Cancel", role: .cancel) { entryPendingDelete = nil }
-        } message: {
-            if let entry = entryPendingDelete {
-                Text("Delete entry #\(entry.entryNo)? Reports will be recalculated.")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func list(_ ledger: QianlaiLedger) -> some View {
-        List {
-            // Blocking spinner only before anything has ever loaded; later
-            // refetches keep the current content (rows or empty state) until
-            // the response replaces it atomically — swapping content on every
-            // refetch flashed "No entries yet" and bounced the search bar.
-            if store.isLoading, store.entries.isEmpty, !store.hasLoadedOnce {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
-            } else if let error = store.loadError, store.entries.isEmpty {
-                ErrorRetryView(message: error) {
-                    Task { await store.reload() }
-                }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-            } else if store.entries.isEmpty {
-                EmptyStateView(
-                    message: L10n.string("No entries yet", defaultValue: "No entries yet"),
-                    systemImage: "doc.text"
-                )
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            } else {
-                ForEach(store.entries) { entry in
-                    EntryRow(entry: entry)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if ledger.canPost {
-                                Button(role: .destructive) {
-                                    entryPendingDelete = entry
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                        .onAppear {
-                            if entry == store.entries.last {
-                                Task { await store.loadMore() }
-                            }
-                        }
-                }
-                if store.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView().controlSize(.small)
-                        Spacer()
-                    }
-                    .listRowSeparator(.hidden)
-                }
-                if !ledger.canPost {
-                    Label(
-                        "Editor access or higher is required to post entries.",
-                        systemImage: "lock"
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .listRowSeparator(.hidden)
-                }
-            }
         }
         #if os(iOS)
         .searchable(text: $searchField, prompt: Text("Search memos…"))
@@ -192,16 +103,6 @@ struct JournalView: View {
                     }
                 }
             }
-        }
-    }
-
-    private func delete(_ entry: JournalEntry) async {
-        do {
-            try await store.delete(entry)
-            toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
-            Task { await reportStore.refreshAfterPosting() }
-        } catch {
-            toast.show(error.localizedDescription)
         }
     }
 }

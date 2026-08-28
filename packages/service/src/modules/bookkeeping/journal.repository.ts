@@ -154,6 +154,44 @@ export const journalRepository = {
     return tx.journalEntry.delete({ where: { id } });
   },
 
+  /**
+   * Replaces an entry's mutable surface — date, memo, lines, and
+   * participants — in one shot; entryNo and the original creator stay
+   * untouched. Lines and participants are wiped and recreated so the
+   * update fully specifies them.
+   */
+  updateEntry(
+    id: string,
+    data: {
+      date: Date;
+      memo?: string | null;
+      lines: Array<{
+        accountId: string;
+        debit: Prisma.Decimal | number;
+        credit: Prisma.Decimal | number;
+        memo?: string;
+      }>;
+      participantMemberIds: string[];
+    },
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.update({
+      where: { id },
+      data: {
+        date: data.date,
+        memo: data.memo ?? null,
+        lines: { deleteMany: {}, create: data.lines },
+        participants: {
+          deleteMany: {},
+          create: data.participantMemberIds.map((ledgerMemberId) => ({
+            ledgerMemberId,
+          })),
+        },
+      },
+      include: entryInclude,
+    });
+  },
+
   deleteByLedger(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.journalEntry.deleteMany({ where: { ledgerId } });
   },

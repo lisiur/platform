@@ -32,6 +32,7 @@ vi.mock("../journal.repository", () => ({
   journalRepository: {
     createEntry: vi.fn(),
     findById: vi.fn(),
+    updateEntry: vi.fn(),
     delete: vi.fn(),
   },
 }));
@@ -42,6 +43,7 @@ import { journalRepository } from "../journal.repository";
 import {
   createEntry,
   deleteEntry,
+  updateEntry,
   validateJournalLines,
 } from "../journal.service";
 import { ledgerRepository } from "../ledger.repository";
@@ -63,6 +65,7 @@ const mockMemberRepo = ledgerMemberRepository as unknown as {
 const mockJournalRepo = journalRepository as unknown as {
   createEntry: ReturnType<typeof vi.fn>;
   findById: ReturnType<typeof vi.fn>;
+  updateEntry: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
 
@@ -476,6 +479,122 @@ describe("createEntry", () => {
       expect.objectContaining({ participantMemberIds: undefined }),
       expect.anything(),
     );
+  });
+});
+
+describe("updateEntry", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1" },
+      { id: "mem-2" },
+    ]);
+  });
+
+  it("returns 404 when the entry belongs to another ledger", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-other",
+    });
+    await expectStatus(() => updateEntry("led-1", "e-1", baseEntryInput), 404);
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("rejects a ledger archived after the route's check (race, 400)", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "archived",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+    });
+    await expectStatus(() => updateEntry("led-1", "e-1", baseEntryInput), 400);
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("replaces the entry and clears participants when none are given", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+    const updated = await updateEntry("led-1", "e-1", {
+      ...baseEntryInput,
+      memo: "edited",
+    });
+    expect(updated).toEqual({ id: "e-1" });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({
+        memo: "edited",
+        participantMemberIds: [],
+        lines: [
+          expect.objectContaining({ accountId: "acc-cash" }),
+          expect.objectContaining({ accountId: "acc-food" }),
+        ],
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("does not touch lastEntryNo or create a new entry number", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 7,
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+    await updateEntry("led-1", "e-1", baseEntryInput);
+    expect(mockLedgerRepo.update).not.toHaveBeenCalled();
+    expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("rejects participants that are not members of the ledger (400)", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    await expectStatus(
+      () =>
+        updateEntry("led-1", "e-1", {
+          ...baseEntryInput,
+          participantMemberIds: ["mem-foreign"],
+        }),
+      400,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });
 });
 
