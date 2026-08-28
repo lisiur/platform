@@ -116,6 +116,7 @@ struct QuickEntryView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .controlSize(.large)
             .onChange(of: draft.kind) {
                 // Both sides restart unselected when the scenario changes.
                 draft.debitAccountId = nil
@@ -124,6 +125,9 @@ struct QuickEntryView: View {
                 applyExpenseCategoryDefault()
             }
         }
+        // Floating segmented control: no grouped card around the tabs.
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
         Section {
             // Reopens the calculator as a sheet for edits — while the inline
