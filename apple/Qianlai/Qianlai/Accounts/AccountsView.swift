@@ -222,7 +222,7 @@ struct AccountsView: View {
     }
 
     private var typedAccounts: [BookAccount] {
-        store.items.filter { $0.type == selectedType }
+        store.items.filter { $0.type == selectedType && !$0.isDefaultPocket }
     }
 
     /// Flat parent-first list of the selected type, including archived rows.
