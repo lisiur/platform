@@ -36,6 +36,12 @@ enum UTCDates {
         utcCalendar.startOfDay(for: Date())
     }
 
+    /// The UTC year/month containing now — the dashboard's default month.
+    static var currentYearMonth: YearMonth {
+        let components = utcCalendar.dateComponents([.year, .month], from: Date())
+        return YearMonth(year: components.year ?? 1970, month: components.month ?? 1)
+    }
+
     /// `yyyy-MM-dd` in UTC — the wire format the set-balance endpoint expects.
     static func utcDayString(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -119,13 +125,27 @@ enum UTCDates {
     }
 
     /// Day-group headers: medium date without time (entry days are UTC days).
-    static func formatEntryDay(_ date: Date) -> String {
+    /// `locale` comes from the environment `\.locale` so the header follows
+    /// the in-app language override, not the device language.
+    static func formatEntryDay(_ date: Date, locale: Locale) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.locale = locale
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+
+    /// Dashboard month title, localized per the given locale ("Aug 2026",
+    /// "2026年8月") — dashboard months are UTC months.
+    static func formatMonthTitle(_ month: YearMonth, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("yMMM")
+        return formatter.string(from: month.start)
     }
 
     /// First-to-last day of the UTC month containing `date`, for month-wide
@@ -159,6 +179,22 @@ enum UTCDates {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    /// Filter pickers hand over the user's picked day as a local-midnight
+    /// instant; the entry-day they mean is read back in the local calendar
+    /// and mapped to that day's UTC bounds — entries are stored as UTC
+    /// midnights and grouped under UTC day headers, so search must slice
+    /// the same UTC days the list displays.
+    static func utcBusinessDayBounds(for picked: Date) -> (start: Date, end: Date) {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: picked)
+        let day = utcDayString(
+            year: components.year ?? 1970,
+            month: components.month ?? 1,
+            day: components.day ?? 1
+        )
+        let start = date(fromUTCDayString: day) ?? startOfUTCDay(picked)
+        return (start, endOfUTCDay(start))
     }
 }
 

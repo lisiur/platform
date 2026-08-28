@@ -19,6 +19,12 @@ final class ReportStore {
     private(set) var dashboard: Dashboard?
     private(set) var isLoadingDashboard = false
 
+    /// Month the dashboard cards summarize; nil follows the current month
+    /// (server default). Writing it schedules a coalesced dashboard reload,
+    /// so `refreshAfterPosting` re-summarizes the month on screen.
+    var dashboardMonth: YearMonth? { didSet { scheduleDashboardReload() } }
+    private var dashboardReloadTask: Task<Void, Never>?
+
     private(set) var trialBalance: TrialBalance?
     private(set) var isLoadingTrialBalance = false
 
@@ -43,6 +49,15 @@ final class ReportStore {
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled else { return }
             await reloadWindowed()
+        }
+    }
+
+    private func scheduleDashboardReload() {
+        dashboardReloadTask?.cancel()
+        dashboardReloadTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            await loadDashboard()
         }
     }
 
@@ -81,9 +96,16 @@ final class ReportStore {
         isLoadingDashboard = true
         defer { isLoadingDashboard = false }
         do {
+            // Range filter with explicit UTC instants — the caller owns the
+            // timezone math, same as the windowed reports.
+            let window = dashboardMonth.map { UTCDates.monthWindow(containing: $0.start) }
+            let query = ApiQuery.build([
+                ("from", window.map { ApiQuery.iso($0.from) }),
+                ("to", window.map { ApiQuery.iso($0.to) }),
+            ])
             dashboard = try await client.request(
                 "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/dashboard"
+                "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"
             )
         } catch {
             // Keep whatever was loaded; the retry button reloads.

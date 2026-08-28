@@ -72,6 +72,13 @@ export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
 
+export const dashboardQuerySchema = z
+  .object({
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+  })
+  .openapi("QianlaiDashboardQuery");
+
 export const incomeStatementQuerySchema = z
   .object({
     from: z.coerce.date().optional(),

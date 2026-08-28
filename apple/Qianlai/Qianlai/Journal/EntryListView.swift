@@ -7,14 +7,16 @@
 
 import SwiftUI
 
-/// The shared entry list surface: day-grouped sections, swipe-to-delete with
-/// confirmation, incremental pagination, and load-state rows. The Journal
-/// embeds it with every filter available; the Dashboard mounts it with a
-/// month-window JournalStore so its entries carry the same actions.
+/// The shared entry list surface: day-grouped sections (one rounded card
+/// per day), swipe-to-delete with confirmation, incremental pagination, and
+/// load-state rows. The Journal embeds it with every filter available; the
+/// Dashboard mounts it with a month-window JournalStore so its entries
+/// carry the same actions.
 struct EntryListView<Header: View>: View {
     @Environment(JournalStore.self) private var store
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
+    @Environment(\.locale) private var locale
 
     let ledger: QianlaiLedger
     var emptyMessage: String
@@ -36,7 +38,12 @@ struct EntryListView<Header: View>: View {
                 header
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
+                    // Zero insets: the row bounds span the same width as
+                    // the grouped section cards below, so a custom card
+                    // here lines up with the day cards on every device.
+                    .listRowInsets(EdgeInsets())
+                    .padding(.top, 16)
+                    .padding(.bottom, 4)
             }
             // Blocking spinner only before anything has ever loaded; later
             // refetches keep the current content (rows or empty state) until
@@ -60,7 +67,10 @@ struct EntryListView<Header: View>: View {
                     .listRowBackground(Color.clear)
             } else {
                 ForEach(store.entries.groupedByDay, id: \.day) { group in
-                    Section(header: Text(UTCDates.formatEntryDay(group.day))) {
+                    // Default grouped style renders each Section as one
+                    // rounded card with the date above it — same UI as the
+                    // Me page.
+                    Section {
                         ForEach(group.entries) { entry in
                             EntryRow(entry: entry)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -83,6 +93,8 @@ struct EntryListView<Header: View>: View {
                                     }
                                 }
                         }
+                    } header: {
+                        Text(UTCDates.formatEntryDay(group.day, locale: locale))
                     }
                 }
             }
@@ -150,7 +162,7 @@ extension EntryListView where Header == EmptyView {
 
 /// One journal entry card: category icon + title, HH:mm (the enclosing day
 /// group header carries the date), memo, other account names, participants,
-/// creator, signed amount. Shared by the dashboard and journal list. Lines
+/// signed amount. Shared by the dashboard and journal list. Lines
 /// posting against the seeded default pocket are hidden, and the amount
 /// follows the money flow: expenses negative, income positive.
 struct EntryRow: View {
@@ -183,8 +195,8 @@ struct EntryRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                HStack(spacing: 6) {
-                    if let participants = entry.participants, !participants.isEmpty {
+                if let participants = entry.participants, !participants.isEmpty {
+                    HStack(spacing: 6) {
                         Image(systemName: "person.2")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
@@ -194,20 +206,12 @@ struct EntryRow: View {
                                 outlined: true
                             )
                         }
-                        Spacer()
-                    } else {
-                        Spacer()
-                    }
-                    if let creator = entry.createdBy {
-                        Text(creator.name)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
                     }
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 
     /// The entry's category line (expense wins over income); nil for

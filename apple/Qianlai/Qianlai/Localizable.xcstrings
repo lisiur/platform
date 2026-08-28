@@ -2258,23 +2258,6 @@
         }
       }
     },
-    "dashboard.monthOf" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This Month (%lld-%02lld)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月（%lld-%02lld）"
-          }
-        }
-      }
-    },
     "dashboard.noRecentEntries" : {
       "extractionState" : "manual",
       "localizations" : {

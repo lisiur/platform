@@ -169,6 +169,7 @@ export async function dashboard(
   ledgerId: string,
   viewerRole: LedgerRole = "viewer",
   now = new Date(),
+  window: { from?: Date; to?: Date } = {},
 ) {
   const accounts = await accountRepository.listByLedger(ledgerId);
   const allTimeSums = await sumsByAccount(ledgerId);
@@ -187,15 +188,19 @@ export async function dashboard(
     }
   }
 
-  // Entry dates are stored at UTC midnight, so the month window must be
-  // computed in UTC too — a server-local window drops (or adds) entries on
-  // the 1st/last day of the month depending on the server's timezone.
-  const monthStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  );
-  const monthEnd = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999),
-  );
+  // The month window arrives as explicit UTC instants (mirrors the other
+  // report endpoints — the caller owns the timezone math). Defaults to the
+  // current UTC month: entry dates are stored at UTC midnight, so a
+  // server-local window drops (or adds) entries on the 1st/last day of the
+  // month depending on the server's timezone.
+  const monthStart =
+    window.from ??
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd =
+    window.to ??
+    new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999),
+    );
   const monthSums = await sumsByAccount(ledgerId, {
     from: monthStart,
     to: monthEnd,
@@ -211,8 +216,8 @@ export async function dashboard(
     liabilities: round(liabilities),
     netWorth: round(assets - liabilities),
     month: {
-      year: now.getUTCFullYear(),
-      month: now.getUTCMonth() + 1,
+      year: monthStart.getUTCFullYear(),
+      month: monthStart.getUTCMonth() + 1,
       ...statement,
     },
     recentEntries,

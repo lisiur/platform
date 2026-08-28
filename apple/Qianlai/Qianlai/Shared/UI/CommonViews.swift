@@ -111,7 +111,7 @@ extension Color {
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
 /// totals rows.
 struct StatCard: View {
-    let icon: String
+    var icon: String?
     let label: LocalizedStringKey
     let value: Double?
     var tone: Tone = .default
@@ -130,14 +130,16 @@ struct StatCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 40, height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.12))
-                )
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.caption)
@@ -577,11 +579,13 @@ struct FilterSheetButton<FilterFields: View>: View {
 
     /// Copies the live filters into the sheet's drafts and re-derives the
     /// most specific matching tab (single day, exact month/year boundaries
-    /// win, otherwise the explicit Range editor).
+    /// win, otherwise the explicit Range editor). Bounds are UTC business-
+    /// day anchors; re-anchoring to local midnights keeps the pickers on
+    /// the day the user picked in any timezone.
     private func syncDrafts() {
         let calendar = Calendar.current
-        draftFrom = fromDate
-        draftTo = toDate
+        draftFrom = fromDate.map { UTCDates.localFromUTCWallClock($0) }
+        draftTo = toDate.map { UTCDates.localFromUTCWallClock($0) }
 
         let reference = fromDate ?? toDate ?? Date.now
         dayPick = reference
@@ -613,14 +617,16 @@ struct FilterSheetButton<FilterFields: View>: View {
     }
 
     /// Writes the drafts back to the bound filters: presets always fill both
-    /// ends, Range keeps optional bounds independently.
+    /// ends, Range keeps optional bounds independently. Committed bounds are
+    /// UTC business-day anchors (picked day read in the local calendar),
+    /// matching how entries are stored and grouped.
     private func commit() {
         if let window = window(for: mode) {
-            fromDate = window.start
-            toDate = window.end
+            fromDate = UTCDates.utcBusinessDayBounds(for: window.start).start
+            toDate = UTCDates.utcBusinessDayBounds(for: window.end).end
         } else {
-            fromDate = draftFrom
-            toDate = draftTo
+            fromDate = draftFrom.map { UTCDates.utcBusinessDayBounds(for: $0).start }
+            toDate = draftTo.map { UTCDates.utcBusinessDayBounds(for: $0).end }
         }
     }
 }

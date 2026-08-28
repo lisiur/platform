@@ -13,7 +13,11 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ReportStore.self) private var store
+    @Environment(\.locale) private var locale
     @State private var isShowingLedgerManagement = false
+    /// Month the cards and the entry list summarize; stepped with the
+    /// chevrons in the month header, capped at the current month.
+    @State private var selectedMonth = YearMonth.current
     /// Month-window entry store; a local instance (injected below) so its
     /// filter window never clashes with the Journal tab's root store.
     @State private var entryStore = JournalStore()
@@ -54,13 +58,22 @@ struct DashboardView: View {
         }
         .task(id: ledgerStore.activeLedger?.id) {
             guard let id = ledgerStore.activeLedger?.id else { return }
+            // Both surfaces follow the selected month; ReportStore remembers
+            // it so post-delete refreshes re-summarize the same month.
+            store.dashboardMonth = selectedMonth
             await store.load(ledgerId: id)
-            // Writing the window always schedules a reload, so revisits
-            // refresh too; the first load goes through load(ledgerId:).
-            let window = UTCDates.monthWindow()
+            let window = UTCDates.monthWindow(containing: selectedMonth.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
             await entryStore.load(ledgerId: id)
+        }
+        .onChange(of: selectedMonth) { _, month in
+            // Window writes schedule the entries reload; dashboardMonth's
+            // didSet schedules the dashboard reload.
+            store.dashboardMonth = month
+            let window = UTCDates.monthWindow(containing: month.start)
+            entryStore.fromDate = window.from
+            entryStore.toDate = window.to
         }
         .refreshable {
             await store.loadDashboard()
@@ -75,22 +88,39 @@ struct DashboardView: View {
 
     private var monthCards: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(store.dashboard.map { L10n.string("dashboard.monthOf", defaultValue: "This Month (%lld-%02lld)", $0.month.year, $0.month.month) } ?? "This Month")
-                .font(.headline)
+            HStack {
+                Button {
+                    selectedMonth = selectedMonth.previous
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                // Borderless: with the default style a tap on the List row
+                // fires BOTH chevrons, canceling each other out.
+                .buttonStyle(.borderless)
+                Spacer()
+                Text(UTCDates.formatMonthTitle(selectedMonth, locale: locale))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    selectedMonth = selectedMonth.next
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .buttonStyle(.borderless)
+                .disabled(selectedMonth >= YearMonth.current)
+            }
             StatCard(
-                icon: "arrow.down.right",
                 label: "Expense",
                 value: store.dashboard?.month.totalExpense,
                 tone: .negative
             )
             HStack(spacing: 10) {
                 StatCard(
-                    icon: "arrow.up.right",
                     label: "Income",
                     value: store.dashboard?.month.totalIncome,
                     tone: .positive
                 )
-                StatCard(icon: "equal", label: "Net", value: store.dashboard?.month.net)
+                StatCard(label: "Net", value: store.dashboard?.month.net)
             }
         }
         .padding(14)

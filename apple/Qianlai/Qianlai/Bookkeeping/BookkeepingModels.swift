@@ -400,6 +400,32 @@ struct StatementRow: Codable, Identifiable, Hashable {
     }
 }
 
+/// A calendar month key (UTC) selecting which month a report covers — the
+/// dashboard cards and their month-window entry list.
+struct YearMonth: Hashable, Comparable {
+    var year: Int
+    var month: Int
+
+    static var current: YearMonth { UTCDates.currentYearMonth }
+
+    var previous: YearMonth {
+        month > 1 ? YearMonth(year: year, month: month - 1) : YearMonth(year: year - 1, month: 12)
+    }
+
+    var next: YearMonth {
+        month < 12 ? YearMonth(year: year, month: month + 1) : YearMonth(year: year + 1, month: 1)
+    }
+
+    /// UTC midnight of day 1 — anchors entry windows and title formatting.
+    var start: Date {
+        UTCDates.date(fromUTCDayString: String(format: "%04d-%02d-01", year, month)) ?? .distantPast
+    }
+
+    static func < (lhs: YearMonth, rhs: YearMonth) -> Bool {
+        (lhs.year, lhs.month) < (rhs.year, rhs.month)
+    }
+}
+
 struct DashboardMonth: Codable, Hashable {
     var year: Int
     var month: Int
