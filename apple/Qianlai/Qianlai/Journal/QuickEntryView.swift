@@ -158,18 +158,35 @@ struct QuickEntryView: View {
     @ViewBuilder
     private var trailingSections: some View {
         Section {
-            accountField(
-                title: debitLabel,
-                side: .debit,
-                selection: $draft.debitAccountId,
-                entries: debitEntries
-            )
-            accountField(
-                title: creditLabel,
-                side: .credit,
-                selection: $draft.creditAccountId,
-                entries: creditEntries
-            )
+            // The required side leads: for income the category is required
+            // and comes first, with the optional "Receive Into" trailing.
+            if draft.kind == .income {
+                accountField(
+                    title: creditLabel,
+                    side: .credit,
+                    selection: $draft.creditAccountId,
+                    entries: creditEntries
+                )
+                accountField(
+                    title: debitLabel,
+                    side: .debit,
+                    selection: $draft.debitAccountId,
+                    entries: debitEntries
+                )
+            } else {
+                accountField(
+                    title: debitLabel,
+                    side: .debit,
+                    selection: $draft.debitAccountId,
+                    entries: debitEntries
+                )
+                accountField(
+                    title: creditLabel,
+                    side: .credit,
+                    selection: $draft.creditAccountId,
+                    entries: creditEntries
+                )
+            }
             if draft.isSameAccount {
                 Label(
                     "The transfer's origin and destination can't be the same account.",
