@@ -87,7 +87,11 @@ const STARTER_ACCOUNTS: StarterAccount[] = [
     type: "asset",
     sortOrder: 5,
     icon: "👛",
-    flags: [DEFAULT_DEBIT_ACCOUNT_FLAG, DEFAULT_CREDIT_ACCOUNT_FLAG],
+    flags: [
+      BUILTIN_ACCOUNT_FLAG,
+      DEFAULT_DEBIT_ACCOUNT_FLAG,
+      DEFAULT_CREDIT_ACCOUNT_FLAG,
+    ],
   },
   {
     code: "openingBalance",
