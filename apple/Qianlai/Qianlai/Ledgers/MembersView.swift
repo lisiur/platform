@@ -214,12 +214,14 @@ struct MembersView: View {
                 member.user?.avatar,
                 baseURL: auth.apiBaseURL
             ) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Text(initial)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(initial)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
                 }
             } else {
                 Text(initial)

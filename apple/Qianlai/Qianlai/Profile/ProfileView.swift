@@ -5,8 +5,10 @@
 //  Created by Lisiur Day on 2026/8/26.
 //
 
+import CoreTransferable
+import PhotosUI
 import SwiftUI
-import UniformTypeIdentifiers
+import UIKit
 
 /// Account hub: avatar/name/password management plus links to real accounts,
 /// ledger management, and language — with chart of accounts and reports
@@ -20,6 +22,7 @@ struct ProfileView: View {
     @State private var isShowingNameSheet = false
     @State private var isShowingPasswordSheet = false
     @State private var isShowingImporter = false
+    @State private var avatarItem: PhotosPickerItem?
 
     var body: some View {
         List {
@@ -47,14 +50,15 @@ struct ProfileView: View {
                 ChangePasswordView(store: store)
             }
         }
-        .fileImporter(
+        .photosPicker(
             isPresented: $isShowingImporter,
-            allowedContentTypes: [.image],
-            allowsMultipleSelection: false
-        ) { result in
-            if case .success(let urls) = result, let url = urls.first {
-                Task { await uploadAvatar(from: url) }
-            }
+            selection: $avatarItem,
+            matching: .images
+        )
+        .onChange(of: avatarItem) { _, item in
+            guard let item else { return }
+            avatarItem = nil
+            Task { await uploadAvatar(from: item) }
         }
     }
 
@@ -147,6 +151,13 @@ struct ProfileView: View {
         }
     }
 
+    /// Letter fallback for users without a decodable avatar image.
+    private var initials: some View {
+        Text(String((auth.currentUser?.name ?? auth.currentUser?.email ?? "?").prefix(1)).uppercased())
+            .font(.title2.weight(.semibold))
+            .foregroundStyle(.white)
+    }
+
     @ViewBuilder
     private var avatar: some View {
         let user = auth.currentUser
@@ -154,15 +165,20 @@ struct ProfileView: View {
         ZStack(alignment: .bottomTrailing) {
             Group {
                 if let url {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        ProgressView()
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            initials
+                        case .empty:
+                            ProgressView()
+                        @unknown default:
+                            ProgressView()
+                        }
                     }
                 } else {
-                    Text(String((user?.name ?? user?.email ?? "?").prefix(1)).uppercased())
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
+                    initials
                 }
             }
             .frame(width: 64, height: 64)
@@ -189,24 +205,24 @@ struct ProfileView: View {
 
     // MARK: - Avatar upload
 
-    private func uploadAvatar(from url: URL) async {
-        guard url.startAccessingSecurityScopedResource() else {
-            toast.show(L10n.string("profile.uploadFailed", defaultValue: "Upload failed"))
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
+    private func uploadAvatar(from item: PhotosPickerItem) async {
         do {
-            let data = try Data(contentsOf: url)
+            guard let image = try await item.loadTransferable(type: AvatarImage.self) else {
+                toast.show(L10n.string("profile.uploadFailed", defaultValue: "Upload failed"))
+                return
+            }
+            guard let data = Self.avatarJPEG(image.data) else {
+                toast.show(L10n.string("profile.uploadFailed", defaultValue: "Upload failed"))
+                return
+            }
             guard data.count <= 5 * 1024 * 1024 else {
                 toast.show(L10n.string("profile.fileTooLarge", defaultValue: "File is too large. Max 5MB."))
                 return
             }
-            let fileName = url.lastPathComponent
-            let mimeType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "image/jpeg"
             try await store.uploadAvatar(
                 data: data,
-                fileName: fileName.isEmpty ? "avatar.jpg" : fileName,
-                mimeType: mimeType,
+                fileName: "avatar.jpg",
+                mimeType: "image/jpeg",
                 auth: auth
             )
             toast.show(L10n.string("profile.avatarUpdated", defaultValue: "Avatar updated"))
@@ -214,6 +230,38 @@ struct ProfileView: View {
             toast.show(error.localizedDescription)
         }
     }
+
+    /// Downsamples to at most 256px on the longest side and re-encodes as
+    /// JPEG — mirrors the admin web app's 128×128 crop with retina headroom.
+    private static func avatarJPEG(_ data: Data, maxDimension: CGFloat = 256) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxDimension else { return data }
+        let scale = maxDimension / longest
+        let size = CGSize(
+            width: (image.size.width * scale).rounded(),
+            height: (image.size.height * scale).rounded()
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return resized.jpegData(compressionQuality: 0.8)
+    }
+}
+
+/// Loads photo-library items as JPEG bytes regardless of the source format
+/// (HEIC, PNG, …) — the service only accepts bitmap MIME types.
+private struct AvatarImage: Transferable {
+    let data: Data
+
+    static let transferRepresentation: some TransferRepresentation =
+        DataRepresentation(contentType: .jpeg) { image in
+            image.data
+        } importing: { data in
+            Self(data: data)
+        }
 }
 
 /// Display-name editor.
