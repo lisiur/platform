@@ -78,21 +78,21 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(store.dashboard.map { L10n.string("dashboard.monthOf", defaultValue: "This Month (%lld-%02lld)", $0.month.year, $0.month.month) } ?? "This Month")
                 .font(.headline)
+            StatCard(
+                icon: "arrow.down.right",
+                label: "Expense",
+                value: store.dashboard?.month.totalExpense,
+                tone: .negative
+            )
             HStack(spacing: 10) {
                 StatCard(
                     icon: "arrow.up.right",
-                    label: "Income (this month)",
+                    label: "Income",
                     value: store.dashboard?.month.totalIncome,
                     tone: .positive
                 )
-                StatCard(
-                    icon: "arrow.down.right",
-                    label: "Expense (this month)",
-                    value: store.dashboard?.month.totalExpense,
-                    tone: .negative
-                )
+                StatCard(icon: "equal", label: "Net", value: store.dashboard?.month.net)
             }
-            StatCard(icon: "equal", label: "Net (this month)", value: store.dashboard?.month.net)
         }
         .padding(14)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardSurface))

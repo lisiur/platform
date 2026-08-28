@@ -2923,23 +2923,6 @@
         }
       }
     },
-    "Expense (this month)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expense (this month)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月支出"
-          }
-        }
-      }
-    },
     "Extra Info" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3072,23 +3055,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "收入"
-          }
-        }
-      }
-    },
-    "Income (this month)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Income (this month)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月收入"
           }
         }
       }
@@ -3952,23 +3918,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "净额"
-          }
-        }
-      }
-    },
-    "Net (this month)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Net (this month)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月净额"
           }
         }
       }
