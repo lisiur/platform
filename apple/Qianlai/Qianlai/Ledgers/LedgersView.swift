@@ -570,6 +570,7 @@ struct LedgerFormView: View {
 struct JoinLedgerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(ProjectStore.self) private var projectStore
     @Environment(ToastCenter.self) private var toast
 
     @State private var code = ""
@@ -627,8 +628,18 @@ struct JoinLedgerView: View {
         isJoining = true
         defer { isJoining = false }
         do {
-            let ledgerId = try await ledgerStore.join(code: code)
-            ledgerStore.setActive(ledgerId)
+            let joined = try await ledgerStore.join(code: code)
+            ledgerStore.setActive(joined.ledgerId)
+            // Refresh the joined ledger's project cache immediately: the
+            // switcher's per-ledger project task only refires when the
+            // active ledger id CHANGES, so a guest joining another project
+            // of a ledger they're already in would not see it until
+            // relaunch. Load first, then select — `load` clears a selection
+            // the fresh list doesn't contain.
+            await projectStore.load(ledgerId: joined.ledgerId)
+            if let projectId = joined.projectId {
+                projectStore.select(projectId)
+            }
             toast.show(L10n.string("ledgers.joinSuccess", defaultValue: "Joined the ledger"))
             dismiss()
         } catch {

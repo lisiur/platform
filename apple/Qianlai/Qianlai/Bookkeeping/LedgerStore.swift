@@ -135,14 +135,16 @@ final class LedgerStore {
         await load()
     }
 
-    /// Joins a ledger with a share code; returns the joined ledger id.
-    func join(code: String) async throws -> String {
+    /// Joins a ledger with a share code; returns the full redeem response —
+    /// `projectId` is set when the code was a project invite (guest scoped
+    /// to exactly that project).
+    func join(code: String) async throws -> RedeemShareCodeResponse {
         let response: RedeemShareCodeResponse = try await client.request(
             "POST",
             "bookkeeping/share-codes/redeem",
             body: RedeemCodeBody(code: code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
         )
         await load()
-        return response.ledgerId
+        return response
     }
 }

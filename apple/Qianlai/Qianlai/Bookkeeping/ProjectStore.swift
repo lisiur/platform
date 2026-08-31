@@ -73,12 +73,19 @@ final class ProjectStore {
         projectsByLedger[ledgerId] ?? []
     }
 
-    /// Ledger-scoped counterpart of `selectedProject`: resolves the explicit
-    /// selection (or the auto-picked first project) against that ledger's
-    /// cached list instead of the active-ledger mirror.
-    func selectedProject(in ledgerId: String) -> QianlaiProject? {
+    /// The project currently claiming scope in `ledger`: an explicit
+    /// selection resolves against that ledger's cached list for any role;
+    /// guest ledgers additionally fall back to the auto-picked first
+    /// project, since their members default to project scope. Full-role
+    /// ledgers default to ledger-wide scope (nil) until a project is
+    /// explicitly selected.
+    func scopedProject(in ledgerId: String, isGuestLedger: Bool) -> QianlaiProject? {
         let projects = projects(for: ledgerId)
-        return projects.first { $0.id == selectedProjectId } ?? projects.first
+        if let selectedProjectId, let project = projects.first(where: { $0.id == selectedProjectId }) {
+            return project
+        }
+        guard isGuestLedger else { return nil }
+        return projects.first
     }
 
     func select(_ id: String?) {

@@ -98,7 +98,7 @@ struct LedgerSwitcherMenu: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: isGuestActive ? "folder" : "book")
+                Image(systemName: isProjectScoped || isGuestActive ? "folder" : "book")
                 Text(switcherLabel)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
@@ -108,10 +108,11 @@ struct LedgerSwitcherMenu: View {
             .padding(.vertical, 6)
         }
         .task(id: ledgerStore.activeLedger?.id) {
-            // Make sure the active ledger's projects are loaded so the label
-            // (which reads `projectStore.selectedProject(in:)`) and its
-            // active-project checkmark stay in sync. Only `load` updates the
-            // mirror in `projects`; the prefetch below never does.
+            // Make sure the active ledger's projects are loaded so the
+            // label and its active-project star (both read
+            // `projectStore.scopedProject(in:)`) stay in sync. Only `load`
+            // updates the mirror in `projects`; the prefetch below never
+            // does.
             if let id = ledgerStore.activeLedger?.id {
                 await projectStore.load(ledgerId: id)
             }
@@ -137,23 +138,38 @@ struct LedgerSwitcherMenu: View {
         }
     }
 
-    /// Project-scoped guests never see the ledger name — show the active
+    /// True when the toolbar label/icon should reflect project scope — a
+    /// guest ledger (always project-scoped) or any role's explicit
+    /// selection.
+    private var isProjectScoped: Bool {
+        guard let ledger = ledgerStore.activeLedger else { return false }
+        return projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) != nil
+    }
+
+    /// Project-scoped users never see the ledger name — show the scoped
     /// project instead, with a sensible fallback while the project list
     /// hasn't loaded yet. Resolved against the active ledger's cached list
     /// so background prefetches can't surface another ledger's project.
     private var switcherLabel: String {
-        if isGuestActive, let ledger = ledgerStore.activeLedger {
-            if let project = projectStore.selectedProject(in: ledger.id) {
-                return project.name
-            }
+        guard let ledger = ledgerStore.activeLedger else {
+            return L10n.string("ledger.none", defaultValue: "No ledger")
+        }
+        if let project = projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) {
+            return project.name
+        }
+        if ledger.isGuest {
             return L10n.string("projects.none", defaultValue: "No project")
         }
-        return ledgerStore.activeLedger?.name ?? L10n.string("ledger.none", defaultValue: "No ledger")
+        return ledger.name
     }
 
     private func ledgerButton(for ledger: QianlaiLedger) -> some View {
         let isActive = isActiveLedger(ledger)
         return Button {
+            // A ledger-row tap always means ledger-wide scope — drop any
+            // project selection so owners can exit a scoped project (guests
+            // never render ledger rows, so this can't break their flow).
+            projectStore.select(nil)
             ledgerStore.setActive(ledger.id)
         } label: {
             LedgerSwitcherRowLabel(
@@ -165,15 +181,12 @@ struct LedgerSwitcherMenu: View {
         }
     }
 
-    /// True when `ledger`'s row should carry the active star. A project row
-    /// in the same ledger takes the star once a project of this ledger is
-    /// explicitly selected, so the menu never shows two stars for one scope.
+    /// True when `ledger`'s row should carry the active star — only while
+    /// no project claims the scope. Exactly one row (ledger or project)
+    /// stars at a time because both resolve through `scopedProject`.
     private func isActiveLedger(_ ledger: QianlaiLedger) -> Bool {
         guard ledgerStore.activeLedger?.id == ledger.id else { return false }
-        if let selectedProjectId = projectStore.selectedProjectId {
-            return !projectStore.projects(for: ledger.id).contains { $0.id == selectedProjectId }
-        }
-        return true
+        return projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) == nil
     }
 
     private func projectButton(for project: QianlaiProject, in ledger: QianlaiLedger) -> some View {
@@ -191,17 +204,11 @@ struct LedgerSwitcherMenu: View {
         }
     }
 
-    /// True when the star should render next to `project`. An explicit
-    /// `selectedProjectId` wins; otherwise only guest ledgers auto-pick
-    /// their first project — those users never see a ledger row, so the
-    /// auto-pick is their only active marker and can't double-star a
-    /// ledger row the way it would for owners.
+    /// True when the star should render next to `project` — it claims the
+    /// scope of its ledger (explicit selection for any role, auto-picked
+    /// first project for guest ledgers, whose users never see a ledger row).
     private func isActiveProject(_ project: QianlaiProject, in ledger: QianlaiLedger) -> Bool {
-        if let selectedProjectId = projectStore.selectedProjectId {
-            return project.id == selectedProjectId
-        }
-        guard ledger.isGuest else { return false }
-        return projectStore.projects(for: ledger.id).first?.id == project.id
+        projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)?.id == project.id
     }
 }
 

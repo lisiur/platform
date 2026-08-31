@@ -11,9 +11,10 @@ import SwiftUI
 /// month's entries — the same shared entry list the Journal uses, limited
 /// to a month window instead of exposing every filter.
 ///
-/// When the active ledger is a guest one and a project is selected, the
-/// dashboard swaps to the project detail page (statement, settlement,
-/// members). Project members don't see the ledger-wide month summary; the
+/// When a project is scoped — a guest ledger's auto-picked/selected
+/// project, or any role's explicit switcher selection — the dashboard
+/// swaps to the project detail page (statement, settlement, members).
+/// Project-scoped guests don't see the ledger-wide month summary; the
 /// project view is the only surface they have.
 struct DashboardView: View {
     @Environment(LedgerStore.self) private var ledgerStore
@@ -28,30 +29,29 @@ struct DashboardView: View {
     /// filter window never clashes with the Journal tab's root store.
     @State private var entryStore = JournalStore()
 
-    /// The project the dashboard is currently scoped to. Only when the
-    /// active ledger is guest (project-scoped) and a project has
-    /// materialized in that ledger's cached project list — either the
-    /// explicitly selected one or, for guests with a single project, the
-    /// auto-picked first project (matching `selectedProject(in:)`'s
-    /// fallback). Resolved against `projects(for:)`, never the shared
-    /// `projects` mirror, so background prefetches of other guest ledgers
-    /// can't surface a foreign project here. While the project is still
-    /// loading we render a spinner so the dashboard doesn't briefly flash
-    /// the "no longer exists" empty state from ProjectDetailView.
+    /// The project the dashboard is currently scoped to. Any role can claim
+    /// project scope by explicitly selecting a project in the switcher;
+    /// guest ledgers additionally auto-pick their first project — guests
+    /// default to project scope, full roles default to the ledger-wide view
+    /// until they pick a project. Resolved against `projects(for:)`, never
+    /// the shared `projects` mirror, so background prefetches of other
+    /// ledgers can't surface a foreign project here. While the project is
+    /// still loading we render a spinner so the dashboard doesn't briefly
+    /// flash the "no longer exists" empty state from ProjectDetailView.
     private var activeProject: QianlaiProject? {
-        guard let ledger = ledgerStore.activeLedger, ledger.isGuest else { return nil }
-        let projects = projectStore.projects(for: ledger.id)
-        if let projectId = projectStore.selectedProjectId {
-            return projects.first { $0.id == projectId }
-        }
-        return projects.first
+        guard let ledger = ledgerStore.activeLedger else { return nil }
+        return projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)
     }
 
     /// True when the user is in project scope but the project hasn't
     /// finished loading yet (e.g. just tapped a project in the
     /// switcher). Renders a spinner instead of the regular dashboard.
+    /// Non-guest roles only enter the loading window with a pending
+    /// explicit selection — otherwise a plain ledger load would flash
+    /// a spinner instead of the ledger view.
     private var isProjectScopeLoading: Bool {
-        guard ledgerStore.activeLedger?.isGuest == true else { return false }
+        guard let ledger = ledgerStore.activeLedger else { return false }
+        guard ledger.isGuest || projectStore.selectedProjectId != nil else { return false }
         return activeProject == nil && projectStore.isLoading
     }
 
