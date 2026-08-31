@@ -208,6 +208,20 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(Money.format(-42), "-42.00")
     }
 
+    func testMoneyCurrencyFormatting() {
+        XCTAssertEqual(Money.format(1234.5, currency: "CNY"), "¥1,234.50")
+        XCTAssertEqual(Money.format(9, currency: "cny"), "¥9.00")
+        XCTAssertEqual(Money.format(5, currency: "HKD"), "HK$5.00")
+        // The sign leads the symbol, never trails it.
+        XCTAssertEqual(Money.format(-42, currency: "CNY"), "-¥42.00")
+        // Unknown codes fall back to the code itself.
+        XCTAssertEqual(Money.format(1, currency: "XXX"), "XXX1.00")
+        // No currency renders the bare amount.
+        XCTAssertEqual(Money.format(2.5, currency: nil), "2.50")
+        XCTAssertEqual(Money.format(2.5, currency: ""), "2.50")
+        XCTAssertEqual(Money.symbol(for: "usd"), "$")
+    }
+
     func testLocalDayBounds() {
         let date = Date(timeIntervalSince1970: 1_000_000)
         let start = Calendar.current.startOfDay(for: date)

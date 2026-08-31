@@ -72,7 +72,7 @@ struct EntryListView<Header: View>: View {
                     // Me page.
                     Section {
                         ForEach(group.entries) { entry in
-                            EntryRow(entry: entry)
+                            EntryRow(entry: entry, currency: ledger.currency)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if ledger.canPost {
                                         Button(role: .destructive) {
@@ -164,9 +164,11 @@ extension EntryListView where Header == EmptyView {
 /// group header carries the date), memo, other account names, participants,
 /// signed amount. Shared by the dashboard and journal list. Lines
 /// posting against the seeded default pocket are hidden, and the amount
-/// follows the money flow: expenses negative, income positive.
+/// follows the money flow: expenses negative, income positive, each
+/// prefixed with the ledger currency's symbol.
 struct EntryRow: View {
     let entry: JournalEntry
+    let currency: String
 
     var body: some View {
         HStack(spacing: 10) {
@@ -256,9 +258,9 @@ struct EntryRow: View {
     /// (no category line) stay unsigned.
     private var headlineAmount: (text: String, color: Color) {
         switch categoryLine?.account.type {
-        case .expense: ("−\(Money.format(entry.amount))", .expense)
-        case .income: ("+\(Money.format(entry.amount))", .income)
-        default: (Money.format(entry.amount), .primary)
+        case .expense: ("−\(Money.format(entry.amount, currency: currency))", .expense)
+        case .income: ("+\(Money.format(entry.amount, currency: currency))", .income)
+        default: (Money.format(entry.amount, currency: currency), .primary)
         }
     }
 }

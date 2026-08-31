@@ -109,11 +109,13 @@ extension Color {
 }
 
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
-/// totals rows.
+/// totals rows. A `currency` ISO code prefixes the amount with its symbol;
+/// leave it nil on surfaces without a single currency (cross-ledger totals).
 struct StatCard: View {
     var icon: String?
     let label: LocalizedStringKey
     let value: Double?
+    var currency: String?
     var tone: Tone = .default
 
     enum Tone {
@@ -145,7 +147,7 @@ struct StatCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Text(value.map(Money.format) ?? "—")
+                Text(value.map { Money.format($0, currency: currency) } ?? "—")
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(tone.color ?? Color.primary)

@@ -20,6 +20,61 @@ enum Money {
         formatter.usesGroupingSeparator = true
         return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
     }
+
+    /// Currency symbols keyed by ISO code, mirroring `currencySymbol` in
+    /// `@repo/shared` so both platforms render the same glyph per currency.
+    /// `nonisolated` so the other `nonisolated` helpers can read it from
+    /// any isolation.
+    nonisolated private static let currencySymbols: [String: String] = [
+        "USD": "$",
+        "CNY": "¥",
+        "EUR": "€",
+        "GBP": "£",
+        "JPY": "¥",
+        "KRW": "₩",
+        "INR": "₹",
+        "RUB": "₽",
+        "BRL": "R$",
+        "AUD": "A$",
+        "CAD": "C$",
+        "HKD": "HK$",
+        "SGD": "S$",
+        "TWD": "NT$",
+        "CHF": "Fr",
+        "SEK": "kr",
+        "NOK": "kr",
+        "DKK": "kr",
+        "PLN": "zł",
+        "TRY": "₺",
+        "MXN": "$",
+        "ZAR": "R",
+        "NZD": "NZ$",
+        "THB": "฿",
+        "IDR": "Rp",
+        "MYR": "RM",
+        "PHP": "₱",
+        "VND": "₫",
+        "UAH": "₴",
+        "CZK": "Kč",
+        "HUF": "Ft",
+        "ILS": "₪",
+        "AED": "د.إ",
+        "SAR": "﷼",
+    ]
+
+    /// Symbol for an ISO code; unknown codes fall back to the code itself.
+    nonisolated static func symbol(for currencyCode: String) -> String {
+        currencySymbols[currencyCode.uppercased()] ?? currencyCode
+    }
+
+    /// Amount prefixed with the currency's symbol; a nil/empty currency
+    /// renders the bare amount (surfaces with no single ledger currency).
+    /// A negative sign always leads the symbol ("-¥42.00", never "¥-42.00").
+    nonisolated static func format(_ value: Double, currency: String?) -> String {
+        guard let currency, !currency.isEmpty else { return format(value) }
+        let prefixed = "\(symbol(for: currency))\(format(abs(value)))"
+        return value < 0 ? "-\(prefixed)" : prefixed
+    }
 }
 
 /// Date helpers. Entry dates are true UTC instants — exactly what the user

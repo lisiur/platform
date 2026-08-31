@@ -118,15 +118,24 @@ struct DashboardView: View {
             StatCard(
                 label: "Expense",
                 value: store.dashboard?.month.totalExpense,
+                currency: ledgerStore.activeLedger?.currency,
                 tone: .negative
             )
             HStack(spacing: 10) {
                 StatCard(
                     label: "Income",
                     value: store.dashboard?.month.totalIncome,
+                    currency: ledgerStore.activeLedger?.currency,
                     tone: .positive
                 )
-                StatCard(label: "Net", value: store.dashboard?.month.net)
+                StatCard(
+                    label: "Net",
+                    value: store.dashboard?.month.net,
+                    currency: ledgerStore.activeLedger?.currency,
+                    // Finance convention: negative net green (绿跌),
+                    // non-negative red (红涨).
+                    tone: (store.dashboard?.month.net ?? 0) < 0 ? .negative : .positive
+                )
             }
         }
         .padding(14)
