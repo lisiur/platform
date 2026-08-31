@@ -9,8 +9,8 @@ import SwiftUI
 
 /// Multi-select member sheet behind quick entry's Participants row: toggles
 /// apply to a local copy and only land in `selection` on the confirmation
-/// button, so Cancel really discards — mirroring `CalculatorSheet`'s commit
-/// semantics. The full member list no longer crowds the entry form.
+/// button, so Cancel really discards. The full member list no longer
+/// crowds the entry form.
 struct ParticipantSelectionView: View {
     @Environment(\.dismiss) private var dismiss
 

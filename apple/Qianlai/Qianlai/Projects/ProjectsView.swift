@@ -28,7 +28,7 @@ struct ProjectsView: View {
         }
         .navigationTitle(Text("Projects"))
         .sheet(isPresented: $isShowingNewProject) {
-            if let ledger = ledgerStore.activeLedger {
+            if let _ledger = ledgerStore.activeLedger {
                 NavigationStack {
                     ProjectFormView(project: nil)
                 }

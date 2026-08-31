@@ -10,7 +10,8 @@ import SwiftUI
 /// Immediate-execution four-function calculator engine behind
 /// `CalculatorSheet`: digits accumulate in `entry`; an operator snapshots
 /// the entry into `accumulator` (folding any pending pair first) and `=`
-/// completes it. A pure value type, so the sheet owns it as `@State`.
+/// completes it. A pure value type, so the entry form owns it as `@State`
+/// and hands it to the keypad sheet by binding.
 struct CalculatorEngine {
     enum Operation {
         case add, subtract, multiply, divide
@@ -56,10 +57,31 @@ struct CalculatorEngine {
         }
     }
 
-    /// "12 +" rendered above the entry while an operation is pending.
+    /// The formula so far, rendered above the live total: `3 +` before the
+    /// next operand starts, then `3 + 1` as it is typed. Cleared by `=`,
+    /// which commits the fold into the entry.
     var hint: String? {
         guard let accumulator, let pending else { return nil }
-        return "\(Self.format(accumulator)) \(pending.symbol)"
+        if startsNewEntry, !hasEnteredOperand {
+            return "\(Self.format(accumulator)) \(pending.symbol)"
+        }
+        return "\(Self.format(accumulator)) \(pending.symbol) \(entry)"
+    }
+
+    /// What the display shows: while an operation is pending it previews
+    /// the fold live — `1 + 2` reads `3` before `=` is pressed, and keeps
+    /// updating as the entry grows (`23` reads `24`). Before the next
+    /// operand starts (`1 +`) the running total shows. `nil` marks an
+    /// unusable state — an error, or a non-finite preview like `1 ÷ 0` —
+    /// for callers to render as error text.
+    var displayValue: String? {
+        guard !isError else { return nil }
+        guard let accumulator, let pending else { return entry }
+        if startsNewEntry, !hasEnteredOperand {
+            return Self.format(accumulator)
+        }
+        let result = pending.apply(accumulator, Double(entry) ?? 0)
+        return result.isFinite ? Self.format(result) : nil
     }
 
     mutating func inputDigit(_ digit: String) {
@@ -119,6 +141,15 @@ struct CalculatorEngine {
         hasEnteredOperand = false
     }
 
+    /// Folds any pending operation into the entry without needing `=`;
+    /// a no-op when nothing is pending or the next operand hasn't started
+    /// (`14 +` keeps `14` and stays pending). The sheet calls this on
+    /// dismissal so the total the display previewed is what the form keeps.
+    mutating func commitPending() {
+        guard pending != nil, hasEnteredOperand else { return }
+        inputEquals()
+    }
+
     /// Immediate: turns the entry into its hundredth (`15` → `0.15`) and
     /// completes the term — the next digit starts a fresh number.
     mutating func inputPercent() {
@@ -128,15 +159,39 @@ struct CalculatorEngine {
         hasEnteredOperand = true
     }
 
+    /// Tiered deletion while an operation is pending: first it trims the
+    /// operand (`14 + 58` → `14 + 5`), then — once nothing is left to
+    /// trim — drops just the operand (`14 + 5` → `14 +`, entry back to the
+    /// running total), then drops the whole pending operation (`14 +` →
+    /// plain `14`, first line empty). With nothing pending it edits the
+    /// entry directly (`14` → `1`).
     mutating func inputBackspace() {
         guard !isError else { return }
-        if entry.count > 1 {
-            entry.removeLast()
+        if let storedAccumulator = accumulator, pending != nil {
+            if startsNewEntry, !hasEnteredOperand {
+                entry = Self.format(storedAccumulator)
+                accumulator = nil
+                pending = nil
+                startsNewEntry = true
+                hasEnteredOperand = false
+            } else if entry.count > 1 {
+                entry.removeLast()
+                startsNewEntry = false
+                hasEnteredOperand = true
+            } else {
+                entry = Self.format(storedAccumulator)
+                startsNewEntry = true
+                hasEnteredOperand = false
+            }
         } else {
-            entry = "0"
+            if entry.count > 1 {
+                entry.removeLast()
+            } else {
+                entry = "0"
+            }
+            startsNewEntry = false
+            hasEnteredOperand = true
         }
-        startsNewEntry = false
-        hasEnteredOperand = true
     }
 
     /// Replaces the entry with clipboard text; junk (blank or non-numeric)
@@ -183,136 +238,131 @@ struct CalculatorEngine {
     }
 }
 
-/// Amount calculator pad: a hand-held editor (digits, `+ − × ÷`, `%`,
-/// backspace, paste) with the current entry as the big display. Shared by
-/// entry forms — embedded inline in quick entry, or hosted by
-/// `CalculatorSheet`. The confirmation button commits `engine.entry` —
-/// always plain dot-decimal text — back to the caller.
-struct CalculatorPad: View {
-    private let showsCommitButton: Bool
-    private let onCommit: (String) -> Void
+/// The calculator's screen: pending-operation formula above the big live
+/// total (or error text) — no background chrome, the host row supplies the
+/// look. Both lines carry fixed heights so the layout never shifts when the
+/// formula appears. Split from the pad so a form can embed just the display —
+/// quick entry uses it as its amount field — while `CalculatorPad`
+/// supplies the keys.
+struct CalculatorDisplay: View {
+    let engine: CalculatorEngine
 
-    @State private var engine: CalculatorEngine
-    /// Entry size when the hint line is idle — bigger than `.largeTitle`
-    /// so a lone amount gets the headline treatment, while still tracking
-    /// the user's Dynamic Type setting.
-    @ScaledMetric(relativeTo: .largeTitle) private var soloEntrySize = 56
-    /// Total display-box height, sized for the two-line state (hint +
-    /// 56pt entry + padding); scales with Dynamic Type like the fonts do.
-    @ScaledMetric(relativeTo: .largeTitle) private var displayHeight = 56
-
-    init(
-        initialAmount: String = "",
-        showsCommitButton: Bool = true,
-        onCommit: @escaping (String) -> Void
-    ) {
-        self.showsCommitButton = showsCommitButton
-        self.onCommit = onCommit
-        _engine = State(initialValue: CalculatorEngine(initialText: initialAmount))
-    }
+    /// ISO currency code whose symbol leads the amount ("¥24"); nil or
+    /// empty renders the bare number, matching `Money.format`'s rule for
+    /// surfaces without a single ledger currency.
+    var currency: String?
 
     var body: some View {
-        VStack(spacing: 14) {
-            display
-            pad
-            if showsCommitButton {
-                Button {
-                    onCommit(engine.entry)
-                } label: {
-                    Text("Use Amount")
-                        .font(.body.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 36)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .disabled(engine.isError)
-            }
-        }
+        display
     }
 
     private var errorText: String? {
-        engine.isError ? L10n.string("calculator.error", defaultValue: "Error") : nil
-    }
-
-    /// A lone amount renders larger; once the hint line shares the display
-    /// the entry drops back to `.largeTitle` so both lines fit.
-    private var entryFont: Font {
-        engine.hint == nil
-            ? .system(size: soloEntrySize, weight: .semibold, design: .rounded)
-            : .system(.largeTitle, design: .rounded, weight: .semibold)
+        engine.displayValue == nil
+            ? L10n.string("calculator.error", defaultValue: "Error") : nil
     }
 
     private var display: some View {
         VStack(alignment: .trailing, spacing: 4) {
-            // Always laid out at full opacity-zero when idle so the display
-            // keeps a fixed height and the pad never jumps when the hint
-            // ("12 +") appears.
+            // Always laid out at opacity zero when idle so the display
+            // keeps a fixed height and the layout never jumps when the
+            // formula ("3 + 1") appears.
             Text(engine.hint ?? " ")
-                .font(.subheadline.monospacedDigit())
+                .font(.system(size: 11).monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .frame(height: 12)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .opacity(engine.hint == nil ? 0 : 1)
-            Text(errorText ?? engine.entry)
-                .font(entryFont.monospacedDigit())
-                .foregroundStyle(engine.isError ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+            amountLine
+                .foregroundStyle(errorText == nil ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.red))
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
+                .frame(height: 45)
         }
-        // Hard-fixed total height: the single-line state (big entry) and
-        // the two-line state (hint + entry) occupy identical space, so the
-        // pad below never shifts. Bottom-aligned so digits hug the pad.
-        .frame(height: displayHeight, alignment: .bottom)
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
-        )
+        // Hit-test the whole rectangle, not just the glyphs — the display
+        // doubles as the form's tappable amount field, so a tap anywhere
+        // in the row opens the keypad.
+        .contentShape(Rectangle())
     }
 
+    /// The big line — the currency symbol leading the live total in the
+    /// accent color at a slightly smaller size, or the error word. Built
+    /// as a `Text` concatenation so the symbol can be styled independently
+    /// while sharing scale/shrink behavior with the number.
+    private var amountLine: Text {
+        if let errorText {
+            return Text(errorText)
+                .font(.system(size: 36, weight: .semibold, design: .rounded))
+        }
+        let number = Text(engine.displayValue ?? "")
+            .font(.system(size: 36, weight: .semibold, design: .rounded).monospacedDigit())
+        guard let currency, !currency.isEmpty else { return number }
+        return Text(Money.symbol(for: currency))
+            .font(.system(size: 32, weight: .semibold, design: .rounded).monospacedDigit()) + number
+    }
+}
+
+/// Amount calculator keypad: digits, `+ −`, backspace, and a check key
+/// that closes the host — buttons only, no display. The presenting form
+/// owns the engine and shows `CalculatorDisplay`; the pad mutates the
+/// shared engine through the binding, so edits land in the form live.
+/// Hosted by `CalculatorSheet`.
+struct CalculatorPad: View {
+    @Binding var engine: CalculatorEngine
+
+    /// Check key: closes the hosting sheet. The pending operation settles
+    /// through the sheet's `onDisappear`, so what the live display showed
+    /// is what the form keeps.
+    let onClose: () -> Void
+
+    var body: some View {
+        pad
+    }
+
+    /// Column-major (four equal-width columns) so the check key can fill
+    /// two key rows — `Grid` cannot span rows vertically. HStack splits
+    /// the width evenly across the four flexible columns, and matching key
+    /// heights keep the rows aligned: it is exactly `2 × 46 + 10` tall.
     private var pad: some View {
-        Grid(horizontalSpacing: 10, verticalSpacing: 10) {
-            GridRow {
-                key("AC", role: .clear) { engine.clearAll() }
+        HStack(spacing: 10) {
+            padColumn {
+                key("7", role: .digit) { engine.inputDigit("7") }
+                key("4", role: .digit) { engine.inputDigit("4") }
+                key("1", role: .digit) { engine.inputDigit("1") }
+                key(".", role: .digit) { engine.inputDecimal() }
+            }
+            padColumn {
+                key("8", role: .digit) { engine.inputDigit("8") }
+                key("5", role: .digit) { engine.inputDigit("5") }
+                key("2", role: .digit) { engine.inputDigit("2") }
+                key("0", role: .digit) { engine.inputDigit("0") }
+            }
+            padColumn {
+                key("9", role: .digit) { engine.inputDigit("9") }
+                key("6", role: .digit) { engine.inputDigit("6") }
+                key("3", role: .digit) { engine.inputDigit("3") }
                 key(
                     systemImage: "delete.left",
                     role: .function,
                     accessibilityLabel: "Backspace"
                 ) { engine.inputBackspace() }
-                key("%", role: .function) { engine.inputPercent() }
-                key(.divide) { engine.inputOperation(.divide) }
             }
-            GridRow {
-                key("7", role: .digit) { engine.inputDigit("7") }
-                key("8", role: .digit) { engine.inputDigit("8") }
-                key("9", role: .digit) { engine.inputDigit("9") }
-                key(.multiply) { engine.inputOperation(.multiply) }
-            }
-            GridRow {
-                key("4", role: .digit) { engine.inputDigit("4") }
-                key("5", role: .digit) { engine.inputDigit("5") }
-                key("6", role: .digit) { engine.inputDigit("6") }
+            padColumn {
                 key(.subtract) { engine.inputOperation(.subtract) }
-            }
-            GridRow {
-                key("1", role: .digit) { engine.inputDigit("1") }
-                key("2", role: .digit) { engine.inputDigit("2") }
-                key("3", role: .digit) { engine.inputDigit("3") }
                 key(.add) { engine.inputOperation(.add) }
-            }
-            GridRow {
                 key(
-                    systemImage: "doc.on.clipboard",
-                    role: .function,
-                    accessibilityLabel: "Paste"
-                ) { pasteFromClipboard() }
-                key("0", role: .digit) { engine.inputDigit("0") }
-                key(".", role: .digit) { engine.inputDecimal() }
-                key("=", role: .equals) { engine.inputEquals() }
+                    systemImage: "checkmark",
+                    role: .commit,
+                    height: 46 * 2 + 10,
+                    accessibilityLabel: "Done"
+                ) { onClose() }
             }
         }
+    }
+
+    private func padColumn(@ViewBuilder content: () -> some View) -> some View {
+        VStack(spacing: 10) { content() }
     }
 
     private func key(
@@ -325,25 +375,27 @@ struct CalculatorPad: View {
     private func key(
         _ label: String,
         role: KeyRole,
+        height: CGFloat = 46,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.system(.title2, design: .rounded, weight: .semibold))
                 .foregroundStyle(role.foreground)
-                .frame(maxWidth: .infinity, minHeight: 46)
+                .frame(maxWidth: .infinity, minHeight: height)
                 .background(
                     role.background,
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyPressStyle())
     }
 
     private func key(
         systemImage: String,
         role: KeyRole,
+        height: CGFloat = 46,
         accessibilityLabel: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {
@@ -351,35 +403,23 @@ struct CalculatorPad: View {
             Image(systemName: systemImage)
                 .font(.title3.weight(.medium))
                 .foregroundStyle(role.foreground)
-                .frame(maxWidth: .infinity, minHeight: 46)
+                .frame(maxWidth: .infinity, minHeight: height)
                 .background(
                     role.background,
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyPressStyle())
         .accessibilityLabel(Text(accessibilityLabel))
     }
 
-    /// Clipboard read is deliberately deferred to the tap — sampling it
-    /// during render would trip the iOS paste-permission prompt. Junk on the
-    /// clipboard is a silent no-op; the engine keeps its current entry.
-    private func pasteFromClipboard() {
-        guard let text = Clipboard.text?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !text.isEmpty
-        else { return }
-        engine.pasteEntry(text)
-    }
-
     private enum KeyRole {
-        case clear, function, digit, operation, equals
+        case function, digit, operation, commit
 
         var foreground: Color {
             switch self {
-            case .clear: .red
-            case .equals: .white
+            case .commit: .white
             case .operation: .accentColor
             case .function, .digit: .primary
             }
@@ -387,8 +427,7 @@ struct CalculatorPad: View {
 
         var background: Color {
             switch self {
-            case .clear: .red.opacity(0.14)
-            case .equals: .accentColor
+            case .commit: .accentColor
             case .operation: .accentColor.opacity(0.14)
             case .function: .primary.opacity(0.08)
             case .digit: .primary.opacity(0.05)
@@ -397,41 +436,43 @@ struct CalculatorPad: View {
     }
 }
 
-/// The pad hosted in a sheet with calculator chrome: medium detent by
-/// default, `.large` escape hatch, Cancel backs out without committing.
+/// Keypad touch feedback: the key shrinks while pressed and springs back
+/// on release.
+private struct KeyPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+/// The keypad hosted in a bare sheet: the display stays in the presenting
+/// form, so the sheet is keys only. Keys mutate the shared engine live —
+/// the form's display reflects every tap — and the check key (or
+/// swipe-to-dismiss) closes the sheet: pending operations settle into the
+/// entry on the way out.
 struct CalculatorSheet: View {
-    private let initialAmount: String
-    private let onCommit: (String) -> Void
+    @Binding var engine: CalculatorEngine
 
     @Environment(\.dismiss) private var dismiss
 
-    init(initialAmount: String, onCommit: @escaping (String) -> Void) {
-        self.initialAmount = initialAmount
-        self.onCommit = onCommit
-    }
-
     var body: some View {
-        NavigationStack {
-            CalculatorPad(initialAmount: initialAmount) {
-                onCommit($0)
-                dismiss()
-            }
+        CalculatorPad(engine: $engine) { dismiss() }
             .padding(14)
             .frame(maxWidth: 420)
             .frame(maxWidth: .infinity)
-            .navigationTitle(Text("Calculator"))
-            .inlineNavigationBarTitle()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
+            // Settle any pending operation on dismissal so the live total
+            // the display previewed (`1 + 2` reading `3`) is what the form
+            // keeps.
+            .onDisappear { engine.commitPending() }
         #if os(iOS)
-        // Sized to the display, the five key rows, and the commit button —
-        // the pad no longer fits a `.medium` detent. `.large` stays as the
-        // escape hatch for Dynamic Type growth on small devices.
-        .presentationDetents([.height(500), .large])
+        // Fixed height sized to the four key rows — no `.large` detent, so
+        // the sheet can't be dragged bigger; only swipe-to-dismiss remains.
+        // The drag indicator is hidden to match the non-resizable sheet.
+        // Fully opaque background — nothing shows through the sheet.
+            .presentationDetents([.height(242)])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Color(uiColor: .systemBackground))
         #endif
     }
 }

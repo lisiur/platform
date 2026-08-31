@@ -143,6 +143,152 @@ final class CalculatorEngineTests: XCTestCase {
         XCTAssertEqual(engine.entry, "0")
     }
 
+    func testLiveDisplayPreviewsPendingFold() {
+        var engine = CalculatorEngine()
+        XCTAssertEqual(engine.displayValue, "0")
+        engine.inputDigit("1")
+        XCTAssertEqual(engine.displayValue, "1")
+        engine.inputOperation(.add)
+        // Before the next operand starts, the running total shows.
+        XCTAssertEqual(engine.displayValue, "1")
+        engine.inputDigit("2")
+        XCTAssertEqual(engine.displayValue, "3")
+        // The operand keeps growing: `23` folds to `24` live.
+        engine.inputDigit("3")
+        XCTAssertEqual(engine.displayValue, "24")
+        engine.inputEquals()
+        XCTAssertEqual(engine.displayValue, "24")
+        XCTAssertEqual(engine.entry, "24")
+    }
+
+    func testLiveDisplayChainsAndPercent() {
+        var engine = CalculatorEngine(initialText: "8")
+        engine.inputOperation(.multiply)
+        XCTAssertEqual(engine.displayValue, "8")
+        engine.inputDigit("5")
+        XCTAssertEqual(engine.displayValue, "40")
+        engine.inputPercent()
+        XCTAssertEqual(engine.displayValue, "0.4")
+    }
+
+    func testLiveDisplayDivisionByZeroPreviewsErrorThenRecovers() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputOperation(.divide)
+        engine.inputDigit("0")
+        XCTAssertNil(engine.displayValue)
+        // Growing the divisor to `0.5` recovers the preview without AC.
+        engine.inputDecimal()
+        engine.inputDigit("5")
+        XCTAssertEqual(engine.displayValue, "2")
+    }
+
+    func testCommitPendingFoldsIntoEntry() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputOperation(.add)
+        engine.inputDigit("2")
+        engine.commitPending()
+        XCTAssertEqual(engine.entry, "3")
+        XCTAssertTrue(engine.hint == nil)
+        // Committing with nothing pending is a no-op.
+        engine.commitPending()
+        XCTAssertEqual(engine.entry, "3")
+    }
+
+    func testHintShowsFullFormula() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("3")
+        engine.inputOperation(.add)
+        XCTAssertEqual(engine.hint, "3 +")
+        engine.inputDigit("1")
+        XCTAssertEqual(engine.hint, "3 + 1")
+        XCTAssertEqual(engine.displayValue, "4")
+        engine.inputEquals()
+        XCTAssertTrue(engine.hint == nil)
+        XCTAssertEqual(engine.displayValue, "4")
+        XCTAssertEqual(engine.entry, "4")
+    }
+
+    func testOperatorFoldsAndShowsResultWithNewSymbol() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputDigit("4")
+        engine.inputOperation(.add)
+        engine.inputDigit("5")
+        engine.inputDigit("8")
+        XCTAssertEqual(engine.hint, "14 + 58")
+        XCTAssertEqual(engine.displayValue, "72")
+        // A second operator auto-calculates: the first line becomes the
+        // result plus the new symbol.
+        engine.inputOperation(.subtract)
+        XCTAssertEqual(engine.hint, "72 −")
+        XCTAssertEqual(engine.displayValue, "72")
+        XCTAssertEqual(engine.entry, "72")
+    }
+
+    func testBackspaceClearsPendingOperandThenOperation() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputDigit("4")
+        engine.inputOperation(.add)
+        engine.inputDigit("5")
+        engine.inputDigit("8")
+        // 58 → 5: trim the operand.
+        engine.inputBackspace()
+        XCTAssertEqual(engine.hint, "14 + 5")
+        XCTAssertEqual(engine.displayValue, "19")
+        // 5 → operand dropped, back to the not-started state.
+        engine.inputBackspace()
+        XCTAssertEqual(engine.hint, "14 +")
+        XCTAssertEqual(engine.displayValue, "14")
+        // Pending operation dropped entirely.
+        engine.inputBackspace()
+        XCTAssertTrue(engine.hint == nil)
+        XCTAssertEqual(engine.displayValue, "14")
+        XCTAssertEqual(engine.entry, "14")
+        // Plain entry backspace.
+        engine.inputBackspace()
+        XCTAssertEqual(engine.displayValue, "1")
+    }
+
+    func testClearedOperandKeepsAccumulatorForNewSymbolOrOperand() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputDigit("4")
+        engine.inputOperation(.add)
+        engine.inputDigit("5")
+        engine.inputDigit("8")
+        engine.inputBackspace()
+        engine.inputBackspace()
+        // Replacing the symbol keeps the 14.
+        engine.inputOperation(.multiply)
+        XCTAssertEqual(engine.hint, "14 ×")
+        XCTAssertEqual(engine.displayValue, "14")
+        engine.inputDigit("2")
+        XCTAssertEqual(engine.displayValue, "28")
+        engine.inputEquals()
+        XCTAssertEqual(engine.entry, "28")
+
+        // Typing a fresh operand after clearing works the same way.
+        engine.inputOperation(.add)
+        engine.inputDigit("1")
+        engine.inputBackspace()
+        XCTAssertEqual(engine.hint, "28 +")
+        engine.inputDigit("3")
+        XCTAssertEqual(engine.displayValue, "31")
+    }
+
+    func testCommitPendingSkipsUnstartedOperand() {
+        var engine = CalculatorEngine()
+        engine.inputDigit("1")
+        engine.inputDigit("4")
+        engine.inputOperation(.add)
+        engine.commitPending()
+        XCTAssertEqual(engine.entry, "14")
+        XCTAssertEqual(engine.hint, "14 +")
+    }
+
     func testFormatTrimsTrailingZerosAndNoise() {
         XCTAssertEqual(CalculatorEngine.format(0.1 + 0.2), "0.3")
         XCTAssertEqual(CalculatorEngine.format(12), "12")

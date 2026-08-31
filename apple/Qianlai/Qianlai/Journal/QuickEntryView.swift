@@ -19,25 +19,22 @@ struct QuickEntryView: View {
     @Environment(ReportStore.self) private var reportStore
     private let editedEntry: JournalEntry?
     @State private var draft: QuickEntryDraft
-    @State private var amountText: String
+    /// The calculator engine doubles as the amount field: `CalculatorDisplay`
+    /// renders it inline and the keypad sheet mutates it through a binding —
+    /// every edit applies immediately.
+    @State private var engine: CalculatorEngine
     @State private var isCalculatorPresented = false
-    /// The pad lives in the form itself on open — no second sheet waiting
-    /// for this one to land — and hands off to the sheet after first commit.
-    /// Editing skips the pad: the amount is already committed.
-    @State private var isAmountPadVisible: Bool
     @State private var isParticipantsPresented = false
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
     @State private var isPosting = false
 
-    /// Editing seeds every field from the entry; creating starts blank with
-    /// the amount pad up.
+    /// Editing seeds every field from the entry; creating starts blank.
     init(entry: JournalEntry? = nil) {
         editedEntry = entry
         _draft = State(initialValue: entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft())
         // No grouping separator so post()'s Double parsing round-trips.
-        _amountText = State(initialValue: entry.map { String(format: "%.2f", $0.amount) } ?? "")
-        _isAmountPadVisible = State(initialValue: entry == nil)
+        _engine = State(initialValue: CalculatorEngine(initialText: entry.map { String(format: "%.2f", $0.amount) } ?? ""))
     }
 
     @State private var accountStore = AccountStore()
@@ -75,32 +72,115 @@ struct QuickEntryView: View {
     }
 
     var body: some View {
-        Form {
-            leadSections
-            if isAmountPadVisible {
-                // First-run amount entry: everything after the pad stays
-                // hidden until the amount is committed.
-                Section {
-                    CalculatorPad(initialAmount: amountText) { committed in
-                        amountText = committed
-                        isAmountPadVisible = false
+        VStack(spacing: 8) {
+            // Guests are scoped to expense-only entries; the kind picker is
+            // hidden and `draft.kind` stays at its default (`.expense`).
+            if !isGuest {
+                // Pinned above the form: grouped lists reserve a built-in
+                // top margin for the first section that no public config
+                // removes, so the tabs live outside the form — flush under
+                // the title.
+                Picker("Account Type", selection: $draft.kind) {
+                    ForEach(QuickEntryKind.allCases) { kind in
+                        Text(kind.label).tag(kind)
                     }
-                    .frame(maxWidth: 420)
-                    .frame(maxWidth: .infinity)
                 }
-            } else {
-                trailingSections
+                .pickerStyle(.segmented)
+                .controlSize(.regular)
+                .padding(.horizontal, 16)
+                .onChange(of: draft.kind) {
+                    // Both sides restart unselected when the scenario
+                    // changes.
+                    draft.debitAccountId = nil
+                    draft.creditAccountId = nil
+                    validationError = nil
+                    applyExpenseCategoryDefault()
+                }
             }
+
+            Form {
+                Section {
+                    // The calculator's display doubles as the amount field —
+                    // tapping it opens the keypad sheet, whose edits land
+                    // here live.
+                    Button {
+                        isCalculatorPresented = true
+                    } label: {
+                        CalculatorDisplay(engine: engine, currency: ledgerStore.activeLedger?.currency)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                fieldsSection
+
+                if let validationError {
+                    Section {
+                        Label(validationError, systemImage: "exclamationmark.circle")
+                            .foregroundStyle(.red)
+                            .font(.footnote)
+                    }
+                }
+            }
+            // Compact inter-section spacing: the amount card and the fields
+            // card otherwise sit far apart in the grouped form. Zeroing the
+            // top content margin drops the grouped style's built-in
+            // first-section inset, so the amount card sits flush under the
+            // tabs. The background matches the form's grouped canvas so the
+            // segmented control's translucent chrome picks it up instead of
+            // the default white.
+            .listSectionSpacing(.compact)
+            // A small top content margin leaves a breathing gap between the
+            // pinned tabs and the amount card — zero would sit them flush.
+            .contentMargins(.top, 12, for: .scrollContent)
+
+            // Pinned action row under the form: the primary save stays
+            // reachable without scrolling to the form's bottom.
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if isPosting {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(postingTitle)
+                        }
+                    } else {
+                        Text(saveTitle)
+                    }
+                }
+                .font(.body.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 36)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+            .disabled(!canPost || isPosting || draft.isSameAccount)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
-        .navigationTitle(Text(editedEntry == nil ? "Add Entry" : "Edit Entry"))
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle(Text(navigationTitleText))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
             }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isPosting {
+                        ProgressView()
+                    } else {
+                        Text(saveTitle)
+                    }
+                }
+                .disabled(!canPost || isPosting || draft.isSameAccount)
+            }
         }
         .sheet(isPresented: $isCalculatorPresented) {
-            CalculatorSheet(initialAmount: amountText) { amountText = $0 }
+            CalculatorSheet(engine: $engine)
         }
         .sheet(item: $activeAccountSide) { side in
             NavigationStack {
@@ -143,92 +223,26 @@ struct QuickEntryView: View {
             applyExpenseCategoryDefault()
             applyGuestProjectDefault()
         }
-    }
-
-    /// The fields that lead every layout: scenario, then amount and date.
-    @ViewBuilder
-    private var leadSections: some View {
-        // Guests are scoped to expense-only entries; the kind picker is hidden
-        // and `draft.kind` stays at its default (`.expense`).
-        if !isGuest {
-            Section {
-                Picker("Account Type", selection: $draft.kind) {
-                    ForEach(QuickEntryKind.allCases) { kind in
-                        Text(kind.label).tag(kind)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .controlSize(.large)
-                .onChange(of: draft.kind) {
-                    // Both sides restart unselected when the scenario changes.
-                    draft.debitAccountId = nil
-                    draft.creditAccountId = nil
-                    validationError = nil
-                    applyExpenseCategoryDefault()
-                }
-            }
-            // Floating segmented control: no grouped card around the tabs.
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-        }
-
-        Section {
-            // Reopens the calculator as a sheet for edits — while the inline
-            // pad is up it already owns amount entry, so the row is inert.
-            Button {
+        // The amount is the first thing to enter on a new entry, so the
+        // keypad opens with the sheet — editing already has a prefilled
+        // amount, so it doesn't.
+        .onAppear {
+            if editedEntry == nil {
                 isCalculatorPresented = true
-            } label: {
-                HStack {
-                    Text("Amount")
-                    Spacer()
-                    Text(amountText.isEmpty ? "0.00" : amountText)
-                        .foregroundStyle(amountText.isEmpty ? Color.secondary : Color.primary)
-                        .font(.body.monospacedDigit())
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(isAmountPadVisible)
-            DatePicker(
-                "Date",
-                selection: $draft.date,
-                displayedComponents: [.date, .hourAndMinute]
-            )
         }
     }
 
-    /// Everything after the amount is committed: accounts, memo,
-    /// participants, and the save action.
+    /// Every field except the amount, in one section: accounts, date,
+    /// memo, project, participants.
     @ViewBuilder
-    private var trailingSections: some View {
-        if !isGuest, !projectStore.projects.isEmpty {
-            Section {
-                Picker("Project", selection: Binding(
-                    get: { draft.projectId ?? "" },
-                    set: { draft.projectId = $0.isEmpty ? nil : $0 }
-                )) {
-                    Text("Personal").tag("")
-                    ForEach(projectStore.projects) { project in
-                        Text(project.name).tag(project.id)
-                    }
-                }
-                // Switching the project narrows the participant set to the
-                // new project's members — drop any picked participant who
-                // isn't in it, or the post would fail validation.
-                .onChange(of: draft.projectId) {
-                    pruneParticipants()
-                }
-            }
-        }
-
+    private var fieldsSection: some View {
         Section {
             // The required side leads: for income the category is required
             // and comes first, with the optional "Receive Into" trailing.
             // Guests are expense-only: their "Pay From" side falls back to
-            // the ledger's default pocket on the server, so the row is hidden.
+            // the ledger's default pocket on the server, so the row is
+            // hidden.
             if isGuest {
                 accountField(
                     title: debitLabel,
@@ -263,6 +277,7 @@ struct QuickEntryView: View {
                     entries: creditEntries
                 )
             }
+
             if draft.isSameAccount {
                 Label(
                     "The transfer's origin and destination can't be the same account.",
@@ -271,18 +286,39 @@ struct QuickEntryView: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
             }
-        } header: {
-            Text("Accounts")
-        }
 
-        Section {
-            TextField("Memo (e.g. weekly groceries)", text: $draft.memo)
-                .submitLabel(.done)
-                .onSubmit { dismissKeyboard() }
-        }
+            DatePicker(
+                "Date",
+                selection: $draft.date,
+                displayedComponents: [.date, .hourAndMinute]
+            )
 
-        if !participantCandidates.isEmpty {
-            Section {
+            LabeledContent("Memo") {
+                TextField("e.g. weekly groceries", text: $draft.memo)
+                    .multilineTextAlignment(.trailing)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
+            }
+
+            if !isGuest, !projectStore.projects.isEmpty {
+                Picker("Project", selection: Binding(
+                    get: { draft.projectId ?? "" },
+                    set: { draft.projectId = $0.isEmpty ? nil : $0 }
+                )) {
+                    Text(L10n.string("projects.none", defaultValue: "No project")).tag("")
+                    ForEach(projectStore.projects) { project in
+                        Text(project.name).tag(project.id)
+                    }
+                }
+                // Switching the project narrows the participant set to the
+                // new project's members — drop any picked participant who
+                // isn't in it, or the post would fail validation.
+                .onChange(of: draft.projectId) {
+                    pruneParticipants()
+                }
+            }
+
+            if !participantCandidates.isEmpty {
                 // Opens the participant sheet instead of listing members
                 // inline: the form stays compact once a ledger grows.
                 Button {
@@ -301,48 +337,32 @@ struct QuickEntryView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-            } footer: {
-                Text("Member turnover reports aggregate every entry a member is tagged on.")
             }
         }
-
-        if let validationError {
-            Section {
-                Label(validationError, systemImage: "exclamationmark.circle")
-                    .foregroundStyle(.red)
-                    .font(.footnote)
-            }
-        }
-
-        Section {
-            Button {
-                Task { await save() }
-            } label: {
-                Group {
-                    if isPosting {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text(editedEntry == nil ? "Posting…" : "Saving…")
-                        }
-                    } else {
-                        Text(editedEntry == nil ? "Save" : "Update")
-                    }
-                }
-                .font(.body.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 36)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .disabled(isPosting || draft.isSameAccount)
-        }
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
     private var canPost: Bool {
         ledgerStore.activeLedger?.canPost ?? false
+    }
+
+    // `Text` with a runtime `String` never localizes, so dynamic titles
+    // route through `L10n.string` (which honors the in-app language).
+    private var navigationTitleText: String {
+        editedEntry == nil
+            ? L10n.string("Add Entry", defaultValue: "Add Entry")
+            : L10n.string("Edit Entry", defaultValue: "Edit Entry")
+    }
+
+    private var saveTitle: String {
+        editedEntry == nil
+            ? L10n.string("Save", defaultValue: "Save")
+            : L10n.string("Update", defaultValue: "Update")
+    }
+
+    private var postingTitle: String {
+        editedEntry == nil
+            ? L10n.string("Posting…", defaultValue: "Posting…")
+            : L10n.string("Saving…", defaultValue: "Saving…")
     }
 
     // Debit side = where value goes (expense category / receiving pocket /
@@ -490,8 +510,7 @@ struct QuickEntryView: View {
     }
 
     private func save() async {
-        let normalized = amountText.replacingOccurrences(of: ",", with: ".")
-        guard let amount = Double(normalized), amount > 0 else {
+        guard let amount = Double(engine.entry), amount > 0 else {
             validationError = L10n.string("quick.amountRequired", defaultValue: "Enter an amount greater than 0.")
             return
         }
