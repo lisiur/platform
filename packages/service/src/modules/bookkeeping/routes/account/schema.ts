@@ -143,12 +143,13 @@ export const setBalanceBodySchema = z
   .object({
     /** Target signed balance as of `date` (credit-normal for liabilities). */
     balance: z.number().min(0).max(MAX_LINE_AMOUNT).openapi({ example: 1250 }),
-    /** As-of day (UTC midnight) the balance applies to; defaults to today. */
+    /** As-of cutoff instant (end of the client's picked LOCAL day) the
+     *  balance applies to; defaults to now. */
     date: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .datetime()
       .optional()
-      .openapi({ example: "2026-08-24" }),
+      .openapi({ example: "2026-08-24T23:59:59.999Z" }),
     memo: z.string().max(500).optional(),
   })
   .openapi("QianlaiSetBalanceBody");

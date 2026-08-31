@@ -291,10 +291,11 @@ struct JournalEntry: Codable, Identifiable, Hashable {
 }
 
 extension [JournalEntry] {
-    /// Entries grouped by UTC day, newest day first; within-group order is
-    /// preserved so the store's date/entryNo ordering carries over.
+    /// Entries grouped by the viewer's LOCAL day, newest day first;
+    /// within-group order is preserved so the store's date/entryNo ordering
+    /// carries over.
     var groupedByDay: [(day: Date, entries: [JournalEntry])] {
-        Dictionary(grouping: self) { UTCDates.startOfUTCDay($0.date) }
+        Dictionary(grouping: self) { Calendar.current.startOfDay(for: $0.date) }
             .map { (day: $0.key, entries: $0.value) }
             .sorted { $0.day > $1.day }
     }
@@ -406,7 +407,7 @@ struct YearMonth: Hashable, Comparable {
     var year: Int
     var month: Int
 
-    static var current: YearMonth { UTCDates.currentYearMonth }
+    static var current: YearMonth { AppDates.currentYearMonth }
 
     var previous: YearMonth {
         month > 1 ? YearMonth(year: year, month: month - 1) : YearMonth(year: year - 1, month: 12)
@@ -416,9 +417,9 @@ struct YearMonth: Hashable, Comparable {
         month < 12 ? YearMonth(year: year, month: month + 1) : YearMonth(year: year + 1, month: 1)
     }
 
-    /// UTC midnight of day 1 — anchors entry windows and title formatting.
+    /// LOCAL midnight of day 1 — anchors entry windows and title formatting.
     var start: Date {
-        UTCDates.date(fromUTCDayString: String(format: "%04d-%02d-01", year, month)) ?? .distantPast
+        Calendar.current.date(from: DateComponents(year: year, month: month, day: 1)) ?? .distantPast
     }
 
     static func < (lhs: YearMonth, rhs: YearMonth) -> Bool {
@@ -745,7 +746,7 @@ struct QuickEntryDraft: Equatable {
 
     var body: CreateEntryBody {
         CreateEntryBody(
-            date: UTCDates.utcWallClock(date),
+            date: date,
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
                 : memo.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -762,7 +763,8 @@ extension QuickEntryDraft {
     /// Prefills the draft from an existing entry for editing. The scenario
     /// is derived from the category lines; a counterparty line on the seeded
     /// default pocket becomes nil so the server re-applies the default on
-    /// save. The date keeps the entry's stored UTC wall clock.
+    /// save. The date keeps the entry's stored instant, which the picker
+    /// renders in the viewer's local calendar.
     init(entry: JournalEntry) {
         let expenseLine = entry.lines.first { $0.account.type == .expense }
         let incomeLine = entry.lines.first { $0.account.type == .income }
@@ -789,7 +791,7 @@ extension QuickEntryDraft {
         self.init(
             kind: kind,
             amount: entry.amount,
-            date: UTCDates.localFromUTCWallClock(entry.date),
+            date: entry.date,
             debitAccountId: debitAccountId,
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",

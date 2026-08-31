@@ -93,7 +93,7 @@ export function DashboardOverview() {
     queryFn: async () => {
       const res = await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"].reports.dashboard.$get,
-      )({ param: { ledgerId: activeLedger?.id } });
+      )({ param: { ledgerId: activeLedger?.id }, query: {} });
       return (await res.json()) as DashboardDto;
     },
     enabled: !!activeLedger,

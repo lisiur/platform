@@ -208,12 +208,13 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(Money.format(-42), "-42.00")
     }
 
-    func testUTCDayStrings() {
-        let date = UTCDates.date(fromUTCDayString: "2026-08-26")!
-        XCTAssertEqual(UTCDates.utcDayString(date), "2026-08-26")
-        let start = UTCDates.startOfUTCDay(date)
-        let end = UTCDates.endOfUTCDay(date)
+    func testLocalDayBounds() {
+        let date = Date(timeIntervalSince1970: 1_000_000)
+        let start = Calendar.current.startOfDay(for: date)
+        let end = AppDates.localEndOfDay(date)
         XCTAssertEqual(end.timeIntervalSince(start), 86399.999, accuracy: 0.001)
+        XCTAssertTrue(Calendar.current.isDate(start, inSameDayAs: date))
+        XCTAssertTrue(Calendar.current.isDate(end, inSameDayAs: date))
     }
 
     func testApiQueryEncoding() {

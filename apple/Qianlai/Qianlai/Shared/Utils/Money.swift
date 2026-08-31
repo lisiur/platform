@@ -22,115 +22,45 @@ enum Money {
     }
 }
 
-/// Entry dates are stored at UTC midnight, so window boundaries must be UTC
-/// instants built from the picked day — local-timezone Dates skew the window
-/// by up to a day for non-UTC users.
-enum UTCDates {
-    private static var utcCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "UTC")!
-        return calendar
-    }
-
-    static var utcNow: Date {
-        utcCalendar.startOfDay(for: Date())
-    }
-
-    /// The UTC year/month containing now — the dashboard's default month.
+/// Date helpers. Entry dates are true UTC instants — exactly what the user
+/// picked, converted once at the client boundary and stored verbatim. Day
+/// grouping, month windows, and filters all follow the viewer's LOCAL
+/// calendar, so an entry renders and searches under the same day it was
+/// entered, on any device.
+enum AppDates {
+    /// The LOCAL year/month containing now — the dashboard's default month.
     static var currentYearMonth: YearMonth {
-        let components = utcCalendar.dateComponents([.year, .month], from: Date())
+        let components = Calendar.current.dateComponents([.year, .month], from: Date())
         return YearMonth(year: components.year ?? 1970, month: components.month ?? 1)
     }
 
-    /// `yyyy-MM-dd` in UTC — the wire format the set-balance endpoint expects.
-    static func utcDayString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
-    }
-
-    static func utcDayString(year: Int, month: Int, day: Int) -> String {
-        String(format: "%04d-%02d-%02d", year, month, day)
-    }
-
-    /// Midnight UTC of the given yyyy-MM-dd, else nil.
-    static func date(fromUTCDayString day: String) -> Date? {
-        let parts = day.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3 else { return nil }
-        var components = DateComponents()
-        components.year = parts[0]
-        components.month = parts[1]
-        components.day = parts[2]
-        components.timeZone = TimeZone(identifier: "UTC")
-        return utcCalendar.date(from: components)
-    }
-
-    /// Inclusive start instant (00:00:00.000Z) for query windows.
-    static func startOfUTCDay(_ date: Date) -> Date {
-        utcCalendar.startOfDay(for: date)
-    }
-
-    /// Inclusive end instant (23:59:59.999Z) for query windows.
-    static func endOfUTCDay(_ date: Date) -> Date {
-        guard let nextDay = utcCalendar.date(byAdding: .day, value: 1, to: startOfUTCDay(date)) else {
-            return startOfUTCDay(date)
+    /// Inclusive end of the LOCAL day containing `date` (23:59:59.999) —
+    /// the `to` bound for "on this day" windows.
+    static func localEndOfDay(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let nextDay = calendar.date(byAdding: .day, value: 1, to: start) else {
+            return start
         }
         return nextDay.addingTimeInterval(-0.001)
     }
 
-    /// The UTC instant carrying the same wall-clock date/time the user
-    /// picked in their local calendar. Entry dates are stored and read back
-    /// as UTC instants, so the picked clock must survive the local→UTC
-    /// conversion instead of being re-anchored to the local timezone.
-    static func utcWallClock(_ date: Date) -> Date {
-        let picked = Calendar.current.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: date
-        )
-        var components = DateComponents()
-        components.year = picked.year
-        components.month = picked.month
-        components.day = picked.day
-        components.hour = picked.hour
-        components.minute = picked.minute
-        components.timeZone = TimeZone(identifier: "UTC")
-        return utcCalendar.date(from: components) ?? startOfUTCDay(date)
-    }
-
-    /// Entry display: entry dates are UTC instants, so render them in a UTC
-    /// calendar to avoid off-by-one drift; the time part shows only when it
-    /// was set, so legacy UTC-midnight entries stay date-only.
-    static func formatEntryDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateStyle = .medium
-        let clock = utcCalendar.dateComponents([.hour, .minute, .second], from: date)
-        formatter.timeStyle =
-            (clock.hour == 0 && clock.minute == 0 && clock.second == 0) ? .none : .short
-        return formatter.string(from: date)
-    }
-
-    /// Entry card timestamps: HH:mm in the entry's UTC wall clock — the
+    /// Entry card timestamps: HH:mm in the viewer's local calendar — the
     /// enclosing day-group header carries the date.
     static func formatEntryTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }
 
-    /// Day-group headers: medium date without time (entry days are UTC days).
-    /// `locale` comes from the environment `\.locale` so the header follows
-    /// the in-app language override, not the device language.
+    /// Day-group headers: medium date without time in the viewer's local
+    /// calendar. `locale` comes from the environment `\.locale` so the
+    /// header follows the in-app language override, not the device language.
     static func formatEntryDay(_ date: Date, locale: Locale) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.locale = locale
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
@@ -138,39 +68,24 @@ enum UTCDates {
     }
 
     /// Dashboard month title, localized per the given locale ("Aug 2026",
-    /// "2026年8月") — dashboard months are UTC months.
+    /// "2026年8月") — dashboard months are the viewer's local months.
     static func formatMonthTitle(_ month: YearMonth, locale: Locale) -> String {
         let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.calendar = Calendar.current
         formatter.locale = locale
         formatter.setLocalizedDateFormatFromTemplate("yMMM")
         return formatter.string(from: month.start)
     }
 
-    /// First-to-last day of the UTC month containing `date`, for month-wide
-    /// entry windows (the dashboard).
+    /// First-to-last day of the LOCAL month containing `date`, for
+    /// month-wide entry windows (the dashboard).
     static func monthWindow(containing date: Date = Date()) -> (from: Date, to: Date) {
-        let components = utcCalendar.dateComponents([.year, .month], from: date)
-        let start = utcCalendar.date(
-            from: DateComponents(year: components.year, month: components.month, day: 1)
-        ) ?? startOfUTCDay(date)
-        guard let nextMonth = utcCalendar.date(byAdding: .month, value: 1, to: start),
-              let lastDay = utcCalendar.date(byAdding: .day, value: -1, to: nextMonth)
-        else { return (start, start) }
-        return (start, lastDay)
-    }
-
-    /// Re-anchors a stored UTC instant to the viewer's timezone carrying the
-    /// same wall clock — editing an entry shows the HH:mm it was stored with,
-    /// so an untouched save round-trips instead of drifting by the timezone
-    /// offset (the save re-applies `utcWallClock`).
-    static func localFromUTCWallClock(_ date: Date) -> Date {
-        let components = utcCalendar.dateComponents(
-            [.year, .month, .day, .hour, .minute],
-            from: date
-        )
-        return Calendar.current.date(from: components) ?? date
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .month, for: date) else {
+            let start = calendar.startOfDay(for: date)
+            return (start, start)
+        }
+        return (interval.start, interval.end.addingTimeInterval(-0.001))
     }
 
     /// Timestamp display (createdAt etc.) in the viewer's local timezone.
@@ -179,22 +94,6 @@ enum UTCDates {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
-    }
-
-    /// Filter pickers hand over the user's picked day as a local-midnight
-    /// instant; the entry-day they mean is read back in the local calendar
-    /// and mapped to that day's UTC bounds — entries are stored as UTC
-    /// midnights and grouped under UTC day headers, so search must slice
-    /// the same UTC days the list displays.
-    static func utcBusinessDayBounds(for picked: Date) -> (start: Date, end: Date) {
-        let components = Calendar.current.dateComponents([.year, .month, .day], from: picked)
-        let day = utcDayString(
-            year: components.year ?? 1970,
-            month: components.month ?? 1,
-            day: components.day ?? 1
-        )
-        let start = date(fromUTCDayString: day) ?? startOfUTCDay(picked)
-        return (start, endOfUTCDay(start))
     }
 }
 

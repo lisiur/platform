@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useAccountName } from "@/hooks/use-account-name";
 import { appClient, withApiFeedback } from "@/lib/api";
-import { endOfUtcDay } from "@/utils/date";
+import { endOfLocalDay } from "@/utils/date";
 import type { AccountRow } from "./accounts-table";
 
 /**
@@ -80,7 +80,7 @@ export function BalanceDialog({
           .$get,
       )({
         param: { ledgerId },
-        query: { to: endOfUtcDay(selectedDate).toISOString() },
+        query: { to: endOfLocalDay(selectedDate).toISOString() },
       });
       return (await res.json()) as {
         accounts: Array<{ id: string; balance: number }>;
@@ -102,7 +102,9 @@ export function BalanceDialog({
         param: { ledgerId, id: account.id },
         json: {
           balance: data.balance,
-          date: data.date,
+          // End of the picked LOCAL day, matching the trial-balance preview
+          // window above so the committed adjustment matches what was shown.
+          date: endOfLocalDay(data.date).toISOString(),
           memo: data.memo || undefined,
         },
       });

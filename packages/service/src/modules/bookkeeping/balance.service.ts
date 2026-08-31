@@ -26,7 +26,7 @@ const OFFSET_ACCOUNT_NAME: Record<SeedLocale, string> = {
 export type SetAccountBalanceInput = {
   /** Target signed balance in major units (credit-normal for liabilities). */
   balance: number;
-  /** UTC midnight of the as-of day; entries dated after it are left untouched. */
+  /** Inclusive as-of instant; entries dated after it are left untouched. */
   date: Date;
   memo?: string;
 };
@@ -80,10 +80,11 @@ export async function setAccountBalance(
       });
     }
 
-    const asOfEnd = new Date(data.date.getTime() + 24 * 60 * 60 * 1000 - 1);
     const grouped = await journalRepository.sumLinesByAccount(
       ledgerId,
-      { to: asOfEnd },
+      // `to` is inclusive (lte), so entries dated exactly at the as-of
+      // instant (the client's local end-of-day) count toward the balance.
+      { to: data.date },
       tx,
     );
     const sums = grouped.find((row) => row.accountId === accountId);

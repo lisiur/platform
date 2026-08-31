@@ -482,7 +482,7 @@ struct BalanceAdjustmentView: View {
     let account: BookAccount
 
     @State private var balanceText = ""
-    @State private var date = UTCDates.utcNow
+    @State private var date = Date.now
     @State private var memo = ""
     @State private var error: String?
     @State private var isSaving = false

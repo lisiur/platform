@@ -54,10 +54,10 @@ export const setBalanceRoute = defineOpenAPIRoute({
     const body = c.req.valid("json");
     const access = await requireLedgerAccess(userId, ledgerId, "editor");
     assertLedgerWritable(access.ledger);
-    // Entries live at UTC midnight; the as-of day must land there too.
-    const date = body.date
-      ? new Date(`${body.date}T00:00:00.000Z`)
-      : todayUtcMidnight();
+    // The as-of cutoff is an instant: clients send the end of their picked
+    // LOCAL day so same-day entries count toward the balance. Defaults to
+    // now.
+    const date = body.date ? new Date(body.date) : new Date();
     const locale = normalizeSeedLocale(c.req.header("accept-language"));
     const result = await setAccountBalance(
       userId,
@@ -75,10 +75,3 @@ export const setBalanceRoute = defineOpenAPIRoute({
     );
   },
 });
-
-function todayUtcMidnight(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-}

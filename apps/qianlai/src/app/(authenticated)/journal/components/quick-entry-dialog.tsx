@@ -197,15 +197,17 @@ export function QuickEntryDialog({
     (a) => a.type === "asset" || a.type === "liability",
   );
 
-  const today = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  // datetime-local value for "now" with second precision
+  // (YYYY-MM-DDTHH:mm:ss), matching the format the input expects.
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const defaultDate =
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+    `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
   const defaultValues: QuickEntryFormData = {
     kind: "expense",
-    date: today,
+    date: defaultDate,
     amount: 0,
     debitAccount: "",
     creditAccount: "",
@@ -311,7 +313,10 @@ export function QuickEntryDialog({
       )({
         param: { ledgerId },
         json: {
-          date: data.date,
+          // datetime-local values parse as LOCAL time; sending the ISO
+          // instant keeps entry dates true UTC instants, second precision,
+          // consistent with the iOS app.
+          date: new Date(data.date).toISOString(),
           memo: data.memo || undefined,
           lines: [
             // An unselected pocket side posts as null; the backend resolves
@@ -411,7 +416,8 @@ export function QuickEntryDialog({
                   </FieldLabel>
                   <Input
                     id="quick-date"
-                    type="date"
+                    type="datetime-local"
+                    step="1"
                     aria-invalid={!!form.formState.errors.date}
                     {...form.register("date")}
                   />

@@ -197,7 +197,7 @@ describe("setAccountBalance", () => {
     expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
   });
 
-  it("only sums entries dated on or before the as-of day", async () => {
+  it("only sums entries dated at or before the as-of instant", async () => {
     mockJournalRepo.sumLinesByAccount.mockResolvedValue([]);
     await setAccountBalance("user-1", "led-1", "acc-cash", {
       balance: 100,
@@ -205,7 +205,7 @@ describe("setAccountBalance", () => {
     });
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith(
       "led-1",
-      { to: new Date("2026-08-01T23:59:59.999Z") },
+      { to: AS_OF },
       {},
     );
   });

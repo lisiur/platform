@@ -94,7 +94,7 @@ struct EntryListView<Header: View>: View {
                                 }
                         }
                     } header: {
-                        Text(UTCDates.formatEntryDay(group.day, locale: locale))
+                        Text(AppDates.formatEntryDay(group.day, locale: locale))
                     }
                 }
             }
@@ -181,7 +181,7 @@ struct EntryRow: View {
                         .font(.callout.weight(.semibold).monospacedDigit())
                         .foregroundStyle(headlineAmount.color)
                 }
-                Text(UTCDates.formatEntryTime(entry.date))
+                Text(AppDates.formatEntryTime(entry.date))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 if let memo = entry.memo, !memo.isEmpty {

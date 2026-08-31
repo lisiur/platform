@@ -579,13 +579,12 @@ struct FilterSheetButton<FilterFields: View>: View {
 
     /// Copies the live filters into the sheet's drafts and re-derives the
     /// most specific matching tab (single day, exact month/year boundaries
-    /// win, otherwise the explicit Range editor). Bounds are UTC business-
-    /// day anchors; re-anchoring to local midnights keeps the pickers on
-    /// the day the user picked in any timezone.
+    /// win, otherwise the explicit Range editor). Bounds are the picked
+    /// local instants, straight through.
     private func syncDrafts() {
         let calendar = Calendar.current
-        draftFrom = fromDate.map { UTCDates.localFromUTCWallClock($0) }
-        draftTo = toDate.map { UTCDates.localFromUTCWallClock($0) }
+        draftFrom = fromDate
+        draftTo = toDate
 
         let reference = fromDate ?? toDate ?? Date.now
         dayPick = reference
@@ -617,16 +616,15 @@ struct FilterSheetButton<FilterFields: View>: View {
     }
 
     /// Writes the drafts back to the bound filters: presets always fill both
-    /// ends, Range keeps optional bounds independently. Committed bounds are
-    /// UTC business-day anchors (picked day read in the local calendar),
-    /// matching how entries are stored and grouped.
+    /// ends, Range keeps optional bounds independently. Bounds are the
+    /// picked local instants; the store's query adds the day's end for `to`.
     private func commit() {
         if let window = window(for: mode) {
-            fromDate = UTCDates.utcBusinessDayBounds(for: window.start).start
-            toDate = UTCDates.utcBusinessDayBounds(for: window.end).end
+            fromDate = window.start
+            toDate = window.end
         } else {
-            fromDate = draftFrom.map { UTCDates.utcBusinessDayBounds(for: $0).start }
-            toDate = draftTo.map { UTCDates.utcBusinessDayBounds(for: $0).end }
+            fromDate = draftFrom
+            toDate = draftTo
         }
     }
 }

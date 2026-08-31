@@ -62,7 +62,7 @@ struct DashboardView: View {
             // it so post-delete refreshes re-summarize the same month.
             store.dashboardMonth = selectedMonth
             await store.load(ledgerId: id)
-            let window = UTCDates.monthWindow(containing: selectedMonth.start)
+            let window = AppDates.monthWindow(containing: selectedMonth.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
             await entryStore.load(ledgerId: id)
@@ -71,7 +71,7 @@ struct DashboardView: View {
             // Window writes schedule the entries reload; dashboardMonth's
             // didSet schedules the dashboard reload.
             store.dashboardMonth = month
-            let window = UTCDates.monthWindow(containing: month.start)
+            let window = AppDates.monthWindow(containing: month.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
         }
@@ -98,7 +98,7 @@ struct DashboardView: View {
                 // fires BOTH chevrons, canceling each other out.
                 .buttonStyle(.borderless)
                 Spacer()
-                Text(UTCDates.formatMonthTitle(selectedMonth, locale: locale))
+                Text(AppDates.formatMonthTitle(selectedMonth, locale: locale))
                     .font(.headline)
                 Spacer()
                 Button {

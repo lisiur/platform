@@ -34,7 +34,7 @@ import { useLedgers } from "@/hooks/use-ledgers";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
-import { formatDate } from "@/utils/date";
+import { endOfLocalDay, formatDate } from "@/utils/date";
 import { QuickEntryDialog } from "./quick-entry-dialog";
 
 interface JournalLineDto {
@@ -134,8 +134,12 @@ export function JournalTable() {
           limit,
           offset,
           q: appliedQ || undefined,
-          from: appliedDateRange?.from,
-          to: appliedDateRange?.to,
+          // Entries carry real times, so the range ends at the end of the
+          // picked LOCAL day, not its midnight.
+          from: appliedDateRange?.from?.toISOString(),
+          to: appliedDateRange?.to
+            ? endOfLocalDay(appliedDateRange.to).toISOString()
+            : undefined,
           participantMemberId: appliedMemberId || undefined,
         },
       });

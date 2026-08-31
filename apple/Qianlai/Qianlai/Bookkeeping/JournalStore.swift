@@ -173,8 +173,8 @@ final class JournalStore {
             ("limit", String(limit)),
             ("offset", String(offset)),
             ("q", q.isEmpty ? nil : q.trimmingCharacters(in: .whitespacesAndNewlines)),
-            ("from", from.map { ApiQuery.iso(UTCDates.startOfUTCDay($0)) }),
-            ("to", to.map { ApiQuery.iso(UTCDates.endOfUTCDay($0)) }),
+            ("from", from.map { ApiQuery.iso($0) }),
+            ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ("participantMemberId", participant),
         ])
     }

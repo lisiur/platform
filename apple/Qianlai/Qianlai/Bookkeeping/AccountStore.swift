@@ -230,7 +230,9 @@ final class AccountStore {
             "bookkeeping/ledgers/\(account.ledgerId)/accounts/\(account.id)/balance",
             body: SetBalanceBody(
                 balance: balance,
-                date: UTCDates.utcDayString(date),
+                // The as-of cutoff is the END of the picked LOCAL day, so
+                // entries recorded on that day count toward the balance.
+                date: ApiQuery.iso(AppDates.localEndOfDay(date)),
                 memo: memo
             )
         )

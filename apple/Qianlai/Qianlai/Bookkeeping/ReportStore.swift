@@ -98,7 +98,7 @@ final class ReportStore {
         do {
             // Range filter with explicit UTC instants — the caller owns the
             // timezone math, same as the windowed reports.
-            let window = dashboardMonth.map { UTCDates.monthWindow(containing: $0.start) }
+            let window = dashboardMonth.map { AppDates.monthWindow(containing: $0.start) }
             let query = ApiQuery.build([
                 ("from", window.map { ApiQuery.iso($0.from) }),
                 ("to", window.map { ApiQuery.iso($0.to) }),
@@ -118,7 +118,7 @@ final class ReportStore {
         defer { isLoadingTrialBalance = false }
         do {
             let query = ApiQuery.build([
-                ("to", toDate.map { ApiQuery.iso(UTCDates.endOfUTCDay($0)) }),
+                ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ])
             trialBalance = try await client.request(
                 "GET",
@@ -135,8 +135,8 @@ final class ReportStore {
         defer { isLoadingStatement = false }
         do {
             let query = ApiQuery.build([
-                ("from", fromDate.map { ApiQuery.iso(UTCDates.startOfUTCDay($0)) }),
-                ("to", toDate.map { ApiQuery.iso(UTCDates.endOfUTCDay($0)) }),
+                ("from", fromDate.map { ApiQuery.iso($0) }),
+                ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ])
             incomeStatement = try await client.request(
                 "GET",
@@ -153,8 +153,8 @@ final class ReportStore {
         defer { isLoadingTurnover = false }
         do {
             let query = ApiQuery.build([
-                ("from", fromDate.map { ApiQuery.iso(UTCDates.startOfUTCDay($0)) }),
-                ("to", toDate.map { ApiQuery.iso(UTCDates.endOfUTCDay($0)) }),
+                ("from", fromDate.map { ApiQuery.iso($0) }),
+                ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ])
             memberTurnover = try await client.request(
                 "GET",

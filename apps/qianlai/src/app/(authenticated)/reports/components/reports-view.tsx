@@ -22,7 +22,7 @@ import { useAccountName } from "@/hooks/use-account-name";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
-import { endOfUtcDay, startOfUtcDay } from "@/utils/date";
+import { endOfLocalDay, startOfLocalDay } from "@/utils/date";
 
 interface TrialBalanceRow {
   id: string;
@@ -90,7 +90,7 @@ export function ReportsView() {
           .$get,
       )({
         param: { ledgerId: activeLedger?.id },
-        query: { to: to ? endOfUtcDay(to).toISOString() : undefined },
+        query: { to: to ? endOfLocalDay(to).toISOString() : undefined },
       });
       return (await res.json()) as TrialBalanceDto;
     },
@@ -107,8 +107,8 @@ export function ReportsView() {
       )({
         param: { ledgerId: activeLedger?.id },
         query: {
-          from: from ? startOfUtcDay(from).toISOString() : undefined,
-          to: to ? endOfUtcDay(to).toISOString() : undefined,
+          from: from ? startOfLocalDay(from).toISOString() : undefined,
+          to: to ? endOfLocalDay(to).toISOString() : undefined,
         },
       });
       return (await res.json()) as IncomeStatementDto;
@@ -126,8 +126,8 @@ export function ReportsView() {
       )({
         param: { ledgerId: activeLedger?.id },
         query: {
-          from: from ? startOfUtcDay(from).toISOString() : undefined,
-          to: to ? endOfUtcDay(to).toISOString() : undefined,
+          from: from ? startOfLocalDay(from).toISOString() : undefined,
+          to: to ? endOfLocalDay(to).toISOString() : undefined,
         },
       });
       return (await res.json()) as MemberTurnoverDto;
