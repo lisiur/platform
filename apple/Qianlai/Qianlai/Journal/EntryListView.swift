@@ -167,6 +167,11 @@ extension EntryListView where Header == EmptyView {
 /// follows the money flow: expenses negative, income positive, each
 /// prefixed with the ledger currency's symbol.
 struct EntryRow: View {
+    /// Dependency marker: an in-app language switch re-injects `\.locale`,
+    /// which re-runs this row's body so `title` re-resolves through the
+    /// override bundle. Without it the row keeps its first-render string.
+    @Environment(\.locale) private var locale
+
     let entry: JournalEntry
     let currency: String
 
@@ -224,7 +229,10 @@ struct EntryRow: View {
     }
 
     private var title: String {
-        categoryLine?.account.displayName
+        // Read before any early return, or the category path skips the
+        // dependency registration above.
+        _ = locale
+        return categoryLine?.account.displayName
             ?? L10n.string("quick.kind.transfer", defaultValue: "Transfer")
     }
 
