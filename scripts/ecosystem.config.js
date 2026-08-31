@@ -6,7 +6,7 @@
 // Server layout (from the tarball), one entry per app (derived from
 // manifest.json; see assemble.sh):
 //   ./apps/<name>/apps/<name>/server.js
-// Currently: gateway, admin, organization, studybuddy.
+// Currently: gateway, admin. Derived from manifest.json — see below.
 //
 //   pm2 start ecosystem.config.js
 //   pm2 restart ecosystem.config.js  # pick up newly extracted code
@@ -63,8 +63,15 @@ for (const key of SYS_ENV_KEYS) {
 
 // App list: the root manifest.json is the single source of truth for every
 // app's port/basePath/assetPrefix. It ships in the tarball alongside this file,
-// so the relative require resolves post-extract.
+// so the relative require resolves post-extract. Entries with `disabled: true`
+// or `built: false` are filtered out — assemble.sh doesn't bundle them, so PM2
+// has no script to launch. The gateway gets the same treatment: disabling it
+// removes it from the PM2 list. In that case `apiOrigin` still resolves to its
+// declared port (3000) with nothing listening; set `API_ORIGIN` in
+// `.env.production` to point at a real API host if the gateway is disabled.
 const { apps } = require("./manifest.json");
+const isProcessed = (a) => !a.disabled && a.built !== false;
+const enabledApps = apps.filter(isProcessed);
 
 const gateway = apps.find((a) => a.name === "gateway");
 const apiOrigin = `http://127.0.0.1:${gateway?.port || 3000}`;
@@ -75,7 +82,7 @@ const apiOrigin = `http://127.0.0.1:${gateway?.port || 3000}`;
 const UPDATER_SOCKET = path.join(__dirname, "updater.sock");
 
 module.exports = {
-  apps: apps.map(({ name, port }) => ({
+  apps: enabledApps.map(({ name, port }) => ({
     name,
     cwd: path.join(__dirname, "apps", name),
     // Absolute path on purpose: PM2 resolves a relative `script` against the

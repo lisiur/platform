@@ -14,8 +14,16 @@ OUT="${OUT:-$SRC_ROOT/deploy}"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-# Get the app names for the copy loop below from the manifest.
-APPS=$(node -e "console.log(require('$SRC_ROOT/manifest.json').apps.map(a=>a.name).join(' '))")
+# Get the app names for the copy loop below from the manifest. Entries with
+# `disabled: true` or `built: false` are skipped — they stay in the source
+# manifest for documentation but are not bundled into the tarball (no PM2
+# entry, no nginx location block, no updater PM2 op targets it, no build
+# output even exists for built:false).
+APPS=$(node -e "console.log(require('$SRC_ROOT/manifest.json').apps.filter(a=>!a.disabled && a.built!==false).map(a=>a.name).join(' '))")
+SKIPPED=$(node -e "console.log(require('$SRC_ROOT/manifest.json').apps.filter(a=>a.disabled||a.built===false).map(a=>a.name).join(' '))")
+if [ -n "$SKIPPED" ]; then
+  echo "==> Skipping apps (disabled or built:false): $SKIPPED"
+fi
 
 for app in $APPS; do
   app_dir="$SRC_ROOT/apps/$app"

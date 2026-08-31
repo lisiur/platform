@@ -17,8 +17,20 @@ function readAppNames(): string[] {
   try {
     const manifest = JSON.parse(
       readFileSync(join(DEPLOY_ROOT, "manifest.json"), "utf8"),
-    ) as { apps?: Array<{ name?: string }> };
+    ) as {
+      apps?: Array<{ name?: string; disabled?: boolean; built?: boolean }>;
+    };
+    // `disabled` / `built: false` entries are never bundled by assemble.sh,
+    // so PM2 has no script to restart/delete for them — running the ops
+    // against them would just produce `pm2: process not found` noise.
+    // Note: this does NOT stop a previously-running instance. The filter
+    // sees the manifest, not PM2's live process list. Apps marked
+    // `built: false` from birth were never started, but an app flipped to
+    // `disabled` or `built: false` while already running keeps its old
+    // code running indefinitely. The operator must `pm2 delete <name>`
+    // once after such a flip, just like for an app removed entirely.
     const names = (manifest.apps ?? [])
+      .filter((a) => !a.disabled && a.built !== false)
       .map((a) => a.name)
       .filter((n): n is string => typeof n === "string");
     if (names.length === 0) throw new Error("manifest has no apps");

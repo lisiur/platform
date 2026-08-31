@@ -28,11 +28,24 @@ const here = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(
   readFileSync(join(here, "..", "manifest.json"), "utf8"),
 );
-const apps = manifest.apps;
+// `disabled: true` keeps the entry in the manifest for documentation but
+// removes it from every deployment artifact — no nginx location block, no
+// PM2 process, no tarball bundle, no updater PM2 ops. Build-time configs
+// (per-app next.config.ts, createAppClient) still see the entry so `pnpm dev`
+// keeps working locally.
+//
+// `built: false` is the stronger flag: it skips the build entirely (see
+// scripts/build-apps.mjs), and therefore every deploy-time consumer below
+// also skips it — the app is never produced, so there is nothing to ship.
+// Same predicate everywhere: `!disabled && built !== false`.
+const isProcessed = (a) => !a.disabled && a.built !== false;
+const enabledApps = manifest.apps.filter(isProcessed);
+const skippedApps = manifest.apps.filter((a) => !isProcessed(a));
 const outDir = process.argv[2] ?? join(here, "nginx", "apps");
 
 mkdirSync(outDir, { recursive: true });
-// Drop stale generated confs (e.g. an app removed from manifest.json).
+// Drop stale generated confs (e.g. an app removed from manifest.json, or
+// flipped from enabled to disabled).
 for (const f of readdirSync(outDir)) {
   if (f.endsWith(".conf")) unlinkSync(join(outDir, f));
 }
@@ -83,7 +96,7 @@ writeFileSync(
   `${BANNER}\n\n# Blocks common exploit-discovery probes before they reach any app.\n${PROBE_BLOCKLIST}\n`,
 );
 
-for (const app of apps) {
+for (const app of enabledApps) {
   const chunks = [BANNER, ""];
   if (app.name === "gateway") {
     // Catch-all: shortest prefix, so nginx uses it as the fallback for /api and /.
@@ -113,4 +126,9 @@ for (const app of apps) {
   writeFileSync(join(outDir, `${app.name}.conf`), `${chunks.join("\n")}\n`);
 }
 
-console.log(`==> Generated ${apps.length} nginx app conf(s) into ${outDir}`);
+console.log(
+  `==> Generated ${enabledApps.length} nginx app conf(s) into ${outDir}` +
+    (skippedApps.length
+      ? ` (skipped ${skippedApps.length} disabled: ${skippedApps.map((a) => a.name).join(", ")})`
+      : ""),
+);

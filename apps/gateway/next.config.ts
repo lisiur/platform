@@ -7,6 +7,8 @@ type AppPlatform = {
   port: number;
   basePath?: string;
   assetPrefix?: string;
+  disabled?: boolean;
+  built?: boolean;
 };
 
 type ProxiedApp = {
@@ -23,6 +25,14 @@ const nextConfig: NextConfig = {
 
     // Read the root manifest.json — the single source of truth for app ports.
     // Dev-only (guarded above): in production nginx handles routing.
+    //
+    // Dev mode proxies EVERY non-gateway app with a basePath — including
+    // those marked `disabled` or `built: false` in the manifest. Those flags
+    // gate deploy-time artifacts (nginx, PM2, tarball, updater), not dev: if
+    // you're running the app locally, `pnpm dev:<name>` should still expose
+    // it through the gateway at its declared basePath. The deploy-time
+    // filter (`!disabled && built !== false`) lives in gen-nginx.mjs,
+    // ecosystem.config.js, assemble.sh, and updater/pm2.ts.
     const manifest = JSON.parse(
       readFileSync(resolve(process.cwd(), "../../manifest.json"), "utf8"),
     );

@@ -11,19 +11,22 @@
       "name": "organization",
       "port": 3002,
       "basePath": "/organization",
-      "assetPrefix": "/organization-static"
+      "assetPrefix": "/organization-static",
+      "built": false
     },
     {
       "name": "studybuddy",
       "port": 3003,
       "basePath": "/studybuddy",
-      "assetPrefix": "/studybuddy-static"
+      "assetPrefix": "/studybuddy-static",
+      "built": false
     },
     {
       "name": "qianlai",
       "port": 3004,
       "basePath": "/qianlai",
-      "assetPrefix": "/qianlai-static"
+      "assetPrefix": "/qianlai-static",
+      "built": false
     }
   ]
 }

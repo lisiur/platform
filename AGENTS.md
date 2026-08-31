@@ -6,7 +6,11 @@
 - `apps/organization`: Organization portal. Rules in `apps/organization/AGENTS.md`.
 - `packages/service`: Hono API with Prisma 7, PostgreSQL. Rules in `packages/service/AGENTS.md`.
 - `packages/shared`: shared permissions/types consumed by app and service.
-- `manifest.json`: single source of truth for every app's port, basePath, and assetPrefix. Scripts (`gen-nginx.mjs`, `ecosystem.config.js`, `next.config.ts`, `assemble.sh`) all read from the manifest — there are no per-app `platform` fields in `package.json`.
+- `manifest.json`: single source of truth for every app's port, basePath, and assetPrefix. Scripts (`gen-nginx.mjs`, `ecosystem.config.js`, `next.config.ts`, `assemble.sh`) all read from the manifest — there are no per-app `platform` fields in `package.json`. Optional per-app flags:
+  - `"disabled": true` — build still runs, `pnpm dev` still works locally, but no nginx location block, no PM2 process, no tarball bundle, no updater PM2 ops, no gateway dev proxy. Use to keep the entry in the source manifest for documentation while shipping without it.
+  - `"built": false` — stronger than `disabled`: skips the build entirely (see `scripts/build-apps.mjs`) and therefore every deploy artifact too. Implies `disabled`. Use to drop an app from CI entirely.
+  - Same filter predicate everywhere: `!app.disabled && app.built !== false`.
+  - Flipping an enabled app to `disabled` (without `built: false`) does NOT auto-stop a previously-running PM2 instance — `pm2 delete <name>` once after the change. Same for an app flipped to `built: false` post-launch: apps marked `built: false` from birth were never started, but the deploy-time filters only see the manifest, not PM2's live process list, so a previously-running instance survives every deploy until manually deleted.
 
 ## Commands
 - Install/run with pnpm. Root `pnpm dev` runs only apps (`pnpm --filter './apps/*' dev`) with `NODE_OPTIONS='--max-old-space-size=8192'`; the service is consumed by Next under `/api`.
