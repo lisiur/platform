@@ -79,6 +79,12 @@ struct DashboardView: View {
             await store.loadDashboard()
             await entryStore.reload()
         }
+        // A post/update/delete elsewhere (quick-entry sheet, Journal tab)
+        // bumps this; this page's private entry store is invisible to those
+        // callers, so it refetches itself here.
+        .onChange(of: store.journalEpoch) { _, _ in
+            Task { await entryStore.reload() }
+        }
         .sheet(isPresented: $isShowingLedgerManagement) {
             NavigationStack {
                 LedgersView()

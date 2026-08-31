@@ -114,7 +114,9 @@ final class JournalStore {
     }
 
     func post(_ draft: QuickEntryDraft) async throws {
-        guard let ledgerId else { return }
+        // Throw, never silently return: save() shows success the moment this
+        // doesn't throw, so a nil-ledger no-op would fake a successful post.
+        guard let ledgerId else { throw APIError.noActiveLedger }
         _ = try await client.send(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/entries",
@@ -124,7 +126,7 @@ final class JournalStore {
     }
 
     func delete(_ entry: JournalEntry) async throws {
-        guard let ledgerId else { return }
+        guard let ledgerId else { throw APIError.noActiveLedger }
         _ = try await client.send(
             "DELETE",
             "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)"
@@ -136,7 +138,7 @@ final class JournalStore {
     /// same draft shape a fresh post uses; the server keeps entryNo and
     /// the original creator.
     func update(_ entry: JournalEntry, draft: QuickEntryDraft) async throws {
-        guard let ledgerId else { return }
+        guard let ledgerId else { throw APIError.noActiveLedger }
         _ = try await client.send(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)",

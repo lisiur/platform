@@ -25,6 +25,11 @@ final class ReportStore {
     var dashboardMonth: YearMonth? { didSet { scheduleDashboardReload() } }
     private var dashboardReloadTask: Task<Void, Never>?
 
+    /// Bumped by `refreshAfterPosting` after every post/update/delete so
+    /// surfaces holding their own entry store (the Dashboard's month list)
+    /// can refetch without sharing a `JournalStore` instance.
+    private(set) var journalEpoch = 0
+
     private(set) var trialBalance: TrialBalance?
     private(set) var isLoadingTrialBalance = false
 
@@ -86,6 +91,7 @@ final class ReportStore {
     /// Refreshes every surface a posting can change: the dashboard cards
     /// (always month-to-date) and the windowed reports.
     func refreshAfterPosting() async {
+        journalEpoch += 1
         async let dash: () = loadDashboard()
         async let windowed: () = reloadWindowed()
         _ = await (dash, windowed)

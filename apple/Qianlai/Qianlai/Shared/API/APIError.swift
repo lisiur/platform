@@ -12,6 +12,7 @@ enum APIError: LocalizedError {
     case transport(URLError)
     case invalidResponse
     case decodingFailed
+    case noActiveLedger
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,7 @@ enum APIError: LocalizedError {
         case .transport: L10n.string("api.error.network", defaultValue: "Network connection failed. Check your connection and try again.")
         case .invalidResponse: L10n.string("api.error.server", defaultValue: "Server returned an unexpected response. Please try again later.")
         case .decodingFailed: L10n.string("api.error.decoding", defaultValue: "Couldn't parse the server response.")
+        case .noActiveLedger: L10n.string("api.error.noActiveLedger", defaultValue: "No ledger selected. Choose a ledger and try again.")
         }
     }
 }
