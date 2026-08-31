@@ -277,8 +277,24 @@ function redactMemberEmail<
     : { ...member, user: { ...member.user, email: null } };
 }
 
-export async function listMembers(ledgerId: string, viewerRole: LedgerRole) {
-  const members = await ledgerMemberRepository.listByLedger(ledgerId);
+/**
+ * Roster of a ledger, scoped by the viewer's role:
+ * - full roles (owner/editor/viewer) see the whole roster;
+ * - guests see only members sharing at least one project with them — the
+ *   same project-scoped visibility their entries have, so a guest can pick
+ *   settlement participants for their projects but can't harvest the full
+ *   ledger roster.
+ * Only owners see co-members' email addresses (see `redactMemberEmail`).
+ */
+export async function listMembers(
+  ledgerId: string,
+  viewer: { userId: string; role: LedgerRole },
+) {
+  const all = await ledgerMemberRepository.listByLedger(ledgerId);
+  const members =
+    viewer.role === "guest"
+      ? await scopeRosterToSharedProjects(ledgerId, viewer.userId, all)
+      : all;
   // Prisma's `orderBy: role` is lexicographic (editor < owner < viewer), so we
   // re-sort here by ROLE_RANK to get the intended owner → editor → viewer
   // display order. Ties fall back to the repository's createdAt order.
@@ -287,10 +303,24 @@ export async function listMembers(ledgerId: string, viewerRole: LedgerRole) {
       compareLedgerRole(a.role, b.role) ||
       a.createdAt.getTime() - b.createdAt.getTime(),
   );
-  const showEmail = viewerRole === "owner";
+  const showEmail = viewer.role === "owner";
   return {
     members: members.map((m) => redactMemberEmail(m, showEmail)),
   };
+}
+
+/** Narrows a roster to members sharing ≥1 project with the viewer. */
+async function scopeRosterToSharedProjects(
+  ledgerId: string,
+  viewerUserId: string,
+  members: Awaited<ReturnType<typeof ledgerMemberRepository.listByLedger>>,
+) {
+  const rows = await projectMemberRepository.listSharedMemberUserIds(
+    ledgerId,
+    viewerUserId,
+  );
+  const sharedUserIds = new Set(rows.map((r) => r.userId));
+  return members.filter((m) => sharedUserIds.has(m.userId));
 }
 
 /**

@@ -13,6 +13,12 @@ import UIKit
 /// Account hub: avatar/name/password management plus links to real accounts,
 /// ledger management, and language — with chart of accounts and reports
 /// grouped under the active ledger.
+///
+/// Project-scoped guests don't have ledger chrome to manage — the entire
+/// `ledgerSection` (which uses the active ledger name as its header) is
+/// hidden, and the "Ledgers" link in `manageSection` opens with guest
+/// ledgers expanded into their projects, so the project member never
+/// sees a ledger name from the profile tab.
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(LedgerStore.self) private var ledgerStore
@@ -24,11 +30,19 @@ struct ProfileView: View {
     @State private var isShowingImporter = false
     @State private var avatarItem: PhotosPickerItem?
 
+    /// True when the viewer is project-scoped on the active ledger —
+    /// they shouldn't see ledger-management chrome anywhere on this tab.
+    private var isGuest: Bool {
+        ledgerStore.activeLedger?.isGuest ?? false
+    }
+
     var body: some View {
         List {
             userSection
             manageSection
-            ledgerSection
+            if !isGuest {
+                ledgerSection
+            }
             languageSection
             Section {
                 Button(role: .destructive) {
@@ -101,7 +115,9 @@ struct ProfileView: View {
                 Label("Assets", systemImage: "creditcard")
             }
             NavigationLink {
-                LedgersView()
+                // Expanded for guests: guest-ledger rows render as their
+                // projects, never as ledger names.
+                LedgersView(expandGuestLedgers: isGuest)
             } label: {
                 Label("Ledgers", systemImage: "book")
             }
@@ -121,6 +137,11 @@ struct ProfileView: View {
                 CategoriesView()
             } label: {
                 Label("Categories", systemImage: "tag")
+            }
+            NavigationLink {
+                ProjectsView()
+            } label: {
+                Label("Projects", systemImage: "folder")
             }
             NavigationLink {
                 ReportsView()

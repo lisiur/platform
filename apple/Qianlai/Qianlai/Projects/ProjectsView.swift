@@ -13,6 +13,7 @@ import SwiftUI
 struct ProjectsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
+    @State private var isShowingNewProject = false
 
     var body: some View {
         Group {
@@ -26,6 +27,13 @@ struct ProjectsView: View {
             }
         }
         .navigationTitle(Text("Projects"))
+        .sheet(isPresented: $isShowingNewProject) {
+            if let ledger = ledgerStore.activeLedger {
+                NavigationStack {
+                    ProjectFormView(project: nil)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -45,26 +53,24 @@ struct ProjectsView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(projectStore.projects) { project in
-                    NavigationLink(value: project) {
+                    NavigationLink {
+                        ProjectDetailView(projectId: project.id)
+                    } label: {
                         ProjectListRow(project: project)
                     }
                 }
             }
         }
-        .navigationDestination(for: QianlaiProject.self) { project in
-            ProjectDetailView(projectId: project.id)
-        }
         .toolbar {
             if ledger.isActive && ledger.myRole.atLeast(.editor) {
                 ToolbarItem(placement: .primaryAction) {
-                    NavigationLink(value: ProjectsRoute.newProject) {
+                    Button {
+                        isShowingNewProject = true
+                    } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-        }
-        .navigationDestination(for: ProjectsRoute.self) { route in
-            ProjectFormView(project: nil)
         }
         .refreshable {
             await projectStore.load(ledgerId: ledger.id)
@@ -73,11 +79,6 @@ struct ProjectsView: View {
             await projectStore.load(ledgerId: ledger.id)
         }
     }
-}
-
-/// Distinguishes the "+" toolbar route from project rows in the stack.
-private enum ProjectsRoute: Hashable {
-    case newProject
 }
 
 private struct ProjectListRow: View {
@@ -123,6 +124,12 @@ struct ProjectDetailView: View {
 
     let projectId: String
 
+    /// When true, suppresses the navigation title — the Dashboard uses
+    /// this so the leading LedgerSwitcher remains the only header on the
+    /// tab, while the Projects tab (where this view is also reachable)
+    /// still gets the project name in the title.
+    var hidesNavigationTitle: Bool = false
+
     @State private var memberStore = MemberStore()
     @State private var isEditPresented = false
     @State private var isInvitePresented = false
@@ -135,8 +142,12 @@ struct ProjectDetailView: View {
         case removeMember(String)
     }
 
+    /// Re-resolves the project from the active ledger's cached list so
+    /// edits stay live — and background prefetches of other ledgers can
+    /// never satisfy the lookup with a foreign project.
     private var project: QianlaiProject? {
-        projectStore.projects.first { $0.id == projectId }
+        guard let ledgerId = ledgerStore.activeLedger?.id else { return nil }
+        return projectStore.projects(for: ledgerId).first { $0.id == projectId }
     }
 
     private var ledger: QianlaiLedger? { ledgerStore.activeLedger }
@@ -159,7 +170,7 @@ struct ProjectDetailView: View {
                 )
             }
         }
-        .navigationTitle(Text(project?.name ?? ""))
+        .navigationTitle(hidesNavigationTitle ? Text("") : Text(project?.name ?? ""))
         .inlineNavigationBarTitle()
         .toolbar {
             if let project {
@@ -214,7 +225,7 @@ struct ProjectDetailView: View {
             case .leave:
                 Text("You will no longer see or record in this project.")
             case .removeMember(let userId):
-                Text("Remove \(projectStore.projects.first { $0.id == projectId }?.members.first { $0.userId == userId }?.displayName ?? userId) from the project?")
+                Text("Remove \(project?.members.first { $0.userId == userId }?.displayName ?? userId) from the project?")
             case .none:
                 Text("")
             }
@@ -477,6 +488,9 @@ struct ProjectDetailView: View {
         guard let ledger else { return }
         do {
             try await projectStore.leave(ledgerId: ledger.id, projectId: projectId)
+            // Active-ledger context: refresh the mirror so this view and
+            // the dashboard drop the project.
+            await projectStore.load(ledgerId: ledger.id)
             toast.show(L10n.string("projects.leftProject", defaultValue: "You left the project"))
         } catch {
             toast.show(error.localizedDescription)

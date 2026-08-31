@@ -34,6 +34,25 @@ export const projectMemberRepository = {
     });
   },
 
+  /**
+   * UserIds sharing at least one project with `userId` inside the ledger —
+   * the co-member roster a guest is allowed to see (participants picker,
+   * member list). Includes `userId` themself.
+   */
+  listSharedMemberUserIds(
+    ledgerId: string,
+    userId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.projectMember.findMany({
+      where: {
+        project: { ledgerId, members: { some: { userId } } },
+      },
+      select: { userId: true },
+      distinct: ["userId"],
+    });
+  },
+
   create(
     data: { projectId: string; userId: string },
     tx: Prisma.TransactionClient = prisma,

@@ -105,7 +105,7 @@ struct JournalView: View {
                     }
                 }
             }
-            if !memberStore.members.isEmpty {
+            if !participantCandidates.isEmpty {
                 Section {
                     Picker(
                         "Participant",
@@ -115,13 +115,26 @@ struct JournalView: View {
                         )
                     ) {
                         Text("All Members").tag("")
-                        ForEach(memberStore.members) { member in
+                        ForEach(participantCandidates) { member in
                             Text(member.displayName).tag(member.id)
                         }
                     }
                 }
             }
         }
+    }
+
+    /// Participant filter options, scoped to the active project filter when
+    /// one is set — a project's entries can only be tagged with that
+    /// project's members, so offering the whole ledger roster would just
+    /// yield empty results. Falls back to the full ledger roster otherwise.
+    private var participantCandidates: [LedgerMember] {
+        if let projectId = store.projectFilterId,
+           let project = projectStore.projects.first(where: { $0.id == projectId }) {
+            let memberUserIds = Set(project.members.map(\.userId))
+            return memberStore.members.filter { memberUserIds.contains($0.userId) }
+        }
+        return memberStore.members
     }
 }
 

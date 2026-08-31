@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "·" : {
 
     },
@@ -1290,6 +1293,9 @@
         }
       }
     },
+    "All Projects" : {
+
+    },
     "Amount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1459,6 +1465,9 @@
           }
         }
       }
+    },
+    "Are you sure?" : {
+
     },
     "As of" : {
       "extractionState" : "manual",
@@ -3097,6 +3106,9 @@
         }
       }
     },
+    "Its records are kept but become unassigned." : {
+
+    },
     "Join" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3130,6 +3142,9 @@
           }
         }
       }
+    },
+    "Joined" : {
+
     },
     "Joining…" : {
       "extractionState" : "manual",
@@ -3283,6 +3298,9 @@
           }
         }
       }
+    },
+    "Leave this project? Rejoining requires a new share code." : {
+
     },
     "ledger.none" : {
       "extractionState" : "manual",
@@ -3926,6 +3944,12 @@
         }
       }
     },
+    "My Ledgers" : {
+
+    },
+    "My Projects" : {
+
+    },
     "Name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4405,6 +4429,9 @@
     "Period" : {
 
     },
+    "Personal" : {
+
+    },
     "Please enter a nickname." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4642,6 +4669,12 @@
           }
         }
       }
+    },
+    "Project" : {
+
+    },
+    "Projects" : {
+
     },
     "Qianlai" : {
       "localizations" : {
@@ -5099,6 +5132,9 @@
           }
         }
       }
+    },
+    "Remove %@ from the project?" : {
+
     },
     "Remove %@ from this ledger?" : {
       "extractionState" : "manual",
@@ -6119,6 +6155,9 @@
           }
         }
       }
+    },
+    "You will no longer see or record in this project." : {
+
     },
     "you@example.com" : {
       "extractionState" : "manual",

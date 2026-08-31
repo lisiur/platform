@@ -31,8 +31,14 @@ export const listMembersRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId } = c.req.valid("param");
-    const access = await requireLedgerAccess(userId, ledgerId, "viewer");
-    const { members } = await listMembers(ledgerId, access.membership.role);
+    // "guest" is the floor: project-scoped members need the roster too (the
+    // participants picker), and the service scopes their view down to
+    // co-members of their own projects.
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
+    const { members } = await listMembers(ledgerId, {
+      userId,
+      role: access.membership.role,
+    });
     return c.json(
       {
         members: members.map((member) => ({

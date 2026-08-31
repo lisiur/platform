@@ -52,6 +52,7 @@ vi.mock("../project-member.repository", () => ({
     findMembership: vi.fn(),
     create: vi.fn(),
     deleteAllInLedger: vi.fn(),
+    listSharedMemberUserIds: vi.fn(),
   },
 }));
 
@@ -93,6 +94,7 @@ const mockProjectMemberRepo = projectMemberRepository as unknown as {
   findMembership: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteAllInLedger: ReturnType<typeof vi.fn>;
+  listSharedMemberUserIds: ReturnType<typeof vi.fn>;
 };
 
 const baseCode = {
@@ -576,7 +578,10 @@ describe("listMembers", () => {
       { id: "m-4", userId: "u-owner", role: "owner", createdAt: t0 },
       { id: "m-5", userId: "u-editor-2", role: "editor", createdAt: t0 },
     ]);
-    const { members } = await listMembers("led-1", "owner");
+    const { members } = await listMembers("led-1", {
+      userId: "u-owner",
+      role: "owner",
+    });
     expect(members.map((m) => m.userId)).toEqual([
       "u-owner",
       "u-editor-2",
@@ -603,8 +608,34 @@ describe("listMembers", () => {
         user: { id: "u-editor-1", name: "E", email: "e@x.com", avatar: null },
       },
     ]);
-    const { members } = await listMembers("led-1", "viewer");
+    const { members } = await listMembers("led-1", {
+      userId: "u-viewer-1",
+      role: "viewer",
+    });
     expect(members[0].user?.email).toBeNull();
     expect(members[1].user?.email).toBeNull();
+  });
+
+  it("scopes a guest's roster to members sharing one of their projects", async () => {
+    const t0 = new Date("2024-01-01T00:00:00Z");
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "m-1", userId: "u-owner", role: "owner", createdAt: t0 },
+      { id: "m-2", userId: "u-viewer", role: "viewer", createdAt: t0 },
+      { id: "m-3", userId: "u-guest", role: "guest", createdAt: t0 },
+    ]);
+    // Only the owner shares a project with the guest.
+    mockProjectMemberRepo.listSharedMemberUserIds.mockResolvedValue([
+      { userId: "u-guest" },
+      { userId: "u-owner" },
+    ]);
+    const { members } = await listMembers("led-1", {
+      userId: "u-guest",
+      role: "guest",
+    });
+    expect(mockProjectMemberRepo.listSharedMemberUserIds).toHaveBeenCalledWith(
+      "led-1",
+      "u-guest",
+    );
+    expect(members.map((m) => m.userId)).toEqual(["u-owner", "u-guest"]);
   });
 });

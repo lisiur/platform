@@ -11,6 +11,7 @@ import SwiftUI
 /// archive/unarchive, delete, leave, and open the members manager.
 struct LedgersView: View {
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(ProjectStore.self) private var projectStore
     @Environment(ToastCenter.self) private var toast
     @State private var editingLedger: QianlaiLedger?
     @State private var isShowingCreate = false
@@ -18,23 +19,105 @@ struct LedgersView: View {
     @State private var membersLedger: QianlaiLedger?
     @State private var ledgerPendingDelete: QianlaiLedger?
     @State private var ledgerPendingLeave: QianlaiLedger?
+    @State private var projectPendingLeave: QianlaiProject?
+
+    /// When true, every guest-ledger row is replaced by one row per project
+    /// the user was invited to in that ledger — the project name replaces
+    /// the ledger name. Used by the toolbar switcher so project-scoped
+    /// guests never see ledger names for ledgers they've only been invited
+    /// to a project of.
+    private let expandGuestLedgers: Bool
+
+    init(expandGuestLedgers: Bool = false) {
+        self.expandGuestLedgers = expandGuestLedgers
+    }
+
+    /// One row in the manage list — either a ledger or a project. The enum
+    /// lets `ForEach` render ledger and project rows side-by-side without
+    /// needing two `Section`s.
+    private enum Entry: Identifiable {
+        case ledger(QianlaiLedger)
+        case project(QianlaiProject, ledger: QianlaiLedger)
+
+        var id: String {
+            switch self {
+            case .ledger(let ledger): return "l-\(ledger.id)"
+            case .project(let project, _): return "p-\(project.id)"
+            }
+        }
+
+        var ledger: QianlaiLedger {
+            switch self {
+            case .ledger(let ledger): return ledger
+            case .project(_, let ledger): return ledger
+            }
+        }
+    }
+
+    /// Active ledgers the user owns (`myRole == .owner`). Rendered in the
+    /// "My Ledgers" section.
+    private var ownActiveLedgers: [QianlaiLedger] {
+        ledgerStore.activeLedgers.filter { $0.myRole == .owner }
+    }
+
+    /// Active ledgers / projects the user joined but doesn't own. Editor /
+    /// viewer roles stay as ledger rows; guest-ledger rows explode into the
+    /// projects the user was invited to (when `expandGuestLedgers` is on).
+    private var joinedActiveEntries: [Entry] {
+        ledgerStore.activeLedgers.flatMap { ledger -> [Entry] in
+            if ledger.myRole == .owner {
+                return []
+            }
+            if ledger.isGuest {
+                if expandGuestLedgers {
+                    let projects = projectStore.projects(for: ledger.id)
+                    if projects.isEmpty {
+                        return [.ledger(ledger)]
+                    }
+                    return projects.map { Entry.project($0, ledger: ledger) }
+                }
+                return [.ledger(ledger)]
+            }
+            return [.ledger(ledger)]
+        }
+    }
+
+    /// Archived rows: own archived ledgers stay as ledger rows, joined
+    /// archived ledgers explode into their projects when
+    /// `expandGuestLedgers` is on (matching the active-section rules).
+    private var archivedEntries: [Entry] {
+        ledgerStore.archivedLedgers.flatMap { ledger -> [Entry] in
+            if expandGuestLedgers, ledger.isGuest {
+                let projects = projectStore.projects(for: ledger.id)
+                if projects.isEmpty {
+                    return [.ledger(ledger)]
+                }
+                return projects.map { Entry.project($0, ledger: ledger) }
+            }
+            return [.ledger(ledger)]
+        }
+    }
+
+    private var hasVisibleContent: Bool {
+        !ownActiveLedgers.isEmpty || !joinedActiveEntries.isEmpty || !archivedEntries.isEmpty
+    }
 
     var body: some View {
         List {
-            if ledgerStore.isLoading, ledgerStore.ledgers.isEmpty {
+            if ledgerStore.isLoading, !hasVisibleContent {
                 HStack {
                     Spacer()
                     ProgressView()
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
-            } else if let error = ledgerStore.loadError, ledgerStore.ledgers.isEmpty {
+            } else if let error = ledgerStore.loadError, !hasVisibleContent {
                 ErrorRetryView(message: error) {
                     Task { await ledgerStore.load() }
                 }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-            } else if ledgerStore.ledgers.isEmpty {
+            } else if !hasVisibleContent {
                 EmptyStateView(
                     message: L10n.string("ledgers.empty", defaultValue: "No ledgers yet. Create one or join with a share code."),
                     systemImage: "book"
@@ -42,15 +125,34 @@ struct LedgersView: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             } else {
-                Section {
-                    ForEach(ledgerStore.activeLedgers) { ledger in
-                        row(ledger)
+                if !ownActiveLedgers.isEmpty {
+                    Section("My Ledgers") {
+                        ForEach(ownActiveLedgers) { ledger in
+                            row(ledger)
+                        }
                     }
                 }
-                if !ledgerStore.archivedLedgers.isEmpty {
+                if !joinedActiveEntries.isEmpty {
+                    Section("Joined") {
+                        ForEach(joinedActiveEntries) { entry in
+                            switch entry {
+                            case .ledger(let ledger):
+                                row(ledger)
+                            case .project(let project, let ledger):
+                                projectRow(project, in: ledger)
+                            }
+                        }
+                    }
+                }
+                if !archivedEntries.isEmpty {
                     Section("Archived") {
-                        ForEach(ledgerStore.archivedLedgers) { ledger in
-                            row(ledger)
+                        ForEach(archivedEntries) { entry in
+                            switch entry {
+                            case .ledger(let ledger):
+                                row(ledger)
+                            case .project(let project, let ledger):
+                                projectRow(project, in: ledger)
+                            }
                         }
                     }
                 }
@@ -72,6 +174,16 @@ struct LedgersView: View {
         }
         .task {
             await ledgerStore.load()
+            // In project mode, pre-fetch the projects for every guest ledger
+            // so the rows render as project entries instead of falling back
+            // to the placeholder ledger row. Prefetch only fills the
+            // per-ledger cache — ledgers here may not be the active one.
+            if expandGuestLedgers {
+                let guestLedgers = ledgerStore.ledgers.filter { $0.isGuest }
+                for ledger in guestLedgers {
+                    await projectStore.prefetch(ledgerId: ledger.id)
+                }
+            }
         }
         .sheet(isPresented: $isShowingCreate) {
             NavigationStack {
@@ -143,6 +255,35 @@ struct LedgersView: View {
         } message: {
             Text("Leave this ledger? Rejoining requires a new share code.")
         }
+        .alert(
+            L10n.string("projects.leave", defaultValue: "Leave Project"),
+            isPresented: Binding(
+                get: { projectPendingLeave != nil },
+                set: { if !$0 { projectPendingLeave = nil } }
+            )
+        ) {
+            Button(L10n.string("projects.leave", defaultValue: "Leave"), role: .destructive) {
+                if let project = projectPendingLeave {
+                    let ledgerId = project.ledgerId
+                    let projectId = project.id
+                    Task {
+                        do {
+                            try await projectStore.leave(ledgerId: ledgerId, projectId: projectId)
+                            // This ledger may not be the active one — refresh
+                            // its cache only so the row drops from the list.
+                            await projectStore.prefetch(ledgerId: ledgerId)
+                            toast.show(L10n.string("projects.leftProject", defaultValue: "You left the project"))
+                        } catch {
+                            toast.show(error.localizedDescription)
+                        }
+                    }
+                }
+                projectPendingLeave = nil
+            }
+            Button("Cancel", role: .cancel) { projectPendingLeave = nil }
+        } message: {
+            Text("Leave this project? Rejoining requires a new share code.")
+        }
     }
 
     private func row(_ ledger: QianlaiLedger) -> some View {
@@ -209,6 +350,63 @@ struct LedgersView: View {
                 archiveAction(ledger)
             } else {
                 leaveAction(ledger)
+            }
+        }
+    }
+
+    /// Project row used when a guest-ledger entry explodes into its
+    /// projects. Mirrors the ledger row's metadata layout but uses the
+    /// project's name and member list, and only exposes the actions a
+    /// guest actually has (leave, members).
+    private func projectRow(_ project: QianlaiProject, in ledger: QianlaiLedger) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "folder")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(project.name)
+                    .font(.body.weight(.medium))
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                Text(ledger.currency)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                Text(ledger.myRole.label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Label("\(project.members.count)", systemImage: "person.2")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if project.isArchived {
+                    BadgeView(text: L10n.string("status.archived", defaultValue: "Archived"), color: .orange)
+                }
+            }
+            if let description = project.description, !description.isEmpty {
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .contextMenu {
+            membersAction(ledger)
+            Button(role: .destructive) {
+                projectPendingLeave = project
+            } label: {
+                Label(L10n.string("projects.leave", defaultValue: "Leave Project"), systemImage: "rectangle.portrait.and.arrow.right")
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            membersAction(ledger)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                projectPendingLeave = project
+            } label: {
+                Label(L10n.string("projects.leave", defaultValue: "Leave"), systemImage: "rectangle.portrait.and.arrow.right")
             }
         }
     }

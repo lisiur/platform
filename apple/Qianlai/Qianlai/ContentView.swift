@@ -10,7 +10,6 @@ import SwiftUI
 enum AppTab: Hashable {
     case dashboard
     case journal
-    case projects
     case profile
     /// Never an actual selection — identifies the add pill, whose tap is
     /// intercepted to present the quick-entry sheet instead of navigating.
@@ -29,12 +28,6 @@ enum AppTab: Hashable {
                 "tab.journal",
                 defaultValue: "Journal",
                 comment: "Bottom tab: journal entries (Chinese 流水)"
-            )
-        case .projects:
-            LocalizedStringResource(
-                "tab.projects",
-                defaultValue: "Projects",
-                comment: "Bottom tab: shared projects (Chinese 项目)"
             )
         case .profile:
             LocalizedStringResource(
@@ -55,7 +48,6 @@ enum AppTab: Hashable {
         switch self {
         case .dashboard: "square.grid.2x2"
         case .journal: "list.bullet.rectangle"
-        case .projects: "folder"
         case .profile: "person.crop.circle"
         case .quickAdd: "plus"
         }
@@ -80,21 +72,12 @@ struct ContentView: View {
                 Tab(AppTab.dashboard.label, systemImage: AppTab.dashboard.icon, value: AppTab.dashboard) {
                     NavigationStack {
                         tabPage(.dashboard)
-                            .navigationTitle(Text(AppTab.dashboard.label))
-                            .inlineNavigationBarTitle()
                     }
                 }
                 Tab(AppTab.journal.label, systemImage: AppTab.journal.icon, value: AppTab.journal) {
                     NavigationStack {
                         tabPage(.journal)
                             .navigationTitle(Text(AppTab.journal.label))
-                            .inlineNavigationBarTitle()
-                    }
-                }
-                Tab(AppTab.projects.label, systemImage: AppTab.projects.icon, value: AppTab.projects) {
-                    NavigationStack {
-                        tabPage(.projects)
-                            .navigationTitle(Text(AppTab.projects.label))
                             .inlineNavigationBarTitle()
                     }
                 }
@@ -161,7 +144,6 @@ struct ContentView: View {
         switch tab {
         case .dashboard: DashboardView()
         case .journal: JournalView()
-        case .projects: ProjectsView()
         case .profile: ProfileView()
         case .quickAdd: Color.clear
         }
@@ -192,7 +174,7 @@ struct ContentView: View {
 struct AppTabBar: View {
     @Binding var selection: AppTab
 
-    private let tabs = [AppTab.dashboard, .journal, .projects, .profile, .quickAdd]
+    private let tabs = [AppTab.dashboard, .journal, .profile, .quickAdd]
 
     var body: some View {
         HStack(spacing: 0) {

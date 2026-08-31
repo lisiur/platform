@@ -51,6 +51,21 @@ struct QuickEntryView: View {
         ledgerStore.activeLedger?.isGuest ?? false
     }
 
+    /// Who can be tagged on this entry. When the entry targets a project
+    /// (mandatory for guests), only that project's members are eligible —
+    /// each project member is resolved to their ledger membership so the
+    /// posted `participantMemberIds` stay ledger-scoped (the API keys
+    /// participants by ledger membership, not by project membership).
+    /// Personal entries fall back to the whole ledger roster.
+    private var participantCandidates: [LedgerMember] {
+        if let projectId = draft.projectId,
+           let project = projectStore.projects.first(where: { $0.id == projectId }) {
+            let memberUserIds = Set(project.members.map(\.userId))
+            return memberStore.members.filter { memberUserIds.contains($0.userId) }
+        }
+        return memberStore.members
+    }
+
     /// Which side's account picker the sheet is showing — one presentation
     /// state serves both fields.
     private enum AccountSide: String, Identifiable {
@@ -106,7 +121,7 @@ struct QuickEntryView: View {
         }
         .sheet(isPresented: $isParticipantsPresented) {
             ParticipantSelectionView(
-                members: memberStore.members,
+                members: participantCandidates,
                 selection: $draft.participants
             )
         }
@@ -200,6 +215,12 @@ struct QuickEntryView: View {
                         Text(project.name).tag(project.id)
                     }
                 }
+                // Switching the project narrows the participant set to the
+                // new project's members — drop any picked participant who
+                // isn't in it, or the post would fail validation.
+                .onChange(of: draft.projectId) {
+                    pruneParticipants()
+                }
             }
         }
 
@@ -260,7 +281,7 @@ struct QuickEntryView: View {
                 .onSubmit { dismissKeyboard() }
         }
 
-        if !memberStore.members.isEmpty {
+        if !participantCandidates.isEmpty {
             Section {
                 // Opens the participant sheet instead of listing members
                 // inline: the form stays compact once a ledger grows.
@@ -397,6 +418,18 @@ struct QuickEntryView: View {
     private func applyGuestProjectDefault() {
         guard isGuest, draft.projectId == nil, projectStore.projects.count == 1 else { return }
         draft.projectId = projectStore.projects[0].id
+    }
+
+    /// Drops picked participants who aren't members of the entry's current
+    /// project — switching projects must not carry participants across, or
+    /// the post fails validation.
+    private func pruneParticipants() {
+        guard !participantCandidates.isEmpty else {
+            draft.participants = []
+            return
+        }
+        let candidateIds = Set(participantCandidates.map(\.id))
+        draft.participants.formIntersection(candidateIds)
     }
 
     /// Field row that opens the account picker as a bottom sheet: the tree

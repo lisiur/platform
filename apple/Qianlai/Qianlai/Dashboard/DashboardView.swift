@@ -10,8 +10,14 @@ import SwiftUI
 /// Overview of the active ledger: month income/expense cards above the
 /// month's entries — the same shared entry list the Journal uses, limited
 /// to a month window instead of exposing every filter.
+///
+/// When the active ledger is a guest one and a project is selected, the
+/// dashboard swaps to the project detail page (statement, settlement,
+/// members). Project members don't see the ledger-wide month summary; the
+/// project view is the only surface they have.
 struct DashboardView: View {
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(ProjectStore.self) private var projectStore
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale
     @State private var isShowingLedgerManagement = false
@@ -22,20 +28,73 @@ struct DashboardView: View {
     /// filter window never clashes with the Journal tab's root store.
     @State private var entryStore = JournalStore()
 
+    /// The project the dashboard is currently scoped to. Only when the
+    /// active ledger is guest (project-scoped) and a project has
+    /// materialized in that ledger's cached project list — either the
+    /// explicitly selected one or, for guests with a single project, the
+    /// auto-picked first project (matching `selectedProject(in:)`'s
+    /// fallback). Resolved against `projects(for:)`, never the shared
+    /// `projects` mirror, so background prefetches of other guest ledgers
+    /// can't surface a foreign project here. While the project is still
+    /// loading we render a spinner so the dashboard doesn't briefly flash
+    /// the "no longer exists" empty state from ProjectDetailView.
+    private var activeProject: QianlaiProject? {
+        guard let ledger = ledgerStore.activeLedger, ledger.isGuest else { return nil }
+        let projects = projectStore.projects(for: ledger.id)
+        if let projectId = projectStore.selectedProjectId {
+            return projects.first { $0.id == projectId }
+        }
+        return projects.first
+    }
+
+    /// True when the user is in project scope but the project hasn't
+    /// finished loading yet (e.g. just tapped a project in the
+    /// switcher). Renders a spinner instead of the regular dashboard.
+    private var isProjectScopeLoading: Bool {
+        guard ledgerStore.activeLedger?.isGuest == true else { return false }
+        return activeProject == nil && projectStore.isLoading
+    }
+
+    /// True when the project detail view owns the screen (now or once the
+    /// loading window resolves) and the ledger-wide dashboard fetches are
+    /// skipped.
+    private var showsProjectDetail: Bool {
+        activeProject != nil || isProjectScopeLoading
+    }
+
+    /// Key for the dashboard fetch task: active ledger plus the project
+    /// scope state the skip decision depends on. Reacting to the scope
+    /// settling matters — the loading-window early return below must be
+    /// retried once `ProjectStore.load` finishes without producing a
+    /// project (guest with zero projects), or the dashboard would never
+    /// fetch entries/stats for that ledger.
+    private var dashboardTaskKey: String {
+        let ledgerId = ledgerStore.activeLedger?.id ?? "none"
+        let projectId = activeProject?.id ?? "none"
+        return "\(ledgerId)|\(projectId)|\(isProjectScopeLoading ? "loading" : "settled")"
+    }
+
     var body: some View {
         Group {
             if ledgerStore.isLoading, ledgerStore.ledgers.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let ledger = ledgerStore.activeLedger {
-                EntryListView(
-                    ledger: ledger,
-                    emptyMessage: L10n.string(
-                        "dashboard.noEntriesThisMonth",
-                        defaultValue: "No entries this month yet"
-                    ),
-                    header: monthCards
-                )
+                if let project = activeProject {
+                    ProjectDetailView(projectId: project.id, hidesNavigationTitle: true)
+                } else if isProjectScopeLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    EntryListView(
+                        ledger: ledger,
+                        emptyMessage: L10n.string(
+                            "dashboard.noEntriesThisMonth",
+                            defaultValue: "No entries this month yet"
+                        ),
+                        header: monthCards
+                    )
+                }
             } else {
                 VStack(spacing: 12) {
                     EmptyStateView(
@@ -50,13 +109,24 @@ struct DashboardView: View {
             }
         }
         .environment(entryStore)
-        .navigationTitle(Text("Dashboard"))
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarLeading) {
                 LedgerSwitcherMenu()
             }
+            #else
+            ToolbarItem(placement: .navigation) {
+                LedgerSwitcherMenu()
+            }
+            #endif
         }
-        .task(id: ledgerStore.activeLedger?.id) {
+        .task(id: dashboardTaskKey) {
+            // In project scope the detail view drives its own loading, so
+            // we skip the dashboard fetches to avoid double-loading the
+            // same ledger. The task key re-fires when the project scope
+            // settles, so a skip during the loading window is retried
+            // after it resolves.
+            if showsProjectDetail { return }
             guard let id = ledgerStore.activeLedger?.id else { return }
             // Both surfaces follow the selected month; ReportStore remembers
             // it so post-delete refreshes re-summarize the same month.
@@ -70,12 +140,17 @@ struct DashboardView: View {
         .onChange(of: selectedMonth) { _, month in
             // Window writes schedule the entries reload; dashboardMonth's
             // didSet schedules the dashboard reload.
+            if showsProjectDetail { return }
             store.dashboardMonth = month
             let window = AppDates.monthWindow(containing: month.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
         }
         .refreshable {
+            if showsProjectDetail {
+                // ProjectDetailView owns its own refresh path.
+                return
+            }
             await store.loadDashboard()
             await entryStore.reload()
         }
@@ -83,11 +158,13 @@ struct DashboardView: View {
         // bumps this; this page's private entry store is invisible to those
         // callers, so it refetches itself here.
         .onChange(of: store.journalEpoch) { _, _ in
-            Task { await entryStore.reload() }
+            if !showsProjectDetail {
+                Task { await entryStore.reload() }
+            }
         }
         .sheet(isPresented: $isShowingLedgerManagement) {
             NavigationStack {
-                LedgersView()
+                LedgersView(expandGuestLedgers: ledgerStore.activeLedger?.isGuest ?? false)
             }
         }
     }
