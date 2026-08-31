@@ -22,9 +22,9 @@ export const updateEntryRoute = defineOpenAPIRoute({
     method: "put",
     path: "/ledgers/{ledgerId}/entries/{id}",
     tags: ["QianlaiJournal"],
-    summary: "Replace a journal entry (editor+)",
+    summary: "Replace a journal entry (editor+, or the creator if a guest)",
     description:
-      "Replaces the entry's date, memo, lines, and participants in full: the new lines must balance and every account must belong to this ledger. entryNo and the original creator are kept.",
+      "Replaces the entry's date, memo, lines, and participants in full: the new lines must balance and every account must belong to this ledger. entryNo and the original creator are kept. Guests may only edit their own entries inside (and keeping them in) one of their projects.",
     request: {
       params: entryIdParamSchema,
       body: {
@@ -43,15 +43,19 @@ export const updateEntryRoute = defineOpenAPIRoute({
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
+    const userId = getPrincipalUserId(principal);
     const { ledgerId, id } = c.req.valid("param");
     const body = c.req.valid("json");
-    const access = await requireLedgerAccess(
-      getPrincipalUserId(principal),
-      ledgerId,
-      "editor",
-    );
+    // "guest" = any member; guests may only edit their own entries inside
+    // their projects (enforced in the service).
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
     assertLedgerWritable(access.ledger);
-    const entry = await updateEntry(ledgerId, id, body);
+    const entry = await updateEntry(
+      ledgerId,
+      id,
+      { userId, role: access.membership.role },
+      body,
+    );
     return c.json(serializeEntry(entry), 200);
   },
 });

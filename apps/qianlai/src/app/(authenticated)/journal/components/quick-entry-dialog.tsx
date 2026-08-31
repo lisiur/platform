@@ -33,10 +33,13 @@ import {
 } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useAccountName } from "@/hooks/use-account-name";
+import { useLedgers } from "@/hooks/use-ledgers";
+import { useProjects } from "@/hooks/use-projects";
 import { appClient, withApiFeedback } from "@/lib/api";
 import type { AccountRow } from "../../accounts/components/accounts-table";
 
@@ -93,6 +96,7 @@ const quickEntrySchema = z
     creditAccount: z.string(),
     memo: z.string().optional(),
     participants: z.array(z.string()),
+    projectId: z.string(),
   })
   .superRefine((data, ctx) => {
     if (!(data.amount > 0)) {
@@ -156,6 +160,12 @@ export function QuickEntryDialog({
   const t = useTranslations("Journal");
   const accountName = useAccountName();
   const queryClient = useQueryClient();
+  const { activeLedger } = useLedgers();
+  // Guests record expenses inside their projects only: the tabs collapse to
+  // "expense", the paying pocket is always the ledger default, and the
+  // project assignment is mandatory (pre-filled with their single project).
+  const isGuest = activeLedger?.myRole === "guest";
+  const { projects } = useProjects(ledgerId, open);
 
   const { data: accountsData } = useQuery({
     queryKey: ["qianlai", "accounts", ledgerId],
@@ -213,12 +223,24 @@ export function QuickEntryDialog({
     creditAccount: "",
     memo: "",
     participants: [],
+    projectId: "",
   };
 
   const form = useForm<QuickEntryFormData>({
     resolver: zodResolver(quickEntrySchema),
     defaultValues,
   });
+
+  // Pre-select the project once the list loads: a guest's only project
+  // becomes the default; full roles start unassigned ("personal").
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const current = form.getValues("projectId");
+    if (current) return;
+    if (isGuest && projects.length === 1) {
+      form.setValue("projectId", projects[0].id);
+    }
+  }, [projects, isGuest, form]);
 
   // Trigger label resolver: empty/unselected renders the explicit
   // 未选择 sentinel instead of a blank trigger.
@@ -327,6 +349,7 @@ export function QuickEntryDialog({
           participantMemberIds: data.participants.length
             ? data.participants
             : undefined,
+          projectId: data.projectId || undefined,
         },
       });
     },
@@ -354,9 +377,18 @@ export function QuickEntryDialog({
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      form.reset(defaultValues);
+      form.reset({ ...defaultValues, date: defaultDate });
     }
     onOpenChange(nextOpen);
+  }
+
+  /** Guests must post inside one of their projects. */
+  function handleSubmit(data: QuickEntryFormData) {
+    if (isGuest && !data.projectId) {
+      form.setError("projectId", { message: "projectRequired" });
+      return;
+    }
+    mutation.mutate(data);
   }
 
   function handleKindChange(value: QuickKind) {
@@ -378,18 +410,83 @@ export function QuickEntryDialog({
         <DialogBody>
           <form
             id="quick-entry-form"
-            onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+            onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            <Tabs value={kind} onValueChange={handleKindChange}>
-              <TabsList className="w-full">
-                <TabsTrigger value="expense">{t("quick.expense")}</TabsTrigger>
-                <TabsTrigger value="income">{t("quick.income")}</TabsTrigger>
-                <TabsTrigger value="transfer">
-                  {t("quick.transfer")}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {!isGuest && (
+              <Tabs value={kind} onValueChange={handleKindChange}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="expense">
+                    {t("quick.expense")}
+                  </TabsTrigger>
+                  <TabsTrigger value="income">{t("quick.income")}</TabsTrigger>
+                  <TabsTrigger value="transfer">
+                    {t("quick.transfer")}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
+            <Field data-invalid={!!form.formState.errors.projectId}>
+              <FieldLabel htmlFor="quick-project" required={isGuest}>
+                {t("quick.project")}
+              </FieldLabel>
+              <Controller
+                control={form.control}
+                name="projectId"
+                render={({ field, fieldState }) => (
+                  <Select
+                    value={field.value || null}
+                    onValueChange={(v) => field.onChange(v ?? "")}
+                    items={[
+                      ...(!isGuest
+                        ? [{ value: "", label: t("quick.noProject") }]
+                        : []),
+                      ...projects.map((p) => ({
+                        value: p.id,
+                        label: p.name,
+                      })),
+                    ]}
+                  >
+                    <SelectTrigger
+                      id="quick-project"
+                      aria-invalid={!!fieldState.error}
+                    >
+                      <SelectValue>
+                        {(value) =>
+                          projects.find((p) => p.id === value)?.name ??
+                          t("quick.noProject")
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!isGuest && (
+                        <SelectItem value="">{t("quick.noProject")}</SelectItem>
+                      )}
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldDescription>
+                {isGuest ? t("quick.projectGuestHint") : t("quick.projectHint")}
+              </FieldDescription>
+              <FieldError
+                errors={
+                  form.formState.errors.projectId
+                    ? [
+                        {
+                          message: t("quick.validation.projectRequired"),
+                        },
+                      ]
+                    : undefined
+                }
+              />
+            </Field>
 
             <FieldGroup>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -476,50 +573,54 @@ export function QuickEntryDialog({
                 />
               </Field>
 
-              <Field data-invalid={!!form.formState.errors.creditAccount}>
-                <FieldLabel
-                  htmlFor="quick-credit-account"
-                  required={kind !== "expense"}
-                >
-                  {labels.credit}
-                </FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="creditAccount"
-                  render={({ field, fieldState }) => (
-                    <Select
-                      value={field.value || null}
-                      onValueChange={field.onChange}
-                      items={creditItems}
-                    >
-                      <SelectTrigger
-                        id="quick-credit-account"
-                        aria-invalid={!!fieldState.error}
+              {!isGuest && (
+                <Field data-invalid={!!form.formState.errors.creditAccount}>
+                  <FieldLabel
+                    htmlFor="quick-credit-account"
+                    required={kind !== "expense"}
+                  >
+                    {labels.credit}
+                  </FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="creditAccount"
+                    render={({ field, fieldState }) => (
+                      <Select
+                        value={field.value || null}
+                        onValueChange={field.onChange}
+                        items={creditItems}
                       >
-                        <SelectValue>{(value) => nameFor(value)}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {creditItems.map((item) => (
-                          <SelectItem
-                            key={item.value}
-                            value={item.value}
-                            style={
-                              item.depth
-                                ? { paddingLeft: `${item.depth * 16 + 6}px` }
-                                : undefined
-                            }
-                          >
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FieldError
-                  errors={creditAccountError ? [creditAccountError] : undefined}
-                />
-              </Field>
+                        <SelectTrigger
+                          id="quick-credit-account"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue>{(value) => nameFor(value)}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {creditItems.map((item) => (
+                            <SelectItem
+                              key={item.value}
+                              value={item.value}
+                              style={
+                                item.depth
+                                  ? { paddingLeft: `${item.depth * 16 + 6}px` }
+                                  : undefined
+                              }
+                            >
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FieldError
+                    errors={
+                      creditAccountError ? [creditAccountError] : undefined
+                    }
+                  />
+                </Field>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="quick-memo">{t("memo")}</FieldLabel>

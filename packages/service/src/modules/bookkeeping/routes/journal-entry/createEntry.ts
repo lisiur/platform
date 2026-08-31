@@ -22,9 +22,9 @@ export const createEntryRoute = defineOpenAPIRoute({
     method: "post",
     path: "/ledgers/{ledgerId}/entries",
     tags: ["QianlaiJournal"],
-    summary: "Post a journal entry (editor+)",
+    summary: "Post a journal entry (editor+, or guest in their project)",
     description:
-      "Creates a balanced, immutable journal entry: total debits must equal total credits and every line references an account of this ledger. Optionally tags ledger members as participants of the entry for turnover reports.",
+      "Creates a balanced, immutable journal entry: total debits must equal total credits and every line references an account of this ledger. Optionally tags ledger members as participants of the entry for turnover reports, and assigns the entry to a project. Guests must target one of their projects and may only record expenses (expense categories; the payment side defers to the default pocket).",
     request: {
       params: ledgerIdParamSchema,
       body: {
@@ -46,9 +46,11 @@ export const createEntryRoute = defineOpenAPIRoute({
     const userId = getPrincipalUserId(principal);
     const { ledgerId } = c.req.valid("param");
     const body = c.req.valid("json");
-    const access = await requireLedgerAccess(userId, ledgerId, "editor");
+    // "guest" = any member; project/guest entitlements are enforced in the
+    // service against the caller's project memberships.
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
     assertLedgerWritable(access.ledger);
-    const entry = await createEntry(userId, ledgerId, body);
+    const entry = await createEntry(userId, ledgerId, body, access);
     return c.json(serializeEntry(entry), 201);
   },
 });

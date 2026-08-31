@@ -41,8 +41,24 @@ vi.mock("../share-code.repository", () => ({
   },
 }));
 
+vi.mock("../project.repository", () => ({
+  projectRepository: {
+    findById: vi.fn(),
+  },
+}));
+
+vi.mock("../project-member.repository", () => ({
+  projectMemberRepository: {
+    findMembership: vi.fn(),
+    create: vi.fn(),
+    deleteAllInLedger: vi.fn(),
+  },
+}));
+
 import { ledgerRepository } from "../ledger.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
+import { projectRepository } from "../project.repository";
+import { projectMemberRepository } from "../project-member.repository";
 import {
   createShareCode,
   listMembers,
@@ -69,6 +85,14 @@ const mockShareRepo = shareCodeRepository as unknown as {
   findByCode: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   incrementUses: ReturnType<typeof vi.fn>;
+};
+const mockProjectRepo = projectRepository as unknown as {
+  findById: ReturnType<typeof vi.fn>;
+};
+const mockProjectMemberRepo = projectMemberRepository as unknown as {
+  findMembership: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
+  deleteAllInLedger: ReturnType<typeof vi.fn>;
 };
 
 const baseCode = {
@@ -121,6 +145,73 @@ describe("redeemShareCode", () => {
       "sc-1",
       expect.anything(),
     );
+  });
+
+  it("project code: creates a guest membership plus the project member", async () => {
+    mockShareRepo.findByCode.mockResolvedValue({
+      ...baseCode,
+      role: "guest",
+      projectId: "proj-1",
+    });
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue(null);
+    mockProjectMemberRepo.create.mockResolvedValue({});
+    const result = await redeemShareCode("user-b", "A2B4C6D8E9F2");
+    expect(result).toEqual({
+      ledgerId: "led-1",
+      projectId: "proj-1",
+      role: "guest",
+    });
+    expect(mockMemberRepo.create).toHaveBeenCalledWith(
+      { ledgerId: "led-1", userId: "user-b", role: "guest" },
+      expect.anything(),
+    );
+    expect(mockProjectMemberRepo.create).toHaveBeenCalledWith(
+      { projectId: "proj-1", userId: "user-b" },
+      expect.anything(),
+    );
+    expect(mockShareRepo.incrementUses).toHaveBeenCalled();
+  });
+
+  it("project code: an existing member only gains the project", async () => {
+    mockShareRepo.findByCode.mockResolvedValue({
+      ...baseCode,
+      role: "guest",
+      projectId: "proj-1",
+    });
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockMemberRepo.findMembership.mockResolvedValue({ role: "editor" });
+    mockProjectMemberRepo.findMembership.mockResolvedValue(null);
+    await redeemShareCode("user-b", "A2B4C6D8E9F2");
+    expect(mockMemberRepo.create).not.toHaveBeenCalled();
+    expect(mockProjectMemberRepo.create).toHaveBeenCalledWith(
+      { projectId: "proj-1", userId: "user-b" },
+      expect.anything(),
+    );
+  });
+
+  it("project code: rejects an already-project-member (400)", async () => {
+    mockShareRepo.findByCode.mockResolvedValue({
+      ...baseCode,
+      role: "guest",
+      projectId: "proj-1",
+    });
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
+    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+    expect(mockProjectMemberRepo.create).not.toHaveBeenCalled();
   });
 
   it("returns 404 for an unknown code", async () => {
@@ -342,6 +433,7 @@ describe("removeMember", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockMemberRepo.delete.mockResolvedValue({});
+    mockProjectMemberRepo.deleteAllInLedger.mockResolvedValue({});
   });
 
   it("deletes the membership", async () => {

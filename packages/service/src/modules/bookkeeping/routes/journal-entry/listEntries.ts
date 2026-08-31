@@ -6,7 +6,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { requireLedgerAccess } from "../../access";
+import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { listEntries } from "../../journal.service";
 import {
   ledgerIdParamSchema,
@@ -22,6 +22,8 @@ export const listEntriesRoute = defineOpenAPIRoute({
     path: "/ledgers/{ledgerId}/entries",
     tags: ["QianlaiJournal"],
     summary: "List journal entries",
+    description:
+      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely.",
     request: {
       params: ledgerIdParamSchema,
       query: listEntriesQuerySchema,
@@ -41,7 +43,12 @@ export const listEntriesRoute = defineOpenAPIRoute({
     const userId = getPrincipalUserId(principal);
     const { ledgerId } = c.req.valid("param");
     const query = c.req.valid("query");
-    const access = await requireLedgerAccess(userId, ledgerId, "viewer");
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
+    const { projectId, scopeProjectIds } = await resolveEntryProjectFilter(
+      userId,
+      access,
+      query.projectId,
+    );
     const result = await listEntries(
       ledgerId,
       {
@@ -51,6 +58,8 @@ export const listEntriesRoute = defineOpenAPIRoute({
         to: query.to,
         q: query.q,
         participantMemberId: query.participantMemberId,
+        projectId,
+        scopeProjectIds,
       },
       access.membership.role,
     );

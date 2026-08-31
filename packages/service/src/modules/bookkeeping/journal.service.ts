@@ -2,7 +2,11 @@ import { HTTPException } from "hono/http-exception";
 import type { BookAccount } from "#generated/prisma/client";
 import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import { assertLedgerWritable } from "./access";
+import {
+  assertLedgerWritable,
+  type LedgerAccess,
+  resolveEntryProjectTarget,
+} from "./access";
 import { accountRepository } from "./account.repository";
 import {
   DEFAULT_CREDIT_ACCOUNT_FLAG,
@@ -51,6 +55,7 @@ export type NormalizedJournalLine = {
 export function validateJournalLines(
   lines: JournalLineInput[],
   ledgerAccounts: BookAccount[],
+  opts: { expenseOnly?: boolean } = {},
 ): NormalizedJournalLine[] {
   if (lines.length < 2) {
     throw new HTTPException(400, {
@@ -61,6 +66,7 @@ export function validateJournalLines(
   const normalized: NormalizedJournalLine[] = [];
   let totalDebitCents = 0;
   let totalCreditCents = 0;
+  let hasExpenseLine = false;
   for (const line of lines) {
     if (line.debit < 0 || line.credit < 0) {
       throw new HTTPException(400, {
@@ -110,6 +116,25 @@ export function validateJournalLines(
         message: `Account ${account.name ?? account.code} is archived`,
       });
     }
+    // Guest entries are expense-only: explicitly chosen accounts must be
+    // expense categories, except the flagged default pocket (the payment
+    // side always resolves there, and an edit round-trip echoes the
+    // resolved id back explicitly). The entry must still touch at least
+    // one expense category so a hidden transfer/income post is impossible.
+    if (opts.expenseOnly && line.accountId) {
+      const isDefaultPocket =
+        hasAccountFlag(account.flags, DEFAULT_DEBIT_ACCOUNT_FLAG) ||
+        hasAccountFlag(account.flags, DEFAULT_CREDIT_ACCOUNT_FLAG);
+      if (account.type !== "expense" && !isDefaultPocket) {
+        throw new HTTPException(403, {
+          message:
+            "Guests can only record expenses: picked accounts must be expense categories",
+        });
+      }
+    }
+    if (account.type === "expense") {
+      hasExpenseLine = true;
+    }
     totalDebitCents += debitCents;
     totalCreditCents += creditCents;
     normalized.push({
@@ -117,6 +142,11 @@ export function validateJournalLines(
       debitCents,
       creditCents,
       memo: line.memo,
+    });
+  }
+  if (opts.expenseOnly && !hasExpenseLine) {
+    throw new HTTPException(403, {
+      message: "Guests can only record expenses",
     });
   }
   if (totalDebitCents !== totalCreditCents) {
@@ -175,9 +205,18 @@ export async function getEntry(
   ledgerId: string,
   entryId: string,
   viewerRole: LedgerRole = "viewer",
+  scopeProjectIds?: string[],
 ) {
   const entry = await journalRepository.findById(entryId);
   if (!entry || entry.ledgerId !== ledgerId) {
+    throw new HTTPException(404, { message: "Journal entry not found" });
+  }
+  // Guests only see entries inside their projects (404 on the rest, no
+  // existence leak).
+  if (
+    scopeProjectIds &&
+    (!entry.projectId || !scopeProjectIds.includes(entry.projectId))
+  ) {
     throw new HTTPException(404, { message: "Journal entry not found" });
   }
   return redactEntryCreatorEmail(entry, viewerRole);
@@ -198,7 +237,9 @@ export async function createEntry(
     memo?: string;
     lines: JournalLineInput[];
     participantMemberIds?: string[];
+    projectId?: string | null;
   },
+  access: LedgerAccess,
 ) {
   return prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
@@ -207,15 +248,23 @@ export async function createEntry(
       throw new HTTPException(404, { message: "Ledger not found" });
     }
     assertLedgerWritable(ledger);
+    const projectId = await resolveEntryProjectTarget(
+      tx,
+      userId,
+      access,
+      data.projectId,
+    );
     const [ledgerAccounts, ledgerMembers] = await Promise.all([
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
     ]);
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
+      projectId,
       rawLines: data.lines,
       ledgerAccounts,
       ledgerMembers,
+      expenseOnly: access.membership.role === "guest",
     });
   });
 }
@@ -242,9 +291,14 @@ export async function postEntryInTransaction(
     ledgerAccounts: BookAccount[];
     ledgerMembers?: Array<{ id: string }>;
     participantMemberIds?: string[];
+    projectId?: string;
+    /** Guest mode: lines restricted to expense categories. */
+    expenseOnly?: boolean;
   },
 ) {
-  const lines = validateJournalLines(data.rawLines, data.ledgerAccounts);
+  const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
+    expenseOnly: data.expenseOnly,
+  });
   const participantMemberIds = validateParticipants(
     data.participantMemberIds,
     data.ledgerMembers ?? [],
@@ -262,6 +316,7 @@ export async function postEntryInTransaction(
         date: data.date,
         memo: data.memo,
         createdById: userId,
+        projectId: data.projectId,
         lines: lines.map((line) => ({
           accountId: line.accountId,
           debit: new Prisma.Decimal(line.debitCents).div(100),
@@ -305,20 +360,25 @@ function validateParticipants(
 }
 
 /**
- * Replaces an entry's date, memo, lines, and participants. Mirrors create:
- * the ledger row is locked so line validation runs against a
+ * Replaces an entry's date, memo, lines, project, and participants. Mirrors
+ * create: the ledger row is locked so line validation runs against a
  * transaction-consistent account list and the archived guard is
  * re-evaluated under the lock. entryNo and the original creator are kept —
  * editing corrects values, it does not re-post the entry.
+ *
+ * Guests may only edit entries they created, and only within (and keeping
+ * them in) one of their projects.
  */
 export async function updateEntry(
   ledgerId: string,
   entryId: string,
+  actor: { userId: string; role: LedgerRole },
   data: {
     date: Date;
     memo?: string;
     lines: JournalLineInput[];
     participantMemberIds?: string[];
+    projectId?: string | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -332,11 +392,51 @@ export async function updateEntry(
     if (!entry || entry.ledgerId !== ledgerId) {
       throw new HTTPException(404, { message: "Journal entry not found" });
     }
+    if (actor.role === "guest") {
+      if (entry.createdById !== actor.userId) {
+        throw new HTTPException(404, { message: "Journal entry not found" });
+      }
+      // Guests can only edit entries inside their projects; a projectless
+      // (legacy) entry has no project scope for them — 404 to match the
+      // no-existence-leak policy used elsewhere.
+      if (!entry.projectId) {
+        throw new HTTPException(404, { message: "Journal entry not found" });
+      }
+      // A guest-supplied projectId that differs from the entry's project
+      // is an attempt to move the entry. Omitting projectId means "no
+      // change" and is allowed.
+      if (data.projectId && data.projectId !== entry.projectId) {
+        throw new HTTPException(403, {
+          message: "Guests cannot move an entry out of its project",
+        });
+      }
+    }
+    // Full roles may re-assign (or clear) the entry's project; guests keep
+    // the entry pinned to the project it lives in (validated above).
+    const projectId =
+      actor.role === "guest"
+        ? entry.projectId
+        : await resolveEntryProjectTarget(
+            tx,
+            actor.userId,
+            {
+              ledger: {
+                id: ledger.id,
+                ownerId: ledger.ownerId,
+                status: ledger.status,
+                name: ledger.name,
+              },
+              membership: { role: actor.role },
+            },
+            data.projectId,
+          );
     const [ledgerAccounts, ledgerMembers] = await Promise.all([
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
     ]);
-    const lines = validateJournalLines(data.lines, ledgerAccounts);
+    const lines = validateJournalLines(data.lines, ledgerAccounts, {
+      expenseOnly: actor.role === "guest",
+    });
     // Replace semantics: omitted participants clear the list, so an edit
     // form fully specifies the entry.
     const participantMemberIds =
@@ -347,6 +447,7 @@ export async function updateEntry(
         {
           date: data.date,
           memo: data.memo,
+          projectId: projectId ?? null,
           lines: lines.map((line) => ({
             accountId: line.accountId,
             debit: new Prisma.Decimal(line.debitCents).div(100),
@@ -371,9 +472,17 @@ export async function updateEntry(
 /**
  * Deletes an entry outright (correction via re-posting). Runs under the
  * ledger row lock with the archived guard re-evaluated there, so a ledger
- * archived after the route's check still refuses the delete.
+ * archived after the route's check still refuses the delete. Guests may
+ * only delete entries they created inside their projects.
  */
-export async function deleteEntry(ledgerId: string, entryId: string) {
+export async function deleteEntry(
+  ledgerId: string,
+  entryId: string,
+  actor: { userId: string; role: LedgerRole } = {
+    userId: "",
+    role: "owner",
+  },
+) {
   await prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
     const ledger = await ledgerRepository.findById(ledgerId, tx);
@@ -383,6 +492,9 @@ export async function deleteEntry(ledgerId: string, entryId: string) {
     assertLedgerWritable(ledger);
     const entry = await journalRepository.findById(entryId, tx);
     if (!entry || entry.ledgerId !== ledgerId) {
+      throw new HTTPException(404, { message: "Journal entry not found" });
+    }
+    if (actor.role === "guest" && entry.createdById !== actor.userId) {
       throw new HTTPException(404, { message: "Journal entry not found" });
     }
     await journalRepository.delete(entry.id, tx);

@@ -184,7 +184,8 @@
     "ownerHint": "Owners manage the ledger, members and sharing",
     "validation": {
       "nameRequired": "Ledger name is required"
-    }
+    },
+    "guest": "Guest"
   },
   "Accounts": {
     "title": "Accounts",
@@ -343,8 +344,13 @@
       "validation": {
         "amountRequired": "Enter an amount greater than 0",
         "accountRequired": "Select both accounts",
-        "sameAccount": "Transfer accounts must be different"
-      }
+        "sameAccount": "Transfer accounts must be different",
+        "projectRequired": "Choose a project"
+      },
+      "project": "Project",
+      "noProject": "Personal (no project)",
+      "projectHint": "Optionally file this entry under a project",
+      "projectGuestHint": "Your entries are recorded inside the selected project"
     },
     "dateLabel": "Date",
     "memoPlaceholder": "e.g. Weekly groceries",
@@ -363,7 +369,10 @@
     "clear": "Clear",
     "readOnly": "You need the editor role to post entries",
     "filterByMember": "Filter by member",
-    "allMembers": "All members"
+    "allMembers": "All members",
+    "allProjects": "All Projects",
+    "filterByProject": "Filter by project",
+    "entryCount": "{count, plural, one {# entry} other {# entries}}"
   },
   "Reports": {
     "title": "Reports",
@@ -658,5 +667,62 @@
     "continue": "Continue",
     "submitted": "submitted",
     "unavailable": "unavailable"
+  },
+  "Projects": {
+    "title": "Projects",
+    "description": "Shared projects inside a ledger — record together, split fairly",
+    "allProjects": "Projects",
+    "empty": "No projects yet. Create one to start recording together.",
+    "create": "Create Project",
+    "createDescription": "Create a project to group related records and invite others",
+    "edit": "Edit Project",
+    "editDescription": "Update the project's details",
+    "name": "Name",
+    "namePlaceholder": "e.g. Kyoto Trip",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What is this project about?",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "status": "Status",
+    "archived": "Archived",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "delete": "Delete",
+    "confirmDelete": "Delete project \"{name}\"? Its records are kept but become unassigned.",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "createSuccess": "Project created",
+    "updateSuccess": "Project updated",
+    "deleteSuccess": "Project deleted",
+    "members": "Members",
+    "member": "Member",
+    "you": "You",
+    "addMember": "Add member…",
+    "noAddableMembers": "Every ledger member is already in this project",
+    "memberAdded": "Member added",
+    "removeMember": "Remove",
+    "confirmRemoveMember": "Remove this member from the project?",
+    "memberRemoved": "Member removed",
+    "leave": "Leave",
+    "confirmLeave": "Leave this project?",
+    "leftProject": "You left the project",
+    "invite": "Invite",
+    "inviteDescription": "Share a code to let someone join this project as a guest — they can only see and record expenses of this project",
+    "createCode": "Create invite code",
+    "codeCreatedCopied": "Invite code created and copied",
+    "noCodes": "No invite codes yet",
+    "copy": "Copy",
+    "copied": "Copied",
+    "revoke": "Revoke",
+    "confirmRevoke": "Revoke this invite code?",
+    "revoked": "Revoked",
+    "totalExpense": "Expenses",
+    "totalIncome": "Income",
+    "settlement": "Settlement",
+    "settlementHint": "Entries tagged with members split among them; untagged entries split across all members equally",
+    "paid": "Paid",
+    "share": "Share",
+    "balance": "Balance"
   }
 }

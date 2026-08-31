@@ -196,6 +196,15 @@ struct EntryRow: View {
                         .font(.caption)
                         .lineLimit(2)
                 }
+                if let project = entry.project {
+                    HStack(spacing: 4) {
+                        Image(systemName: "folder")
+                            .font(.caption2)
+                        Text(project.name)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.tertiary)
+                }
                 ForEach(entry.lines.filter { !$0.account.isDefaultPocket && $0 != categoryLine }) { line in
                     Text(line.account.displayName)
                         .font(.caption)

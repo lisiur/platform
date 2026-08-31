@@ -450,6 +450,8 @@ export const ModelName = {
   UserCreditLedger: 'UserCreditLedger',
   RedeemCode: 'RedeemCode',
   Ledger: 'Ledger',
+  Project: 'Project',
+  ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
   LedgerShareCode: 'LedgerShareCode',
   RealAccount: 'RealAccount',
@@ -472,7 +474,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "ledgerMember" | "ledgerShareCode" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "project" | "projectMember" | "ledgerMember" | "ledgerShareCode" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4398,6 +4400,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Project: {
+      payload: Prisma.$ProjectPayload<ExtArgs>
+      fields: Prisma.ProjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        findFirst: {
+          args: Prisma.ProjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        findMany: {
+          args: Prisma.ProjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>[]
+        }
+        create: {
+          args: Prisma.ProjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        createMany: {
+          args: Prisma.ProjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProjectCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>[]
+        }
+        delete: {
+          args: Prisma.ProjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        update: {
+          args: Prisma.ProjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProjectUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectPayload>
+        }
+        aggregate: {
+          args: Prisma.ProjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProject>
+        }
+        groupBy: {
+          args: Prisma.ProjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    ProjectMember: {
+      payload: Prisma.$ProjectMemberPayload<ExtArgs>
+      fields: Prisma.ProjectMemberFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProjectMemberFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProjectMemberFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        findFirst: {
+          args: Prisma.ProjectMemberFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProjectMemberFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        findMany: {
+          args: Prisma.ProjectMemberFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>[]
+        }
+        create: {
+          args: Prisma.ProjectMemberCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        createMany: {
+          args: Prisma.ProjectMemberCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProjectMemberCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>[]
+        }
+        delete: {
+          args: Prisma.ProjectMemberDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        update: {
+          args: Prisma.ProjectMemberUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProjectMemberDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProjectMemberUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProjectMemberUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProjectMemberUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProjectMemberPayload>
+        }
+        aggregate: {
+          args: Prisma.ProjectMemberAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProjectMember>
+        }
+        groupBy: {
+          args: Prisma.ProjectMemberGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProjectMemberGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProjectMemberCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProjectMemberCountAggregateOutputType> | number
+        }
+      }
+    }
     LedgerMember: {
       payload: Prisma.$LedgerMemberPayload<ExtArgs>
       fields: Prisma.LedgerMemberFieldRefs
@@ -5773,6 +5923,31 @@ export const LedgerScalarFieldEnum = {
 export type LedgerScalarFieldEnum = (typeof LedgerScalarFieldEnum)[keyof typeof LedgerScalarFieldEnum]
 
 
+export const ProjectScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  name: 'name',
+  description: 'description',
+  status: 'status',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
+
+
+export const ProjectMemberScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type ProjectMemberScalarFieldEnum = (typeof ProjectMemberScalarFieldEnum)[keyof typeof ProjectMemberScalarFieldEnum]
+
+
 export const LedgerMemberScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
@@ -5787,6 +5962,7 @@ export type LedgerMemberScalarFieldEnum = (typeof LedgerMemberScalarFieldEnum)[k
 export const LedgerShareCodeScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
+  projectId: 'projectId',
   code: 'code',
   role: 'role',
   status: 'status',
@@ -5843,6 +6019,7 @@ export const JournalEntryScalarFieldEnum = {
   memo: 'memo',
   status: 'status',
   createdById: 'createdById',
+  projectId: 'projectId',
   createdAt: 'createdAt'
 } as const
 
@@ -6303,6 +6480,8 @@ export type GlobalOmitConfig = {
   userCreditLedger?: Prisma.UserCreditLedgerOmit
   redeemCode?: Prisma.RedeemCodeOmit
   ledger?: Prisma.LedgerOmit
+  project?: Prisma.ProjectOmit
+  projectMember?: Prisma.ProjectMemberOmit
   ledgerMember?: Prisma.LedgerMemberOmit
   ledgerShareCode?: Prisma.LedgerShareCodeOmit
   realAccount?: Prisma.RealAccountOmit

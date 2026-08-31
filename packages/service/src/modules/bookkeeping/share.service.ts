@@ -7,6 +7,8 @@ import { compareLedgerRole, type LedgerRole, type ShareRole } from "./domain";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
+import { projectRepository } from "./project.repository";
+import { projectMemberRepository } from "./project-member.repository";
 import { shareCodeRepository } from "./share-code.repository";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -29,8 +31,11 @@ async function ensureUniqueCode(
   return ensureUniqueCode(generateCode(), tx);
 }
 
-export async function listShareCodes(ledgerId: string) {
-  const codes = await shareCodeRepository.listByLedger(ledgerId);
+export async function listShareCodes(
+  ledgerId: string,
+  opts: { projectId?: string } = {},
+) {
+  const codes = await shareCodeRepository.listByLedger(ledgerId, opts);
   return { codes };
 }
 
@@ -39,13 +44,29 @@ export async function listShareCodes(ledgerId: string) {
  * route's ownership/writability check sees a pre-transaction snapshot, so a
  * concurrent archive or ownership transfer between the check and the insert
  * must not slip a share code onto an archived or ex-owned ledger.
+ *
+ * With `projectId` the code becomes a project invite: redeeming grants a
+ * `guest` ledger membership scoped to that project (the `role` field is
+ * forced to "guest"). Ledger-wide codes keep the owner-only rule; project
+ * codes may be created by editors and above.
  */
 export async function createShareCode(
   ledgerId: string,
   createdById: string,
-  data: { role: string; expiresAt?: Date | null; maxUses?: number | null },
+  data: {
+    role: string;
+    expiresAt?: Date | null;
+    maxUses?: number | null;
+    projectId?: string | null;
+  },
 ) {
-  if (data.role !== "editor" && data.role !== "viewer") {
+  if (data.projectId) {
+    if (data.role !== "guest") {
+      throw new HTTPException(400, {
+        message: "Project share codes always grant the guest role",
+      });
+    }
+  } else if (data.role !== "editor" && data.role !== "viewer") {
     throw new HTTPException(400, {
       message: "Share code role must be editor or viewer",
     });
@@ -66,10 +87,36 @@ export async function createShareCode(
     if (!ledger) {
       throw new HTTPException(404, { message: "Ledger not found" });
     }
-    if (ledger.ownerId !== createdById) {
-      throw new HTTPException(403, {
-        message: "Only the ledger owner can perform this action",
-      });
+    const membership = await ledgerMemberRepository.findMembership(
+      ledgerId,
+      createdById,
+      tx,
+    );
+    // Project codes: editors and above. Ledger-wide codes: owner only,
+    // re-verified under the lock.
+    if (data.projectId) {
+      if (
+        !membership ||
+        membership.role === "guest" ||
+        membership.role === "viewer"
+      ) {
+        throw new HTTPException(403, {
+          message: "This action requires the editor role or higher",
+        });
+      }
+      const project = await projectRepository.findById(data.projectId, tx);
+      if (!project || project.ledgerId !== ledgerId) {
+        throw new HTTPException(404, { message: "Project not found" });
+      }
+      if (project.status !== "active") {
+        throw new HTTPException(400, { message: "This project is archived" });
+      }
+    } else {
+      if (ledger.ownerId !== createdById) {
+        throw new HTTPException(403, {
+          message: "Only the ledger owner can perform this action",
+        });
+      }
     }
     assertLedgerWritable(ledger);
     const code = await ensureUniqueCode(generateCode(), tx);
@@ -77,10 +124,11 @@ export async function createShareCode(
       {
         ledgerId,
         code,
-        role: data.role as ShareRole,
+        role: data.role as ShareRole | "guest",
         expiresAt: data.expiresAt ?? null,
         maxUses: data.maxUses ?? null,
         createdById,
+        projectId: data.projectId ?? null,
       },
       tx,
     );
@@ -98,8 +146,12 @@ export async function revokeShareCode(ledgerId: string, codeId: string) {
 
 /**
  * Redeems a share code: validates status/expiry/usage cap with the code row
- * locked (FOR UPDATE), then adds the redeemer as a ledger member. Mirrors the
- * redeem-code flow: already a member → 400; owner redeeming own ledger → 400.
+ * locked (FOR UPDATE), then grants access.
+ *
+ * Ledger-wide codes add the redeemer as an editor/viewer member (existing
+ * member → 400; owner redeeming own ledger → 400). Project codes grant the
+ * `guest` ledger role plus a ProjectMember row: an existing member of any
+ * role just gains the project; an outsider becomes a guest first.
  *
  * Locks are taken ledger-first, then code — the same order `deleteLedger`
  * takes (ledger row, then its cascade to share codes), so a concurrent ledger
@@ -147,6 +199,48 @@ export async function redeemShareCode(userId: string, codeStr: string) {
       userId,
       tx,
     );
+    if (code.projectId) {
+      const project = await projectRepository.findById(code.projectId, tx);
+      if (!project || project.ledgerId !== code.ledgerId) {
+        throw new HTTPException(404, { message: "Project not found" });
+      }
+      if (project.status !== "active") {
+        throw new HTTPException(400, { message: "This project is archived" });
+      }
+      const projectMember = await projectMemberRepository.findMembership(
+        code.projectId,
+        userId,
+        tx,
+      );
+      if (projectMember) {
+        throw new HTTPException(400, {
+          message: "You are already a member of this project",
+        });
+      }
+      try {
+        if (!existing) {
+          await ledgerMemberRepository.create(
+            { ledgerId: code.ledgerId, userId, role: "guest" },
+            tx,
+          );
+        }
+        await projectMemberRepository.create(
+          { projectId: code.projectId, userId },
+          tx,
+        );
+      } catch (err) {
+        if (isForeignKeyViolation(err)) {
+          throw new HTTPException(404, { message: "Ledger not found" });
+        }
+        throw err;
+      }
+      await shareCodeRepository.incrementUses(code.id, tx);
+      return {
+        ledgerId: code.ledgerId,
+        projectId: code.projectId,
+        role: existing?.role ?? "guest",
+      };
+    }
     if (existing) {
       throw new HTTPException(400, {
         message: "You are already a member of this ledger",
@@ -221,6 +315,8 @@ export async function removeMember(ledgerId: string, targetUserId: string) {
         message: "The owner cannot be removed; transfer ownership first",
       });
     }
+    // Ledger membership ends → project memberships inside it end too.
+    await projectMemberRepository.deleteAllInLedger(ledgerId, targetUserId, tx);
     await ledgerMemberRepository.delete(ledgerId, targetUserId, tx);
   });
   return { success: true as const };
@@ -351,6 +447,8 @@ export async function leaveLedger(ledgerId: string, userId: string) {
         message: "Owners cannot leave; transfer ownership or delete the ledger",
       });
     }
+    // Leaving the ledger leaves its projects too.
+    await projectMemberRepository.deleteAllInLedger(ledgerId, userId, tx);
     await ledgerMemberRepository.delete(ledgerId, userId, tx);
   });
   return { success: true as const };

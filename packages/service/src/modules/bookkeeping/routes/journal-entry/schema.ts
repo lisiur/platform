@@ -69,6 +69,15 @@ export const journalEntrySchema = z
         avatar: z.string().nullable(),
       })
       .nullable(),
+    // Project the entry belongs to; null = personal (not in any project).
+    projectId: z.string().nullable().openapi({ example: "clx1234567890" }),
+    project: z
+      .object({
+        id: z.string(),
+        name: z.string().openapi({ example: "Kyoto Trip" }),
+        status: z.string().openapi({ example: "active" }),
+      })
+      .nullable(),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
     participants: journalEntryParticipantSchema.array(),
@@ -81,6 +90,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     to: z.coerce.date().optional(),
     q: z.string().optional(),
     participantMemberId: z.string().optional(),
+    projectId: z.string().optional(),
   })
   .openapi("QianlaiListEntriesQuery");
 
@@ -122,6 +132,9 @@ export const createEntryBodySchema = z
     // Optional ledger-member ids this entry concerns; must be members of the
     // ledger. Repeats are collapsed server-side.
     participantMemberIds: z.array(z.string().min(1)).max(20).optional(),
+    // Optional project assignment. Guests must target one of their projects
+    // and are restricted to expense categories.
+    projectId: z.string().min(1).nullable().optional(),
   })
   .openapi("QianlaiCreateEntryBody");
 
@@ -146,6 +159,8 @@ export function serializeEntry<
     createdById: string | null;
     createdAt: Date;
     createdBy: unknown;
+    projectId?: string | null;
+    project?: { id: string; name: string; status: string } | null;
     lines: Array<{
       id: string;
       accountId: string;
@@ -178,6 +193,8 @@ export function serializeEntry<
 >(entry: T) {
   return {
     ...entry,
+    projectId: entry.projectId ?? null,
+    project: entry.project ?? null,
     lines: entry.lines.map((line) => ({
       ...line,
       debit: Number(line.debit),

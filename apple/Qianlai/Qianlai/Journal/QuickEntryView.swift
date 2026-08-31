@@ -42,6 +42,14 @@ struct QuickEntryView: View {
 
     @State private var accountStore = AccountStore()
     @State private var memberStore = MemberStore()
+    @State private var projectStore = ProjectStore()
+
+    /// Whether the viewer is a guest on this ledger — restricts to expense
+    /// entries inside their projects (kind picker and pay-side account row
+    /// are hidden, project assignment is mandatory).
+    private var isGuest: Bool {
+        ledgerStore.activeLedger?.isGuest ?? false
+    }
 
     /// Which side's account picker the sheet is showing — one presentation
     /// state serves both fields.
@@ -116,32 +124,38 @@ struct QuickEntryView: View {
             guard let ledger = ledgerStore.activeLedger else { return }
             await accountStore.load(ledgerId: ledger.id)
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
+            await projectStore.load(ledgerId: ledger.id)
             applyExpenseCategoryDefault()
+            applyGuestProjectDefault()
         }
     }
 
     /// The fields that lead every layout: scenario, then amount and date.
     @ViewBuilder
     private var leadSections: some View {
-        Section {
-            Picker("Account Type", selection: $draft.kind) {
-                ForEach(QuickEntryKind.allCases) { kind in
-                    Text(kind.label).tag(kind)
+        // Guests are scoped to expense-only entries; the kind picker is hidden
+        // and `draft.kind` stays at its default (`.expense`).
+        if !isGuest {
+            Section {
+                Picker("Account Type", selection: $draft.kind) {
+                    ForEach(QuickEntryKind.allCases) { kind in
+                        Text(kind.label).tag(kind)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .controlSize(.large)
+                .onChange(of: draft.kind) {
+                    // Both sides restart unselected when the scenario changes.
+                    draft.debitAccountId = nil
+                    draft.creditAccountId = nil
+                    validationError = nil
+                    applyExpenseCategoryDefault()
                 }
             }
-            .pickerStyle(.segmented)
-            .controlSize(.large)
-            .onChange(of: draft.kind) {
-                // Both sides restart unselected when the scenario changes.
-                draft.debitAccountId = nil
-                draft.creditAccountId = nil
-                validationError = nil
-                applyExpenseCategoryDefault()
-            }
+            // Floating segmented control: no grouped card around the tabs.
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
-        // Floating segmented control: no grouped card around the tabs.
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
         Section {
             // Reopens the calculator as a sheet for edits — while the inline
@@ -175,10 +189,33 @@ struct QuickEntryView: View {
     /// participants, and the save action.
     @ViewBuilder
     private var trailingSections: some View {
+        if !isGuest, !projectStore.projects.isEmpty {
+            Section {
+                Picker("Project", selection: Binding(
+                    get: { draft.projectId ?? "" },
+                    set: { draft.projectId = $0.isEmpty ? nil : $0 }
+                )) {
+                    Text("Personal").tag("")
+                    ForEach(projectStore.projects) { project in
+                        Text(project.name).tag(project.id)
+                    }
+                }
+            }
+        }
+
         Section {
             // The required side leads: for income the category is required
             // and comes first, with the optional "Receive Into" trailing.
-            if draft.kind == .income {
+            // Guests are expense-only: their "Pay From" side falls back to
+            // the ledger's default pocket on the server, so the row is hidden.
+            if isGuest {
+                accountField(
+                    title: debitLabel,
+                    side: .debit,
+                    selection: $draft.debitAccountId,
+                    entries: debitEntries
+                )
+            } else if draft.kind == .income {
                 accountField(
                     title: creditLabel,
                     side: .credit,
@@ -354,6 +391,14 @@ struct QuickEntryView: View {
         draft.debitAccountId = defaultExpenseCategoryId
     }
 
+    /// A guest's only project pre-fills the assignment so they only have to
+    /// pick the category and the amount. Multiple projects stay unassigned
+    /// until the guest explicitly chooses one (validated server-side too).
+    private func applyGuestProjectDefault() {
+        guard isGuest, draft.projectId == nil, projectStore.projects.count == 1 else { return }
+        draft.projectId = projectStore.projects[0].id
+    }
+
     /// Field row that opens the account picker as a bottom sheet: the tree
     /// of accounts is too large for an inline menu, so the form only shows
     /// the current value and the full hierarchy opens on tap.
@@ -418,6 +463,10 @@ struct QuickEntryView: View {
             return
         }
         draft.amount = amount
+        if isGuest, draft.projectId == nil {
+            validationError = L10n.string("quick.projectRequired", defaultValue: "Choose a project.")
+            return
+        }
         guard draft.isValid else {
             validationError = L10n.string("quick.accountRequired", defaultValue: "Please pick the required account(s).")
             return

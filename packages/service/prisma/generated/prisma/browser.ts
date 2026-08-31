@@ -283,6 +283,16 @@ export type RedeemCode = Prisma.RedeemCodeModel
  */
 export type Ledger = Prisma.LedgerModel
 /**
+ * Model Project
+ * 
+ */
+export type Project = Prisma.ProjectModel
+/**
+ * Model ProjectMember
+ * 
+ */
+export type ProjectMember = Prisma.ProjectMemberModel
+/**
  * Model LedgerMember
  * 
  */

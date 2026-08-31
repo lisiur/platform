@@ -40,6 +40,7 @@ model User {
   qianlaiMemberships   LedgerMember[]
   qianlaiShareCodes    LedgerShareCode[] @relation("QianlaiShareCodeCreator")
   qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
+  qianlaiProjectMemberships ProjectMember[] @relation("QianlaiProjectMember")
 
   @@unique([email])
   @@map("user")
@@ -1094,9 +1095,51 @@ model Ledger {
   shareCodes  LedgerShareCode[]
   accounts    BookAccount[]
   entries     JournalEntry[]
+  projects    Project[]
 
   @@index([ownerId])
   @@map("qianlai_ledger")
+}
+
+// A sub-scope of a ledger that both tags entries (JournalEntry.projectId)
+// and scopes guest access: a `guest` LedgerMember only sees entries whose
+// project they belong to. Full roles (owner/editor/viewer) see every
+// project; explicit ProjectMember rows still define the participant set
+// for settlement reports (the creator is added automatically on create).
+model Project {
+  id          String         @id @default(cuid())
+  ledgerId    String
+  ledger      Ledger         @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      String         @default("active")
+  // Optional time box (e.g. the trip's dates); purely informational.
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  members     ProjectMember[]
+  entries     JournalEntry[]
+  shareCodes  LedgerShareCode[]
+
+  @@index([ledgerId])
+  @@map("qianlai_project")
+}
+
+// Explicit project membership — who the project "concerns" (settlement
+// splits across these people). Distinct from LedgerMember: full ledger
+// roles gain nothing from a row here except being counted as participants.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("QianlaiProjectMember", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("qianlai_project_member")
 }
 
 model LedgerMember {
@@ -1119,6 +1162,12 @@ model LedgerShareCode {
   id          String    @id @default(cuid())
   ledgerId    String
   ledger      Ledger    @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  // Set = project-scoped invite: redeeming creates a `guest` LedgerMember
+  // (if needed) plus a ProjectMember row. Null = ledger-wide code (legacy
+  // behavior, role editor/viewer). Cascade: deleting a project kills its
+  // invite codes with it.
+  projectId   String?
+  project     Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   code        String    @unique
   role        String
   status      String    @default("active")
@@ -1212,6 +1261,11 @@ model JournalEntry {
   // the entry survives with a null creator instead of vanishing for everyone.
   createdById String?
   createdBy   User?         @relation("QianlaiJournalEntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  // SetNull keeps entry history when a project is deleted: entries survive
+  // unassigned (same philosophy as createdById). Archiving (soft status)
+  // is the preferred path for keeping projects referenceable.
+  projectId   String?
+  project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt   DateTime      @default(now())
   lines       JournalLine[]
   participants JournalEntryParticipant[]

@@ -92,7 +92,7 @@ export function MembersDialog({
     queryFn: async () => {
       const res = await withApiFeedback(
         appClient.api.bookkeeping.ledgers[":ledgerId"]["share-codes"].$get,
-      )({ param: { ledgerId } });
+      )({ param: { ledgerId }, query: {} });
       return (await res.json()) as { codes: ShareCodeRow[] };
     },
     enabled: open,

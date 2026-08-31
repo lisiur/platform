@@ -32,6 +32,7 @@ import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
+import { useProjects } from "@/hooks/use-projects";
 import { appClient, withApiFeedback } from "@/lib/api";
 import { formatAmount } from "@/utils/amount";
 import { endOfLocalDay, formatDate } from "@/utils/date";
@@ -60,6 +61,8 @@ interface EntryRow {
   memo: string | null;
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
+  projectId: string | null;
+  project: { id: string; name: string; status: string } | null;
   lines: JournalLineDto[];
   participants: Array<{
     id: string;
@@ -89,6 +92,8 @@ export function JournalTable() {
   >();
   const [participantMemberId, setParticipantMemberId] = useState<string>("");
   const [appliedMemberId, setAppliedMemberId] = useState<string>("");
+  const [projectFilter, setProjectFilter] = useState<string>("");
+  const [appliedProjectId, setAppliedProjectId] = useState<string>("");
 
   const { data: membersData } = useQuery({
     queryKey: ["qianlai", "members", activeLedger?.id],
@@ -101,12 +106,16 @@ export function JournalTable() {
     enabled: !!activeLedger,
   });
 
+  const { projects } = useProjects(activeLedger?.id);
+
   const members = membersData?.members ?? [];
 
   const canPost =
     !!activeLedger &&
     activeLedger.status === "active" &&
-    roleAtLeast(activeLedger.myRole, "editor");
+    // Guests post too — restricted to their projects' expenses server-side.
+    (roleAtLeast(activeLedger.myRole, "editor") ||
+      activeLedger.myRole === "guest");
 
   const {
     items: entries,
@@ -123,6 +132,7 @@ export function JournalTable() {
       appliedQ,
       appliedDateRange,
       appliedMemberId,
+      appliedProjectId,
     ],
     enabled: !!activeLedger,
     queryFn: async ({ limit, offset }) => {
@@ -141,6 +151,7 @@ export function JournalTable() {
             ? endOfLocalDay(appliedDateRange.to).toISOString()
             : undefined,
           participantMemberId: appliedMemberId || undefined,
+          projectId: appliedProjectId || undefined,
         },
       });
       const data = await res.json();
@@ -163,6 +174,7 @@ export function JournalTable() {
     setAppliedQ(q.trim());
     setAppliedDateRange(dateRange);
     setAppliedMemberId(participantMemberId);
+    setAppliedProjectId(projectFilter);
     setPage(1);
   }
 
@@ -173,6 +185,8 @@ export function JournalTable() {
     setAppliedDateRange(undefined);
     setParticipantMemberId("");
     setAppliedMemberId("");
+    setProjectFilter("");
+    setAppliedProjectId("");
     setPage(1);
   }
 
@@ -180,7 +194,8 @@ export function JournalTable() {
     appliedQ ||
     appliedDateRange?.from ||
     appliedDateRange?.to ||
-    appliedMemberId;
+    appliedMemberId ||
+    appliedProjectId;
 
   async function handleDelete(entry: EntryRow) {
     const confirmed = await confirm({
@@ -258,6 +273,23 @@ export function JournalTable() {
             <SelectValue placeholder={t("filterByMember")} />
           </SelectTrigger>
         </Select>
+        <Select
+          value={projectFilter || "all"}
+          onValueChange={(v) => {
+            const next = !v || v === "all" ? "" : v;
+            setProjectFilter(next);
+            setAppliedProjectId(next);
+            setPage(1);
+          }}
+          items={[
+            { value: "all", label: t("allProjects") },
+            ...projects.map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder={t("filterByProject")} />
+          </SelectTrigger>
+        </Select>
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4" />
@@ -306,7 +338,17 @@ export function JournalTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-0.5">
-                    <span className="truncate">{entry.memo ?? "—"}</span>
+                    <span className="truncate">
+                      {entry.memo ?? "—"}
+                      {entry.project && (
+                        <Badge
+                          variant="outline"
+                          className="text-foreground ml-2 text-xs"
+                        >
+                          {entry.project.name}
+                        </Badge>
+                      )}
+                    </span>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                       {entry.lines.map((line) => (
                         <span

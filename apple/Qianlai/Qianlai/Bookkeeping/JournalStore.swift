@@ -33,6 +33,7 @@ final class JournalStore {
     var fromDate: Date? { didSet { scheduleReload() } }
     var toDate: Date? { didSet { scheduleReload() } }
     var participantMemberId: String? { didSet { scheduleReload() } }
+    var projectFilterId: String? { didSet { scheduleReload() } }
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
     /// a single delayed reload so the list doesn't thrash mid-transition.
@@ -75,7 +76,8 @@ final class JournalStore {
                     q: searchQuery,
                     from: fromDate,
                     to: toDate,
-                    participant: participantMemberId
+                    participant: participantMemberId,
+                    project: projectFilterId
                 )
             )
             guard self.ledgerId == ledgerId else { return }
@@ -103,7 +105,8 @@ final class JournalStore {
                     q: searchQuery,
                     from: fromDate,
                     to: toDate,
-                    participant: participantMemberId
+                    participant: participantMemberId,
+                    project: projectFilterId
                 )
             )
             entries += response.entries
@@ -155,12 +158,13 @@ final class JournalStore {
         fromDate = nil
         toDate = nil
         participantMemberId = nil
+        projectFilterId = nil
         suppressReload = false
         scheduleReload()
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil
     }
 
     private static func query(
@@ -169,7 +173,8 @@ final class JournalStore {
         q: String,
         from: Date?,
         to: Date?,
-        participant: String?
+        participant: String?,
+        project: String?
     ) -> String {
         ApiQuery.build([
             ("limit", String(limit)),
@@ -178,6 +183,7 @@ final class JournalStore {
             ("from", from.map { ApiQuery.iso($0) }),
             ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ("participantMemberId", participant),
+            ("projectId", project),
         ])
     }
 }

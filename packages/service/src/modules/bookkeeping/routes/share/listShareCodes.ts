@@ -8,7 +8,11 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess } from "../../access";
 import { listShareCodes } from "../../share.service";
-import { ledgerIdParamSchema, listShareCodesResponseSchema } from "./schema";
+import {
+  ledgerIdParamSchema,
+  listShareCodesQuerySchema,
+  listShareCodesResponseSchema,
+} from "./schema";
 
 export const listShareCodesRoute = defineOpenAPIRoute({
   route: createRoute({
@@ -19,6 +23,7 @@ export const listShareCodesRoute = defineOpenAPIRoute({
     summary: "List share codes (owner only)",
     request: {
       params: ledgerIdParamSchema,
+      query: listShareCodesQuerySchema,
     },
     responses: {
       ...unauthorizedResponse,
@@ -34,13 +39,16 @@ export const listShareCodesRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId } = c.req.valid("param");
+    const query = c.req.valid("query");
     await requireLedgerAccess(userId, ledgerId, "owner");
-    const { codes } = await listShareCodes(ledgerId);
+    const { codes } = await listShareCodes(ledgerId, {
+      projectId: query.projectId,
+    });
     return c.json(
       {
         codes: codes.map((code) => ({
           ...code,
-          role: code.role as "editor" | "viewer",
+          role: code.role as "editor" | "viewer" | "guest",
           status: code.status as "active" | "revoked",
         })),
       },

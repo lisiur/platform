@@ -184,7 +184,8 @@
     "ownerHint": "所有者管理账本、成员与共享",
     "validation": {
       "nameRequired": "账本名称为必填项"
-    }
+    },
+    "guest": "访客"
   },
   "Accounts": {
     "title": "科目",
@@ -342,8 +343,13 @@
       "validation": {
         "amountRequired": "请填写大于 0 的金额",
         "accountRequired": "请选择账户",
-        "sameAccount": "转入与转出账户不能相同"
-      }
+        "sameAccount": "转入与转出账户不能相同",
+        "projectRequired": "请选择项目"
+      },
+      "project": "项目",
+      "noProject": "个人（不归属项目）",
+      "projectHint": "可选择将这笔记录归入某个项目",
+      "projectGuestHint": "你的记录将记入所选项目"
     },
     "dateLabel": "日期",
     "memoPlaceholder": "例如：每周买菜",
@@ -362,7 +368,10 @@
     "clear": "清除",
     "readOnly": "需要记账人及以上角色才能记账",
     "filterByMember": "按成员筛选",
-    "allMembers": "全部成员"
+    "allMembers": "全部成员",
+    "allProjects": "全部项目",
+    "filterByProject": "按项目筛选",
+    "entryCount": "{count} 笔记录"
   },
   "Reports": {
     "title": "报表",
@@ -657,5 +666,62 @@
     "continue": "继续",
     "submitted": "已提交",
     "unavailable": "不可用"
+  },
+  "Projects": {
+    "title": "项目",
+    "description": "账本内的共享项目——一起记账，公平分摊",
+    "allProjects": "项目",
+    "empty": "还没有项目。创建一个开始共同记账吧。",
+    "create": "创建项目",
+    "createDescription": "创建项目来归类相关记录并邀请他人",
+    "edit": "编辑项目",
+    "editDescription": "更新项目信息",
+    "name": "名称",
+    "namePlaceholder": "例如：京都旅行",
+    "descriptionLabel": "描述",
+    "descriptionPlaceholder": "这个项目是关于什么的？",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "status": "状态",
+    "archived": "已归档",
+    "archive": "归档",
+    "unarchive": "取消归档",
+    "delete": "删除",
+    "confirmDelete": "删除项目「{name}」？其记录会保留但不再归属任何项目。",
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "取消",
+    "createSuccess": "项目已创建",
+    "updateSuccess": "项目已更新",
+    "deleteSuccess": "项目已删除",
+    "members": "成员",
+    "member": "成员",
+    "you": "我",
+    "addMember": "添加成员…",
+    "noAddableMembers": "账本成员都已在该项目中",
+    "memberAdded": "已添加成员",
+    "removeMember": "移除",
+    "confirmRemoveMember": "确定将该成员移出项目？",
+    "memberRemoved": "已移除成员",
+    "leave": "退出",
+    "confirmLeave": "确定退出该项目？",
+    "leftProject": "已退出项目",
+    "invite": "邀请",
+    "inviteDescription": "分享邀请码，对方将以访客身份加入该项目——只能查看和记录该项目的支出",
+    "createCode": "生成邀请码",
+    "codeCreatedCopied": "邀请码已生成并复制",
+    "noCodes": "暂无邀请码",
+    "copy": "复制",
+    "copied": "已复制",
+    "revoke": "作废",
+    "confirmRevoke": "确定作废该邀请码？",
+    "revoked": "已作废",
+    "totalExpense": "支出",
+    "totalIncome": "收入",
+    "settlement": "分摊结算",
+    "settlementHint": "标记了参与人的记录在参与人之间分摊；未标记的记录由全体项目成员平均分摊",
+    "paid": "垫付",
+    "share": "应摊",
+    "balance": "结余"
   }
 }

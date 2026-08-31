@@ -35,8 +35,14 @@ export const listAccountsRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId } = c.req.valid("param");
-    await requireLedgerAccess(userId, ledgerId, "viewer");
+    // "guest" = any member; guests get only the expense categories (the
+    // account types they may record against — no pockets, no balances).
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
     const { accounts } = await listAccounts(ledgerId);
-    return c.json({ accounts: accounts.map(serializeAccount) }, 200);
+    const visible =
+      access.membership.role === "guest"
+        ? accounts.filter((a) => a.type === "expense")
+        : accounts;
+    return c.json({ accounts: visible.map(serializeAccount) }, 200);
   },
 });

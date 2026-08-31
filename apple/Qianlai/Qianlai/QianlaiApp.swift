@@ -14,6 +14,7 @@ struct QianlaiApp: App {
     @State private var realAccountStore: RealAccountStore
     @State private var journalStore = JournalStore()
     @State private var reportStore = ReportStore()
+    @State private var projectStore = ProjectStore()
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -42,6 +43,7 @@ struct QianlaiApp: App {
             .environment(realAccountStore)
             .environment(journalStore)
             .environment(reportStore)
+            .environment(projectStore)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)

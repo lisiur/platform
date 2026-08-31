@@ -13,6 +13,7 @@ struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var store
     @State private var memberStore = MemberStore()
+    @State private var projectStore = ProjectStore()
     /// Local text for `.searchable`: bound straight from store via a computed
     /// Binding, any unrelated store write (reload flags, filter commits)
     /// re-renders the search field mid-animation and makes it flash.
@@ -44,6 +45,7 @@ struct JournalView: View {
             guard let id = ledgerStore.activeLedger?.id else { return }
             await store.load(ledgerId: id)
             await memberStore.load(ledgerId: id, myUserId: nil)
+            await projectStore.load(ledgerId: id)
         }
         #if os(iOS)
         .searchable(text: $searchField, prompt: Text("Search memos…"))
@@ -87,6 +89,22 @@ struct JournalView: View {
             icon: "line.3.horizontal.decrease.circle",
             onClear: { store.clearFilters() }
         ) {
+            if !projectStore.projects.isEmpty {
+                Section {
+                    Picker(
+                        "Project",
+                        selection: Binding(
+                            get: { store.projectFilterId ?? "" },
+                            set: { store.projectFilterId = $0.isEmpty ? nil : $0 }
+                        )
+                    ) {
+                        Text("All Projects").tag("")
+                        ForEach(projectStore.projects) { project in
+                            Text(project.name).tag(project.id)
+                        }
+                    }
+                }
+            }
             if !memberStore.members.isEmpty {
                 Section {
                     Picker(

@@ -15,7 +15,7 @@ export interface QianlaiLedger {
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
-  myRole: "owner" | "editor" | "viewer";
+  myRole: "owner" | "editor" | "viewer" | "guest";
   membersCount: number;
   shared: boolean;
 }

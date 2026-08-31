@@ -104,6 +104,8 @@ export const ModelName = {
   UserCreditLedger: 'UserCreditLedger',
   RedeemCode: 'RedeemCode',
   Ledger: 'Ledger',
+  Project: 'Project',
+  ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
   LedgerShareCode: 'LedgerShareCode',
   RealAccount: 'RealAccount',
@@ -947,6 +949,31 @@ export const LedgerScalarFieldEnum = {
 export type LedgerScalarFieldEnum = (typeof LedgerScalarFieldEnum)[keyof typeof LedgerScalarFieldEnum]
 
 
+export const ProjectScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  name: 'name',
+  description: 'description',
+  status: 'status',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
+
+
+export const ProjectMemberScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type ProjectMemberScalarFieldEnum = (typeof ProjectMemberScalarFieldEnum)[keyof typeof ProjectMemberScalarFieldEnum]
+
+
 export const LedgerMemberScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
@@ -961,6 +988,7 @@ export type LedgerMemberScalarFieldEnum = (typeof LedgerMemberScalarFieldEnum)[k
 export const LedgerShareCodeScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
+  projectId: 'projectId',
   code: 'code',
   role: 'role',
   status: 'status',
@@ -1017,6 +1045,7 @@ export const JournalEntryScalarFieldEnum = {
   memo: 'memo',
   status: 'status',
   createdById: 'createdById',
+  projectId: 'projectId',
   createdAt: 'createdAt'
 } as const
 

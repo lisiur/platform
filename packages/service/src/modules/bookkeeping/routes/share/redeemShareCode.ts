@@ -35,6 +35,12 @@ export const redeemShareCodeRoute = defineOpenAPIRoute({
     const userId = getPrincipalUserId(principal);
     const { code } = c.req.valid("json");
     const result = await redeemShareCode(userId, code);
-    return c.json({ ...result, role: result.role as "editor" | "viewer" }, 201);
+    return c.json(
+      {
+        ...result,
+        role: result.role as "editor" | "viewer" | "guest",
+      },
+      201,
+    );
   },
 });

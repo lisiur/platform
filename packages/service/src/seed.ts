@@ -1115,13 +1115,23 @@ const qianlaiMenus = [
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
+    id: "qianlai-projects",
+    code: "projects",
+    name: "Projects",
+    icon: "FolderKanban",
+    linkType: "INTERNAL" as const,
+    url: "/qianlai/projects",
+    sortOrder: 2,
+    permissions: ["qianlai/bookkeeping:manage"],
+  },
+  {
     id: "qianlai-accounts",
     code: "accounts",
     name: "Accounts",
     icon: "ListTree",
     linkType: "INTERNAL" as const,
     url: "/qianlai/accounts",
-    sortOrder: 2,
+    sortOrder: 3,
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
@@ -1131,7 +1141,7 @@ const qianlaiMenus = [
     icon: "Wallet",
     linkType: "INTERNAL" as const,
     url: "/qianlai/real-accounts",
-    sortOrder: 3,
+    sortOrder: 4,
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
@@ -1141,7 +1151,7 @@ const qianlaiMenus = [
     icon: "BarChart3",
     linkType: "INTERNAL" as const,
     url: "/qianlai/reports",
-    sortOrder: 4,
+    sortOrder: 5,
     permissions: ["qianlai/bookkeeping:manage"],
   },
   {
@@ -1151,7 +1161,7 @@ const qianlaiMenus = [
     icon: "BookOpen",
     linkType: "INTERNAL" as const,
     url: "/qianlai/ledgers",
-    sortOrder: 5,
+    sortOrder: 6,
     permissions: ["qianlai/bookkeeping:manage"],
   },
 ];

@@ -17,9 +17,9 @@ export const deleteEntryRoute = defineOpenAPIRoute({
     method: "delete",
     path: "/ledgers/{ledgerId}/entries/{id}",
     tags: ["QianlaiJournal"],
-    summary: "Delete a journal entry (editor+)",
+    summary: "Delete a journal entry (editor+, or the creator if a guest)",
     description:
-      "Entries are immutable once posted; corrections are made by deleting and re-posting.",
+      "Entries are immutable once posted; corrections are made by deleting and re-posting. Guests may only delete entries they created inside their projects.",
     request: {
       params: entryIdParamSchema,
     },
@@ -34,8 +34,16 @@ export const deleteEntryRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId, id } = c.req.valid("param");
-    const access = await requireLedgerAccess(userId, ledgerId, "editor");
+    // "guest" = any member; guests may only delete their own entries
+    // (enforced in the service).
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
     assertLedgerWritable(access.ledger);
-    return c.json(await deleteEntry(ledgerId, id), 200);
+    return c.json(
+      await deleteEntry(ledgerId, id, {
+        userId,
+        role: access.membership.role,
+      }),
+      200,
+    );
   },
 });

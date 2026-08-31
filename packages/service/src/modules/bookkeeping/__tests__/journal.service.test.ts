@@ -37,6 +37,18 @@ vi.mock("../journal.repository", () => ({
   },
 }));
 
+vi.mock("../project.repository", () => ({
+  projectRepository: {
+    findById: vi.fn(),
+  },
+}));
+
+vi.mock("../project-member.repository", () => ({
+  projectMemberRepository: {
+    findMembership: vi.fn(),
+  },
+}));
+
 import { prisma } from "#lib/db";
 import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
@@ -48,6 +60,8 @@ import {
 } from "../journal.service";
 import { ledgerRepository } from "../ledger.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
+import { projectRepository } from "../project.repository";
+import { projectMemberRepository } from "../project-member.repository";
 
 const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
@@ -345,6 +359,26 @@ const baseEntryInput = {
   ],
 };
 
+const editorAccess = {
+  ledger: { id: "led-1", ownerId: "user-a", status: "active", name: "L" },
+  membership: { role: "editor" as const },
+};
+
+const guestAccess = {
+  ledger: { id: "led-1", ownerId: "user-owner", status: "active", name: "L" },
+  membership: { role: "guest" as const },
+};
+
+const ownerActor = { userId: "user-a", role: "owner" as const };
+const guestActor = { userId: "user-b", role: "guest" as const };
+
+const mockProjectRepo = projectRepository as unknown as {
+  findById: ReturnType<typeof vi.fn>;
+};
+const mockProjectMemberRepo = projectMemberRepository as unknown as {
+  findMembership: ReturnType<typeof vi.fn>;
+};
+
 describe("createEntry", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -363,7 +397,7 @@ describe("createEntry", () => {
       status: "archived",
     });
     await expectStatus(
-      () => createEntry("user-a", "led-1", baseEntryInput),
+      () => createEntry("user-a", "led-1", baseEntryInput, editorAccess),
       400,
     );
     expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
@@ -372,7 +406,7 @@ describe("createEntry", () => {
   it("returns 404 when the ledger no longer exists", async () => {
     mockLedgerRepo.findById.mockResolvedValue(null);
     await expectStatus(
-      () => createEntry("user-a", "led-1", baseEntryInput),
+      () => createEntry("user-a", "led-1", baseEntryInput, editorAccess),
       404,
     );
   });
@@ -389,7 +423,12 @@ describe("createEntry", () => {
     ]);
     const created = { id: "e-1" };
     mockJournalRepo.createEntry.mockResolvedValue(created);
-    const result = await createEntry("user-a", "led-1", baseEntryInput);
+    const result = await createEntry(
+      "user-a",
+      "led-1",
+      baseEntryInput,
+      editorAccess,
+    );
     expect(result).toBe(created);
     expect(mockLedgerRepo.update).toHaveBeenCalledWith(
       "led-1",
@@ -414,7 +453,7 @@ describe("createEntry", () => {
       account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-2" });
-    await createEntry("user-a", "led-1", baseEntryInput);
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ entryNo: 4 }),
       expect.anything(),
@@ -433,10 +472,15 @@ describe("createEntry", () => {
     ]);
     await expectStatus(
       () =>
-        createEntry("user-a", "led-1", {
-          ...baseEntryInput,
-          participantMemberIds: ["mem-1", "mem-foreign"],
-        }),
+        createEntry(
+          "user-a",
+          "led-1",
+          {
+            ...baseEntryInput,
+            participantMemberIds: ["mem-1", "mem-foreign"],
+          },
+          editorAccess,
+        ),
       400,
     );
     expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
@@ -453,10 +497,15 @@ describe("createEntry", () => {
       account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-3" });
-    await createEntry("user-a", "led-1", {
-      ...baseEntryInput,
-      participantMemberIds: ["mem-2", "mem-1", "mem-2"],
-    });
+    await createEntry(
+      "user-a",
+      "led-1",
+      {
+        ...baseEntryInput,
+        participantMemberIds: ["mem-2", "mem-1", "mem-2"],
+      },
+      editorAccess,
+    );
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ participantMemberIds: ["mem-2", "mem-1"] }),
       expect.anything(),
@@ -474,7 +523,7 @@ describe("createEntry", () => {
       account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-4" });
-    await createEntry("user-a", "led-1", baseEntryInput);
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ participantMemberIds: undefined }),
       expect.anything(),
@@ -503,7 +552,10 @@ describe("updateEntry", () => {
       id: "e-1",
       ledgerId: "led-other",
     });
-    await expectStatus(() => updateEntry("led-1", "e-1", baseEntryInput), 404);
+    await expectStatus(
+      () => updateEntry("led-1", "e-1", ownerActor, baseEntryInput),
+      404,
+    );
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });
 
@@ -516,7 +568,10 @@ describe("updateEntry", () => {
       id: "e-1",
       ledgerId: "led-1",
     });
-    await expectStatus(() => updateEntry("led-1", "e-1", baseEntryInput), 400);
+    await expectStatus(
+      () => updateEntry("led-1", "e-1", ownerActor, baseEntryInput),
+      400,
+    );
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });
 
@@ -534,7 +589,7 @@ describe("updateEntry", () => {
       account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
-    const updated = await updateEntry("led-1", "e-1", {
+    const updated = await updateEntry("led-1", "e-1", ownerActor, {
       ...baseEntryInput,
       memo: "edited",
     });
@@ -568,7 +623,7 @@ describe("updateEntry", () => {
       account({ id: "acc-food", name: "Food", type: "expense" }),
     ]);
     mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
-    await updateEntry("led-1", "e-1", baseEntryInput);
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
     expect(mockLedgerRepo.update).not.toHaveBeenCalled();
     expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
   });
@@ -588,11 +643,243 @@ describe("updateEntry", () => {
     ]);
     await expectStatus(
       () =>
-        updateEntry("led-1", "e-1", {
+        updateEntry("led-1", "e-1", ownerActor, {
           ...baseEntryInput,
           participantMemberIds: ["mem-foreign"],
         }),
       400,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+});
+
+describe("createEntry as guest", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([{ id: "mem-1" }]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-default", flags: ["defaultDebit", "defaultCredit"] }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+      account({ id: "acc-salary", name: "Salary", type: "income" }),
+    ]);
+  });
+
+  it("rejects an entry without a project (403)", async () => {
+    await expectStatus(
+      () => createEntry("user-b", "led-1", baseEntryInput, guestAccess),
+      403,
+    );
+    expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("rejects a project outside the ledger or not a member of (404)", async () => {
+    mockProjectRepo.findById.mockResolvedValue(null);
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-b",
+          "led-1",
+          { ...baseEntryInput, projectId: "proj-x" },
+          guestAccess,
+        ),
+      404,
+    );
+
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue(null);
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-b",
+          "led-1",
+          { ...baseEntryInput, projectId: "proj-1" },
+          guestAccess,
+        ),
+      404,
+    );
+  });
+
+  it("rejects entries whose explicit accounts are not expense categories (403)", async () => {
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-b",
+          "led-1",
+          {
+            ...baseEntryInput,
+            projectId: "proj-1",
+            lines: [
+              { accountId: "acc-salary", debit: 0, credit: 50 },
+              { accountId: "acc-default", debit: 50, credit: 0 },
+            ],
+          },
+          guestAccess,
+        ),
+      403,
+    );
+    expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("posts an expense against the default pocket in the guest's project", async () => {
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-g1" });
+    await createEntry(
+      "user-b",
+      "led-1",
+      {
+        ...baseEntryInput,
+        projectId: "proj-1",
+        lines: [
+          // Expense category chosen explicitly; pocket side deferred (null).
+          { accountId: null, debit: 0, credit: 50 },
+          { accountId: "acc-food", debit: 50, credit: 0 },
+        ],
+      },
+      guestAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "proj-1" }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects guest entries that never touch an expense category (403)", async () => {
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-b",
+          "led-1",
+          {
+            ...baseEntryInput,
+            projectId: "proj-1",
+            lines: [
+              // Pocket to pocket transfer: no expense line.
+              { accountId: "acc-default", debit: 0, credit: 50 },
+              { accountId: "acc-default", debit: 50, credit: 0 },
+            ],
+          },
+          guestAccess,
+        ),
+      403,
+    );
+  });
+});
+
+describe("updateEntry as guest", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([{ id: "mem-1" }]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-default", flags: ["defaultDebit", "defaultCredit"] }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+  });
+
+  it("rejects editing an entry the guest did not create (404)", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: "proj-1",
+      createdById: "user-a",
+    });
+    await expectStatus(
+      () =>
+        updateEntry("led-1", "e-1", guestActor, {
+          ...baseEntryInput,
+          projectId: "proj-1",
+        }),
+      404,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("rejects moving the entry out of its project (403)", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: "proj-1",
+      createdById: "user-b",
+    });
+    await expectStatus(
+      () =>
+        updateEntry("led-1", "e-1", guestActor, {
+          ...baseEntryInput,
+          projectId: "proj-other",
+        }),
+      403,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("treats an omitted projectId as 'no change' for guests", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: "proj-1",
+      createdById: "user-b",
+    });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+    await updateEntry("led-1", "e-1", guestActor, {
+      date: new Date("2026-08-01T00:00:00Z"),
+      memo: "groceries",
+      lines: [
+        { accountId: "acc-food", debit: 50, credit: 0 },
+        { accountId: "acc-default", debit: 0, credit: 50 },
+      ],
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ projectId: "proj-1" }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects editing a projectless (legacy) entry as a guest (404)", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-b",
+    });
+    await expectStatus(
+      () => updateEntry("led-1", "e-1", guestActor, baseEntryInput),
+      404,
     );
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });

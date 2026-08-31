@@ -37,7 +37,7 @@ export const listMembersRoute = defineOpenAPIRoute({
       {
         members: members.map((member) => ({
           ...member,
-          role: member.role as "owner" | "editor" | "viewer",
+          role: member.role as "owner" | "editor" | "viewer" | "guest",
         })),
       },
       200,

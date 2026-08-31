@@ -6,6 +6,10 @@ export type EntryWindow = {
   to?: Date;
   q?: string;
   participantMemberId?: string;
+  /** Restrict to entries of one project. */
+  projectId?: string;
+  /** Guest scope: entries of any of these projects (forced filter). */
+  scopeProjectIds?: string[];
 };
 
 /** Participant rows with the member's user profile, as returned on entries. */
@@ -23,6 +27,7 @@ const entryInclude = {
   createdBy: {
     select: { id: true, name: true, email: true, avatar: true },
   },
+  project: { select: { id: true, name: true, status: true } },
 } as const satisfies Prisma.JournalEntryInclude;
 
 function entryFilterWhere(ledgerId: string, window: EntryWindow) {
@@ -35,6 +40,10 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
             ...(window.to ? { lte: window.to } : {}),
           },
         }
+      : {}),
+    ...(window.projectId ? { projectId: window.projectId } : {}),
+    ...(window.scopeProjectIds
+      ? { projectId: { in: window.scopeProjectIds } }
       : {}),
     ...(window.q
       ? {
@@ -122,6 +131,7 @@ export const journalRepository = {
       date: Date;
       memo?: string;
       createdById: string;
+      projectId?: string;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -139,6 +149,7 @@ export const journalRepository = {
         date: data.date,
         memo: data.memo,
         createdById: data.createdById,
+        projectId: data.projectId,
         lines: { create: data.lines },
         participants: {
           create: (data.participantMemberIds ?? []).map((ledgerMemberId) => ({
@@ -165,6 +176,7 @@ export const journalRepository = {
     data: {
       date: Date;
       memo?: string | null;
+      projectId?: string | null;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -180,6 +192,7 @@ export const journalRepository = {
       data: {
         date: data.date,
         memo: data.memo ?? null,
+        projectId: data.projectId ?? null,
         lines: { deleteMany: {}, create: data.lines },
         participants: {
           deleteMany: {},
@@ -263,6 +276,40 @@ export const journalRepository = {
       include: entryInclude,
       take: limit,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],
+    });
+  },
+
+  /**
+   * Every entry of a project with the shape the settlement report needs:
+   * raw lines (account types classify the flow), participants as member
+   * userIds (the split set), and the creator (who fronted the money).
+   */
+  listByProject(projectId: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.journalEntry.findMany({
+      where: { projectId },
+      select: {
+        createdById: true,
+        lines: {
+          select: {
+            debit: true,
+            credit: true,
+            account: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                type: true,
+                sortOrder: true,
+                icon: true,
+              },
+            },
+          },
+        },
+        participants: {
+          select: { ledgerMember: { select: { userId: true } } },
+        },
+      },
+      orderBy: [{ date: "asc" }, { entryNo: "asc" }],
     });
   },
 };

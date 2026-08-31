@@ -838,6 +838,31 @@ CREATE TABLE "qianlai_ledger" (
 );
 
 -- CreateTable
+CREATE TABLE "qianlai_project" (
+    "id" TEXT NOT NULL,
+    "ledgerId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "qianlai_project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "qianlai_project_member" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "qianlai_project_member_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "qianlai_ledger_member" (
     "id" TEXT NOT NULL,
     "ledgerId" TEXT NOT NULL,
@@ -852,6 +877,7 @@ CREATE TABLE "qianlai_ledger_member" (
 CREATE TABLE "qianlai_ledger_share_code" (
     "id" TEXT NOT NULL,
     "ledgerId" TEXT NOT NULL,
+    "projectId" TEXT,
     "code" TEXT NOT NULL,
     "role" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'active',
@@ -908,6 +934,7 @@ CREATE TABLE "qianlai_journal_entry" (
     "memo" TEXT,
     "status" TEXT NOT NULL DEFAULT 'posted',
     "createdById" TEXT,
+    "projectId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "qianlai_journal_entry_pkey" PRIMARY KEY ("id")
@@ -1314,6 +1341,15 @@ CREATE UNIQUE INDEX "redeem_code_code_key" ON "redeem_code"("code");
 CREATE INDEX "qianlai_ledger_ownerId_idx" ON "qianlai_ledger"("ownerId");
 
 -- CreateIndex
+CREATE INDEX "qianlai_project_ledgerId_idx" ON "qianlai_project"("ledgerId");
+
+-- CreateIndex
+CREATE INDEX "qianlai_project_member_userId_idx" ON "qianlai_project_member"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_project_member_projectId_userId_key" ON "qianlai_project_member"("projectId", "userId");
+
+-- CreateIndex
 CREATE INDEX "qianlai_ledger_member_userId_idx" ON "qianlai_ledger_member"("userId");
 
 -- CreateIndex
@@ -1515,6 +1551,15 @@ ALTER TABLE "user_credit_ledger" ADD CONSTRAINT "user_credit_ledger_userId_fkey"
 ALTER TABLE "qianlai_ledger" ADD CONSTRAINT "qianlai_ledger_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "qianlai_project" ADD CONSTRAINT "qianlai_project_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_project_member" ADD CONSTRAINT "qianlai_project_member_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "qianlai_project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_project_member" ADD CONSTRAINT "qianlai_project_member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1522,6 +1567,9 @@ ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_userId
 
 -- AddForeignKey
 ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "qianlai_project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1543,6 +1591,9 @@ ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_ledger
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "qianlai_project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_entryId_fkey" FOREIGN KEY ("entryId") REFERENCES "qianlai_journal_entry"("id") ON DELETE CASCADE ON UPDATE CASCADE;

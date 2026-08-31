@@ -6,7 +6,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
-import { requireLedgerAccess } from "../../access";
+import { entryScopeProjectIds, requireLedgerAccess } from "../../access";
 import { getEntry } from "../../journal.service";
 import {
   entryIdParamSchema,
@@ -35,9 +35,12 @@ export const getEntryRoute = defineOpenAPIRoute({
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId, id } = c.req.valid("param");
-    const access = await requireLedgerAccess(userId, ledgerId, "viewer");
+    const access = await requireLedgerAccess(userId, ledgerId, "guest");
+    const scopeProjectIds = await entryScopeProjectIds(userId, access);
     return c.json(
-      serializeEntry(await getEntry(ledgerId, id, access.membership.role)),
+      serializeEntry(
+        await getEntry(ledgerId, id, access.membership.role, scopeProjectIds),
+      ),
       200,
     );
   },

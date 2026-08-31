@@ -13,13 +13,15 @@ enum LedgerRole: String, Codable, Hashable {
     case owner
     case editor
     case viewer
+    case guest
 
-    /// Mirrors @repo/shared ROLE_RANK: owner 3 > editor 2 > viewer 1.
+    /// Mirrors @repo/shared ROLE_RANK: owner 3 > editor 2 > viewer 1 > guest 0.
     var rank: Int {
         switch self {
         case .owner: 3
         case .editor: 2
         case .viewer: 1
+        case .guest: 0
         }
     }
 
@@ -32,6 +34,7 @@ enum LedgerRole: String, Codable, Hashable {
         case .owner: L10n.string("role.owner", defaultValue: "Owner")
         case .editor: L10n.string("role.editor", defaultValue: "Editor")
         case .viewer: L10n.string("role.viewer", defaultValue: "Viewer")
+        case .guest: L10n.string("role.guest", defaultValue: "Guest")
         }
     }
 }
@@ -84,8 +87,13 @@ struct QianlaiLedger: Codable, Identifiable, Hashable {
     var isActive: Bool { status == "active" }
     var isArchived: Bool { status == "archived" }
 
-    /// Editors and owners may post entries / manage accounts on active ledgers.
-    var canPost: Bool { isActive && myRole.atLeast(.editor) }
+    /// Editors and owners may post entries / manage accounts on active
+    /// ledgers; guests post too — restricted server-side to expense records
+    /// inside their projects.
+    var canPost: Bool { isActive && (myRole.atLeast(.editor) || myRole == .guest) }
+    /// True when the viewer is a project-scoped guest on this ledger: they
+    /// only see entries of their projects and record expenses against them.
+    var isGuest: Bool { myRole == .guest }
 }
 
 // MARK: - Accounts
@@ -272,6 +280,13 @@ struct EntryParticipant: Codable, Identifiable, Hashable {
     var user: EntryUserRef?
 }
 
+/// The project an entry belongs to (nil = personal, not in any project).
+struct EntryProjectRef: Codable, Hashable {
+    let id: String
+    var name: String
+    var status: String
+}
+
 struct JournalEntry: Codable, Identifiable, Hashable {
     let id: String
     let ledgerId: String
@@ -282,6 +297,8 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var createdById: String?
     var createdBy: EntryUserRef?
     var createdAt: Date
+    var projectId: String?
+    var project: EntryProjectRef?
     var lines: [JournalLine]
     var participants: [EntryParticipant]?
 
@@ -335,6 +352,75 @@ struct ShareCode: Codable, Identifiable, Hashable {
     var createdAt: Date
 
     var isActive: Bool { status == "active" }
+}
+
+// MARK: - Projects
+
+struct ProjectMemberRow: Codable, Identifiable, Hashable {
+    let id: String
+    let projectId: String
+    let userId: String
+    var createdAt: Date
+    var user: EntryUserRef?
+
+    var displayName: String {
+        user?.name ?? userId
+    }
+}
+
+/// A sub-scope of a ledger that tags entries and scopes guest access; the
+/// member list defines the settlement participant set.
+struct QianlaiProject: Codable, Identifiable, Hashable {
+    let id: String
+    let ledgerId: String
+    var name: String
+    var description: String?
+    var status: String
+    var startDate: Date?
+    var endDate: Date?
+    var createdAt: Date
+    var updatedAt: Date
+    var members: [ProjectMemberRow]
+    var entryCount: Int
+
+    var isActive: Bool { status == "active" }
+    var isArchived: Bool { status == "archived" }
+}
+
+/// One member's equal-split settlement line: `paid` is what they fronted
+/// (negative when they received group income), `share` their fair part of
+/// every entry, `balance = paid − share` (positive = is owed).
+struct ProjectSettlementRow: Codable, Identifiable, Hashable {
+    let userId: String
+    var name: String
+    var avatar: String?
+    var paid: Double
+    var share: Double
+    var balance: Double
+
+    var id: String { userId }
+}
+
+struct ProjectReportInfo: Codable, Hashable {
+    let id: String
+    let ledgerId: String
+    var name: String
+    var status: String
+    var startDate: Date?
+    var endDate: Date?
+
+    var isActive: Bool { status == "active" }
+}
+
+struct ProjectReportTotals: Codable, Hashable {
+    var entries: Int
+}
+
+struct ProjectReport: Codable, Hashable {
+    var project: ProjectReportInfo
+    var statement: IncomeStatement
+    var settlement: [ProjectSettlementRow]
+    var totals: ProjectReportTotals
 }
 
 // MARK: - Real accounts
@@ -527,6 +613,10 @@ struct ShareCodesResponse: Codable {
     var codes: [ShareCode]
 }
 
+struct ProjectsResponse: Codable {
+    var projects: [QianlaiProject]
+}
+
 struct RealAccountsResponse: Codable {
     var realAccounts: [RealAccount]
     var totals: RealAccountTotals
@@ -535,6 +625,8 @@ struct RealAccountsResponse: Codable {
 struct RedeemShareCodeResponse: Codable {
     var ledgerId: String
     var role: LedgerRole
+    /// Set when the code was a project invite.
+    var projectId: String?
 }
 
 struct SetBalanceResponse: Codable {
@@ -684,6 +776,8 @@ struct CreateEntryBody: Encodable {
     var memo: String?
     var lines: [JournalLineInput]
     var participantMemberIds: [String]?
+    /// Project assignment; guests must target one of their projects.
+    var projectId: String?
 }
 
 /// One-click income/expense/transfer scenario the user picks in the quick
@@ -727,6 +821,7 @@ struct QuickEntryDraft: Equatable {
     var creditAccountId: String?
     var memo: String = ""
     var participants: Set<String> = []
+    var projectId: String?
 
     var isSameAccount: Bool {
         kind == .transfer
@@ -754,7 +849,8 @@ struct QuickEntryDraft: Equatable {
                 JournalLineInput(accountId: debitAccountId, debit: amount, credit: 0, memo: nil),
                 JournalLineInput(accountId: creditAccountId, debit: 0, credit: amount, memo: nil),
             ],
-            participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted()
+            participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted(),
+            projectId: projectId
         )
     }
 }
@@ -795,7 +891,8 @@ extension QuickEntryDraft {
             debitAccountId: debitAccountId,
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",
-            participants: Set(entry.participants?.map(\.ledgerMemberId) ?? [])
+            participants: Set(entry.participants?.map(\.ledgerMemberId) ?? []),
+            projectId: entry.projectId
         )
     }
 }
@@ -804,6 +901,8 @@ struct CreateShareCodeBody: Encodable {
     var role: LedgerRole
     var expiresAt: Date?
     var maxUses: Int?
+    /// Set = project invite (role is forced to .guest server-side).
+    var projectId: String?
 }
 
 struct RedeemCodeBody: Encodable {

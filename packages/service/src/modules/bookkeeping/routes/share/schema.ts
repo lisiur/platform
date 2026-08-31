@@ -33,8 +33,17 @@ export const shareCodeSchema = z
     id: z.string().openapi({ example: "clx1234567890" }),
     ledgerId: z.string().openapi({ example: "clx1234567890" }),
     code: z.string().openapi({ example: "A2B4C6D8E9F2" }),
-    role: z.enum(["editor", "viewer"]).openapi({ example: "editor" }),
+    role: z.enum(["editor", "viewer", "guest"]).openapi({ example: "editor" }),
     status: z.enum(["active", "revoked"]).openapi({ example: "active" }),
+    // Set = project-scoped invite (grants guest access to this project).
+    projectId: z.string().nullable().openapi({ example: null }),
+    project: z
+      .object({
+        id: z.string(),
+        name: z.string().openapi({ example: "Kyoto Trip" }),
+        status: z.string().openapi({ example: "active" }),
+      })
+      .nullable(),
     expiresAt: z.date().nullable().openapi({ example: null }),
     maxUses: z.number().int().nullable().openapi({ example: null }),
     usesCount: z.number().int().openapi({ example: 0 }),
@@ -57,7 +66,7 @@ export const listShareCodesResponseSchema = z
 
 export const createShareCodeBodySchema = z
   .object({
-    role: z.enum(["editor", "viewer"]).openapi({ example: "editor" }),
+    role: z.enum(["editor", "viewer", "guest"]).openapi({ example: "editor" }),
     expiresAt: z.coerce.date().nullable().optional().openapi({ example: null }),
     maxUses: z
       .number()
@@ -66,6 +75,18 @@ export const createShareCodeBodySchema = z
       .nullable()
       .optional()
       .openapi({ example: null }),
+    // When set the code becomes a project invite: `role` must be "guest"
+    // (the guest role is implied, not chosen).
+    projectId: z
+      .string()
+      .min(1)
+      .nullable()
+      .optional()
+      .openapi({ example: null }),
+  })
+  .refine((data) => data.role !== "guest" || !!data.projectId, {
+    message: "Share code role must be editor or viewer for ledger-wide codes",
+    path: ["role"],
   })
   .openapi("QianlaiCreateShareCodeBody");
 
@@ -78,7 +99,9 @@ export const redeemBodySchema = z
 export const redeemResponseSchema = z
   .object({
     ledgerId: z.string().openapi({ example: "clx1234567890" }),
-    role: z.enum(["editor", "viewer"]).openapi({ example: "editor" }),
+    role: z.enum(["editor", "viewer", "guest"]).openapi({ example: "editor" }),
+    // Present when the code was a project invite.
+    projectId: z.string().nullable().optional().openapi({ example: null }),
   })
   .openapi("QianlaiRedeemResponse");
 
@@ -97,6 +120,14 @@ export const updateMemberRoleBodySchema = z
 export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
+
+export const listShareCodesQuerySchema = z
+  .object({
+    // Filter to codes of one project. Use the literal string "null" to
+    // request only ledger-wide codes (projectId is null).
+    projectId: z.string().min(1).optional().openapi({ example: null }),
+  })
+  .openapi("QianlaiListShareCodesQuery");
 
 export const memberParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
