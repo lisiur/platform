@@ -10,6 +10,12 @@ export type EntryWindow = {
   projectId?: string;
   /** Guest scope: entries of any of these projects (forced filter). */
   scopeProjectIds?: string[];
+  /**
+   * Ledger-wide escape hatch: also return entries flagged
+   * `countsInLedger = false`. Never honored for project-scoped queries —
+   * a project's books always show all of its entries.
+   */
+  includeExcluded?: boolean;
 };
 
 /** Participant rows with the member's user profile, as returned on entries. */
@@ -31,8 +37,16 @@ const entryInclude = {
 } as const satisfies Prisma.JournalEntryInclude;
 
 function entryFilterWhere(ledgerId: string, window: EntryWindow) {
+  const projectScoped = Boolean(window.projectId || window.scopeProjectIds);
   return {
     ledgerId,
+    // The countsInLedger flag scopes LEDGER-WIDE surfaces only (journal,
+    // dashboard month, income statement). Project books always show all of
+    // their entries — settlement depends on them — so the filter is skipped
+    // whenever the query is pinned to project(s).
+    ...(!projectScoped && !window.includeExcluded
+      ? { countsInLedger: true }
+      : {}),
     ...(window.from || window.to
       ? {
           date: {
@@ -132,6 +146,7 @@ export const journalRepository = {
       memo?: string;
       createdById: string;
       projectId?: string;
+      countsInLedger?: boolean;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -150,6 +165,7 @@ export const journalRepository = {
         memo: data.memo,
         createdById: data.createdById,
         projectId: data.projectId,
+        countsInLedger: data.countsInLedger ?? true,
         lines: { create: data.lines },
         participants: {
           create: (data.participantMemberIds ?? []).map((ledgerMemberId) => ({
@@ -177,6 +193,8 @@ export const journalRepository = {
       date: Date;
       memo?: string | null;
       projectId?: string | null;
+      /** Required: the service resolves guest pinning and keep-on-omit. */
+      countsInLedger: boolean;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -193,6 +211,7 @@ export const journalRepository = {
         date: data.date,
         memo: data.memo ?? null,
         projectId: data.projectId ?? null,
+        countsInLedger: data.countsInLedger,
         lines: { deleteMany: {}, create: data.lines },
         participants: {
           deleteMany: {},
@@ -213,10 +232,15 @@ export const journalRepository = {
    * Sums debit/credit per account for a ledger, optionally restricted to
    * entries dated within [from, to]. Grouped on JournalLine with the entry
    * relation filtered, so each account's totals reflect only this ledger.
+   *
+   * `countsInLedger` is opt-in and explicit: pass `true` for behavioral
+   * statements (income statement, dashboard month) so flagged-out entries
+   * don't count, and leave it undefined for accounting truth (trial balance,
+   * net worth) where every posted entry must be summed.
    */
   sumLinesByAccount(
     ledgerId: string,
-    window: { from?: Date; to?: Date } = {},
+    window: { from?: Date; to?: Date; countsInLedger?: boolean } = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalLine.groupBy({
@@ -224,6 +248,9 @@ export const journalRepository = {
       where: {
         account: { ledgerId },
         entry: {
+          ...(window.countsInLedger !== undefined
+            ? { countsInLedger: window.countsInLedger }
+            : {}),
           date: {
             ...(window.from ? { gte: window.from } : {}),
             ...(window.to ? { lte: window.to } : {}),
@@ -269,10 +296,16 @@ export const journalRepository = {
   listRecent(
     ledgerId: string,
     limit: number,
+    opts: { countsInLedger?: boolean } = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalEntry.findMany({
-      where: { ledgerId },
+      where: {
+        ledgerId,
+        ...(opts.countsInLedger !== undefined
+          ? { countsInLedger: opts.countsInLedger }
+          : {}),
+      },
       include: entryInclude,
       take: limit,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],

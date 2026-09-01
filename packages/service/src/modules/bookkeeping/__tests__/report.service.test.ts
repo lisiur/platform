@@ -60,6 +60,7 @@ function monthWindowCall() {
   return mockJournalRepo.sumLinesByAccount.mock.calls[1]?.[1] as {
     from: Date;
     to: Date;
+    countsInLedger?: boolean;
   };
 }
 
@@ -97,5 +98,37 @@ describe("dashboard", () => {
     expect(result.month.totalExpense).toBe(2500);
     expect(result.month.totalIncome).toBe(0);
     expect(result.month.net).toBe(-2500);
+  });
+
+  it("sums the month and recent entries over counted entries only, net worth over all", async () => {
+    await dashboard("led-1");
+
+    // Call [0] is the all-time net-worth sum: unfiltered (accounting truth).
+    const allTimeWindow = mockJournalRepo.sumLinesByAccount.mock.calls[0]?.[1];
+    expect(allTimeWindow?.countsInLedger).toBeUndefined();
+
+    // Call [1] is the month statement: behavioral view — flagged-out entries
+    // (guest posts, opted-out repayments) don't count.
+    const monthWindow = monthWindowCall();
+    expect(monthWindow.countsInLedger).toBe(true);
+
+    expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5, {
+      countsInLedger: true,
+    });
+  });
+});
+
+describe("incomeStatement vs trialBalance flag policy", () => {
+  it("incomeStatement counts counted entries only; trialBalance stays unfiltered", async () => {
+    const { incomeStatement, trialBalance } = await import("../report.service");
+
+    await incomeStatement("led-1");
+    expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {
+      countsInLedger: true,
+    });
+
+    mockJournalRepo.sumLinesByAccount.mockClear();
+    await trialBalance("led-1");
+    expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
   });
 });

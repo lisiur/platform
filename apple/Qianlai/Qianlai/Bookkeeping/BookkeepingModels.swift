@@ -294,6 +294,11 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     let date: Date
     var memo: String?
     var status: String
+    /// False = excluded from ledger-wide surfaces (journal, dashboard month,
+    /// income statement) but still fully visible in its project and balances.
+    /// Guest posts and opted-out repayments (credit-card payoff already
+    /// expensed at purchase time) are flagged out.
+    var countsInLedger: Bool
     var createdById: String?
     var createdBy: EntryUserRef?
     var createdAt: Date
@@ -778,6 +783,9 @@ struct CreateEntryBody: Encodable {
     var participantMemberIds: [String]?
     /// Project assignment; guests must target one of their projects.
     var projectId: String?
+    /// nil counts in the ledger (server default); false opts out. The server
+    /// forces false for guests regardless.
+    var countsInLedger: Bool?
 }
 
 /// One-click income/expense/transfer scenario the user picks in the quick
@@ -822,6 +830,10 @@ struct QuickEntryDraft: Equatable {
     var memo: String = ""
     var participants: Set<String> = []
     var projectId: String?
+    /// False marks the entry as not counting in ledger-wide surfaces (e.g.
+    /// a credit-card repayment already expensed at purchase time). The
+    /// server forces false for guest posts regardless of this flag.
+    var countsInLedger = true
 
     var isSameAccount: Bool {
         kind == .transfer
@@ -850,7 +862,8 @@ struct QuickEntryDraft: Equatable {
                 JournalLineInput(accountId: creditAccountId, debit: 0, credit: amount, memo: nil),
             ],
             participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted(),
-            projectId: projectId
+            projectId: projectId,
+            countsInLedger: countsInLedger
         )
     }
 }
@@ -892,7 +905,8 @@ extension QuickEntryDraft {
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",
             participants: Set(entry.participants?.map(\.ledgerMemberId) ?? []),
-            projectId: entry.projectId
+            projectId: entry.projectId,
+            countsInLedger: entry.countsInLedger
         )
     }
 }

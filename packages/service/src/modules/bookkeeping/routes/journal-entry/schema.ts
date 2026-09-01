@@ -78,6 +78,10 @@ export const journalEntrySchema = z
         status: z.string().openapi({ example: "active" }),
       })
       .nullable(),
+    // False = excluded from ledger-wide surfaces (still fully visible in
+    // its project and in balances). Forced false for guest-created entries;
+    // editors may opt out per entry (e.g. credit-card repayments).
+    countsInLedger: z.boolean().openapi({ example: true }),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
     participants: journalEntryParticipantSchema.array(),
@@ -91,6 +95,10 @@ export const listEntriesQuerySchema = paginationQuerySchema
     q: z.string().optional(),
     participantMemberId: z.string().optional(),
     projectId: z.string().optional(),
+    includeExcluded: z.enum(["true", "false"]).optional().openapi({
+      description:
+        "Also return entries flagged countsInLedger=false (audit/search escape hatch for ledger-wide listing). Ignored when projectId is set — a project's books always show all of its entries.",
+    }),
   })
   .openapi("QianlaiListEntriesQuery");
 
@@ -135,6 +143,10 @@ export const createEntryBodySchema = z
     // Optional project assignment. Guests must target one of their projects
     // and are restricted to expense categories.
     projectId: z.string().min(1).nullable().optional(),
+    // Whether the entry counts in ledger-wide journal/statements. Defaults
+    // to true; forced false for guests (their entries live in the project
+    // books and settlement). On update, omitted = keep the current flag.
+    countsInLedger: z.boolean().optional(),
   })
   .openapi("QianlaiCreateEntryBody");
 

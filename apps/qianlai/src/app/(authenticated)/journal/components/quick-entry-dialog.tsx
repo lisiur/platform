@@ -8,6 +8,7 @@ import {
 } from "@repo/shared";
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogBody,
   DialogContent,
@@ -97,6 +98,7 @@ const quickEntrySchema = z
     memo: z.string().optional(),
     participants: z.array(z.string()),
     projectId: z.string(),
+    countsInLedger: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (!(data.amount > 0)) {
@@ -224,6 +226,7 @@ export function QuickEntryDialog({
     memo: "",
     participants: [],
     projectId: "",
+    countsInLedger: true,
   };
 
   const form = useForm<QuickEntryFormData>({
@@ -350,6 +353,9 @@ export function QuickEntryDialog({
             ? data.participants
             : undefined,
           projectId: data.projectId || undefined,
+          // Omitted = count in the ledger (server default); the server
+          // forces false for guest posts either way.
+          countsInLedger: data.countsInLedger ? undefined : false,
         },
       });
     },
@@ -630,6 +636,34 @@ export function QuickEntryDialog({
                   placeholder={t("memoPlaceholder")}
                 />
               </Field>
+
+              {!isGuest && (
+                <Field>
+                  <Controller
+                    control={form.control}
+                    name="countsInLedger"
+                    render={({ field }) => (
+                      <label className="flex items-start gap-2.5">
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked === true)
+                          }
+                          className="mt-0.5"
+                        />
+                        <span className="flex flex-col gap-1">
+                          <span className="text-sm font-medium leading-none">
+                            {t("quick.countsInLedger")}
+                          </span>
+                          <FieldDescription className="leading-snug">
+                            {t("quick.countsInLedgerHint")}
+                          </FieldDescription>
+                        </span>
+                      </label>
+                    )}
+                  />
+                </Field>
+              )}
 
               {members.length > 0 && (
                 <Field>

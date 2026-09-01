@@ -935,6 +935,7 @@ CREATE TABLE "qianlai_journal_entry" (
     "status" TEXT NOT NULL DEFAULT 'posted',
     "createdById" TEXT,
     "projectId" TEXT,
+    "countsInLedger" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "qianlai_journal_entry_pkey" PRIMARY KEY ("id")

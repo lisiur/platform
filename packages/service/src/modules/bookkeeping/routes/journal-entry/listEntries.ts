@@ -23,7 +23,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
     tags: ["QianlaiJournal"],
     summary: "List journal entries",
     description:
-      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely.",
+      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely. Ledger-wide listing excludes entries flagged countsInLedger=false unless includeExcluded=true; project-scoped queries always include every entry of the project.",
     request: {
       params: ledgerIdParamSchema,
       query: listEntriesQuerySchema,
@@ -60,6 +60,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
         participantMemberId: query.participantMemberId,
         projectId,
         scopeProjectIds,
+        includeExcluded: query.includeExcluded === "true" || undefined,
       },
       access.membership.role,
     );

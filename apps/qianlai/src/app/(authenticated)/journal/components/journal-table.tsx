@@ -61,6 +61,7 @@ interface EntryRow {
   memo: string | null;
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
+  countsInLedger: boolean;
   projectId: string | null;
   project: { id: string; name: string; status: string } | null;
   lines: JournalLineDto[];
@@ -94,6 +95,10 @@ export function JournalTable() {
   const [appliedMemberId, setAppliedMemberId] = useState<string>("");
   const [projectFilter, setProjectFilter] = useState<string>("");
   const [appliedProjectId, setAppliedProjectId] = useState<string>("");
+  // Ledger-wide escape hatch: include entries flagged out of the ledger's
+  // books (guest posts, opted-out repayments). Irrelevant while a project
+  // filter is active — a project always shows all of its entries.
+  const [includeExcluded, setIncludeExcluded] = useState(false);
 
   const { data: membersData } = useQuery({
     queryKey: ["qianlai", "members", activeLedger?.id],
@@ -133,6 +138,7 @@ export function JournalTable() {
       appliedDateRange,
       appliedMemberId,
       appliedProjectId,
+      includeExcluded,
     ],
     enabled: !!activeLedger,
     queryFn: async ({ limit, offset }) => {
@@ -152,6 +158,7 @@ export function JournalTable() {
             : undefined,
           participantMemberId: appliedMemberId || undefined,
           projectId: appliedProjectId || undefined,
+          includeExcluded: includeExcluded ? "true" : undefined,
         },
       });
       const data = await res.json();
@@ -187,6 +194,7 @@ export function JournalTable() {
     setAppliedMemberId("");
     setProjectFilter("");
     setAppliedProjectId("");
+    setIncludeExcluded(false);
     setPage(1);
   }
 
@@ -195,7 +203,8 @@ export function JournalTable() {
     appliedDateRange?.from ||
     appliedDateRange?.to ||
     appliedMemberId ||
-    appliedProjectId;
+    appliedProjectId ||
+    includeExcluded;
 
   async function handleDelete(entry: EntryRow) {
     const confirmed = await confirm({
@@ -290,6 +299,23 @@ export function JournalTable() {
             <SelectValue placeholder={t("filterByProject")} />
           </SelectTrigger>
         </Select>
+        {!projectFilter && (
+          <Select
+            value={includeExcluded ? "all" : "counted"}
+            onValueChange={(v) => {
+              setIncludeExcluded(v === "all");
+              setPage(1);
+            }}
+            items={[
+              { value: "counted", label: t("countedOnly") },
+              { value: "all", label: t("allEntries") },
+            ]}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder={t("scope")} />
+            </SelectTrigger>
+          </Select>
+        )}
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4" />
@@ -346,6 +372,11 @@ export function JournalTable() {
                           className="text-foreground ml-2 text-xs"
                         >
                           {entry.project.name}
+                        </Badge>
+                      )}
+                      {!entry.countsInLedger && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {t("notCounted")}
                         </Badge>
                       )}
                     </span>

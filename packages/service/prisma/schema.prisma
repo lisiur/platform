@@ -1266,6 +1266,15 @@ model JournalEntry {
   // is the preferred path for keeping projects referenceable.
   projectId   String?
   project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // False = posted and fully visible in its project's books, but excluded
+  // from LEDGER-WIDE surfaces (journal list, dashboard month, recent entries,
+  // income statement). Forced false for guest-created entries — group
+  // spending settles inside the project, not the owner's personal books —
+  // and opt-out for editors (e.g. a credit-card repayment already expensed
+  // at purchase time). Balance computations (trial balance, net worth,
+  // pocket balances), project reports, and settlement always count every
+  // entry regardless of this flag.
+  countsInLedger Boolean     @default(true)
   createdAt   DateTime      @default(now())
   lines       JournalLine[]
   participants JournalEntryParticipant[]

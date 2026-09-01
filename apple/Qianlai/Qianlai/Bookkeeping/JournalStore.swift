@@ -34,6 +34,10 @@ final class JournalStore {
     var toDate: Date? { didSet { scheduleReload() } }
     var participantMemberId: String? { didSet { scheduleReload() } }
     var projectFilterId: String? { didSet { scheduleReload() } }
+    /// Ledger-wide escape hatch: also list entries flagged out of the
+    /// ledger's books (guest posts, opted-out repayments). Irrelevant while
+    /// a project filter is active — a project always shows all its entries.
+    var includeExcluded = false { didSet { scheduleReload() } }
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
     /// a single delayed reload so the list doesn't thrash mid-transition.
@@ -87,7 +91,8 @@ final class JournalStore {
                     from: fromDate,
                     to: toDate,
                     participant: participantMemberId,
-                    project: projectFilterId
+                    project: projectFilterId,
+                    includeExcluded: includeExcluded
                 )
             )
             guard self.ledgerId == ledgerId else { return }
@@ -118,7 +123,8 @@ final class JournalStore {
                     from: fromDate,
                     to: toDate,
                     participant: participantMemberId,
-                    project: projectFilterId
+                    project: projectFilterId,
+                    includeExcluded: includeExcluded
                 )
             )
             entries += response.entries
@@ -173,12 +179,13 @@ final class JournalStore {
         if toDate != nil { toDate = nil }
         if participantMemberId != nil { participantMemberId = nil }
         if projectFilterId != nil { projectFilterId = nil }
+        if includeExcluded { includeExcluded = false }
         suppressReload = false
         scheduleReload()
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil || includeExcluded
     }
 
     private static func query(
@@ -188,7 +195,8 @@ final class JournalStore {
         from: Date?,
         to: Date?,
         participant: String?,
-        project: String?
+        project: String?,
+        includeExcluded: Bool
     ) -> String {
         ApiQuery.build([
             ("limit", String(limit)),
@@ -198,6 +206,7 @@ final class JournalStore {
             ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ("participantMemberId", participant),
             ("projectId", project),
+            ("includeExcluded", includeExcluded ? "true" : nil),
         ])
     }
 }

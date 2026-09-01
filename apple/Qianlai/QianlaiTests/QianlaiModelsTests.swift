@@ -135,6 +135,28 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertNil(body.participantMemberIds)
     }
 
+    func testQuickEntryCountsInLedgerSendsExplicitValue() throws {
+        var draft = QuickEntryDraft()
+        draft.kind = .expense
+        draft.amount = 10
+        draft.debitAccountId = "food"
+
+        // The flag is always sent explicitly: on create `true` matches the
+        // server default, and on update an explicit `true` is the only way
+        // to re-include an entry that was previously opted out (omitted
+        // keys keep the stored value).
+        let counting = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(counting["countsInLedger"] as! Bool, true)
+
+        draft.countsInLedger = false
+        let excluded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(excluded["countsInLedger"] as! Bool, false)
+    }
+
     // MARK: - JSONValue
 
     func testJsonValueRoundTrip() throws {

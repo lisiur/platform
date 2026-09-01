@@ -238,6 +238,7 @@ export async function createEntry(
     lines: JournalLineInput[];
     participantMemberIds?: string[];
     projectId?: string | null;
+    countsInLedger?: boolean;
   },
   access: LedgerAccess,
 ) {
@@ -261,6 +262,12 @@ export async function createEntry(
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
       projectId,
+      // Snapshot at creation: guest entries are group spending that settles
+      // inside the project, so they never count in ledger-wide surfaces —
+      // regardless of what the client asked for. A later role change never
+      // rewrites history.
+      countsInLedger:
+        access.membership.role === "guest" ? false : data.countsInLedger,
       rawLines: data.lines,
       ledgerAccounts,
       ledgerMembers,
@@ -294,6 +301,8 @@ export async function postEntryInTransaction(
     projectId?: string;
     /** Guest mode: lines restricted to expense categories. */
     expenseOnly?: boolean;
+    /** Defaults to true when omitted (e.g. system balance adjustments). */
+    countsInLedger?: boolean;
   },
 ) {
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
@@ -317,6 +326,7 @@ export async function postEntryInTransaction(
         memo: data.memo,
         createdById: userId,
         projectId: data.projectId,
+        countsInLedger: data.countsInLedger ?? true,
         lines: lines.map((line) => ({
           accountId: line.accountId,
           debit: new Prisma.Decimal(line.debitCents).div(100),
@@ -364,7 +374,8 @@ function validateParticipants(
  * create: the ledger row is locked so line validation runs against a
  * transaction-consistent account list and the archived guard is
  * re-evaluated under the lock. entryNo and the original creator are kept —
- * editing corrects values, it does not re-post the entry.
+ * editing corrects values, it does not re-post the entry. `countsInLedger`
+ * keeps-on-omit and stays guest-pinned (see below).
  *
  * Guests may only edit entries they created, and only within (and keeping
  * them in) one of their projects.
@@ -379,6 +390,7 @@ export async function updateEntry(
     lines: JournalLineInput[];
     participantMemberIds?: string[];
     projectId?: string | null;
+    countsInLedger?: boolean;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -441,6 +453,14 @@ export async function updateEntry(
     // form fully specifies the entry.
     const participantMemberIds =
       validateParticipants(data.participantMemberIds, ledgerMembers) ?? [];
+    // countsInLedger deviates from replace semantics: omitted = keep the
+    // entry's current flag, so editing an excluded entry (repayment, guest
+    // post) doesn't silently re-include it. Guests can never change it —
+    // the creation-time false sticks, mirroring the projectId pinning above.
+    const countsInLedger =
+      actor.role === "guest"
+        ? entry.countsInLedger
+        : (data.countsInLedger ?? entry.countsInLedger);
     try {
       return await journalRepository.updateEntry(
         entry.id,
@@ -448,6 +468,7 @@ export async function updateEntry(
           date: data.date,
           memo: data.memo,
           projectId: projectId ?? null,
+          countsInLedger,
           lines: lines.map((line) => ({
             accountId: line.accountId,
             debit: new Prisma.Decimal(line.debitCents).div(100),

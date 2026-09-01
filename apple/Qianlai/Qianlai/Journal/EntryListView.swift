@@ -213,6 +213,15 @@ struct EntryRow: View {
                     }
                     .foregroundStyle(.tertiary)
                 }
+                if !entry.countsInLedger {
+                    HStack(spacing: 4) {
+                        Image(systemName: "minus.circle")
+                            .font(.caption2)
+                        Text(L10n.string("journal.notCounted", defaultValue: "Not counted in ledger"))
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.tertiary)
+                }
                 ForEach(entry.lines.filter { !$0.account.isDefaultPocket && $0 != categoryLine }) { line in
                     Text(line.account.displayName)
                         .font(.caption)

@@ -241,6 +241,7 @@ struct QuickEntryView: View {
                     draft.creditAccountId = nil
                     draft.participants = []
                     draft.projectId = nil
+                    draft.countsInLedger = true
                     validationError = nil
                 }
             }
@@ -342,6 +343,22 @@ struct QuickEntryView: View {
                 // isn't in it, or the post would fail validation.
                 .onChange(of: draft.projectId) {
                     pruneParticipants()
+                }
+            }
+
+            // Guests are forced into project scope server-side, so the
+            // choice is theirs only on full-role ledgers.
+            if !isGuest {
+                Toggle(isOn: $draft.countsInLedger) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Ledger"))
+                        Text(L10n.string(
+                            "quick.countsInLedger.footer",
+                            defaultValue: "Off keeps the entry out of the ledger's journal and monthly totals — e.g. a credit-card repayment already expensed at purchase."
+                        ))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
             }
 

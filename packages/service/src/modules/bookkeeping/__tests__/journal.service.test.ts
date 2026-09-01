@@ -529,6 +529,38 @@ describe("createEntry", () => {
       expect.anything(),
     );
   });
+
+  it("defaults countsInLedger to true and passes an explicit opt-out through", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-5" });
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ countsInLedger: true }),
+      expect.anything(),
+    );
+
+    await createEntry(
+      "user-a",
+      "led-1",
+      {
+        ...baseEntryInput,
+        countsInLedger: false,
+      },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenLastCalledWith(
+      expect.objectContaining({ countsInLedger: false }),
+      expect.anything(),
+    );
+  });
 });
 
 describe("updateEntry", () => {
@@ -651,6 +683,42 @@ describe("updateEntry", () => {
     );
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });
+
+  it("keeps the current countsInLedger when omitted and honors an explicit toggle", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: false,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+
+    // Omitted: an excluded entry stays excluded across an edit.
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ countsInLedger: false }),
+      expect.anything(),
+    );
+
+    // Explicit toggle flips it.
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      countsInLedger: true,
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenLastCalledWith(
+      "e-1",
+      expect.objectContaining({ countsInLedger: true }),
+      expect.anything(),
+    );
+  });
 });
 
 describe("createEntry as guest", () => {
@@ -762,6 +830,34 @@ describe("createEntry as guest", () => {
     );
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: "proj-1" }),
+      expect.anything(),
+    );
+  });
+
+  it("forces countsInLedger=false even when the client asks to count", async () => {
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-g2" });
+    await createEntry(
+      "user-b",
+      "led-1",
+      {
+        ...baseEntryInput,
+        projectId: "proj-1",
+        countsInLedger: true,
+        lines: [
+          { accountId: "acc-food", debit: 50, credit: 0 },
+          { accountId: "acc-default", debit: 0, credit: 50 },
+        ],
+      },
+      guestAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ countsInLedger: false }),
       expect.anything(),
     );
   });
@@ -882,6 +978,31 @@ describe("updateEntry as guest", () => {
       404,
     );
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("pins countsInLedger to the entry's value for guests", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: "proj-1",
+      createdById: "user-b",
+      countsInLedger: false,
+    });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+    await updateEntry("led-1", "e-1", guestActor, {
+      date: new Date("2026-08-01T00:00:00Z"),
+      memo: "groceries",
+      countsInLedger: true,
+      lines: [
+        { accountId: "acc-food", debit: 50, credit: 0 },
+        { accountId: "acc-default", debit: 0, credit: 50 },
+      ],
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ countsInLedger: false }),
+      expect.anything(),
+    );
   });
 });
 

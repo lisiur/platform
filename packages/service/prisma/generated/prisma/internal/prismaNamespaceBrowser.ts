@@ -1046,6 +1046,7 @@ export const JournalEntryScalarFieldEnum = {
   status: 'status',
   createdById: 'createdById',
   projectId: 'projectId',
+  countsInLedger: 'countsInLedger',
   createdAt: 'createdAt'
 } as const
 
