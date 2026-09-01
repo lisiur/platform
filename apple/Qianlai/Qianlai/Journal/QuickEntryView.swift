@@ -28,6 +28,9 @@ struct QuickEntryView: View {
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
     @State private var isPosting = false
+    /// Ledger the scoped stores were last loaded for — lets the task tell
+    /// the initial load apart from a switcher tap inside the sheet.
+    @State private var loadedLedgerId: String?
 
     /// Editing seeds every field from the entry; creating starts blank.
     init(entry: JournalEntry? = nil) {
@@ -133,8 +136,10 @@ struct QuickEntryView: View {
             // pinned tabs and the amount card — zero would sit them flush.
             .contentMargins(.top, 12, for: .scrollContent)
 
-            // Pinned action row under the form: the primary save stays
-            // reachable without scrolling to the form's bottom.
+            // Pinned action row under the form: the save stays reachable
+            // without scrolling to the form's bottom. It is the sheet's
+            // only save button — the toolbar's trailing slot belongs to
+            // the ledger switcher.
             Button {
                 Task { await save() }
             } label: {
@@ -159,6 +164,10 @@ struct QuickEntryView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
+        // Disables the form and its fields only — attached before the
+        // toolbar so Cancel and the ledger switcher stay usable on a
+        // read-only ledger (switching away is the escape hatch there).
+        .disabled(!canPost)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(Text(navigationTitleText))
         .inlineNavigationBarTitle()
@@ -166,17 +175,11 @@ struct QuickEntryView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
             }
+            // The trailing slot is the ledger switcher, not a save button:
+            // the entry's target ledger is picked here while the pinned
+            // button under the form does the posting.
             ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isPosting {
-                        ProgressView()
-                    } else {
-                        Text(saveTitle)
-                    }
-                }
-                .disabled(!canPost || isPosting || draft.isSameAccount)
+                LedgerSwitcherMenu()
             }
         }
         .sheet(isPresented: $isCalculatorPresented) {
@@ -205,7 +208,6 @@ struct QuickEntryView: View {
                 selection: $draft.participants
             )
         }
-        .disabled(!canPost)
         .overlay {
             if !canPost {
                 ContentUnavailableView(
@@ -215,8 +217,33 @@ struct QuickEntryView: View {
                 )
             }
         }
-        .task {
+        // Keyed by the active ledger so a switcher tap inside the sheet
+        // reloads the ledger-scoped stores for the new target.
+        .task(id: ledgerStore.activeLedger?.id) {
             guard let ledger = ledgerStore.activeLedger else { return }
+            if loadedLedgerId != ledger.id {
+                loadedLedgerId = ledger.id
+                if editedEntry == nil {
+                    // Account, member, and project ids are all
+                    // ledger-scoped, so a fresh add drops the previous
+                    // ledger's selections; the defaults below re-apply
+                    // against the new ledger's data. Edits keep their
+                    // draft — the server rejects a cross-ledger update
+                    // and the error surfaces in `validationError`.
+                    if ledger.isGuest {
+                        // Guest ledgers hide the kind picker and are
+                        // expense-only, so the kind is forced too — a
+                        // kind picked on the previous ledger would
+                        // otherwise stick with no way to change it.
+                        draft.kind = .expense
+                    }
+                    draft.debitAccountId = nil
+                    draft.creditAccountId = nil
+                    draft.participants = []
+                    draft.projectId = nil
+                    validationError = nil
+                }
+            }
             await accountStore.load(ledgerId: ledger.id)
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             await projectStore.load(ledgerId: ledger.id)
