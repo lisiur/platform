@@ -308,20 +308,23 @@ struct ProjectDetailView: View {
     private func settlementSection(_ report: ProjectReport) -> some View {
         Section {
             ForEach(report.settlement) { row in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(row.name)
-                        Spacer()
-                        Text(Money.format(row.balance, currency: ledger?.currency ?? ""))
-                            .font(.callout.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(row.balance > 0 ? Color.green : row.balance < 0 ? Color.red : .secondary)
+                HStack(spacing: 10) {
+                    avatar(row.name, row.avatar)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(row.name)
+                            Spacer()
+                            Text(Money.format(row.balance, currency: ledger?.currency ?? ""))
+                                .font(.callout.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(row.balance > 0 ? Color.green : row.balance < 0 ? Color.red : .secondary)
+                        }
+                        HStack(spacing: 12) {
+                            Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger?.currency ?? ""))")
+                            Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(row.share, currency: ledger?.currency ?? ""))")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
-                    HStack(spacing: 12) {
-                        Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger?.currency ?? ""))")
-                        Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(row.share, currency: ledger?.currency ?? ""))")
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
             }
         } header: {
@@ -338,7 +341,8 @@ struct ProjectDetailView: View {
     private func membersSection(_ project: QianlaiProject, _ ledger: QianlaiLedger) -> some View {
         Section {
             ForEach(project.members) { member in
-                HStack {
+                HStack(spacing: 10) {
+                    avatar(member.displayName, member.user?.avatar)
                     Text(member.displayName)
                     Spacer()
                     if canManage, project.isActive {
@@ -367,20 +371,46 @@ struct ProjectDetailView: View {
                 }
             }
         } header: {
-            Text(L10n.string("projects.members", defaultValue: "Members"))
-        } footer: {
-            if canManage, project.isActive {
-                Button {
-                    isInvitePresented = true
-                } label: {
-                    Label(
-                        L10n.string("projects.invite", defaultValue: "Invite via Code"),
-                        systemImage: "qrcode"
-                    )
+            HStack {
+                Text(L10n.string("projects.members", defaultValue: "Members"))
+                Spacer()
+                if canManage, project.isActive {
+                    Button {
+                        isInvitePresented = true
+                    } label: {
+                        Label(
+                            L10n.string("projects.invite", defaultValue: "Invite via Code"),
+                            systemImage: "qrcode"
+                        )
+                    }
+                    .buttonStyle(.borderless)
                 }
-                .buttonStyle(.borderless)
             }
         }
+    }
+
+    private func avatar(_ name: String, _ path: String?) -> some View {
+        let initial = String(name.prefix(1)).uppercased()
+        return Group {
+            if let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(initial)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            } else {
+                Text(initial)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 36, height: 36)
+        .background(Circle().fill(Color.accentColor.opacity(0.85)))
+        .clipShape(Circle())
     }
 
     private func addableMembers(_ project: QianlaiProject) -> [LedgerMember] {
