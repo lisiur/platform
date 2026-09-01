@@ -43,12 +43,24 @@ struct QuickEntryView: View {
     @State private var accountStore = AccountStore()
     @State private var memberStore = MemberStore()
     @State private var projectStore = ProjectStore()
+    /// The app-level project store that owns the ledger switcher's scope —
+    /// distinct from the local `projectStore` above, which only feeds this
+    /// sheet's picker. A project scoped there pins new entries to itself.
+    @Environment(ProjectStore.self) private var appProjectStore
 
     /// Whether the viewer is a guest on this ledger — restricts to expense
     /// entries inside their projects (kind picker and pay-side account row
     /// are hidden, project assignment is mandatory).
     private var isGuest: Bool {
         ledgerStore.activeLedger?.isGuest ?? false
+    }
+
+    /// The project currently claiming scope in the ledger switcher — an
+    /// explicit selection for any role, the auto-picked first project for
+    /// guests. Non-nil fixes new entries to it in place of the picker.
+    private var scopedProject: QianlaiProject? {
+        guard let ledger = ledgerStore.activeLedger else { return nil }
+        return appProjectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)
     }
 
     /// Who can be tagged on this entry. When the entry targets a project
@@ -250,6 +262,13 @@ struct QuickEntryView: View {
             await projectStore.load(ledgerId: ledger.id)
             applyExpenseCategoryDefault()
             applyGuestProjectDefault()
+            applyScopedProjectDefault()
+        }
+        // The switcher inside this sheet can change the scope mid-edit:
+        // follow it so a pinned entry never outlives its scope, and an
+        // unscoped sheet picks the scope up as soon as one is claimed.
+        .onChange(of: scopedProject?.id) {
+            applyScopedProjectDefault()
         }
         // The amount is the first thing to enter on a new entry, so the
         // keypad opens with the sheet — editing already has a prefilled
@@ -328,7 +347,14 @@ struct QuickEntryView: View {
                     .onSubmit { dismissKeyboard() }
             }
 
-            if !isGuest, !projectStore.projects.isEmpty {
+            if editedEntry == nil, let scopedProject {
+                // Project scope pins the entry: read-only row instead of
+                // the picker.
+                LabeledContent("Project") {
+                    Text(scopedProject.name)
+                        .foregroundStyle(.secondary)
+                }
+            } else if !isGuest, !projectStore.projects.isEmpty {
                 Picker("Project", selection: Binding(
                     get: { draft.projectId ?? "" },
                     set: { draft.projectId = $0.isEmpty ? nil : $0 }
@@ -477,11 +503,24 @@ struct QuickEntryView: View {
     }
 
     /// A guest's only project pre-fills the assignment so they only have to
-    /// pick the category and the amount. Multiple projects stay unassigned
-    /// until the guest explicitly chooses one (validated server-side too).
+    /// pick the category and the amount. With multiple projects the scoped
+    /// default below takes over instead — guests auto-claim the first
+    /// project, so the draft is still pinned rather than left unassigned
+    /// (validated server-side too).
     private func applyGuestProjectDefault() {
         guard isGuest, draft.projectId == nil, projectStore.projects.count == 1 else { return }
         draft.projectId = projectStore.projects[0].id
+    }
+
+    /// A project scoped in the ledger switcher fixes new entries: the draft
+    /// follows the scope — live, if it changes while the sheet is open — so
+    /// everything recorded under a project scope belongs to that project.
+    /// Edits keep the entry's own assignment.
+    private func applyScopedProjectDefault() {
+        guard editedEntry == nil, let project = scopedProject else { return }
+        guard draft.projectId != project.id else { return }
+        draft.projectId = project.id
+        pruneParticipants()
     }
 
     /// Drops picked participants who aren't members of the entry's current

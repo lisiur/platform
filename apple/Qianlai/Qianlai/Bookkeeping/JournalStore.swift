@@ -69,6 +69,11 @@ final class JournalStore {
 
     func reload() async {
         guard let ledgerId else { return }
+        // An immediate reload supersedes any pending debounced one — e.g.
+        // the filter didSet that fired just before a ledger switch's load —
+        // or it would refetch the same query right behind this one.
+        reloadTask?.cancel()
+        reloadTask = nil
         // Warm refreshes (pull-to-refresh, post/edit/delete reloads) stay
         // silent: the refresh control already signals the activity. Every
         // @Observable write notifies even when the value is unchanged, and

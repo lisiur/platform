@@ -1,6 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import { userLookupRepository } from "#modules/identity/public";
 import { assertLedgerWritable, requireProjectAccess } from "./access";
 import { journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
@@ -461,6 +462,29 @@ export async function projectReport(userId: string, projectId: string) {
       { name: m.user?.name ?? m.userId, avatar: m.user?.avatar ?? null },
     ]),
   );
+  // Current members' names come from the membership include above; entries
+  // can still reference people outside the current member list: a creator
+  // who has left the ledger entirely (only account deletion clears
+  // createdById), or a tagged participant removed from this project who
+  // remains a ledger member. Resolve those straight from the User table so
+  // settlement rows render real names and avatars, never raw ids.
+  const referencedUserIds = new Set<string>();
+  for (const entry of entries) {
+    if (entry.createdById) referencedUserIds.add(entry.createdById);
+    for (const p of entry.participants) {
+      referencedUserIds.add(p.ledgerMember.userId);
+    }
+  }
+  const departedUserIds = [...referencedUserIds].filter(
+    (id) => !memberInfo.has(id),
+  );
+  if (departedUserIds.length > 0) {
+    const departedUsers =
+      await userLookupRepository.findManyPublicByIds(departedUserIds);
+    for (const user of departedUsers) {
+      memberInfo.set(user.id, { name: user.name, avatar: user.avatar });
+    }
+  }
   const settlement = new Map<string, SettlementRow>();
   const rowFor = (userId: string): SettlementRow => {
     let row = settlement.get(userId);

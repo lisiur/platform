@@ -352,7 +352,7 @@ struct ProjectDetailView: View {
                     }
                 }
             }
-            if canManage, project.isActive {
+            if canManage, project.isActive, !addableMembers(project).isEmpty {
                 Menu {
                     ForEach(addableMembers(project)) { member in
                         Button(member.displayName) {
@@ -365,7 +365,6 @@ struct ProjectDetailView: View {
                         systemImage: "person.badge.plus"
                     )
                 }
-                .disabled(addableMembers(project).isEmpty)
             }
         } header: {
             Text(L10n.string("projects.members", defaultValue: "Members"))

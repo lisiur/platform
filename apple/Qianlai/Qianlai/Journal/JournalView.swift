@@ -12,6 +12,9 @@ import SwiftUI
 struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var store
+    /// The app-level project store that owns the ledger switcher's scope —
+    /// the local `projectStore` below only feeds the filter sheet's picker.
+    @Environment(ProjectStore.self) private var appProjectStore
     @State private var memberStore = MemberStore()
     @State private var projectStore = ProjectStore()
     /// Always-visible search field pinned above the list. Deliberately not
@@ -45,9 +48,16 @@ struct JournalView: View {
         }
         .task(id: ledgerStore.activeLedger?.id) {
             guard let id = ledgerStore.activeLedger?.id else { return }
+            syncScopeFilter()
             await store.load(ledgerId: id)
             await memberStore.load(ledgerId: id, myUserId: nil)
             await projectStore.load(ledgerId: id)
+        }
+        // The scope can change while this tab stays alive (switcher on the
+        // dashboard, ledger switcher inside the quick-entry sheet) or fill
+        // in late as the project cache loads — follow it immediately.
+        .onChange(of: scopedProject?.id) {
+            syncScopeFilter()
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             searchBar
@@ -177,6 +187,27 @@ struct JournalView: View {
             return memberStore.members.filter { memberUserIds.contains($0.userId) }
         }
         return memberStore.members
+    }
+
+    /// The project currently claiming scope in the ledger switcher — an
+    /// explicit selection for any role, the auto-picked first project for
+    /// guests. A non-nil scope limits the journal to that project's
+    /// entries; unassigned entries only surface ledger-wide.
+    private var scopedProject: QianlaiProject? {
+        guard let ledger = ledgerStore.activeLedger else { return nil }
+        return appProjectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)
+    }
+
+    /// Forces the store's project filter onto the switcher's scope. Runs
+    /// before `store.load` so a ledger switch's first fetch is already
+    /// scoped, and again from `.onChange(of: scopedProject?.id)` — which
+    /// fires even while this tab is offscreen — on live scope changes; a
+    /// nil scope lifts the filter.
+    private func syncScopeFilter() {
+        let scopedId = scopedProject?.id
+        if store.projectFilterId != scopedId {
+            store.projectFilterId = scopedId
+        }
     }
 }
 

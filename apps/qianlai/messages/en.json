@@ -347,13 +347,13 @@
         "sameAccount": "Transfer accounts must be different",
         "projectRequired": "Choose a project"
       },
-    "project": "Project",
-    "noProject": "Personal (no project)",
-    "projectHint": "Optionally file this entry under a project",
-    "projectGuestHint": "Your entries are recorded inside the selected project",
-    "countsInLedger": "Count in ledger",
-    "countsInLedgerHint": "Unchecked keeps this entry out of the ledger's journal and monthly totals — e.g. a credit-card repayment already expensed at purchase."
-  },
+      "project": "Project",
+      "noProject": "Personal (no project)",
+      "projectHint": "Optionally file this entry under a project",
+      "projectGuestHint": "Your entries are recorded inside the selected project",
+      "countsInLedger": "Count in ledger",
+      "countsInLedgerHint": "Unchecked keeps this entry out of the ledger's journal and monthly totals — e.g. a credit-card repayment already expensed at purchase."
+    },
     "dateLabel": "Date",
     "memoPlaceholder": "e.g. Weekly groceries",
     "save": "Post Entry",
