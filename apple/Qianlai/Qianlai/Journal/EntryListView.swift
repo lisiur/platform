@@ -160,11 +160,11 @@ extension EntryListView where Header == EmptyView {
     }
 }
 
-/// One journal entry card: category icon + title, HH:mm (the enclosing day
-/// group header carries the date), memo, other account names, participants,
-/// signed amount. Shared by the dashboard and journal list. Lines
-/// posting against the seeded default pocket are hidden, and the amount
-/// follows the money flow: expenses negative, income positive, each
+/// One journal entry card: category icon + title, HH:mm + creator (the
+/// enclosing day group header carries the date), memo, other account names,
+/// participants, signed amount. Shared by the dashboard and journal list.
+/// Lines posting against the seeded default pocket are hidden, and the
+/// amount follows the money flow: expenses negative, income positive, each
 /// prefixed with the ledger currency's symbol.
 struct EntryRow: View {
     /// Dependency marker: an in-app language switch re-injects `\.locale`,
@@ -188,9 +188,17 @@ struct EntryRow: View {
                         .font(.callout.weight(.semibold).monospacedDigit())
                         .foregroundStyle(headlineAmount.color)
                 }
-                Text(AppDates.formatEntryTime(entry.date))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text(AppDates.formatEntryTime(entry.date))
+                    if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
+                        Text("·")
+                        Text(creatorName)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
                 if let memo = entry.memo, !memo.isEmpty {
                     Text(memo)
                         .font(.caption)
