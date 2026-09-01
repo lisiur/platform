@@ -13,12 +13,12 @@ final class QianlaiModelsTests: XCTestCase {
     // MARK: - Roles
 
     func testRoleRanking() {
-        XCTAssertTrue(LedgerRole.owner.atLeast(.owner))
-        XCTAssertTrue(LedgerRole.owner.atLeast(.editor))
-        XCTAssertTrue(LedgerRole.editor.atLeast(.editor))
-        XCTAssertFalse(LedgerRole.editor.atLeast(.owner))
-        XCTAssertFalse(LedgerRole.viewer.atLeast(.editor))
-        XCTAssertTrue(LedgerRole.viewer.atLeast(.viewer))
+        XCTAssertTrue(LedgerPolicy.atLeast(.owner, .owner))
+        XCTAssertTrue(LedgerPolicy.atLeast(.owner, .editor))
+        XCTAssertTrue(LedgerPolicy.atLeast(.editor, .editor))
+        XCTAssertFalse(LedgerPolicy.atLeast(.editor, .owner))
+        XCTAssertFalse(LedgerPolicy.atLeast(.viewer, .editor))
+        XCTAssertTrue(LedgerPolicy.atLeast(.viewer, .viewer))
     }
 
     func testLedgerPermissions() {

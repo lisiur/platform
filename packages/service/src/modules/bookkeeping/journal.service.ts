@@ -19,6 +19,7 @@ import { type EntryWindow, journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
+import { projectRepository } from "./project.repository";
 
 export type JournalLineInput = {
   /**
@@ -259,9 +260,16 @@ export async function createEntry(
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
     ]);
+    const participantMemberIds = await withAutoParticipants(
+      tx,
+      projectId,
+      data.participantMemberIds,
+      ledgerMembers,
+    );
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
       projectId,
+      participantMemberIds,
       // Snapshot at creation: guest entries are group spending that settles
       // inside the project, so they never count in ledger-wide surfaces —
       // regardless of what the client asked for. A later role change never
@@ -370,6 +378,40 @@ function validateParticipants(
 }
 
 /**
+ * Freezes a project entry's split set at write time. An entry posted into a
+ * project without explicit participants involves the project's whole current
+ * membership, so tag them now: the settlement report splits each entry
+ * across its tagged participants, and without this snapshot the legacy
+ * fallback (untagged = members at read time) would re-split history whenever
+ * membership changes — a member who leaves stops owing their share of an
+ * entry they consumed. Project members are keyed by userId while
+ * participants are keyed by ledger membership, so the ids resolve through
+ * the ledger roster (project members who left the ledger drop out silently;
+ * validateParticipants would reject them). Ledger-wide entries keep the
+ * optional-participant state — no settlement semantics apply there.
+ */
+async function withAutoParticipants(
+  tx: Prisma.TransactionClient,
+  projectId: string | null | undefined,
+  participantMemberIds: string[] | undefined,
+  ledgerMembers: Array<{ id: string; userId: string }>,
+): Promise<string[] | undefined> {
+  if (participantMemberIds?.length || !projectId) return participantMemberIds;
+  const project = await projectRepository.findByIdWithMembers(projectId, tx);
+  if (!project) return participantMemberIds;
+  const ledgerMemberIdByUserId = new Map(
+    ledgerMembers.map((member) => [member.userId, member.id]),
+  );
+  return [
+    ...new Set(
+      project.members
+        .map((member) => ledgerMemberIdByUserId.get(member.userId))
+        .filter((id): id is string => id !== undefined),
+    ),
+  ].sort();
+}
+
+/**
  * Replaces an entry's date, memo, lines, project, and participants. Mirrors
  * create: the ledger row is locked so line validation runs against a
  * transaction-consistent account list and the archived guard is
@@ -450,9 +492,15 @@ export async function updateEntry(
       expenseOnly: actor.role === "guest",
     });
     // Replace semantics: omitted participants clear the list, so an edit
-    // form fully specifies the entry.
-    const participantMemberIds =
-      validateParticipants(data.participantMemberIds, ledgerMembers) ?? [];
+    // form fully specifies the entry — and a project entry cleared to none
+    // is re-tagged with the project's current members (split-set freeze,
+    // mirroring create).
+    const participantMemberIds = await withAutoParticipants(
+      tx,
+      projectId,
+      validateParticipants(data.participantMemberIds, ledgerMembers) ?? [],
+      ledgerMembers,
+    );
     // countsInLedger deviates from replace semantics: omitted = keep the
     // entry's current flag, so editing an excluded entry (repayment, guest
     // post) doesn't silently re-include it. Guests can never change it —

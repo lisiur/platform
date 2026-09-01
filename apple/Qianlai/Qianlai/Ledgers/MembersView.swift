@@ -144,7 +144,7 @@ struct MembersView: View {
                 }
             }
             Spacer()
-            if member.role == .owner {
+            if LedgerPolicy.isOwner(member.role) {
                 BadgeView(text: member.role.label, color: .orange)
             } else if store.isOwner, member.userId != myUserId {
                 Menu {

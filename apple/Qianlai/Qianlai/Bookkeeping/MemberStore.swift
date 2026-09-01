@@ -36,7 +36,7 @@ final class MemberStore {
             )
             members = response.members
             isOwner = members.contains {
-                $0.userId == myUserId && $0.role == .owner
+                $0.userId == myUserId && LedgerPolicy.isOwner($0.role)
             }
             loadError = nil
         } catch {

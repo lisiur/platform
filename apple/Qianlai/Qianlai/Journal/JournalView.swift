@@ -134,6 +134,17 @@ struct JournalView: View {
                             Text(project.name).tag(project.id)
                         }
                     }
+                    // The switcher's scope owns the project while one is
+                    // active — the picker stays visible so the scope is
+                    // discoverable, but can't be changed here.
+                    .disabled(scopedProject != nil)
+                } footer: {
+                    if scopedProject != nil {
+                        Text(L10n.string(
+                            "journal.project.scopeFooter",
+                            defaultValue: "The journal is scoped to this project. Change the project from the ledger switcher."
+                        ))
+                    }
                 }
             }
             // Ledger-wide scope only: a project filter always shows every
@@ -202,9 +213,11 @@ struct JournalView: View {
     /// before `store.load` so a ledger switch's first fetch is already
     /// scoped, and again from `.onChange(of: scopedProject?.id)` — which
     /// fires even while this tab is offscreen — on live scope changes; a
-    /// nil scope lifts the filter.
+    /// nil scope lifts the filter. Also records the scope so the filter
+    /// sheet can't change it and Clear restores it.
     private func syncScopeFilter() {
         let scopedId = scopedProject?.id
+        if store.scopeProjectId != scopedId { store.scopeProjectId = scopedId }
         if store.projectFilterId != scopedId {
             store.projectFilterId = scopedId
         }

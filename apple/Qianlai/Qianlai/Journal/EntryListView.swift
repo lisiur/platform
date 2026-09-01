@@ -25,6 +25,9 @@ struct EntryListView<Header: View>: View {
     /// Whether the "posting requires editor access" footnote renders.
     /// Statement drill-downs pass false — that page is read-only analysis.
     var showsPostHint = true
+    /// Optional per-entry detail line under the memo (settlement
+    /// drill-downs: this member's paid/share contribution on the entry).
+    var entryDetail: ((JournalEntry) -> String?)?
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
@@ -33,11 +36,13 @@ struct EntryListView<Header: View>: View {
         ledger: QianlaiLedger,
         emptyMessage: String,
         showsPostHint: Bool = true,
+        entryDetail: ((JournalEntry) -> String?)? = nil,
         header: Header? = nil
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
+        self.entryDetail = entryDetail
         self.header = header
     }
 
@@ -81,7 +86,7 @@ struct EntryListView<Header: View>: View {
                     // Me page.
                     Section {
                         ForEach(group.entries) { entry in
-                            EntryRow(entry: entry, currency: ledger.currency)
+                            EntryRow(entry: entry, currency: ledger.currency, detail: entryDetail?(entry))
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if ledger.canPost {
                                         Button(role: .destructive) {
@@ -164,8 +169,19 @@ struct EntryListView<Header: View>: View {
 
 extension EntryListView where Header == EmptyView {
     /// List without a leading header row (the Journal).
-    init(ledger: QianlaiLedger, emptyMessage: String, showsPostHint: Bool = true) {
-        self.init(ledger: ledger, emptyMessage: emptyMessage, showsPostHint: showsPostHint, header: nil)
+    init(
+        ledger: QianlaiLedger,
+        emptyMessage: String,
+        showsPostHint: Bool = true,
+        entryDetail: ((JournalEntry) -> String?)? = nil
+    ) {
+        self.init(
+            ledger: ledger,
+            emptyMessage: emptyMessage,
+            showsPostHint: showsPostHint,
+            entryDetail: entryDetail,
+            header: nil
+        )
     }
 }
 
@@ -183,6 +199,9 @@ struct EntryRow: View {
 
     let entry: JournalEntry
     let currency: String
+    /// Optional secondary caption (settlement drill-downs: this member's
+    /// paid/share on the entry); nil renders nothing.
+    var detail: String?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -212,6 +231,11 @@ struct EntryRow: View {
                     Text(memo)
                         .font(.caption)
                         .lineLimit(2)
+                }
+                if let detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                 }
                 if let project = entry.project {
                     HStack(spacing: 4) {

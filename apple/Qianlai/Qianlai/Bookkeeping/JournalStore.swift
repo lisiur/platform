@@ -23,10 +23,11 @@ final class JournalStore {
     private(set) var isLoadingMore = false
     private(set) var loadError: String?
     private(set) var ledgerId: String?
-    /// True once the first reload finished. Background refetches afterwards
+    /// True once the first reload succeeded. Background refetches afterwards
     /// must keep the current content (rows or empty state) on screen instead
     /// of swapping in a blocking spinner — that swap was flashing the empty
-    /// state and bouncing the layout under the search bar.
+    /// state and bouncing the layout under the search bar. A failed or
+    /// cancelled first load leaves this false so the retry announces itself.
     private(set) var hasLoadedOnce = false
 
     var searchQuery = "" { didSet { guard !suppressReload, oldValue != searchQuery else { return }; scheduleReload() } }
@@ -46,6 +47,11 @@ final class JournalStore {
     /// ledger's books (guest posts, opted-out repayments). Irrelevant while
     /// a project filter is active — a project always shows all its entries.
     var includeExcluded = false { didSet { scheduleReload() } }
+    /// Project the page is hard-scoped to (the Journal follows the ledger
+    /// switcher's scope). Not a user filter: the filter sheet can't change
+    /// it, `clearFilters` restores it instead of lifting it, and
+    /// `hasActiveFilters` ignores it. nil = ledger-wide page.
+    var scopeProjectId: String?
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
     /// a single delayed reload so the list doesn't thrash mid-transition.
@@ -58,7 +64,9 @@ final class JournalStore {
         reloadTask = Task {
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled else { return }
-            await reload()
+            // Runs the fetch as THIS task's body — the slot keeps pointing
+            // at it so a later change still cancels the in-flight request.
+            await performReload()
         }
     }
 
@@ -75,13 +83,21 @@ final class JournalStore {
         await reload()
     }
 
+    /// Immediate reload (pull-to-refresh, retry, post/edit/delete, ledger
+    /// switch): supersedes any pending debounced task — it would refetch
+    /// the same query right behind this one — then fetches inline.
     func reload() async {
-        guard let ledgerId else { return }
-        // An immediate reload supersedes any pending debounced one — e.g.
-        // the filter didSet that fired just before a ledger switch's load —
-        // or it would refetch the same query right behind this one.
         reloadTask?.cancel()
         reloadTask = nil
+        await performReload()
+    }
+
+    /// The fetch itself. Never cancels the calling task: when it runs as
+    /// the debounced task's body, cancelling the slot's task would cancel
+    /// the request mid-flight (which surfaced as a network error on every
+    /// filter change until the user tapped retry).
+    private func performReload() async {
+        guard let ledgerId else { return }
         // Warm refreshes (pull-to-refresh, post/edit/delete reloads) stay
         // silent: the refresh control already signals the activity. Every
         // @Observable write notifies even when the value is unchanged, and
@@ -92,7 +108,6 @@ final class JournalStore {
         if announcesLoad { isLoading = true }
         defer {
             if isLoading { isLoading = false }
-            if !hasLoadedOnce { hasLoadedOnce = true }
         }
         do {
             let response: EntriesResponse = try await client.request(
@@ -115,8 +130,16 @@ final class JournalStore {
             if entries != response.entries { entries = response.entries }
             if total != response.total { total = response.total }
             if loadError != nil { loadError = nil }
+            if !hasLoadedOnce { hasLoadedOnce = true }
         } catch {
             guard self.ledgerId == ledgerId else { return }
+            // A cancelled fetch is a superseded one — a newer reload owns
+            // the content now — so don't clear the list or flash an error.
+            if error is CancellationError { return }
+            // APIClient wraps URLSession errors in APIError.transport, so a
+            // fetch cancelled by a superseding reload surfaces wrapped.
+            if let apiError = error as? APIError, case .transport(let urlError) = apiError,
+               urlError.code == .cancelled { return }
             if !entries.isEmpty { entries = [] }
             if total != 0 { total = 0 }
             if loadError != error.localizedDescription {
@@ -197,7 +220,8 @@ final class JournalStore {
         if fromDate != nil { fromDate = nil }
         if toDate != nil { toDate = nil }
         if participantMemberId != nil { participantMemberId = nil }
-        if projectFilterId != nil { projectFilterId = nil }
+        // A scoped page keeps its scope; an unscoped one drops the pick.
+        if projectFilterId != scopeProjectId { projectFilterId = scopeProjectId }
         if accountId != nil { accountId = nil }
         if accountType != nil { accountType = nil }
         if memberUserId != nil { memberUserId = nil }
@@ -207,7 +231,7 @@ final class JournalStore {
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil || accountId != nil || accountType != nil || memberUserId != nil || includeExcluded
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || includeExcluded
     }
 
     private static func query(

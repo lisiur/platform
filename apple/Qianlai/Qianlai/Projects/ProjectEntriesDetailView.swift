@@ -79,7 +79,8 @@ struct ProjectEntriesDetailView: View {
         EntryListView(
             ledger: ledger,
             emptyMessage: emptyMessage,
-            showsPostHint: false
+            showsPostHint: false,
+            entryDetail: settlementEntryDetail
         )
         .environment(entryStore)
         .navigationTitle(Text(title))
@@ -115,5 +116,100 @@ struct ProjectEntriesDetailView: View {
     private func refreshReport() async {
         await projectStore.load(ledgerId: ledger.id)
         await projectStore.loadReport(ledgerId: ledger.id, projectId: scope.projectId)
+    }
+
+    private var settlementUserId: String? {
+        if case .settlement(_, let userId, _) = scope { return userId }
+        return nil
+    }
+
+    private var settlementEntryDetail: ((JournalEntry) -> String?)? {
+        guard settlementUserId != nil else { return nil }
+        return { [self] entry in detail(for: entry) }
+    }
+
+    /// Per-row caption: what this entry contributed to the member's
+    /// settlement row, so the drill-down reconciles with the table.
+    private func detail(for entry: JournalEntry) -> String? {
+        guard let userId = settlementUserId else { return nil }
+        let (paid, share) = SettlementSplit.entryContribution(
+            entry: entry,
+            userId: userId,
+            memberUserIds: currentMemberUserIds
+        )
+        let paidLabel = L10n.string("projects.paid", defaultValue: "Paid")
+        let shareLabel = L10n.string("projects.share", defaultValue: "Share")
+        return "\(paidLabel) \(Money.format(Double(paid) / 100, currency: ledger.currency)) · \(shareLabel) \(Money.format(Double(share) / 100, currency: ledger.currency))"
+    }
+
+    private var currentMemberUserIds: [String]? {
+        projectStore.projects(for: ledger.id)
+            .first { $0.id == scope.projectId }?
+            .members
+            .map(\.userId)
+    }
+}
+
+/// Client-side mirror of the report's settlement math (project.service.ts):
+/// per entry, value = expense portion − income portion in integer cents;
+/// the creator fronts the value; the split set — tagged participants (the
+/// posting-time membership snapshot; new entries always carry one), else
+/// current members (legacy untagged entries only) — owes equal shares with
+/// the remainder going to the earliest sorted user ids. Kept in exact step
+/// so each row's Paid/Share sums reconcile with the settlement table's
+/// totals.
+private enum SettlementSplit {
+    static func entryContribution(
+        entry: JournalEntry,
+        userId: String,
+        memberUserIds: [String]?
+    ) -> (paid: Int, share: Int) {
+        let value = entryValueCents(entry)
+        let paid = entry.createdById == userId ? value : 0
+
+        let tagged = (entry.participants ?? []).compactMap { $0.user?.id }
+        let splitUserIds: [String]
+        if tagged.isEmpty {
+            // Legacy entries only: new project entries are auto-tagged at
+            // posting (journal.service withAutoParticipants), so their
+            // split set never shifts under membership changes. Untagged
+            // entries split across current members at read time; without
+            // the member list the share can't be computed honestly, so the
+            // share half contributes nothing (the row still shows it as
+            // zero).
+            guard let memberUserIds else { return (paid, 0) }
+            splitUserIds = memberUserIds.sorted()
+        } else {
+            splitUserIds = Array(Set(tagged)).sorted()
+        }
+        guard value != 0, let index = splitUserIds.firstIndex(of: userId) else {
+            return (paid, 0)
+        }
+        let n = splitUserIds.count
+        let base = floorDiv(value, n)
+        let remainder = value - base * n
+        return (paid, base + (index < remainder ? 1 : 0))
+    }
+
+    private static func entryValueCents(_ entry: JournalEntry) -> Int {
+        var value = 0
+        for line in entry.lines {
+            let debit = Int((line.debit * 100).rounded())
+            let credit = Int((line.credit * 100).rounded())
+            switch line.account.type {
+            case .expense: value += debit - credit
+            case .income: value -= credit - debit
+            case .asset, .liability, .equity: break
+            }
+        }
+        return value
+    }
+
+    /// Floor division with JS Math.floor semantics — Swift's `/` truncates
+    /// toward zero, and negative values (income-heavy entries) must floor
+    /// like the server does.
+    private static func floorDiv(_ a: Int, _ b: Int) -> Int {
+        let q = a.quotientAndRemainder(dividingBy: b)
+        return q.remainder != 0 && (q.remainder < 0) != (b < 0) ? q.quotient - 1 : q.quotient
     }
 }

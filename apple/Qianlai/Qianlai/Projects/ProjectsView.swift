@@ -62,7 +62,7 @@ struct ProjectsView: View {
             }
         }
         .toolbar {
-            if ledger.isActive && ledger.myRole.atLeast(.editor) {
+            if LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive) {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isShowingNewProject = true
@@ -154,10 +154,12 @@ struct ProjectDetailView: View {
 
     private var canManage: Bool {
         guard let ledger else { return false }
-        return ledger.isActive && ledger.myRole.atLeast(.editor)
+        return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
-    private var isOwner: Bool { ledger?.myRole == .owner }
+    private var isOwner: Bool {
+        ledger.map { LedgerPolicy.isOwner($0.myRole) } ?? false
+    }
 
     var body: some View {
         Group {
@@ -356,7 +358,7 @@ struct ProjectDetailView: View {
                                 Spacer()
                                 Text(Money.format(row.balance, currency: ledger.currency))
                                     .font(.callout.weight(.semibold).monospacedDigit())
-                                    .foregroundStyle(row.balance > 0 ? Color.green : row.balance < 0 ? Color.red : .secondary)
+                                    .foregroundStyle(row.balance > 0 ? Color.income : row.balance < 0 ? Color.expense : .secondary)
                             }
                             HStack(spacing: 12) {
                                 Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger.currency))")

@@ -15,20 +15,6 @@ enum LedgerRole: String, Codable, Hashable {
     case viewer
     case guest
 
-    /// Mirrors @repo/shared ROLE_RANK: owner 3 > editor 2 > viewer 1 > guest 0.
-    var rank: Int {
-        switch self {
-        case .owner: 3
-        case .editor: 2
-        case .viewer: 1
-        case .guest: 0
-        }
-    }
-
-    func atLeast(_ minimum: LedgerRole) -> Bool {
-        rank >= minimum.rank
-    }
-
     var label: String {
         switch self {
         case .owner: L10n.string("role.owner", defaultValue: "Owner")
@@ -90,10 +76,10 @@ struct QianlaiLedger: Codable, Identifiable, Hashable {
     /// Editors and owners may post entries / manage accounts on active
     /// ledgers; guests post too — restricted server-side to expense records
     /// inside their projects.
-    var canPost: Bool { isActive && (myRole.atLeast(.editor) || myRole == .guest) }
+    var canPost: Bool { LedgerPolicy.canPost(role: myRole, ledgerActive: isActive) }
     /// True when the viewer is a project-scoped guest on this ledger: they
     /// only see entries of their projects and record expenses against them.
-    var isGuest: Bool { myRole == .guest }
+    var isGuest: Bool { LedgerPolicy.isGuest(myRole) }
 }
 
 // MARK: - Accounts
@@ -373,8 +359,9 @@ struct ProjectMemberRow: Codable, Identifiable, Hashable {
     }
 }
 
-/// A sub-scope of a ledger that tags entries and scopes guest access; the
-/// member list defines the settlement participant set.
+/// A sub-scope of a ledger that tags entries and scopes guest access; its
+/// membership at posting time is snapshotted onto an entry as participants —
+/// the settlement split set.
 struct QianlaiProject: Codable, Identifiable, Hashable {
     let id: String
     let ledgerId: String

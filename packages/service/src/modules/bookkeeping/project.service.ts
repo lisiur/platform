@@ -559,6 +559,10 @@ export async function projectReport(userId: string, projectId: string) {
       rowFor(entry.createdById).paidCents += valueCents;
     }
 
+    // Tagged participants are the creation-time snapshot of who owes (see
+    // withAutoParticipants in journal.service). The untagged fallback is
+    // legacy-only — entries posted before auto-tagging — and splits across
+    // the current membership at read time.
     const splitUserIds = entry.participants.length
       ? [
           ...new Set(entry.participants.map((p) => p.ledgerMember.userId)),

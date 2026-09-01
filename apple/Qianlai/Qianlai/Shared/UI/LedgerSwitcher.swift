@@ -25,7 +25,7 @@ struct LedgerSwitcherMenu: View {
     }
 
     private var ownLedgers: [QianlaiLedger] {
-        ledgerStore.activeLedgers.filter { $0.myRole == .owner }
+        ledgerStore.activeLedgers.filter { LedgerPolicy.isOwner($0.myRole) }
     }
 
     /// One "My Projects" row — a project the current user is an explicit
@@ -57,7 +57,7 @@ struct LedgerSwitcherMenu: View {
     /// ledgers are hidden entirely and their projects surface under
     /// "My Projects" instead.
     private var joinedLedgers: [QianlaiLedger] {
-        ledgerStore.activeLedgers.filter { $0.myRole != .owner && !$0.isGuest }
+        ledgerStore.activeLedgers.filter { !LedgerPolicy.isOwner($0.myRole) && !$0.isGuest }
     }
 
     /// Every active ledger can contribute to "My Projects", so all of their

@@ -54,10 +54,10 @@ struct LedgersView: View {
         }
     }
 
-    /// Active ledgers the user owns (`myRole == .owner`). Rendered in the
+    /// Active ledgers the user owns (`LedgerPolicy.isOwner`). Rendered in the
     /// "My Ledgers" section.
     private var ownActiveLedgers: [QianlaiLedger] {
-        ledgerStore.activeLedgers.filter { $0.myRole == .owner }
+        ledgerStore.activeLedgers.filter { LedgerPolicy.isOwner($0.myRole) }
     }
 
     /// Active ledgers / projects the user joined but doesn't own. Editor /
@@ -65,7 +65,7 @@ struct LedgersView: View {
     /// projects the user was invited to (when `expandGuestLedgers` is on).
     private var joinedActiveEntries: [Entry] {
         ledgerStore.activeLedgers.flatMap { ledger -> [Entry] in
-            if ledger.myRole == .owner {
+            if LedgerPolicy.isOwner(ledger.myRole) {
                 return []
             }
             if ledger.isGuest {
@@ -287,7 +287,7 @@ struct LedgersView: View {
     }
 
     private func row(_ ledger: QianlaiLedger) -> some View {
-        let isOwner = ledger.myRole == .owner
+        let isOwner = LedgerPolicy.isOwner(ledger.myRole)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 if ledger.isDefault {

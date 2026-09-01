@@ -580,13 +580,22 @@ struct QuickEntryView: View {
         }
     }
 
-    /// Trailing label of the Participants row: selected names, or the
-    /// "Not selected" sentinel — never a blank trailing label.
+    /// Trailing label of the Participants row: selected names, or a
+    /// sentinel — never a blank trailing label. With a project selected,
+    /// "none picked" posts the whole project membership at posting time
+    /// (the server snapshots it as the split set), so say that instead of
+    /// the ledger-wide "Not selected".
     private var participantSummary: String {
         let names = memberStore.members
             .filter { draft.participants.contains($0.id) }
             .map(\.displayName)
         guard !names.isEmpty else {
+            if draft.projectId != nil {
+                return L10n.string(
+                    "quick.participants.allMembers",
+                    defaultValue: "All project members"
+                )
+            }
             return L10n.string("Not selected", defaultValue: "Not selected")
         }
         return names.joined(separator: ", ")

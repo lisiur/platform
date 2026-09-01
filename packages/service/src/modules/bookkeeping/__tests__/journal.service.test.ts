@@ -40,6 +40,7 @@ vi.mock("../journal.repository", () => ({
 vi.mock("../project.repository", () => ({
   projectRepository: {
     findById: vi.fn(),
+    findByIdWithMembers: vi.fn(),
   },
 }));
 
@@ -374,6 +375,7 @@ const guestActor = { userId: "user-b", role: "guest" as const };
 
 const mockProjectRepo = projectRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
+  findByIdWithMembers: ReturnType<typeof vi.fn>;
 };
 const mockProjectMemberRepo = projectMemberRepository as unknown as {
   findMembership: ReturnType<typeof vi.fn>;
@@ -530,6 +532,81 @@ describe("createEntry", () => {
     );
   });
 
+  it("auto-tags the project's current members when a project entry has no participants", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-2", userId: "user-b" },
+      { id: "mem-1", userId: "user-a" },
+    ]);
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectRepo.findByIdWithMembers.mockResolvedValue({
+      id: "proj-1",
+      members: [{ userId: "user-b" }, { userId: "user-a" }],
+    });
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-6" });
+    await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, projectId: "proj-1" },
+      editorAccess,
+    );
+    // Sorted ledger member ids, one per project member, so the split set
+    // is frozen even after membership changes.
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ participantMemberIds: ["mem-1", "mem-2"] }),
+      expect.anything(),
+    );
+  });
+
+  it("keeps explicit participants on a project entry untouched", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-7" });
+    await createEntry(
+      "user-a",
+      "led-1",
+      {
+        ...baseEntryInput,
+        projectId: "proj-1",
+        participantMemberIds: ["mem-2"],
+      },
+      editorAccess,
+    );
+    expect(mockProjectRepo.findByIdWithMembers).not.toHaveBeenCalled();
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ participantMemberIds: ["mem-2"] }),
+      expect.anything(),
+    );
+  });
+
   it("defaults countsInLedger to true and passes an explicit opt-out through", async () => {
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
@@ -636,6 +713,46 @@ describe("updateEntry", () => {
           expect.objectContaining({ accountId: "acc-food" }),
         ],
       }),
+      expect.anything(),
+    );
+  });
+
+  it("re-tags a project entry with its current members when an edit clears participants", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    mockProjectRepo.findByIdWithMembers.mockResolvedValue({
+      id: "proj-1",
+      members: [{ userId: "user-b" }],
+    });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      projectId: "proj-1",
+    });
+    // user-a left the project, so only their replacement owes: the edit
+    // must not fall back to "untagged = current members at read time".
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ participantMemberIds: ["mem-2"] }),
       expect.anything(),
     );
   });
