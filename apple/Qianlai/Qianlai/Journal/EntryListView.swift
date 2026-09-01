@@ -216,11 +216,17 @@ struct EntryRow: View {
                         .font(.callout.weight(.semibold).monospacedDigit())
                         .foregroundStyle(headlineAmount.color)
                 }
-                HStack(spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(AppDates.formatEntryTime(entry.date))
                     if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
                         Text("·")
                         Text(creatorName)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    Spacer(minLength: 8)
+                    if let payAccount = payAccountNames {
+                        Text(payAccount)
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
@@ -237,14 +243,31 @@ struct EntryRow: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                if let project = entry.project {
-                    HStack(spacing: 4) {
-                        Image(systemName: "folder")
-                            .font(.caption2)
-                        Text(project.name)
-                            .font(.caption2)
+                if entry.project != nil || !(entry.participants?.isEmpty ?? true) {
+                    HStack(spacing: 8) {
+                        if let project = entry.project {
+                            HStack(spacing: 4) {
+                                Image(systemName: "folder")
+                                    .font(.caption2)
+                                Text(project.name)
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.tertiary)
+                        }
+                        if let participants = entry.participants, !participants.isEmpty {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.2")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                Text(participants.map { $0.user?.name ?? $0.ledgerMemberId }.joined(separator: ", "))
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                        }
                     }
-                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
                 }
                 if !entry.countsInLedger {
                     HStack(spacing: 4) {
@@ -255,29 +278,8 @@ struct EntryRow: View {
                     }
                     .foregroundStyle(.tertiary)
                 }
-                ForEach(entry.lines.filter { !$0.account.isDefaultPocket && $0 != categoryLine }) { line in
-                    Text(line.account.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                if let participants = entry.participants, !participants.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.2")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        ForEach(participants) { participant in
-                            BadgeView(
-                                text: participant.user?.name ?? participant.ledgerMemberId,
-                                outlined: true
-                            )
-                        }
-                    }
-                }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
     }
 
     /// The entry's category line (expense wins over income); nil for
@@ -285,6 +287,23 @@ struct EntryRow: View {
     private var categoryLine: JournalLine? {
         entry.lines.first { $0.account.type == .expense }
             ?? entry.lines.first { $0.account.type == .income }
+    }
+
+    /// Trailing meta text. Transfers (no category line) read
+    /// "<output> → <input>" across their two pocket lines; other kinds
+    /// list the pay-side account names besides the category and the seeded
+    /// default pocket; nil when there is nothing to show.
+    private var payAccountNames: String? {
+        if categoryLine == nil {
+            guard let output = entry.lines.first(where: { $0.credit > 0 }),
+                  let input = entry.lines.first(where: { $0.debit > 0 })
+            else { return nil }
+            return "\(output.account.displayName) → \(input.account.displayName)"
+        }
+        let names = entry.lines
+            .filter { !$0.account.isDefaultPocket && $0 != categoryLine }
+            .map { $0.account.displayName }
+        return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
     private var title: String {
