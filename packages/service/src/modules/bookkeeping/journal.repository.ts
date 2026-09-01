@@ -1,5 +1,6 @@
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
+import type { AccountType } from "./domain";
 
 export type EntryWindow = {
   from?: Date;
@@ -8,6 +9,18 @@ export type EntryWindow = {
   participantMemberId?: string;
   /** Restrict to entries of one project. */
   projectId?: string;
+  /** Restrict to entries with a line against this account (category drill-down). */
+  accountId?: string;
+  /** Restrict to entries with a line against an account of this type (statement flow drill-down). */
+  accountType?: AccountType;
+  /**
+   * Restrict to entries that involve this user in settlement terms: created
+   * by them, tagged with them as a participant, or untagged — untagged
+   * entries count only while the user is a current member of the entry's
+   * project, because untagged splits run across current members. Pair with
+   * projectId — the settlement drill-down.
+   */
+  memberUserId?: string;
   /** Guest scope: entries of any of these projects (forced filter). */
   scopeProjectIds?: string[];
   /**
@@ -56,6 +69,44 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
         }
       : {}),
     ...(window.projectId ? { projectId: window.projectId } : {}),
+    ...(window.accountId || window.accountType
+      ? {
+          lines: {
+            some: {
+              ...(window.accountId ? { accountId: window.accountId } : {}),
+              ...(window.accountType
+                ? { account: { type: window.accountType } }
+                : {}),
+            },
+          },
+        }
+      : {}),
+    // AND-wrapped so the OR never collides with `q`'s own top-level OR.
+    // The untagged branch requires current project membership: untagged
+    // splits run across current members, so entries a departed member's
+    // settlement math never touched must not appear in their drill-down.
+    ...(window.memberUserId
+      ? {
+          AND: [
+            {
+              OR: [
+                { createdById: window.memberUserId },
+                {
+                  participants: {
+                    some: { ledgerMember: { userId: window.memberUserId } },
+                  },
+                },
+                {
+                  participants: { none: {} },
+                  project: {
+                    members: { some: { userId: window.memberUserId } },
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      : {}),
     ...(window.scopeProjectIds
       ? { projectId: { in: window.scopeProjectIds } }
       : {}),

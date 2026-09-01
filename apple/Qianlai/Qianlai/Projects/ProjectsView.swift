@@ -243,8 +243,8 @@ struct ProjectDetailView: View {
     private func content(_ project: QianlaiProject, _ ledger: QianlaiLedger) -> some View {
         List {
             if let report = projectStore.report, report.project.id == project.id {
-                statementSection(report)
-                settlementSection(report)
+                statementSection(project, ledger, report)
+                settlementSection(project, ledger, report)
             } else if isLoadingReport {
                 HStack {
                     Spacer()
@@ -261,39 +261,19 @@ struct ProjectDetailView: View {
         }
     }
 
-    private func statementSection(_ report: ProjectReport) -> some View {
+    private func statementSection(
+        _ project: QianlaiProject,
+        _ ledger: QianlaiLedger,
+        _ report: ProjectReport
+    ) -> some View {
         Section {
-            HStack {
-                Text(L10n.string("projects.totalExpense", defaultValue: "Expenses"))
-                Spacer()
-                Text(Money.format(report.statement.totalExpense, currency: ledger?.currency ?? ""))
-                    .font(.callout.weight(.semibold).monospacedDigit())
-            }
+            statementTotalLink(project, ledger, type: .expense, amount: report.statement.totalExpense)
             ForEach(report.statement.expense) { row in
-                HStack {
-                    Text(row.displayName)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(Money.format(row.balance, currency: ledger?.currency ?? ""))
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+                statementRowLink(project, ledger, type: .expense, row: row)
             }
-            HStack {
-                Text(L10n.string("projects.totalIncome", defaultValue: "Income"))
-                Spacer()
-                Text(Money.format(report.statement.totalIncome, currency: ledger?.currency ?? ""))
-                    .font(.callout.weight(.semibold).monospacedDigit())
-            }
+            statementTotalLink(project, ledger, type: .income, amount: report.statement.totalIncome)
             ForEach(report.statement.income) { row in
-                HStack {
-                    Text(row.displayName)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(Money.format(row.balance, currency: ledger?.currency ?? ""))
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+                statementRowLink(project, ledger, type: .income, row: row)
             }
         } header: {
             Text(L10n.string("projects.statement", defaultValue: "Income & Expense"))
@@ -305,25 +285,86 @@ struct ProjectDetailView: View {
         }
     }
 
-    private func settlementSection(_ report: ProjectReport) -> some View {
+    /// Total row of one flow, drilling into every entry of the project on
+    /// that side of the books.
+    private func statementTotalLink(
+        _ project: QianlaiProject,
+        _ ledger: QianlaiLedger,
+        type: AccountType,
+        amount: Double
+    ) -> some View {
+        NavigationLink {
+            ProjectEntriesDetailView(
+                ledger: ledger,
+                scope: .statement(projectId: project.id, type: type, category: nil)
+            )
+        } label: {
+            HStack {
+                Text(type == .expense
+                    ? L10n.string("projects.totalExpense", defaultValue: "Expenses")
+                    : L10n.string("projects.totalIncome", defaultValue: "Income"))
+                Spacer()
+                Text(Money.format(amount, currency: ledger.currency))
+                    .font(.callout.weight(.semibold).monospacedDigit())
+            }
+        }
+    }
+
+    /// One category row, drilling into the project's entries of exactly
+    /// that category.
+    private func statementRowLink(
+        _ project: QianlaiProject,
+        _ ledger: QianlaiLedger,
+        type: AccountType,
+        row: StatementRow
+    ) -> some View {
+        NavigationLink {
+            ProjectEntriesDetailView(
+                ledger: ledger,
+                scope: .statement(projectId: project.id, type: type, category: row)
+            )
+        } label: {
+            HStack {
+                Text(row.displayName)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(Money.format(row.balance, currency: ledger.currency))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func settlementSection(
+        _ project: QianlaiProject,
+        _ ledger: QianlaiLedger,
+        _ report: ProjectReport
+    ) -> some View {
         Section {
             ForEach(report.settlement) { row in
-                HStack(spacing: 10) {
-                    avatar(row.name, row.avatar)
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(row.name)
-                            Spacer()
-                            Text(Money.format(row.balance, currency: ledger?.currency ?? ""))
-                                .font(.callout.weight(.semibold).monospacedDigit())
-                                .foregroundStyle(row.balance > 0 ? Color.green : row.balance < 0 ? Color.red : .secondary)
+                NavigationLink {
+                    ProjectEntriesDetailView(
+                        ledger: ledger,
+                        scope: .settlement(projectId: project.id, userId: row.userId, name: row.name)
+                    )
+                } label: {
+                    HStack(spacing: 10) {
+                        avatar(row.name, row.avatar)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(row.name)
+                                Spacer()
+                                Text(Money.format(row.balance, currency: ledger.currency))
+                                    .font(.callout.weight(.semibold).monospacedDigit())
+                                    .foregroundStyle(row.balance > 0 ? Color.green : row.balance < 0 ? Color.red : .secondary)
+                            }
+                            HStack(spacing: 12) {
+                                Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger.currency))")
+                                Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(row.share, currency: ledger.currency))")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         }
-                        HStack(spacing: 12) {
-                            Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger?.currency ?? ""))")
-                            Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(row.share, currency: ledger?.currency ?? ""))")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     }
                 }
             }

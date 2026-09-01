@@ -4,7 +4,7 @@ import {
   errorSchema,
   paginationQuerySchema,
 } from "#lib/openapi";
-import { MAX_LINE_AMOUNT } from "../../domain";
+import { ACCOUNT_TYPES, MAX_LINE_AMOUNT } from "../../domain";
 
 export { deleteSuccessSchema, errorSchema };
 
@@ -95,6 +95,18 @@ export const listEntriesQuerySchema = paginationQuerySchema
     q: z.string().optional(),
     participantMemberId: z.string().optional(),
     projectId: z.string().optional(),
+    accountId: z.string().optional().openapi({
+      description:
+        "Only entries with a line against this account id (category drill-down).",
+    }),
+    accountType: z.enum(ACCOUNT_TYPES).optional().openapi({
+      description:
+        "Only entries with a line against an account of this type (statement flow drill-down: expense vs income totals).",
+    }),
+    memberUserId: z.string().optional().openapi({
+      description:
+        "Only entries that involve this user in settlement terms: entries they created, entries tagged with them as a participant, and untagged entries (which split across all project members). Use together with projectId for a member's settlement drill-down.",
+    }),
     includeExcluded: z.enum(["true", "false"]).optional().openapi({
       description:
         "Also return entries flagged countsInLedger=false (audit/search escape hatch for ledger-wide listing). Ignored when projectId is set — a project's books always show all of its entries.",

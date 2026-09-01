@@ -34,6 +34,14 @@ final class JournalStore {
     var toDate: Date? { didSet { scheduleReload() } }
     var participantMemberId: String? { didSet { scheduleReload() } }
     var projectFilterId: String? { didSet { scheduleReload() } }
+    /// Category drill-down: only entries with a line against this account.
+    var accountId: String? { didSet { scheduleReload() } }
+    /// Statement flow drill-down: only entries with a line against an
+    /// account of this type (expense vs income totals).
+    var accountType: String? { didSet { scheduleReload() } }
+    /// Settlement drill-down: entries that involve this user — created by
+    /// them, tagged with them, or untagged (split across all members).
+    var memberUserId: String? { didSet { scheduleReload() } }
     /// Ledger-wide escape hatch: also list entries flagged out of the
     /// ledger's books (guest posts, opted-out repayments). Irrelevant while
     /// a project filter is active — a project always shows all its entries.
@@ -97,6 +105,9 @@ final class JournalStore {
                     to: toDate,
                     participant: participantMemberId,
                     project: projectFilterId,
+                    account: accountId,
+                    accountType: accountType,
+                    member: memberUserId,
                     includeExcluded: includeExcluded
                 )
             )
@@ -129,6 +140,9 @@ final class JournalStore {
                     to: toDate,
                     participant: participantMemberId,
                     project: projectFilterId,
+                    account: accountId,
+                    accountType: accountType,
+                    member: memberUserId,
                     includeExcluded: includeExcluded
                 )
             )
@@ -174,7 +188,7 @@ final class JournalStore {
     }
 
     /// Batched clear: suppresses the per-key didSet storms so exactly one
-    /// coalesced reload runs for all four filters. Already-empty filters are
+    /// coalesced reload runs for all filters. Already-empty filters are
     /// left untouched — a redundant write still notifies observers and
     /// re-renders (flashes) the search field mid-animation.
     func clearFilters() {
@@ -184,13 +198,16 @@ final class JournalStore {
         if toDate != nil { toDate = nil }
         if participantMemberId != nil { participantMemberId = nil }
         if projectFilterId != nil { projectFilterId = nil }
+        if accountId != nil { accountId = nil }
+        if accountType != nil { accountType = nil }
+        if memberUserId != nil { memberUserId = nil }
         if includeExcluded { includeExcluded = false }
         suppressReload = false
         scheduleReload()
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil || includeExcluded
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != nil || accountId != nil || accountType != nil || memberUserId != nil || includeExcluded
     }
 
     private static func query(
@@ -201,6 +218,9 @@ final class JournalStore {
         to: Date?,
         participant: String?,
         project: String?,
+        account: String?,
+        accountType: String?,
+        member: String?,
         includeExcluded: Bool
     ) -> String {
         ApiQuery.build([
@@ -211,6 +231,9 @@ final class JournalStore {
             ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ("participantMemberId", participant),
             ("projectId", project),
+            ("accountId", account),
+            ("accountType", accountType),
+            ("memberUserId", member),
             ("includeExcluded", includeExcluded ? "true" : nil),
         ])
     }

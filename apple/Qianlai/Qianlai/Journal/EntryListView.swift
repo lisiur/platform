@@ -22,13 +22,22 @@ struct EntryListView<Header: View>: View {
     var emptyMessage: String
     /// Optional row rendered above the entries (Dashboard's month cards).
     var header: Header?
+    /// Whether the "posting requires editor access" footnote renders.
+    /// Statement drill-downs pass false — that page is read-only analysis.
+    var showsPostHint = true
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
 
-    init(ledger: QianlaiLedger, emptyMessage: String, header: Header? = nil) {
+    init(
+        ledger: QianlaiLedger,
+        emptyMessage: String,
+        showsPostHint: Bool = true,
+        header: Header? = nil
+    ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
+        self.showsPostHint = showsPostHint
         self.header = header
     }
 
@@ -106,7 +115,7 @@ struct EntryListView<Header: View>: View {
                 }
                 .listRowSeparator(.hidden)
             }
-            if !ledger.canPost {
+            if showsPostHint, !ledger.canPost {
                 Label(
                     "Editor access or higher is required to post entries.",
                     systemImage: "lock"
@@ -155,8 +164,8 @@ struct EntryListView<Header: View>: View {
 
 extension EntryListView where Header == EmptyView {
     /// List without a leading header row (the Journal).
-    init(ledger: QianlaiLedger, emptyMessage: String) {
-        self.init(ledger: ledger, emptyMessage: emptyMessage, header: nil)
+    init(ledger: QianlaiLedger, emptyMessage: String, showsPostHint: Bool = true) {
+        self.init(ledger: ledger, emptyMessage: emptyMessage, showsPostHint: showsPostHint, header: nil)
     }
 }
 
