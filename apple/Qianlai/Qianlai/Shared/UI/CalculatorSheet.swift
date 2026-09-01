@@ -288,8 +288,9 @@ struct CalculatorDisplay: View {
 
     /// The big line — the currency symbol leading the live total in the
     /// accent color at a slightly smaller size, or the error word. Built
-    /// as a `Text` concatenation so the symbol can be styled independently
-    /// while sharing scale/shrink behavior with the number.
+    /// as one interpolated `Text` (the iOS 26 replacement for `+`
+    /// concatenation) so the symbol can be styled independently while
+    /// sharing scale/shrink behavior with the number.
     private var amountLine: Text {
         if let errorText {
             return Text(errorText)
@@ -298,8 +299,9 @@ struct CalculatorDisplay: View {
         let number = Text(engine.displayValue ?? "")
             .font(.system(size: 36, weight: .semibold, design: .rounded).monospacedDigit())
         guard let currency, !currency.isEmpty else { return number }
-        return Text(Money.symbol(for: currency))
-            .font(.system(size: 32, weight: .semibold, design: .rounded).monospacedDigit()) + number
+        let symbol = Text(Money.symbol(for: currency))
+            .font(.system(size: 32, weight: .semibold, design: .rounded).monospacedDigit())
+        return Text("\(symbol)\(number)")
     }
 }
 

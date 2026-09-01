@@ -65,8 +65,18 @@ final class JournalStore {
 
     func reload() async {
         guard let ledgerId else { return }
-        isLoading = true
-        defer { isLoading = false; hasLoadedOnce = true }
+        // Warm refreshes (pull-to-refresh, post/edit/delete reloads) stay
+        // silent: the refresh control already signals the activity. Every
+        // @Observable write notifies even when the value is unchanged, and
+        // those pointless render passes re-diff the List mid-refresh, which
+        // re-lays-out the bottom search bar and flashes it once. So only the
+        // first load announces itself, and only real changes are written.
+        let announcesLoad = !hasLoadedOnce
+        if announcesLoad { isLoading = true }
+        defer {
+            if isLoading { isLoading = false }
+            if !hasLoadedOnce { hasLoadedOnce = true }
+        }
         do {
             let response: EntriesResponse = try await client.request(
                 "GET",
@@ -81,14 +91,16 @@ final class JournalStore {
                 )
             )
             guard self.ledgerId == ledgerId else { return }
-            entries = response.entries
-            total = response.total
-            loadError = nil
+            if entries != response.entries { entries = response.entries }
+            if total != response.total { total = response.total }
+            if loadError != nil { loadError = nil }
         } catch {
             guard self.ledgerId == ledgerId else { return }
-            entries = []
-            total = 0
-            loadError = error.localizedDescription
+            if !entries.isEmpty { entries = [] }
+            if total != 0 { total = 0 }
+            if loadError != error.localizedDescription {
+                loadError = error.localizedDescription
+            }
         }
     }
 
@@ -151,14 +163,16 @@ final class JournalStore {
     }
 
     /// Batched clear: suppresses the per-key didSet storms so exactly one
-    /// coalesced reload runs for all four filters.
+    /// coalesced reload runs for all four filters. Already-empty filters are
+    /// left untouched — a redundant write still notifies observers and
+    /// re-renders (flashes) the search field mid-animation.
     func clearFilters() {
         suppressReload = true
-        searchQuery = ""
-        fromDate = nil
-        toDate = nil
-        participantMemberId = nil
-        projectFilterId = nil
+        if !searchQuery.isEmpty { searchQuery = "" }
+        if fromDate != nil { fromDate = nil }
+        if toDate != nil { toDate = nil }
+        if participantMemberId != nil { participantMemberId = nil }
+        if projectFilterId != nil { projectFilterId = nil }
         suppressReload = false
         scheduleReload()
     }

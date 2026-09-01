@@ -14,9 +14,11 @@ struct JournalView: View {
     @Environment(JournalStore.self) private var store
     @State private var memberStore = MemberStore()
     @State private var projectStore = ProjectStore()
-    /// Local text for `.searchable`: bound straight from store via a computed
-    /// Binding, any unrelated store write (reload flags, filter commits)
-    /// re-renders the search field mid-animation and makes it flash.
+    /// Always-visible search field pinned above the list. Deliberately not
+    /// `.searchable`: the system search bar is glass chrome that re-lays-out
+    /// at the pull-to-refresh boundary on iOS 26 and visibly flashes, and it
+    /// offers no "always visible" behavior to pin it down. A plain field has
+    /// no chrome to animate.
     @State private var searchField = ""
 
     private let debouncer = Debouncer()
@@ -47,15 +49,9 @@ struct JournalView: View {
             await memberStore.load(ledgerId: id, myUserId: nil)
             await projectStore.load(ledgerId: id)
         }
-        #if os(iOS)
-        .searchable(text: $searchField, prompt: Text("Search memos…"))
-        #else
-        .searchable(
-            text: $searchField,
-            placement: .toolbar,
-            prompt: Text("Search memos…")
-        )
-        #endif
+        .safeAreaInset(edge: .top, spacing: 0) {
+            searchBar
+        }
         .onChange(of: searchField) { _, newValue in
             debouncer.run {
                 store.searchQuery = newValue
@@ -73,6 +69,31 @@ struct JournalView: View {
         .refreshable {
             await store.reload()
         }
+    }
+
+    /// The always-visible search field. Liquid Glass like the system search
+    /// bar it replaces, but pinned as page content — no search chrome, so
+    /// nothing re-lays-out or flashes at the pull-to-refresh boundary.
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search memos…", text: $searchField)
+            if !searchField.isEmpty {
+                Button {
+                    searchField = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .glassEffect(in: .capsule)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 
     private var filterButton: some View {
