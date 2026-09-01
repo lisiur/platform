@@ -131,7 +131,7 @@ struct QuickEntryView: View {
             // tabs. The background matches the form's grouped canvas so the
             // segmented control's translucent chrome picks it up instead of
             // the default white.
-            .listSectionSpacing(.compact)
+            .compactListSectionSpacing()
             // A small top content margin leaves a breathing gap between the
             // pinned tabs and the amount card — zero would sit them flush.
             .contentMargins(.top, 12, for: .scrollContent)
@@ -168,7 +168,7 @@ struct QuickEntryView: View {
         // toolbar so Cancel and the ledger switcher stay usable on a
         // read-only ledger (switching away is the escape hatch there).
         .disabled(!canPost)
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(Color.cardSurface)
         .navigationTitle(Text(navigationTitleText))
         .inlineNavigationBarTitle()
         .toolbar {

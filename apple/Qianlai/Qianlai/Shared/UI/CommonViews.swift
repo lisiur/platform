@@ -641,4 +641,14 @@ extension View {
         self
         #endif
     }
+
+    /// `.listSectionSpacing(.compact)`, no-op where unavailable (macOS).
+    @ViewBuilder
+    func compactListSectionSpacing() -> some View {
+        #if os(iOS)
+        self.listSectionSpacing(.compact)
+        #else
+        self
+        #endif
+    }
 }
