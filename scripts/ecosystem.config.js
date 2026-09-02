@@ -38,7 +38,15 @@ if (fs.existsSync(envPath)) {
     // tarball's .env.production — e.g. rotating DATABASE_URL without
     // rebuilding the tarball. Only keys present in .env.production are
     // considered, so PM2 internals (name, pm_exec_path, …) never leak in.
-    const fileValue = (raw ?? "").replace(/^["']|["']$/g, "");
+    // dotenv-style value parsing: a matched pair of surrounding quotes is
+    // stripped (an optional inline comment may follow); an unquoted value
+    // ends at a `#` that starts the line or follows whitespace, so `#` inside
+    // quoted values — and in unquoted URLs like host/path#frag — survives.
+    const trimmed = (raw ?? "").trim();
+    const quoted = trimmed.match(/^(['"])(.*?)\1(\s+#.*)?$/);
+    const fileValue = quoted
+      ? quoted[2]
+      : trimmed.replace(/(^|\s)#.*$/, "").trim();
     appEnv[key] = process.env[key] !== undefined ? process.env[key] : fileValue;
   }
 }
