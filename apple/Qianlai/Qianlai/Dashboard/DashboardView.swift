@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// Overview of the active ledger: month income/expense cards above the
-/// month's entries — the same shared entry list the Journal uses, limited
-/// to a month window instead of exposing every filter.
+/// Overview of the active ledger: month header above an expense summary
+/// card (income/net shown as text hints) and the month's entries — the
+/// same shared entry list the Journal uses, limited to a month window
+/// instead of exposing every filter.
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard
@@ -91,9 +92,14 @@ struct DashboardView: View {
                         emptyMessage: L10n.string(
                             "dashboard.noEntriesThisMonth",
                             defaultValue: "No entries this month yet"
-                        ),
-                        header: monthCards
+                        )
                     )
+                    // Pinned above the list like the Journal's search
+                    // bar: takes the page's top padding instead of
+                    // scrolling away as a list row.
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        monthSummary
+                    }
                 }
             } else {
                 VStack(spacing: 12) {
@@ -169,13 +175,15 @@ struct DashboardView: View {
         }
     }
 
-    private var monthCards: some View {
+    private var monthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Button {
                     selectedMonth = selectedMonth.previous
                 } label: {
                     Image(systemName: "chevron.left")
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.primary.opacity(0.06)))
                 }
                 // Borderless: with the default style a tap on the List row
                 // fires BOTH chevrons, canceling each other out.
@@ -188,34 +196,59 @@ struct DashboardView: View {
                     selectedMonth = selectedMonth.next
                 } label: {
                     Image(systemName: "chevron.right")
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.primary.opacity(0.06)))
                 }
                 .buttonStyle(.borderless)
                 .disabled(selectedMonth >= YearMonth.current)
             }
+            // The expense card spans the summary's width; the chrome-less
+            // rows above and below it are inset a little instead.
+            .padding(.horizontal, 6)
             StatCard(
+                icon: "wallet.bifold",
                 label: "Expense",
                 value: store.dashboard?.month.totalExpense,
                 currency: ledgerStore.activeLedger?.currency,
                 tone: .negative
             )
-            HStack(spacing: 10) {
-                StatCard(
-                    label: "Income",
+            HStack(spacing: 16) {
+                monthHint(
+                    "Income",
                     value: store.dashboard?.month.totalIncome,
-                    currency: ledgerStore.activeLedger?.currency,
                     tone: .positive
                 )
-                StatCard(
-                    label: "Net",
+                monthHint(
+                    "Net",
                     value: store.dashboard?.month.net,
-                    currency: ledgerStore.activeLedger?.currency,
                     // Finance convention: negative net green (绿跌),
                     // non-negative red (红涨).
                     tone: (store.dashboard?.month.net ?? 0) < 0 ? .negative : .positive
                 )
             }
+            .padding(.horizontal, 6)
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.cardSurface))
+        // Same outer spacing as the Journal's pinned search bar.
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    /// Secondary income/net figure: plain label + tone-colored amount,
+    /// no card chrome — the expense card is the hero figure.
+    private func monthHint(
+        _ label: LocalizedStringKey,
+        value: Double?,
+        tone: StatCard.Tone
+    ) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value.map { Money.format($0, currency: ledgerStore.activeLedger?.currency) } ?? "—")
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(tone.color ?? Color.primary)
+                .lineLimit(1)
+        }
     }
 }

@@ -12,7 +12,7 @@ import SwiftUI
 /// load-state rows. The Journal embeds it with every filter available; the
 /// Dashboard mounts it with a month-window JournalStore so its entries
 /// carry the same actions.
-struct EntryListView<Header: View>: View {
+struct EntryListView: View {
     @Environment(JournalStore.self) private var store
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
@@ -20,8 +20,6 @@ struct EntryListView<Header: View>: View {
 
     let ledger: QianlaiLedger
     var emptyMessage: String
-    /// Optional row rendered above the entries (Dashboard's month cards).
-    var header: Header?
     /// Whether the "posting requires editor access" footnote renders.
     /// Statement drill-downs pass false — that page is read-only analysis.
     var showsPostHint = true
@@ -36,29 +34,16 @@ struct EntryListView<Header: View>: View {
         ledger: QianlaiLedger,
         emptyMessage: String,
         showsPostHint: Bool = true,
-        entryDetail: ((JournalEntry) -> String?)? = nil,
-        header: Header? = nil
+        entryDetail: ((JournalEntry) -> String?)? = nil
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
         self.entryDetail = entryDetail
-        self.header = header
     }
 
     var body: some View {
         List {
-            if let header {
-                header
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    // Zero insets: the row bounds span the same width as
-                    // the grouped section cards below, so a custom card
-                    // here lines up with the day cards on every device.
-                    .listRowInsets(EdgeInsets())
-                    .padding(.top, 16)
-                    .padding(.bottom, 4)
-            }
             // Blocking spinner only before anything has ever loaded; later
             // refetches keep the current content (rows or empty state) until
             // the response replaces it atomically.
@@ -164,24 +149,6 @@ struct EntryListView<Header: View>: View {
         } catch {
             toast.show(error.localizedDescription)
         }
-    }
-}
-
-extension EntryListView where Header == EmptyView {
-    /// List without a leading header row (the Journal).
-    init(
-        ledger: QianlaiLedger,
-        emptyMessage: String,
-        showsPostHint: Bool = true,
-        entryDetail: ((JournalEntry) -> String?)? = nil
-    ) {
-        self.init(
-            ledger: ledger,
-            emptyMessage: emptyMessage,
-            showsPostHint: showsPostHint,
-            entryDetail: entryDetail,
-            header: nil
-        )
     }
 }
 
