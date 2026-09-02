@@ -347,8 +347,8 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=macosx*]" = Qianlai/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "浅来";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "浅来使用 Face ID 解锁账号，无需输入密码。";
+				INFOPLIST_KEY_CFBundleDisplayName = "钱来";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "钱来使用 Face ID 解锁账号，无需输入密码。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Qianlai uses your location when you open the place picker or tap the location button on an entry, to suggest and attach where the money was spent. Nothing is tracked in the background.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -398,8 +398,8 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_FILE[sdk=macosx*]" = Qianlai/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "浅来";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "浅来使用 Face ID 解锁账号，无需输入密码。";
+				INFOPLIST_KEY_CFBundleDisplayName = "钱来";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "钱来使用 Face ID 解锁账号，无需输入密码。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Qianlai uses your location when you open the place picker or tap the location button on an entry, to suggest and attach where the money was spent. Nothing is tracked in the background.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

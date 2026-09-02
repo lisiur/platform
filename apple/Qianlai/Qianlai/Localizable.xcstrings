@@ -1597,7 +1597,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "解锁你的浅来账户。"
+            "value" : "解锁你的钱来账户。"
           }
         }
       }
@@ -5692,7 +5692,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "浅来"
+            "value" : "钱来"
           }
         }
       }
