@@ -1,12 +1,8 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
-    "·" : {
-
-    },
+    "" : {},
+    "·" : {},
     "#%lld" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2911,6 +2907,23 @@
         }
       }
     },
+    "Expires %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expires %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@后过期"
+          }
+        }
+      }
+    },
     "Extra Info" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3196,6 +3209,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "收入"
+          }
+        }
+      }
+    },
+    "Invite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邀请"
+          }
+        }
+      }
+    },
+    "invite.cameraUnavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera is unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机不可用"
+          }
+        }
+      }
+    },
+    "invite.scan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan QR Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫码加入"
+          }
+        }
+      }
+    },
+    "invite.scanHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point the camera at the invite QR code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对准邀请二维码即可加入"
+          }
+        }
+      }
+    },
+    "invite.scanToJoin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan to join"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫码加入"
+          }
+        }
+      }
+    },
+    "invite.showQR" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show QR Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示二维码"
           }
         }
       }
@@ -3644,6 +3759,40 @@
         }
       }
     },
+    "ledgers.inviteToJoin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邀请加入%@"
+          }
+        }
+      }
+    },
+    "ledgers.joinFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the invite QR code, or paste a share code to join as an editor or viewer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫描邀请二维码，或粘贴邀请码，以记账人或查看者身份加入。"
+          }
+        }
+      }
+    },
     "ledgers.joinSuccess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3763,23 +3912,6 @@
         }
       }
     },
-    "ledgers.revokeSuccess" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share code revoked"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共享码已吊销"
-          }
-        }
-      }
-    },
     "ledgers.roleUpdated" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3793,23 +3925,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成员角色已更新"
-          }
-        }
-      }
-    },
-    "ledgers.shareCodeCreated" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share code created"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共享码已创建"
           }
         }
       }
@@ -4492,23 +4607,6 @@
         }
       }
     },
-    "No share codes" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No share codes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无共享码"
-          }
-        }
-      }
-    },
     "Not linked" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4692,23 +4790,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "粘贴"
-          }
-        }
-      }
-    },
-    "Paste a share code from the ledger owner to join as an editor or viewer." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste a share code from the ledger owner to join as an editor or viewer."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "粘贴账本所有者提供的共享码，以记账人或查看者身份加入。"
           }
         }
       }
@@ -5052,23 +5133,6 @@
         }
       }
     },
-    "projects.copied" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已复制"
-          }
-        }
-      }
-    },
     "projects.create" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5082,23 +5146,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建项目"
-          }
-        }
-      }
-    },
-    "projects.createCode" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Invite Code"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "生成邀请码"
           }
         }
       }
@@ -5279,13 +5326,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anyone with the code joins this project as a guest — they can only see and record expenses of this project."
+            "value" : "Anyone who scans the QR joins this project as a guest — they can only see and record expenses of this project. The QR refreshes automatically; each code works for one minute."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "任何人凭邀请码都会以访客身份加入该项目——只能查看和记录该项目的支出。"
+            "value" : "扫描二维码的人会以访客身份加入该项目——只能查看和记录该项目的支出。二维码会自动刷新，每次有效期为 1 分钟。"
           }
         }
       }
@@ -6895,43 +6942,7 @@
         }
       }
     },
-    "Share Codes" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share Codes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共享码"
-          }
-        }
-      }
-    },
-    "Share codes let others join this ledger. Editors can post entries; viewers can only browse." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share codes let others join this ledger. Editors can post entries; viewers can only browse."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分发共享码，让别人加入这个账本。记账人可以记录流水；查看者只能浏览。"
-          }
-        }
-      }
-    },
-    "Show" : {
-
-    },
+    "Show" : {},
     "Sign in" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7030,23 +7041,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "状态"
-          }
-        }
-      }
-    },
-    "status.active" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Active"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有效"
           }
         }
       }
@@ -7485,6 +7479,23 @@
     },
     "简体中文" : {
       "comment" : "Language name: Simplified Chinese (native form)"
+    },
+    "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出示二维码即可让别人加入这个账本——二维码会自动刷新，每次有效期为 1 分钟。记账人可以记录流水；查看者只能浏览。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

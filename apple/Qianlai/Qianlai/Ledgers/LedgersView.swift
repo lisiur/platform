@@ -576,11 +576,28 @@ struct JoinLedgerView: View {
     @State private var code = ""
     @State private var error: String?
     @State private var isJoining = false
+    @State private var isScanning = false
     @FocusState private var isCodeFocused: Bool
 
     var body: some View {
         Form {
             Section {
+                #if canImport(UIKit)
+                Button {
+                    isScanning = true
+                } label: {
+                    HStack {
+                        Label(
+                            L10n.string("invite.scan", defaultValue: "Scan QR Code"),
+                            systemImage: "qrcode.viewfinder"
+                        )
+                        Spacer()
+                        if isJoining {
+                            ProgressView().controlSize(.small)
+                        }
+                    }
+                }
+                #endif
                 FormField(title: "Share Code", error: nil) {
                     TextField("e.g. A2B4C6D8E9F2", text: $code)
                         .textFieldStyle(.plain)
@@ -596,7 +613,10 @@ struct JoinLedgerView: View {
             } header: {
                 Text("Join a Ledger")
             } footer: {
-                Text("Paste a share code from the ledger owner to join as an editor or viewer.")
+                Text(L10n.string(
+                    "ledgers.joinFooter",
+                    defaultValue: "Scan the invite QR code, or paste a share code to join as an editor or viewer."
+                ))
             }
             if let error {
                 Section {
@@ -620,10 +640,29 @@ struct JoinLedgerView: View {
                 .disabled(isJoining || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        #if canImport(UIKit)
+        .fullScreenCover(isPresented: $isScanning) {
+            QRScanScreen { payload in
+                handleScan(payload)
+            }
+        }
+        #endif
         .onAppear { isCodeFocused = true }
     }
 
+    /// A scanned QR becomes the code and joining starts right away — the
+    /// scan itself is the confirmation. Unrecognized payloads surface the
+    /// same error UI a failed paste would.
+    private func handleScan(_ payload: String) {
+        guard let scanned = InviteCode.code(from: payload) else { return }
+        code = scanned
+        Task { await join() }
+    }
+
     private func join() async {
+        // A scan and a tapped Join button can race; the loser must not
+        // fire a second redeem (it would report "already a member").
+        guard !isJoining else { return }
         isCodeFocused = false
         isJoining = true
         defer { isJoining = false }

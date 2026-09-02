@@ -8,20 +8,22 @@
 import Foundation
 import Observation
 
-/// Members and share codes of one ledger. Used by the members manager and by
-/// the journal filters / quick-entry participant picker.
+/// Members of one ledger plus on-demand invite minting. Used by the members
+/// manager and by the journal filters / quick-entry participant picker.
+/// Invites are stateless short-lived JWTs — there is nothing to list or
+/// revoke, so the store only exposes `mintInvite`.
 @MainActor
 @Observable
 final class MemberStore {
     let client = APIClient.shared
 
     private(set) var members: [LedgerMember] = []
-    private(set) var shareCodes: [ShareCode] = []
     private(set) var isLoading = false
     private(set) var loadError: String?
 
     private(set) var ledgerId: String?
-    /// True when the caller is the ledger owner (may manage members + codes).
+    /// True when the caller is the ledger owner (may manage members +
+    /// mint invites).
     private(set) var isOwner = false
 
     func load(ledgerId: String, myUserId: String?) async {
@@ -41,19 +43,6 @@ final class MemberStore {
             loadError = nil
         } catch {
             loadError = error.localizedDescription
-        }
-    }
-
-    func loadShareCodes() async {
-        guard let ledgerId, isOwner else { return }
-        do {
-            let response: ShareCodesResponse = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/share-codes"
-            )
-            shareCodes = response.codes
-        } catch {
-            shareCodes = []
         }
     }
 
@@ -86,23 +75,16 @@ final class MemberStore {
         await reloadAll()
     }
 
-    func createShareCode(role: LedgerRole) async throws {
-        guard let ledgerId else { return }
-        _ = try await client.send(
+    /// Mints a fresh invite code for the ledger. Codes expire server-side
+    /// after a minute — callers showing a QR should re-mint on a timer (see
+    /// `LiveInviteQR`).
+    func mintInvite(role: LedgerRole) async throws -> ShareCode {
+        guard let ledgerId else { throw APIError.invalidResponse }
+        return try await client.request(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/share-codes",
-            body: CreateShareCodeBody(role: role, expiresAt: nil, maxUses: nil)
+            body: CreateShareCodeBody(role: role)
         )
-        await loadShareCodes()
-    }
-
-    func revokeShareCode(_ code: ShareCode) async throws {
-        guard let ledgerId else { return }
-        _ = try await client.send(
-            "DELETE",
-            "bookkeeping/ledgers/\(ledgerId)/share-codes/\(code.id)"
-        )
-        await loadShareCodes()
     }
 
     func reloadAll() async {
@@ -115,13 +97,6 @@ final class MemberStore {
                 "bookkeeping/ledgers/\(ledgerId)/members"
             )
             members = membersResponse.members
-            if isOwner {
-                let codesResponse: ShareCodesResponse = try await client.request(
-                    "GET",
-                    "bookkeeping/ledgers/\(ledgerId)/share-codes"
-                )
-                shareCodes = codesResponse.codes
-            }
             loadError = nil
         } catch {
             loadError = error.localizedDescription

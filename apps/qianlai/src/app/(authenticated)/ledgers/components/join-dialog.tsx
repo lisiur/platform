@@ -52,7 +52,7 @@ export function JoinLedgerDialog({
     mutationFn: async (data: JoinFormData) => {
       const res = await withApiFeedback(
         appClient.api.bookkeeping["share-codes"].redeem.$post,
-      )({ json: { code: data.code.trim().toUpperCase() } });
+      )({ json: { code: data.code.trim() } });
       return res.json();
     },
     onSuccess: (data) => {
@@ -91,7 +91,7 @@ export function JoinLedgerDialog({
                 </FieldLabel>
                 <Input
                   id="join-code"
-                  className="font-mono uppercase"
+                  className="font-mono"
                   aria-invalid={!!form.formState.errors.code}
                   {...form.register("code")}
                   placeholder={t("codePlaceholder")}

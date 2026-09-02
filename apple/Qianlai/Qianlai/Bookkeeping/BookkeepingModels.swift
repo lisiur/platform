@@ -394,25 +394,19 @@ struct LedgerMember: Codable, Identifiable, Hashable {
     }
 }
 
-struct ShareCodeCreator: Codable, Hashable {
-    let id: String
-    var name: String
-    var email: String?
-}
-
-struct ShareCode: Codable, Identifiable, Hashable {
-    let id: String
+/// A freshly minted invite. The `code` is a short-lived signed token —
+/// nothing is stored server-side, so it cannot be listed or revoked; it
+/// simply expires (`expiresAt`).
+struct ShareCode: Codable, Hashable, Identifiable {
     let ledgerId: String
     let code: String
     var role: LedgerRole
-    var status: String
+    /// Set = project-scoped invite (grants guest access to that project).
+    var projectId: String?
     var expiresAt: Date?
-    var maxUses: Int?
-    var usesCount: Int
-    var createdBy: ShareCodeCreator?
     var createdAt: Date
 
-    var isActive: Bool { status == "active" }
+    var id: String { code }
 }
 
 // MARK: - Projects
@@ -669,10 +663,6 @@ struct EntriesResponse: Codable {
 
 struct MembersResponse: Codable {
     var members: [LedgerMember]
-}
-
-struct ShareCodesResponse: Codable {
-    var codes: [ShareCode]
 }
 
 struct ProjectsResponse: Codable {
@@ -997,8 +987,6 @@ extension QuickEntryDraft {
 
 struct CreateShareCodeBody: Encodable {
     var role: LedgerRole
-    var expiresAt: Date?
-    var maxUses: Int?
     /// Set = project invite (role is forced to .guest server-side).
     var projectId: String?
 }

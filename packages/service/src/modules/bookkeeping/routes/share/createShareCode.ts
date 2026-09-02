@@ -20,9 +20,9 @@ export const createShareCodeRoute = defineOpenAPIRoute({
     method: "post",
     path: "/ledgers/{ledgerId}/share-codes",
     tags: ["QianlaiShare"],
-    summary: "Create a share code (owner; editors for project invites)",
+    summary: "Mint an invite code (owner; editors for project invites)",
     description:
-      'Any registered user can redeem the code to join this ledger with the bound role. With projectId set the code becomes a project invite redeemable for guest access to that project (editors and above may create those; the role field must be "guest").',
+      'Signs a short-lived invite JWT (nothing is stored). Any registered user can redeem it to join this ledger with the bound role. With projectId set the code becomes a project invite redeemable for guest access to that project (editors and above may create those; the role field must be "guest").',
     request: {
       params: ledgerIdParamSchema,
       body: {
@@ -35,7 +35,7 @@ export const createShareCodeRoute = defineOpenAPIRoute({
       ...unauthorizedResponse,
       ...forbiddenResponse,
       ...notFoundResponse,
-      ...createdResponseFn(shareCodeSchema, "The created share code"),
+      ...createdResponseFn(shareCodeSchema, "The minted invite code"),
     },
   }),
   handler: async (c) => {
@@ -58,7 +58,6 @@ export const createShareCodeRoute = defineOpenAPIRoute({
       {
         ...code,
         role: code.role as "editor" | "viewer" | "guest",
-        status: code.status as "active" | "revoked",
       },
       201,
     );

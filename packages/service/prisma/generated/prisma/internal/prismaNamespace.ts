@@ -453,7 +453,6 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
-  LedgerShareCode: 'LedgerShareCode',
   RealAccount: 'RealAccount',
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
@@ -474,7 +473,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "project" | "projectMember" | "ledgerMember" | "ledgerShareCode" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "project" | "projectMember" | "ledgerMember" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4622,80 +4621,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    LedgerShareCode: {
-      payload: Prisma.$LedgerShareCodePayload<ExtArgs>
-      fields: Prisma.LedgerShareCodeFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.LedgerShareCodeFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.LedgerShareCodeFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        findFirst: {
-          args: Prisma.LedgerShareCodeFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.LedgerShareCodeFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        findMany: {
-          args: Prisma.LedgerShareCodeFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>[]
-        }
-        create: {
-          args: Prisma.LedgerShareCodeCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        createMany: {
-          args: Prisma.LedgerShareCodeCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.LedgerShareCodeCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>[]
-        }
-        delete: {
-          args: Prisma.LedgerShareCodeDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        update: {
-          args: Prisma.LedgerShareCodeUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        deleteMany: {
-          args: Prisma.LedgerShareCodeDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.LedgerShareCodeUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.LedgerShareCodeUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>[]
-        }
-        upsert: {
-          args: Prisma.LedgerShareCodeUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerShareCodePayload>
-        }
-        aggregate: {
-          args: Prisma.LedgerShareCodeAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateLedgerShareCode>
-        }
-        groupBy: {
-          args: Prisma.LedgerShareCodeGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.LedgerShareCodeGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.LedgerShareCodeCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.LedgerShareCodeCountAggregateOutputType> | number
-        }
-      }
-    }
     RealAccount: {
       payload: Prisma.$RealAccountPayload<ExtArgs>
       fields: Prisma.RealAccountFieldRefs
@@ -5959,23 +5884,6 @@ export const LedgerMemberScalarFieldEnum = {
 export type LedgerMemberScalarFieldEnum = (typeof LedgerMemberScalarFieldEnum)[keyof typeof LedgerMemberScalarFieldEnum]
 
 
-export const LedgerShareCodeScalarFieldEnum = {
-  id: 'id',
-  ledgerId: 'ledgerId',
-  projectId: 'projectId',
-  code: 'code',
-  role: 'role',
-  status: 'status',
-  expiresAt: 'expiresAt',
-  maxUses: 'maxUses',
-  usesCount: 'usesCount',
-  createdById: 'createdById',
-  createdAt: 'createdAt'
-} as const
-
-export type LedgerShareCodeScalarFieldEnum = (typeof LedgerShareCodeScalarFieldEnum)[keyof typeof LedgerShareCodeScalarFieldEnum]
-
-
 export const RealAccountScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
@@ -6488,7 +6396,6 @@ export type GlobalOmitConfig = {
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
   ledgerMember?: Prisma.LedgerMemberOmit
-  ledgerShareCode?: Prisma.LedgerShareCodeOmit
   realAccount?: Prisma.RealAccountOmit
   bookAccount?: Prisma.BookAccountOmit
   journalEntry?: Prisma.JournalEntryOmit

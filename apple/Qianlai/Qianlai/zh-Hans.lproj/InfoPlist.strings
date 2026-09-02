@@ -1,1 +1,2 @@
 "CFBundleDisplayName" = "钱来";
+"NSCameraUsageDescription" = "钱来使用相机扫描邀请二维码，不会录制任何内容。";

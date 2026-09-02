@@ -709,70 +709,33 @@ struct ProjectFormView: View {
     }
 }
 
-/// Generates a project-scoped invite code and shows it for sharing.
-/// Redeemers join the ledger as guests scoped to exactly this project.
+/// Live invite QR for one project. Redeemers join the ledger as guests
+/// scoped to exactly this project. Codes are minted on demand and expire
+/// after a minute, so the QR refreshes itself while the view is open.
 struct ProjectInviteView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(ToastCenter.self) private var toast
 
     let ledgerId: String
     let project: QianlaiProject
 
     @State private var projectStore = ProjectStore()
-    @State private var code: String?
-    @State private var errorMessage: String?
-    @State private var isCreating = false
 
     var body: some View {
         Form {
             Section {
-                Button {
-                    Task { await createCode() }
-                } label: {
-                    HStack {
-                        Label(
-                            L10n.string("projects.createCode", defaultValue: "Create Invite Code"),
-                            systemImage: "qrcode"
-                        )
-                        Spacer()
-                        if isCreating {
-                            ProgressView().controlSize(.small)
-                        }
-                    }
+                LiveInviteQR {
+                    try await projectStore.mintInvite(
+                        ledgerId: ledgerId,
+                        projectId: project.id
+                    )
                 }
-                .disabled(isCreating)
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
             } footer: {
                 Text(L10n.string(
                     "projects.inviteFooter",
-                    defaultValue: "Anyone with the code joins this project as a guest — they can only see and record expenses of this project."
+                    defaultValue: "Anyone who scans the QR joins this project as a guest — they can only see and record expenses of this project. The QR refreshes automatically; each code works for one minute."
                 ))
-            }
-
-            if let code {
-                Section {
-                    HStack {
-                        Text(code)
-                            .font(.title3.monospaced().weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                        Spacer()
-                        Button {
-                            Self.copy(code)
-                            toast.show(L10n.string("projects.copied", defaultValue: "Copied"))
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-
-            if let errorMessage {
-                Section {
-                    Label(errorMessage, systemImage: "exclamationmark.circle")
-                        .foregroundStyle(.red)
-                        .font(.footnote)
-                }
             }
         }
         .navigationTitle(Text(L10n.string("projects.invite", defaultValue: "Invite via Code")))
@@ -782,29 +745,5 @@ struct ProjectInviteView: View {
                 Button(L10n.string("Done", defaultValue: "Done")) { dismiss() }
             }
         }
-    }
-
-    private func createCode() async {
-        isCreating = true
-        defer { isCreating = false }
-        do {
-            let newCode = try await projectStore.createInviteCode(
-                ledgerId: ledgerId,
-                projectId: project.id
-            )
-            code = newCode
-            Self.copy(newCode)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private static func copy(_ value: String) {
-        #if os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(value, forType: .string)
-        #else
-        UIPasteboard.general.string = value
-        #endif
     }
 }

@@ -1,62 +1,37 @@
-import { randomBytes } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
-import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { assertLedgerWritable } from "./access";
-import { compareLedgerRole, type LedgerRole, type ShareRole } from "./domain";
+import { compareLedgerRole, type LedgerRole } from "./domain";
+import {
+  type InviteRole,
+  mintInviteToken,
+  verifyInviteToken,
+} from "./invite-token";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
 import { projectRepository } from "./project.repository";
 import { projectMemberRepository } from "./project-member.repository";
-import { shareCodeRepository } from "./share-code.repository";
-
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-function generateCode(): string {
-  const bytes = randomBytes(12);
-  let code = "";
-  for (let i = 0; i < 12; i++) {
-    code += CODE_CHARS[bytes[i] % CODE_CHARS.length];
-  }
-  return code;
-}
-
-async function ensureUniqueCode(
-  code: string,
-  tx: Prisma.TransactionClient,
-): Promise<string> {
-  const existing = await shareCodeRepository.findByCode(code, tx);
-  if (!existing) return code;
-  return ensureUniqueCode(generateCode(), tx);
-}
-
-export async function listShareCodes(
-  ledgerId: string,
-  opts: { projectId?: string } = {},
-) {
-  const codes = await shareCodeRepository.listByLedger(ledgerId, opts);
-  return { codes };
-}
 
 /**
  * Runs under the ledger row lock (like every other ledger writer): the
  * route's ownership/writability check sees a pre-transaction snapshot, so a
- * concurrent archive or ownership transfer between the check and the insert
- * must not slip a share code onto an archived or ex-owned ledger.
+ * concurrent archive or ownership transfer between the check and the mint
+ * must not hand out an invite for an archived or ex-owned ledger.
  *
- * With `projectId` the code becomes a project invite: redeeming grants a
- * `guest` ledger membership scoped to that project (the `role` field is
- * forced to "guest"). Ledger-wide codes keep the owner-only rule; project
- * codes may be created by editors and above.
+ * With `projectId` the invite is project-scoped: redeeming grants a `guest`
+ * ledger membership scoped to that project (the `role` claim is "guest").
+ * Ledger-wide invites keep the owner-only rule; project invites may be
+ * minted by editors and above.
+ *
+ * The returned "share code" IS the signed JWT — no row is stored anywhere.
+ * It expires after INVITE_TTL_SECONDS and cannot be listed or revoked.
  */
 export async function createShareCode(
   ledgerId: string,
   createdById: string,
   data: {
     role: string;
-    expiresAt?: Date | null;
-    maxUses?: number | null;
     projectId?: string | null;
   },
 ) {
@@ -71,17 +46,7 @@ export async function createShareCode(
       message: "Share code role must be editor or viewer",
     });
   }
-  if (data.maxUses !== undefined && data.maxUses !== null && data.maxUses < 1) {
-    throw new HTTPException(400, {
-      message: "maxUses must be at least 1",
-    });
-  }
-  if (data.expiresAt && data.expiresAt.getTime() <= Date.now()) {
-    throw new HTTPException(400, {
-      message: "expiresAt must be in the future",
-    });
-  }
-  return prisma.$transaction(async (tx) => {
+  const minted = await prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
     const ledger = await ledgerRepository.findById(ledgerId, tx);
     if (!ledger) {
@@ -119,70 +84,42 @@ export async function createShareCode(
       }
     }
     assertLedgerWritable(ledger);
-    const code = await ensureUniqueCode(generateCode(), tx);
-    return shareCodeRepository.create(
-      {
-        ledgerId,
-        code,
-        role: data.role as ShareRole | "guest",
-        expiresAt: data.expiresAt ?? null,
-        maxUses: data.maxUses ?? null,
-        createdById,
-        projectId: data.projectId ?? null,
-      },
-      tx,
-    );
+    return mintInviteToken({
+      sub: createdById,
+      ledgerId,
+      ...(data.projectId ? { projectId: data.projectId } : {}),
+      role: data.role as InviteRole,
+    });
   });
-}
-
-export async function revokeShareCode(ledgerId: string, codeId: string) {
-  const code = await shareCodeRepository.findById(codeId);
-  if (!code || code.ledgerId !== ledgerId) {
-    throw new HTTPException(404, { message: "Share code not found" });
-  }
-  await shareCodeRepository.revoke(codeId);
-  return { success: true as const };
+  return {
+    ledgerId,
+    code: minted.token,
+    role: data.role as InviteRole,
+    projectId: data.projectId ?? null,
+    expiresAt: minted.expiresAt,
+    createdAt: new Date(),
+  };
 }
 
 /**
- * Redeems a share code: validates status/expiry/usage cap with the code row
- * locked (FOR UPDATE), then grants access.
+ * Redeems an invite code: verifies the JWT signature, audience, and expiry
+ * (exp is enforced by verification itself), then grants access under the
+ * ledger row lock.
  *
- * Ledger-wide codes add the redeemer as an editor/viewer member (existing
- * member → 400; owner redeeming own ledger → 400). Project codes grant the
+ * Ledger-wide invites add the redeemer as an editor/viewer member (existing
+ * member → 400; owner redeeming own ledger → 400). Project invites grant the
  * `guest` ledger role plus a ProjectMember row: an existing member of any
  * role just gains the project; an outsider becomes a guest first.
  *
- * Locks are taken ledger-first, then code — the same order `deleteLedger`
- * takes (ledger row, then its cascade to share codes), so a concurrent ledger
- * deletion serializes instead of deadlocking, and the ledger/archived checks
- * run under the lock like every other ledger writer.
+ * Only the ledger row lock remains from the stored-code flow — codes need no
+ * row locking or usage counting, and ledger deletion serializes through the
+ * same ledger-first lock order as `deleteLedger`.
  */
 export async function redeemShareCode(userId: string, codeStr: string) {
+  const claims = await verifyInviteToken(codeStr);
   return prisma.$transaction(async (tx) => {
-    // Unlocked peek to learn which ledger the code belongs to.
-    const peek = await shareCodeRepository.findByCode(codeStr, tx);
-    if (!peek) {
-      throw new HTTPException(404, { message: "Share code not found" });
-    }
-    await lockLedgerRow(tx, peek.ledgerId);
-    await tx.$queryRaw`SELECT * FROM "qianlai_ledger_share_code" WHERE "code" = ${codeStr} FOR UPDATE`;
-    const code = await shareCodeRepository.findByCode(codeStr, tx);
-    if (!code) {
-      throw new HTTPException(404, { message: "Share code not found" });
-    }
-    if (code.status !== "active") {
-      throw new HTTPException(400, { message: "This share code was revoked" });
-    }
-    if (code.expiresAt && code.expiresAt < new Date()) {
-      throw new HTTPException(400, { message: "This share code has expired" });
-    }
-    if (code.maxUses !== null && code.usesCount >= code.maxUses) {
-      throw new HTTPException(400, {
-        message: "This share code has reached its usage limit",
-      });
-    }
-    const ledger = await ledgerRepository.findById(code.ledgerId, tx);
+    await lockLedgerRow(tx, claims.ledgerId);
+    const ledger = await ledgerRepository.findById(claims.ledgerId, tx);
     if (!ledger) {
       throw new HTTPException(404, { message: "Ledger not found" });
     }
@@ -195,20 +132,20 @@ export async function redeemShareCode(userId: string, codeStr: string) {
       });
     }
     const existing = await ledgerMemberRepository.findMembership(
-      code.ledgerId,
+      claims.ledgerId,
       userId,
       tx,
     );
-    if (code.projectId) {
-      const project = await projectRepository.findById(code.projectId, tx);
-      if (!project || project.ledgerId !== code.ledgerId) {
+    if (claims.projectId) {
+      const project = await projectRepository.findById(claims.projectId, tx);
+      if (!project || project.ledgerId !== claims.ledgerId) {
         throw new HTTPException(404, { message: "Project not found" });
       }
       if (project.status !== "active") {
         throw new HTTPException(400, { message: "This project is archived" });
       }
       const projectMember = await projectMemberRepository.findMembership(
-        code.projectId,
+        claims.projectId,
         userId,
         tx,
       );
@@ -220,12 +157,12 @@ export async function redeemShareCode(userId: string, codeStr: string) {
       try {
         if (!existing) {
           await ledgerMemberRepository.create(
-            { ledgerId: code.ledgerId, userId, role: "guest" },
+            { ledgerId: claims.ledgerId, userId, role: "guest" },
             tx,
           );
         }
         await projectMemberRepository.create(
-          { projectId: code.projectId, userId },
+          { projectId: claims.projectId, userId },
           tx,
         );
       } catch (err) {
@@ -234,10 +171,9 @@ export async function redeemShareCode(userId: string, codeStr: string) {
         }
         throw err;
       }
-      await shareCodeRepository.incrementUses(code.id, tx);
       return {
-        ledgerId: code.ledgerId,
-        projectId: code.projectId,
+        ledgerId: claims.ledgerId,
+        projectId: claims.projectId,
         role: existing?.role ?? "guest",
       };
     }
@@ -248,7 +184,7 @@ export async function redeemShareCode(userId: string, codeStr: string) {
     }
     try {
       await ledgerMemberRepository.create(
-        { ledgerId: code.ledgerId, userId, role: code.role },
+        { ledgerId: claims.ledgerId, userId, role: claims.role },
         tx,
       );
     } catch (err) {
@@ -260,8 +196,7 @@ export async function redeemShareCode(userId: string, codeStr: string) {
       }
       throw err;
     }
-    await shareCodeRepository.incrementUses(code.id, tx);
-    return { ledgerId: code.ledgerId, role: code.role };
+    return { ledgerId: claims.ledgerId, role: claims.role };
   });
 }
 

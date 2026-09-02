@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// Members + share codes manager for one ledger (owner sees role controls,
-/// transfer, removal, and share-code issuing).
+/// Members + invite manager for one ledger (owner sees role controls,
+/// transfer, removal, and the live invite QR).
 struct MembersView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var auth
@@ -18,15 +18,16 @@ struct MembersView: View {
     let ledger: QianlaiLedger
 
     @State private var store = MemberStore()
-    @State private var shareRole: LedgerRole = .editor
+    @State private var inviteRole: LedgerRole = .editor
     @State private var memberPendingRemove: LedgerMember?
     @State private var memberPendingTransfer: LedgerMember?
+    @State private var isShowingInviteQR = false
 
     var body: some View {
         List {
             membersSection
             if store.isOwner {
-                shareCodesSection
+                inviteSection
             }
         }
         .navigationTitle(Text("Members"))
@@ -38,7 +39,6 @@ struct MembersView: View {
         }
         .task {
             await store.load(ledgerId: ledger.id, myUserId: auth.currentUser?.id)
-            await store.loadShareCodes()
         }
         .alert(
             L10n.string("ledgers.removeMember", defaultValue: "Remove Member"),
@@ -92,6 +92,16 @@ struct MembersView: View {
             if let member = memberPendingTransfer {
                 Text("Transfer ownership to \(member.displayName)? You become an editor.")
             }
+        }
+        .sheet(isPresented: $isShowingInviteQR) {
+            InviteQRSheet(
+                title: L10n.string(
+                    "ledgers.inviteToJoin",
+                    defaultValue: "Invite to %@",
+                    ledger.name
+                ),
+                mint: { try await store.mintInvite(role: inviteRole) }
+            )
         }
     }
 
@@ -234,90 +244,29 @@ struct MembersView: View {
         .clipShape(Circle())
     }
 
+    /// Owner's invite section: pick the role joining members get, then show
+    /// the live QR. Codes are minted on demand and die after a minute, so
+    /// there is no list to manage — just re-show the QR whenever needed.
     @ViewBuilder
-    private var shareCodesSection: some View {
+    private var inviteSection: some View {
         Section {
-            HStack {
-                Picker("Role", selection: $shareRole) {
-                    Text(LedgerRole.editor.label).tag(LedgerRole.editor)
-                    Text(LedgerRole.viewer.label).tag(LedgerRole.viewer)
-                }
-                .pickerStyle(.segmented)
-                Button {
-                    Task {
-                        do {
-                            try await store.createShareCode(role: shareRole)
-                            toast.show(L10n.string("ledgers.shareCodeCreated", defaultValue: "Share code created"))
-                        } catch {
-                            toast.show(error.localizedDescription)
-                        }
-                    }
-                } label: {
-                    Label("Create", systemImage: "plus")
-                }
-                .buttonStyle(.bordered)
+            Picker("Role", selection: $inviteRole) {
+                Text(LedgerRole.editor.label).tag(LedgerRole.editor)
+                Text(LedgerRole.viewer.label).tag(LedgerRole.viewer)
             }
-            if store.shareCodes.isEmpty {
-                Text("No share codes")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(store.shareCodes) { code in
-                    shareCodeRow(code)
-                }
+            .pickerStyle(.segmented)
+            Button {
+                isShowingInviteQR = true
+            } label: {
+                Label(
+                    L10n.string("invite.showQR", defaultValue: "Show QR Code"),
+                    systemImage: "qrcode"
+                )
             }
         } header: {
-            Text("Share Codes")
+            Text("Invite")
         } footer: {
-            Text("Share codes let others join this ledger. Editors can post entries; viewers can only browse.")
-        }
-    }
-
-    private func shareCodeRow(_ code: ShareCode) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(code.code)
-                    .font(.body.monospaced().weight(.medium))
-                    .textSelection(.enabled)
-                Spacer()
-                BadgeView(text: code.role.label, outlined: true)
-                if code.isActive {
-                    BadgeView(text: L10n.string("status.active", defaultValue: "Active"))
-                } else {
-                    BadgeView(text: L10n.string("ledgers.revoked", defaultValue: "Revoked"), color: .red)
-                }
-            }
-            HStack {
-                Label("\(code.usesCount)\(code.maxUses.map { " / \($0)" } ?? "")", systemImage: "person.crop.circle.badge.checkmark")
-                if let createdAt = code.createdBy?.name {
-                    Text("·")
-                    Text(createdAt)
-                }
-                Spacer()
-            }
-            .font(.caption)
-            .foregroundStyle(.tertiary)
-        }
-        .contextMenu {
-            if code.isActive {
-                Button {
-                    Clipboard.copy(code.code)
-                    toast.show(L10n.string("common.copied", defaultValue: "Copied"))
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                Button(role: .destructive) {
-                    Task {
-                        do {
-                            try await store.revokeShareCode(code)
-                            toast.show(L10n.string("ledgers.revokeSuccess", defaultValue: "Share code revoked"))
-                        } catch {
-                            toast.show(error.localizedDescription)
-                        }
-                    }
-                } label: {
-                    Label("Revoke", systemImage: "minus.circle")
-                }
-            }
+            Text("Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse.")
         }
     }
 }

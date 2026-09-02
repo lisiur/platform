@@ -206,20 +206,16 @@ final class ProjectStore {
         // `prefetch` (background ledger) as appropriate.
     }
 
-    /// Creates a project invite code and returns it. Redeemers join as
-    /// guests scoped to exactly this project.
-    func createInviteCode(ledgerId: String, projectId: String) async throws -> String {
-        let code: ShareCode = try await client.request(
+    /// Mints a project-scoped invite and returns it. Redeemers join as
+    /// guests scoped to exactly this project. Codes expire server-side
+    /// after a minute — callers showing a QR re-mint on a timer (see
+    /// `LiveInviteQR`).
+    func mintInvite(ledgerId: String, projectId: String) async throws -> ShareCode {
+        return try await client.request(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/share-codes",
-            body: CreateShareCodeBody(
-                role: .guest,
-                expiresAt: nil,
-                maxUses: nil,
-                projectId: projectId
-            )
+            body: CreateShareCodeBody(role: .guest, projectId: projectId)
         )
-        return code.code
     }
 }
 

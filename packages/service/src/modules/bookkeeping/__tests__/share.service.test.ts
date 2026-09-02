@@ -1,5 +1,8 @@
 import { HTTPException } from "hono/http-exception";
+import { sign } from "hono/jwt";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+process.env.QIANLAI_INVITE_SECRET = "test-invite-secret";
 
 vi.mock("#lib/db", () => ({
   prisma: {
@@ -7,7 +10,6 @@ vi.mock("#lib/db", () => ({
       fn({
         $queryRaw: vi.fn(),
         ledgerMember: {},
-        ledgerShareCode: {},
         ledger: {},
       }),
     ),
@@ -33,14 +35,6 @@ vi.mock("../ledger-member.repository", () => ({
   },
 }));
 
-vi.mock("../share-code.repository", () => ({
-  shareCodeRepository: {
-    findByCode: vi.fn(),
-    create: vi.fn(),
-    incrementUses: vi.fn(),
-  },
-}));
-
 vi.mock("../project.repository", () => ({
   projectRepository: {
     findById: vi.fn(),
@@ -56,6 +50,8 @@ vi.mock("../project-member.repository", () => ({
   },
 }));
 
+import { verify } from "hono/jwt";
+import { INVITE_AUDIENCE, INVITE_TTL_SECONDS } from "../invite-token";
 import { ledgerRepository } from "../ledger.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
 import { projectRepository } from "../project.repository";
@@ -68,7 +64,6 @@ import {
   transferOwnership,
   updateMemberRole,
 } from "../share.service";
-import { shareCodeRepository } from "../share-code.repository";
 
 const mockLedgerRepo = ledgerRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
@@ -82,11 +77,6 @@ const mockMemberRepo = ledgerMemberRepository as unknown as {
   delete: ReturnType<typeof vi.fn>;
   listByLedger: ReturnType<typeof vi.fn>;
 };
-const mockShareRepo = shareCodeRepository as unknown as {
-  findByCode: ReturnType<typeof vi.fn>;
-  create: ReturnType<typeof vi.fn>;
-  incrementUses: ReturnType<typeof vi.fn>;
-};
 const mockProjectRepo = projectRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
 };
@@ -97,25 +87,40 @@ const mockProjectMemberRepo = projectMemberRepository as unknown as {
   listSharedMemberUserIds: ReturnType<typeof vi.fn>;
 };
 
-const baseCode = {
-  id: "sc-1",
-  ledgerId: "led-1",
-  code: "A2B4C6D8E9F2",
-  role: "editor",
-  status: "active",
-  expiresAt: null,
-  maxUses: null,
-  usesCount: 0,
-  createdById: "user-owner",
-  createdAt: new Date(),
-};
-
 const baseLedger = {
   id: "led-1",
   ownerId: "user-owner",
   name: "Family",
   status: "active",
 };
+
+const SECRET = "test-invite-secret";
+
+/** Signs an invite JWT with full control over claims (incl. bad ones). */
+async function inviteToken(
+  claims: Record<string, unknown>,
+  secret: string = SECRET,
+): Promise<string> {
+  return sign({ aud: INVITE_AUDIENCE, ...claims }, secret);
+}
+
+function freshInviteToken(
+  claims: Record<string, unknown> = {},
+  secret: string = SECRET,
+) {
+  const now = Math.floor(Date.now() / 1000);
+  return inviteToken(
+    {
+      sub: "user-owner",
+      ledgerId: "led-1",
+      role: "editor",
+      iat: now,
+      exp: now + INVITE_TTL_SECONDS,
+      ...claims,
+    },
+    secret,
+  );
+}
 
 async function expectStatus(
   fn: () => Promise<unknown>,
@@ -129,32 +134,24 @@ async function expectStatus(
 describe("redeemShareCode", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockShareRepo.findByCode.mockResolvedValue(baseCode);
     mockLedgerRepo.findById.mockResolvedValue(baseLedger);
     mockMemberRepo.findMembership.mockResolvedValue(null);
     mockMemberRepo.create.mockResolvedValue({});
-    mockShareRepo.incrementUses.mockResolvedValue({});
   });
 
-  it("adds the redeemer as a member and increments uses", async () => {
-    const result = await redeemShareCode("user-b", "A2B4C6D8E9F2");
-    expect(result).toEqual({ ledgerId: "led-1", role: "editor" });
+  it("adds the redeemer as a member with the token's role", async () => {
+    const result = await redeemShareCode(
+      "user-b",
+      await freshInviteToken({ role: "viewer" }),
+    );
+    expect(result).toEqual({ ledgerId: "led-1", role: "viewer" });
     expect(mockMemberRepo.create).toHaveBeenCalledWith(
-      { ledgerId: "led-1", userId: "user-b", role: "editor" },
-      expect.anything(),
-    );
-    expect(mockShareRepo.incrementUses).toHaveBeenCalledWith(
-      "sc-1",
+      { ledgerId: "led-1", userId: "user-b", role: "viewer" },
       expect.anything(),
     );
   });
 
-  it("project code: creates a guest membership plus the project member", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      role: "guest",
-      projectId: "proj-1",
-    });
+  it("project token: creates a guest membership plus the project member", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
@@ -162,7 +159,10 @@ describe("redeemShareCode", () => {
     });
     mockProjectMemberRepo.findMembership.mockResolvedValue(null);
     mockProjectMemberRepo.create.mockResolvedValue({});
-    const result = await redeemShareCode("user-b", "A2B4C6D8E9F2");
+    const result = await redeemShareCode(
+      "user-b",
+      await freshInviteToken({ role: "guest", projectId: "proj-1" }),
+    );
     expect(result).toEqual({
       ledgerId: "led-1",
       projectId: "proj-1",
@@ -176,15 +176,9 @@ describe("redeemShareCode", () => {
       { projectId: "proj-1", userId: "user-b" },
       expect.anything(),
     );
-    expect(mockShareRepo.incrementUses).toHaveBeenCalled();
   });
 
-  it("project code: an existing member only gains the project", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      role: "guest",
-      projectId: "proj-1",
-    });
+  it("project token: an existing member only gains the project", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
@@ -192,7 +186,10 @@ describe("redeemShareCode", () => {
     });
     mockMemberRepo.findMembership.mockResolvedValue({ role: "editor" });
     mockProjectMemberRepo.findMembership.mockResolvedValue(null);
-    await redeemShareCode("user-b", "A2B4C6D8E9F2");
+    await redeemShareCode(
+      "user-b",
+      await freshInviteToken({ role: "guest", projectId: "proj-1" }),
+    );
     expect(mockMemberRepo.create).not.toHaveBeenCalled();
     expect(mockProjectMemberRepo.create).toHaveBeenCalledWith(
       { projectId: "proj-1", userId: "user-b" },
@@ -200,50 +197,64 @@ describe("redeemShareCode", () => {
     );
   });
 
-  it("project code: rejects an already-project-member (400)", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      role: "guest",
-      projectId: "proj-1",
-    });
+  it("project token: rejects an already-project-member (400)", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
       status: "active",
     });
     mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+    await expectStatus(
+      async () =>
+        redeemShareCode(
+          "user-b",
+          await freshInviteToken({ role: "guest", projectId: "proj-1" }),
+        ),
+      400,
+    );
     expect(mockProjectMemberRepo.create).not.toHaveBeenCalled();
   });
 
-  it("returns 404 for an unknown code", async () => {
-    mockShareRepo.findByCode.mockResolvedValue(null);
-    await expectStatus(() => redeemShareCode("user-b", "NOPE"), 404);
+  it("rejects an expired token (400)", async () => {
+    const token = await inviteToken({
+      sub: "user-owner",
+      ledgerId: "led-1",
+      role: "editor",
+      iat: 1,
+      exp: 2,
+    });
+    await expectStatus(() => redeemShareCode("user-b", token), 400);
+    expect(mockMemberRepo.create).not.toHaveBeenCalled();
   });
 
-  it("rejects revoked codes (400)", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      status: "revoked",
-    });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+  it("rejects a token signed with the wrong secret (400)", async () => {
+    const token = await freshInviteToken({}, "wrong-secret");
+    await expectStatus(() => redeemShareCode("user-b", token), 400);
   });
 
-  it("rejects expired codes (400)", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      expiresAt: new Date("2020-01-01"),
-    });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+  it("rejects a token with the wrong audience (400)", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = await sign(
+      {
+        aud: "something-else",
+        sub: "user-owner",
+        ledgerId: "led-1",
+        role: "editor",
+        iat: now,
+        exp: now + 60,
+      },
+      SECRET,
+    );
+    await expectStatus(() => redeemShareCode("user-b", token), 400);
   });
 
-  it("rejects codes past their usage cap (400)", async () => {
-    mockShareRepo.findByCode.mockResolvedValue({
-      ...baseCode,
-      maxUses: 2,
-      usesCount: 2,
-    });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+  it("rejects a guest role on a ledger-wide token (400)", async () => {
+    const token = await freshInviteToken({ role: "guest" });
+    await expectStatus(() => redeemShareCode("user-b", token), 400);
+  });
+
+  it("rejects garbage input (400)", async () => {
+    await expectStatus(() => redeemShareCode("user-b", "NOPE"), 400);
   });
 
   it("rejects redemption of an archived ledger (400)", async () => {
@@ -251,7 +262,10 @@ describe("redeemShareCode", () => {
       ...baseLedger,
       status: "archived",
     });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+    await expectStatus(
+      async () => redeemShareCode("user-b", await freshInviteToken()),
+      400,
+    );
   });
 
   it("rejects users who are already members (400)", async () => {
@@ -261,24 +275,39 @@ describe("redeemShareCode", () => {
       userId: "user-b",
       role: "viewer",
     });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 400);
+    await expectStatus(
+      async () => redeemShareCode("user-b", await freshInviteToken()),
+      400,
+    );
+    expect(mockMemberRepo.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects the owner redeeming their own ledger (400)", async () => {
+    await expectStatus(
+      async () => redeemShareCode("user-owner", await freshInviteToken()),
+      400,
+    );
     expect(mockMemberRepo.create).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the ledger is deleted mid-redeem (race)", async () => {
-    // The unlocked peek found the code, but a concurrent deleteLedger won
-    // the ledger row lock and committed: the locked re-read finds nothing.
+    // The token verified, but a concurrent deleteLedger won the ledger row
+    // lock and committed: the locked re-read finds nothing.
     mockLedgerRepo.findById.mockResolvedValue(null);
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 404);
+    await expectStatus(
+      async () => redeemShareCode("user-b", await freshInviteToken()),
+      404,
+    );
     expect(mockMemberRepo.create).not.toHaveBeenCalled();
-    expect(mockShareRepo.incrementUses).not.toHaveBeenCalled();
   });
 
   it("maps a foreign-key violation on the member insert to 404", async () => {
     // Defense-in-depth for paths the ledger row lock can't cover.
     mockMemberRepo.create.mockRejectedValue({ code: "P2003" });
-    await expectStatus(() => redeemShareCode("user-b", "A2B4C6D8E9F2"), 404);
-    expect(mockShareRepo.incrementUses).not.toHaveBeenCalled();
+    await expectStatus(
+      async () => redeemShareCode("user-b", await freshInviteToken()),
+      404,
+    );
   });
 });
 
@@ -286,48 +315,83 @@ describe("createShareCode", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockLedgerRepo.findById.mockResolvedValue(baseLedger);
-    // The generated code collides with nothing.
-    mockShareRepo.findByCode.mockResolvedValue(null);
-    mockShareRepo.create.mockResolvedValue({});
   });
 
-  it("creates a code bound to the ledger and creator", async () => {
-    await createShareCode("led-1", "user-owner", { role: "viewer" });
-    expect(mockShareRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ledgerId: "led-1",
-        role: "viewer",
-        createdById: "user-owner",
-      }),
-      expect.anything(),
+  it("mints a verifiable token bound to the ledger, creator, and role", async () => {
+    const result = await createShareCode("led-1", "user-owner", {
+      role: "viewer",
+    });
+    expect(result.ledgerId).toBe("led-1");
+    expect(result.role).toBe("viewer");
+    expect(result.projectId).toBeNull();
+    const claims = await verify(result.code, SECRET, "HS256");
+    expect(claims.aud).toBe(INVITE_AUDIENCE);
+    expect(claims.sub).toBe("user-owner");
+    expect(claims.ledgerId).toBe("led-1");
+    expect(claims.role).toBe("viewer");
+    expect(claims.projectId).toBeUndefined();
+    // ~60s lifetime.
+    expect((claims.exp as number) - (claims.iat as number)).toBe(
+      INVITE_TTL_SECONDS,
     );
+    expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 
-  it("rejects an expiry date in the past (400)", async () => {
+  it("mints project invites scoped to the project", async () => {
+    mockMemberRepo.findMembership.mockResolvedValue({ role: "editor" });
+    mockProjectRepo.findById.mockResolvedValue({
+      id: "proj-1",
+      ledgerId: "led-1",
+      status: "active",
+    });
+    const result = await createShareCode("led-1", "user-editor", {
+      role: "guest",
+      projectId: "proj-1",
+    });
+    expect(result.projectId).toBe("proj-1");
+    const claims = await verify(result.code, SECRET, "HS256");
+    expect(claims.projectId).toBe("proj-1");
+    expect(claims.role).toBe("guest");
+  });
+
+  it("rejects a non-guest role on a project invite (400)", async () => {
     await expectStatus(
-      () =>
+      async () =>
         createShareCode("led-1", "user-owner", {
           role: "editor",
-          expiresAt: new Date("2020-01-01"),
+          projectId: "proj-1",
         }),
       400,
     );
-    expect(mockShareRepo.create).not.toHaveBeenCalled();
   });
 
-  it("rejects maxUses below 1 (400)", async () => {
+  it("rejects a ledger-wide guest invite (400)", async () => {
     await expectStatus(
-      () =>
-        createShareCode("led-1", "user-owner", {
-          role: "editor",
-          maxUses: 0,
-        }),
+      () => createShareCode("led-1", "user-owner", { role: "guest" }),
       400,
     );
-    expect(mockShareRepo.create).not.toHaveBeenCalled();
   });
 
-  it("rejects a code for a ledger archived after the route's check (race, 400)", async () => {
+  it("requires editor+ for project invites (403)", async () => {
+    mockMemberRepo.findMembership.mockResolvedValue({ role: "viewer" });
+    await expectStatus(
+      async () =>
+        createShareCode("led-1", "user-viewer", {
+          role: "guest",
+          projectId: "proj-1",
+        }),
+      403,
+    );
+  });
+
+  it("requires the owner for ledger-wide invites (403)", async () => {
+    await expectStatus(
+      () => createShareCode("led-1", "user-other", { role: "viewer" }),
+      403,
+    );
+  });
+
+  it("rejects an invite for a ledger archived after the route's check (race, 400)", async () => {
     // The route's assertLedgerWritable saw an active ledger; a concurrent
     // archive won the row lock first and the under-lock re-read sees archived.
     mockLedgerRepo.findById.mockResolvedValue({
@@ -338,10 +402,9 @@ describe("createShareCode", () => {
       () => createShareCode("led-1", "user-owner", { role: "viewer" }),
       400,
     );
-    expect(mockShareRepo.create).not.toHaveBeenCalled();
   });
 
-  it("rejects a code for a ledger transferred away after the route's check (race, 403)", async () => {
+  it("rejects an invite for a ledger transferred away after the route's check (race, 403)", async () => {
     mockLedgerRepo.findById.mockResolvedValue({
       ...baseLedger,
       ownerId: "user-other",
@@ -350,16 +413,14 @@ describe("createShareCode", () => {
       () => createShareCode("led-1", "user-owner", { role: "viewer" }),
       403,
     );
-    expect(mockShareRepo.create).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when the ledger is deleted mid-create (race)", async () => {
+  it("returns 404 when the ledger is deleted mid-mint (race)", async () => {
     mockLedgerRepo.findById.mockResolvedValue(null);
     await expectStatus(
       () => createShareCode("led-1", "user-owner", { role: "viewer" }),
       404,
     );
-    expect(mockShareRepo.create).not.toHaveBeenCalled();
   });
 });
 

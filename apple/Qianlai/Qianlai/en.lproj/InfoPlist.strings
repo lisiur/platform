@@ -1,1 +1,2 @@
 "CFBundleDisplayName" = "Qianlai";
+"NSCameraUsageDescription" = "Qianlai uses the camera to scan invite QR codes. Nothing is recorded.";

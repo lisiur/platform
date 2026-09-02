@@ -28,53 +28,25 @@ export const listMembersResponseSchema = z
   })
   .openapi("QianlaiListMembersResponse");
 
+/**
+ * A minted invite: `code` is a short-lived signed JWT (nothing is stored
+ * server-side), `expiresAt` is when it stops working.
+ */
 export const shareCodeSchema = z
   .object({
-    id: z.string().openapi({ example: "clx1234567890" }),
     ledgerId: z.string().openapi({ example: "clx1234567890" }),
-    code: z.string().openapi({ example: "A2B4C6D8E9F2" }),
+    code: z.string().openapi({ example: "eyJhbGciOiJIUzI1NiJ9…" }),
     role: z.enum(["editor", "viewer", "guest"]).openapi({ example: "editor" }),
-    status: z.enum(["active", "revoked"]).openapi({ example: "active" }),
     // Set = project-scoped invite (grants guest access to this project).
     projectId: z.string().nullable().openapi({ example: null }),
-    project: z
-      .object({
-        id: z.string(),
-        name: z.string().openapi({ example: "Kyoto Trip" }),
-        status: z.string().openapi({ example: "active" }),
-      })
-      .nullable(),
-    expiresAt: z.date().nullable().openapi({ example: null }),
-    maxUses: z.number().int().nullable().openapi({ example: null }),
-    usesCount: z.number().int().openapi({ example: 0 }),
-    createdBy: z
-      .object({
-        id: z.string(),
-        name: z.string().openapi({ example: "Alice" }),
-        email: z.string().nullable(),
-      })
-      .nullable(),
+    expiresAt: z.date().openapi({ example: new Date(0) }),
     createdAt: z.date(),
   })
   .openapi("QianlaiShareCode");
 
-export const listShareCodesResponseSchema = z
-  .object({
-    codes: shareCodeSchema.array(),
-  })
-  .openapi("QianlaiListShareCodesResponse");
-
 export const createShareCodeBodySchema = z
   .object({
     role: z.enum(["editor", "viewer", "guest"]).openapi({ example: "editor" }),
-    expiresAt: z.coerce.date().nullable().optional().openapi({ example: null }),
-    maxUses: z
-      .number()
-      .int()
-      .min(1)
-      .nullable()
-      .optional()
-      .openapi({ example: null }),
     // When set the code becomes a project invite: `role` must be "guest"
     // (the guest role is implied, not chosen).
     projectId: z
@@ -92,7 +64,11 @@ export const createShareCodeBodySchema = z
 
 export const redeemBodySchema = z
   .object({
-    code: z.string().min(1).max(32).openapi({ example: "A2B4C6D8E9F2" }),
+    code: z
+      .string()
+      .min(1)
+      .max(1024)
+      .openapi({ example: "eyJhbGciOiJIUzI1NiJ9…" }),
   })
   .openapi("QianlaiRedeemBody");
 
@@ -121,20 +97,7 @@ export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
 
-export const listShareCodesQuerySchema = z
-  .object({
-    // Filter to codes of one project. Use the literal string "null" to
-    // request only ledger-wide codes (projectId is null).
-    projectId: z.string().min(1).optional().openapi({ example: null }),
-  })
-  .openapi("QianlaiListShareCodesQuery");
-
 export const memberParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
   userId: z.string().min(1).openapi({ example: "clx1234567890" }),
-});
-
-export const shareCodeParamSchema = z.object({
-  ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
-  id: z.string().min(1).openapi({ example: "clx1234567890" }),
 });

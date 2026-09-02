@@ -34,7 +34,6 @@ import {
   Archive,
   ArchiveRestore,
   CalendarRange,
-  Copy,
   FolderKanban,
   Pencil,
   Trash2,
@@ -42,8 +41,9 @@ import {
   Users,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { type InviteCodeRow, LiveInvite } from "@/components/live-invite";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
 import {
@@ -60,16 +60,6 @@ interface MemberRow {
   userId: string;
   role: string;
   user: { id: string; name: string; email: string | null } | null;
-}
-
-interface ShareCodeRow {
-  id: string;
-  code: string;
-  role: string;
-  status: "active" | "revoked";
-  projectId: string | null;
-  usesCount: number;
-  maxUses: number | null;
 }
 
 export function ProjectsView() {
@@ -596,7 +586,7 @@ export function ProjectsView() {
   );
 }
 
-/** Invite dialog: create/list/revoke share codes scoped to one project. */
+/** Invite dialog: mints live guest invites scoped to one project. */
 function ProjectInviteDialog({
   open,
   onOpenChange,
@@ -609,64 +599,19 @@ function ProjectInviteDialog({
   project: QianlaiProject;
 }) {
   const t = useTranslations("Projects");
-  const queryClient = useQueryClient();
-  const confirm = useConfirm();
 
-  const { data: codesData } = useQuery({
-    queryKey: ["qianlai", "share-codes", ledgerId, project.id],
-    queryFn: async () => {
-      const res = await withApiFeedback(
-        appClient.api.bookkeeping.ledgers[":ledgerId"]["share-codes"].$get,
-      )({ param: { ledgerId }, query: { projectId: project.id } });
-      return (await res.json()) as { codes: ShareCodeRow[] };
-    },
-    enabled: open,
-  });
-
-  const projectCodes = codesData?.codes ?? [];
-
-  const createCode = useMutation({
-    mutationFn: async () => {
-      const res = await withApiFeedback(
-        appClient.api.bookkeeping.ledgers[":ledgerId"]["share-codes"].$post,
-      )({
-        param: { ledgerId },
-        json: { role: "guest" as const, projectId: project.id },
-      });
-      return (await res.json()) as ShareCodeRow;
-    },
-    onSuccess: (code) => {
-      queryClient.invalidateQueries({
-        queryKey: ["qianlai", "share-codes", ledgerId, project.id],
-      });
-      void navigator.clipboard.writeText(code.code);
-      toast.success(t("codeCreatedCopied"));
-    },
-  });
-
-  const revokeCode = useMutation({
-    mutationFn: async (code: ShareCodeRow) => {
-      await withApiFeedback(
-        appClient.api.bookkeeping.ledgers[":ledgerId"]["share-codes"][":id"]
-          .$delete,
-      )({ param: { ledgerId, id: code.id } });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["qianlai", "share-codes", ledgerId, project.id],
-      });
-    },
-  });
-
-  async function confirmRevokeCode(code: ShareCodeRow) {
-    const ok = await confirm({
-      title: t("revoke"),
-      description: t("confirmRevoke"),
-      confirmLabel: t("revoke"),
-      cancelLabel: t("cancel"),
+  const mintInvite = useCallback(async () => {
+    const res = await withApiFeedback(
+      appClient.api.bookkeeping.ledgers[":ledgerId"]["share-codes"].$post,
+      // The LiveInvite panel renders the error inline; a background
+      // re-mint failing shouldn't toast.
+      { showError: false },
+    )({
+      param: { ledgerId },
+      json: { role: "guest" as const, projectId: project.id },
     });
-    if (ok) revokeCode.mutate(code);
-  }
+    return (await res.json()) as InviteCodeRow;
+  }, [ledgerId, project.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -675,59 +620,8 @@ function ProjectInviteDialog({
           <DialogTitle>{t("invite")}</DialogTitle>
           <DialogDescription>{t("inviteDescription")}</DialogDescription>
         </DialogHeader>
-        <DialogBody className="space-y-3">
-          <Button
-            size="sm"
-            onClick={() => createCode.mutate()}
-            disabled={createCode.isPending}
-          >
-            <UserPlus className="h-4 w-4" />
-            {t("createCode")}
-          </Button>
-          {projectCodes.map((code) => (
-            <div
-              key={code.id}
-              className="flex items-center justify-between rounded-md border px-3 py-2"
-            >
-              <span className="font-mono">{code.code}</span>
-              <div className="flex items-center gap-1">
-                <Badge variant="secondary">
-                  {code.usesCount}
-                  {code.maxUses !== null ? ` / ${code.maxUses}` : ""}
-                </Badge>
-                {code.status === "active" ? (
-                  <>
-                    <TooltipButton
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t("copy")}
-                      tooltip={t("copy")}
-                      onClick={() => {
-                        void navigator.clipboard.writeText(code.code);
-                        toast.success(t("copied"));
-                      }}
-                    >
-                      <Copy />
-                    </TooltipButton>
-                    <TooltipButton
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t("revoke")}
-                      tooltip={t("revoke")}
-                      onClick={() => confirmRevokeCode(code)}
-                    >
-                      <Trash2 />
-                    </TooltipButton>
-                  </>
-                ) : (
-                  <Badge variant="outline">{t("revoked")}</Badge>
-                )}
-              </div>
-            </div>
-          ))}
-          {projectCodes.length === 0 && (
-            <p className="text-muted-foreground text-sm">{t("noCodes")}</p>
-          )}
+        <DialogBody>
+          <LiveInvite mint={mintInvite} />
         </DialogBody>
         <DialogFooter>
           <Button

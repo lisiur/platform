@@ -23,6 +23,8 @@ struct DashboardView: View {
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale
     @State private var isShowingLedgerManagement = false
+    @State private var isShowingInvite = false
+    @State private var isShowingJoin = false
     /// Month the cards and the entry list summarize; stepped with the
     /// chevrons in the month header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
@@ -120,9 +122,15 @@ struct DashboardView: View {
             ToolbarItem(placement: .topBarLeading) {
                 LedgerSwitcherMenu()
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                collaborationMenu
+            }
             #else
             ToolbarItem(placement: .navigation) {
                 LedgerSwitcherMenu()
+            }
+            ToolbarItem(placement: .primaryAction) {
+                collaborationMenu
             }
             #endif
         }
@@ -173,6 +181,58 @@ struct DashboardView: View {
                 LedgersView(expandGuestLedgers: ledgerStore.activeLedger?.isGuest ?? false)
             }
         }
+        .sheet(isPresented: $isShowingInvite) {
+            // The invite surface follows the dashboard's scope: a
+            // project-scoped manager invites guests to the project,
+            // otherwise the ledger owner issues member share codes.
+            if let project = activeProject, let ledger = ledgerStore.activeLedger {
+                NavigationStack {
+                    ProjectInviteView(ledgerId: ledger.id, project: project)
+                }
+            } else if let ledger = ledgerStore.activeLedger {
+                NavigationStack {
+                    MembersView(ledger: ledger)
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingJoin) {
+            NavigationStack {
+                JoinLedgerView()
+            }
+        }
+    }
+
+    /// Top-right collaboration menu: invite others to the current scope
+    /// and join someone else's ledger with a share code.
+    private var collaborationMenu: some View {
+        Menu {
+            if canInvite {
+                Button {
+                    isShowingInvite = true
+                } label: {
+                    Label("Invite", systemImage: "person.badge.plus")
+                }
+            }
+            Button {
+                isShowingJoin = true
+            } label: {
+                Label("Join", systemImage: "qrcode")
+            }
+        } label: {
+            Image(systemName: "person.crop.circle.badge.plus")
+        }
+    }
+
+    /// True when the active scope offers an invite surface — a project
+    /// member with manage rights (project invite codes) or a ledger owner
+    /// (member share codes). Mirrors the rights each invite sheet
+    /// enforces so the menu never offers a dead end.
+    private var canInvite: Bool {
+        guard let ledger = ledgerStore.activeLedger else { return false }
+        if activeProject != nil {
+            return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
+        }
+        return LedgerPolicy.canCreateShareCode(ledger.myRole)
     }
 
     private var monthSummary: some View {

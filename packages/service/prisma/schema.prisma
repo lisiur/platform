@@ -38,7 +38,6 @@ model User {
   ownedQianlaiLedgers  Ledger[]          @relation("QianlaiLedgerOwner")
   ownedQianlaiRealAccounts RealAccount[] @relation("QianlaiRealAccountOwner")
   qianlaiMemberships   LedgerMember[]
-  qianlaiShareCodes    LedgerShareCode[] @relation("QianlaiShareCodeCreator")
   qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
   qianlaiProjectMemberships ProjectMember[] @relation("QianlaiProjectMember")
 
@@ -1092,7 +1091,6 @@ model Ledger {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   members     LedgerMember[]
-  shareCodes  LedgerShareCode[]
   accounts    BookAccount[]
   entries     JournalEntry[]
   projects    Project[]
@@ -1120,7 +1118,6 @@ model Project {
   updatedAt   DateTime       @updatedAt
   members     ProjectMember[]
   entries     JournalEntry[]
-  shareCodes  LedgerShareCode[]
 
   @@index([ledgerId])
   @@map("qianlai_project")
@@ -1156,30 +1153,6 @@ model LedgerMember {
   @@unique([ledgerId, userId])
   @@index([userId])
   @@map("qianlai_ledger_member")
-}
-
-model LedgerShareCode {
-  id          String    @id @default(cuid())
-  ledgerId    String
-  ledger      Ledger    @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
-  // Set = project-scoped invite: redeeming creates a `guest` LedgerMember
-  // (if needed) plus a ProjectMember row. Null = ledger-wide code (legacy
-  // behavior, role editor/viewer). Cascade: deleting a project kills its
-  // invite codes with it.
-  projectId   String?
-  project     Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  code        String    @unique
-  role        String
-  status      String    @default("active")
-  expiresAt   DateTime?
-  maxUses     Int?
-  usesCount   Int       @default(0)
-  createdById String
-  createdBy   User      @relation("QianlaiShareCodeCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-
-  @@index([ledgerId])
-  @@map("qianlai_ledger_share_code")
 }
 
 // Owner-private master record of a real-world asset/liability (a bank card,

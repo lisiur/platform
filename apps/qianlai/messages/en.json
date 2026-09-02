@@ -144,23 +144,10 @@
     "unarchiveSuccess": "Ledger unarchived",
     "membersTitle": "Members",
     "membersDescription": "People collaborating on this ledger",
-    "shareCodes": "Share Codes",
-    "shareCodesDescription": "Share a code so others can join this ledger",
-    "createShareCode": "Create Share Code",
-    "shareRole": "Role",
     "shareRoleHint": "Editors can record entries; viewers can only read",
-    "expiry": "Expires At",
-    "expiryHint": "Leave empty for no expiry",
-    "maxUses": "Max Uses",
-    "maxUsesHint": "Leave empty for unlimited uses",
     "code": "Code",
-    "uses": "Uses",
     "createdBy": "Created By",
-    "revoke": "Revoke",
-    "revoked": "Revoked",
     "active": "Active",
-    "revokeSuccess": "Share code revoked",
-    "shareCodeCreated": "Share code created",
     "removeMember": "Remove member",
     "confirmRemoveMember": "Remove {name} from this ledger?",
     "removeMemberSuccess": "Member removed",
@@ -174,7 +161,7 @@
     "leaveSuccess": "You left the ledger",
     "join": "Join with Code",
     "joinDescription": "Paste a share code to join someone else's ledger",
-    "codePlaceholder": "e.g. A2B4C6D8E9F2",
+    "codePlaceholder": "Paste the invite code",
     "joinSuccess": "Joined the ledger",
     "you": "You",
     "owner": "Owner",
@@ -185,7 +172,9 @@
     "validation": {
       "nameRequired": "Ledger name is required"
     },
-    "guest": "Guest"
+    "guest": "Guest",
+    "inviteTitle": "Invite",
+    "inviteDescription": "Codes are minted on demand and expire after a minute — the QR below stays fresh while this is open"
   },
   "Accounts": {
     "title": "Accounts",
@@ -715,14 +704,6 @@
     "leftProject": "You left the project",
     "invite": "Invite",
     "inviteDescription": "Share a code to let someone join this project as a guest — they can only see and record expenses of this project",
-    "createCode": "Create invite code",
-    "codeCreatedCopied": "Invite code created and copied",
-    "noCodes": "No invite codes yet",
-    "copy": "Copy",
-    "copied": "Copied",
-    "revoke": "Revoke",
-    "confirmRevoke": "Revoke this invite code?",
-    "revoked": "Revoked",
     "totalExpense": "Expenses",
     "totalIncome": "Income",
     "settlement": "Settlement",
@@ -730,5 +711,12 @@
     "paid": "Paid",
     "share": "Share",
     "balance": "Balance"
+  },
+  "Invite": {
+    "scanToJoin": "Scan to join",
+    "expiresIn": "Expires in {seconds}s",
+    "minting": "Generating invite…",
+    "copy": "Copy",
+    "copied": "Copied"
   }
 }

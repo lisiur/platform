@@ -874,21 +874,6 @@ CREATE TABLE "qianlai_ledger_member" (
 );
 
 -- CreateTable
-CREATE TABLE "qianlai_ledger_share_code" (
-    "id" TEXT NOT NULL,
-    "ledgerId" TEXT NOT NULL,
-    "projectId" TEXT,
-    "code" TEXT NOT NULL,
-    "role" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
-    "expiresAt" TIMESTAMP(3),
-    "maxUses" INTEGER,
-    "usesCount" INTEGER NOT NULL DEFAULT 0,
-    "createdById" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "qianlai_ledger_share_code_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
 CREATE TABLE "qianlai_real_account" (
@@ -1361,10 +1346,8 @@ CREATE INDEX "qianlai_ledger_member_userId_idx" ON "qianlai_ledger_member"("user
 CREATE UNIQUE INDEX "qianlai_ledger_member_ledgerId_userId_key" ON "qianlai_ledger_member"("ledgerId", "userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "qianlai_ledger_share_code_code_key" ON "qianlai_ledger_share_code"("code");
 
 -- CreateIndex
-CREATE INDEX "qianlai_ledger_share_code_ledgerId_idx" ON "qianlai_ledger_share_code"("ledgerId");
 
 -- CreateIndex
 CREATE INDEX "qianlai_real_account_ownerId_idx" ON "qianlai_real_account"("ownerId");
@@ -1571,13 +1554,10 @@ ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_ledger
 ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_ledgerId_fkey" FOREIGN KEY ("ledgerId") REFERENCES "qianlai_ledger"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "qianlai_project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "qianlai_ledger_share_code" ADD CONSTRAINT "qianlai_ledger_share_code_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_real_account" ADD CONSTRAINT "qianlai_real_account_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

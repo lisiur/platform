@@ -144,23 +144,10 @@
     "unarchiveSuccess": "账本已取消归档",
     "membersTitle": "成员",
     "membersDescription": "共同记账的成员",
-    "shareCodes": "共享码",
-    "shareCodesDescription": "分发共享码，让别人加入这个账本",
-    "createShareCode": "创建共享码",
-    "shareRole": "角色",
     "shareRoleHint": "记账人可以记录流水；查看者只能浏览",
-    "expiry": "过期时间",
-    "expiryHint": "留空表示永不过期",
-    "maxUses": "最大使用次数",
-    "maxUsesHint": "留空表示不限次数",
     "code": "共享码",
-    "uses": "已使用",
     "createdBy": "创建人",
-    "revoke": "吊销",
-    "revoked": "已吊销",
     "active": "有效",
-    "revokeSuccess": "共享码已吊销",
-    "shareCodeCreated": "共享码已创建",
     "removeMember": "移除成员",
     "confirmRemoveMember": "确定将 {name} 移出该账本？",
     "removeMemberSuccess": "成员已移除",
@@ -174,7 +161,7 @@
     "leaveSuccess": "已退出账本",
     "join": "通过共享码加入",
     "joinDescription": "粘贴共享码，加入别人的账本",
-    "codePlaceholder": "例如 A2B4C6D8E9F2",
+    "codePlaceholder": "粘贴邀请码",
     "joinSuccess": "已加入账本",
     "you": "我",
     "owner": "所有者",
@@ -185,7 +172,9 @@
     "validation": {
       "nameRequired": "账本名称为必填项"
     },
-    "guest": "访客"
+    "guest": "访客",
+    "inviteTitle": "邀请",
+    "inviteDescription": "邀请码按需生成，一分钟后失效——下方二维码会在此窗口打开期间自动保持有效"
   },
   "Accounts": {
     "title": "科目",
@@ -714,14 +703,6 @@
     "leftProject": "已退出项目",
     "invite": "邀请",
     "inviteDescription": "分享邀请码，对方将以访客身份加入该项目——只能查看和记录该项目的支出",
-    "createCode": "生成邀请码",
-    "codeCreatedCopied": "邀请码已生成并复制",
-    "noCodes": "暂无邀请码",
-    "copy": "复制",
-    "copied": "已复制",
-    "revoke": "作废",
-    "confirmRevoke": "确定作废该邀请码？",
-    "revoked": "已作废",
     "totalExpense": "支出",
     "totalIncome": "收入",
     "settlement": "分摊结算",
@@ -729,5 +710,12 @@
     "paid": "垫付",
     "share": "应摊",
     "balance": "结余"
+  },
+  "Invite": {
+    "scanToJoin": "扫码加入",
+    "expiresIn": "{seconds} 秒后过期",
+    "minting": "正在生成邀请…",
+    "copy": "复制",
+    "copied": "已复制"
   }
 }
