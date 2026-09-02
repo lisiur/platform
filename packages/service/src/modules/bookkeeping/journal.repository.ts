@@ -114,6 +114,13 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
       ? {
           OR: [
             { memo: { contains: window.q, mode: "insensitive" as const } },
+            { address: { contains: window.q, mode: "insensitive" as const } },
+            {
+              addressName: {
+                contains: window.q,
+                mode: "insensitive" as const,
+              },
+            },
             {
               lines: {
                 some: {
@@ -198,6 +205,11 @@ export const journalRepository = {
       createdById: string;
       projectId?: string;
       countsInLedger?: boolean;
+      /** Flat location columns; omitted fields store as null. */
+      address?: string | null;
+      addressName?: string | null;
+      latitude?: Prisma.Decimal | null;
+      longitude?: Prisma.Decimal | null;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -217,6 +229,10 @@ export const journalRepository = {
         createdById: data.createdById,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
+        address: data.address ?? null,
+        addressName: data.addressName ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
         lines: { create: data.lines },
         participants: {
           create: (data.participantMemberIds ?? []).map((ledgerMemberId) => ({
@@ -246,6 +262,16 @@ export const journalRepository = {
       projectId?: string | null;
       /** Required: the service resolves guest pinning and keep-on-omit. */
       countsInLedger: boolean;
+      /**
+       * Full replacement location (parts may be null). Absent = keep the
+       * stored location — the service resolves keep-on-omit vs clear.
+       */
+      location?: {
+        address: string | null;
+        addressName: string | null;
+        latitude: Prisma.Decimal | null;
+        longitude: Prisma.Decimal | null;
+      };
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -263,6 +289,14 @@ export const journalRepository = {
         memo: data.memo ?? null,
         projectId: data.projectId ?? null,
         countsInLedger: data.countsInLedger,
+        ...(data.location
+          ? {
+              address: data.location.address,
+              addressName: data.location.addressName,
+              latitude: data.location.latitude,
+              longitude: data.location.longitude,
+            }
+          : {}),
         lines: { deleteMany: {}, create: data.lines },
         participants: {
           deleteMany: {},

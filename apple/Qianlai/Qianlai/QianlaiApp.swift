@@ -29,7 +29,9 @@ struct QianlaiApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             Group {
-                if authManager.isLoggedIn {
+                if ProcessInfo.processInfo.arguments.contains("--ui-demo-location-picker") {
+                    LocationPickerSheet(initialLocation: nil) { _ in }
+                } else if authManager.isLoggedIn {
                     ContentView()
                 } else if authManager.isRestoringSession {
                     ProgressView()

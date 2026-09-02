@@ -273,6 +273,74 @@ struct EntryProjectRef: Codable, Hashable {
     var status: String
 }
 
+/// Where an entry was recorded, resolved on the client at capture time.
+/// Any field may be nil when geocoding was partial; `nil` display picks
+/// fall back through name → address.
+struct EntryLocationRef: Codable, Hashable {
+    var address: String?
+    var addressName: String?
+    var latitude: Double?
+    var longitude: Double?
+
+    /// The short label shown in rows (POI name, falling back to address).
+    var displayName: String? {
+        if let addressName, !addressName.isEmpty { return addressName }
+        if let address, !address.isEmpty { return address }
+        return nil
+    }
+
+    /// Row label with the coordinates fallback, so a place whose geocoding
+    /// never resolved still shows something (name → address → lat/lng).
+    var rowLabel: String? {
+        if let displayName, !displayName.isEmpty { return displayName }
+        if let latitude, let longitude {
+            return String(format: "%.5f, %.5f", latitude, longitude)
+        }
+        return nil
+    }
+}
+
+/// The location payload entries accept. All-optional: the server stores
+/// whatever was captured. `nil` (omit) keeps the stored location on edit;
+/// an empty object clears it.
+struct EntryLocationBody: Encodable, Hashable {
+    var address: String?
+    var addressName: String?
+    var latitude: Double?
+    var longitude: Double?
+
+    init(address: String? = nil, addressName: String? = nil, latitude: Double? = nil, longitude: Double? = nil) {
+        self.address = address
+        self.addressName = addressName
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+
+    init(_ location: EntryLocationRef) {
+        address = location.address
+        addressName = location.addressName
+        latitude = location.latitude
+        longitude = location.longitude
+    }
+
+    /// The short label shown in rows (POI name, falling back to address).
+    var displayName: String? {
+        if let addressName, !addressName.isEmpty { return addressName }
+        if let address, !address.isEmpty { return address }
+        return nil
+    }
+
+    /// Row label with the coordinates fallback, so a place whose geocoding
+    /// never resolved still shows something (name → address → lat/lng).
+    var rowLabel: String? {
+        if let displayName, !displayName.isEmpty { return displayName }
+        if let latitude, let longitude {
+            return String(format: "%.5f, %.5f", latitude, longitude)
+        }
+        return nil
+    }
+}
+
 struct JournalEntry: Codable, Identifiable, Hashable {
     let id: String
     let ledgerId: String
@@ -290,6 +358,8 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var createdAt: Date
     var projectId: String?
     var project: EntryProjectRef?
+    /// Where the entry was recorded; nil when captured without a place.
+    var location: EntryLocationRef?
     var lines: [JournalLine]
     var participants: [EntryParticipant]?
 
@@ -763,6 +833,22 @@ struct JournalLineInput: Encodable {
     var memo: String?
 }
 
+/// The entry's location field on the wire. Three states the API
+/// distinguishes: omitted (edit keeps the stored place), explicit `null`
+/// (strips it), or an object (replaces it).
+enum EntryLocationPayload: Encodable {
+    case clear
+    case capture(EntryLocationBody)
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .clear: try container.encodeNil()
+        case .capture(let location): try container.encode(location)
+        }
+    }
+}
+
 struct CreateEntryBody: Encodable {
     var date: Date
     var memo: String?
@@ -773,6 +859,8 @@ struct CreateEntryBody: Encodable {
     /// nil counts in the ledger (server default); false opts out. The server
     /// forces false for guests regardless.
     var countsInLedger: Bool?
+    /// nil omits the field: no location on create, keep-on-edit.
+    var location: EntryLocationPayload? = nil
 }
 
 /// One-click income/expense/transfer scenario the user picks in the quick
@@ -821,6 +909,12 @@ struct QuickEntryDraft: Equatable {
     /// a credit-card repayment already expensed at purchase time). The
     /// server forces false for guest posts regardless of this flag.
     var countsInLedger = true
+    /// The captured place shown in the form; nil = no location row value.
+    var location: EntryLocationBody? = nil
+    /// Set when the user removes the entry's existing location during an
+    /// edit — the body then sends an explicit null (otherwise omitted =
+    /// keep the stored place).
+    var isLocationCleared = false
 
     var isSameAccount: Bool {
         kind == .transfer
@@ -850,7 +944,9 @@ struct QuickEntryDraft: Equatable {
             ],
             participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted(),
             projectId: projectId,
-            countsInLedger: countsInLedger
+            countsInLedger: countsInLedger,
+            location: location.map(EntryLocationPayload.capture)
+                ?? (isLocationCleared ? .clear : nil)
         )
     }
 }
@@ -893,7 +989,8 @@ extension QuickEntryDraft {
             memo: entry.memo ?? "",
             participants: Set(entry.participants?.map(\.ledgerMemberId) ?? []),
             projectId: entry.projectId,
-            countsInLedger: entry.countsInLedger
+            countsInLedger: entry.countsInLedger,
+            location: entry.location.map { EntryLocationBody($0) }
         )
     }
 }

@@ -157,6 +157,68 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(excluded["countsInLedger"] as! Bool, false)
     }
 
+    func testQuickEntryLocationPayloadSemantics() throws {
+        var draft = QuickEntryDraft()
+        draft.kind = .expense
+        draft.amount = 10
+        draft.debitAccountId = "food"
+
+        // No location: the key is omitted entirely (keep-on-edit semantics
+        // server-side; on create it means "no place").
+        let untouched = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertFalse(untouched.keys.contains("location"))
+
+        // Captured place: encoded as an object with the client-resolved
+        // fields.
+        draft.location = EntryLocationBody(
+            address: "1 Zhongguancun St",
+            addressName: "Starbucks",
+            latitude: 39.983425,
+            longitude: 116.322083
+        )
+        let captured = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        let capturedLocation = captured["location"] as! [String: Any]
+        XCTAssertEqual(capturedLocation["addressName"] as? String, "Starbucks")
+        XCTAssertEqual(capturedLocation["address"] as? String, "1 Zhongguancun St")
+        XCTAssertEqual(capturedLocation["latitude"] as? Double, 39.983425)
+        XCTAssertEqual(capturedLocation["longitude"] as? Double, 116.322083)
+
+        // Cleared on an edit: an explicit null, not omission — omission
+        // would keep the stored place.
+        draft.location = nil
+        draft.isLocationCleared = true
+        let cleared = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertTrue(cleared["location"] is NSNull)
+    }
+
+    func testEntryLocationRefDisplayNameFallbacks() {
+        let named = EntryLocationRef(
+            address: "1 Zhongguancun St, Beijing",
+            addressName: "Starbucks",
+            latitude: 39.983425,
+            longitude: 116.322083
+        )
+        XCTAssertEqual(named.displayName, "Starbucks")
+
+        let addressed = EntryLocationRef(
+            address: "1 Zhongguancun St, Beijing",
+            addressName: nil,
+            latitude: nil,
+            longitude: nil
+        )
+        XCTAssertEqual(addressed.displayName, "1 Zhongguancun St, Beijing")
+
+        XCTAssertNil(EntryLocationRef(
+            address: nil, addressName: nil, latitude: nil, longitude: nil
+        ).displayName)
+    }
+
     // MARK: - JSONValue
 
     func testJsonValueRoundTrip() throws {

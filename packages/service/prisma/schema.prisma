@@ -1275,6 +1275,16 @@ model JournalEntry {
   // pocket balances), project reports, and settlement always count every
   // entry regardless of this flag.
   countsInLedger Boolean     @default(true)
+  // Optional location captured at posting time, resolved on the client
+  // (CoreLocation / browser geolocation + reverse geocoding) — the service
+  // only stores what was captured. `address` is the display text,
+  // `addressName` the POI/placemark name; coordinates use Decimal(9, 6)
+  // (±0.11 m precision, ample for lat ±90 / lng ±180). Pure annotation:
+  // never enters balances, settlement, or reports.
+  address     String?
+  addressName String?
+  latitude    Decimal?      @db.Decimal(9, 6)
+  longitude   Decimal?      @db.Decimal(9, 6)
   createdAt   DateTime      @default(now())
   lines       JournalLine[]
   participants JournalEntryParticipant[]

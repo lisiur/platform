@@ -41,6 +41,39 @@ export type NormalizedJournalLine = {
 };
 
 /**
+ * Where an entry was recorded, resolved on the client and stored as-is.
+ * Pure annotation: never enters balances, settlement, or reports.
+ */
+export type EntryLocationInput = {
+  address?: string;
+  addressName?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+/**
+ * Flattens the API's nested location into the entry's columns. Coordinates
+ * are rounded to the stored 6 decimal places so what is validated is
+ * exactly what gets stored; an absent location maps to no columns at all
+ * (create: entry without a location).
+ */
+function locationColumns(location?: EntryLocationInput | null) {
+  if (!location) return {};
+  return {
+    address: location.address ?? null,
+    addressName: location.addressName ?? null,
+    latitude:
+      location.latitude !== undefined
+        ? new Prisma.Decimal(location.latitude.toFixed(6))
+        : null,
+    longitude:
+      location.longitude !== undefined
+        ? new Prisma.Decimal(location.longitude.toFixed(6))
+        : null,
+  };
+}
+
+/**
  * Pure validation of journal lines for a double-entry post:
  * - at least 2 lines
  * - each line has exactly one positive side (debit XOR credit) after rounding to cents
@@ -240,6 +273,7 @@ export async function createEntry(
     participantMemberIds?: string[];
     projectId?: string | null;
     countsInLedger?: boolean;
+    location?: EntryLocationInput | null;
   },
   access: LedgerAccess,
 ) {
@@ -311,6 +345,7 @@ export async function postEntryInTransaction(
     expenseOnly?: boolean;
     /** Defaults to true when omitted (e.g. system balance adjustments). */
     countsInLedger?: boolean;
+    location?: EntryLocationInput | null;
   },
 ) {
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
@@ -335,6 +370,7 @@ export async function postEntryInTransaction(
         createdById: userId,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
+        ...locationColumns(data.location),
         lines: lines.map((line) => ({
           accountId: line.accountId,
           debit: new Prisma.Decimal(line.debitCents).div(100),
@@ -433,6 +469,7 @@ export async function updateEntry(
     participantMemberIds?: string[];
     projectId?: string | null;
     countsInLedger?: boolean;
+    location?: EntryLocationInput | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -501,6 +538,9 @@ export async function updateEntry(
       validateParticipants(data.participantMemberIds, ledgerMembers) ?? [],
       ledgerMembers,
     );
+    // withAutoParticipants returns undefined for an untagged ledger-wide
+    // entry; the repo's delete-and-recreate treats [] as "no tags".
+    const participantIds = participantMemberIds ?? [];
     // countsInLedger deviates from replace semantics: omitted = keep the
     // entry's current flag, so editing an excluded entry (repayment, guest
     // post) doesn't silently re-include it. Guests can never change it —
@@ -509,6 +549,32 @@ export async function updateEntry(
       actor.role === "guest"
         ? entry.countsInLedger
         : (data.countsInLedger ?? entry.countsInLedger);
+    // Location deviates from replace semantics like countsInLedger: omitted
+    // = keep the stored place (edit forms that don't surface the field
+    // can't strip it), explicit null = clear, an object = full replacement
+    // (parts the client didn't geocode store as null).
+    const locationUpdate:
+      | {
+          address: string | null;
+          addressName: string | null;
+          latitude: Prisma.Decimal | null;
+          longitude: Prisma.Decimal | null;
+        }
+      | undefined =
+      data.location === undefined
+        ? undefined
+        : {
+            address: data.location?.address ?? null,
+            addressName: data.location?.addressName ?? null,
+            latitude:
+              data.location?.latitude !== undefined
+                ? new Prisma.Decimal(data.location.latitude.toFixed(6))
+                : null,
+            longitude:
+              data.location?.longitude !== undefined
+                ? new Prisma.Decimal(data.location.longitude.toFixed(6))
+                : null,
+          };
     try {
       return await journalRepository.updateEntry(
         entry.id,
@@ -517,13 +583,14 @@ export async function updateEntry(
           memo: data.memo,
           projectId: projectId ?? null,
           countsInLedger,
+          ...(locationUpdate ? { location: locationUpdate } : {}),
           lines: lines.map((line) => ({
             accountId: line.accountId,
             debit: new Prisma.Decimal(line.debitCents).div(100),
             credit: new Prisma.Decimal(line.creditCents).div(100),
             memo: line.memo,
           })),
-          participantMemberIds,
+          participantMemberIds: participantIds,
         },
         tx,
       );

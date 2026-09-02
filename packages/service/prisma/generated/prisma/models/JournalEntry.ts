@@ -28,10 +28,14 @@ export type AggregateJournalEntry = {
 
 export type JournalEntryAvgAggregateOutputType = {
   entryNo: number | null
+  latitude: runtime.Decimal | null
+  longitude: runtime.Decimal | null
 }
 
 export type JournalEntrySumAggregateOutputType = {
   entryNo: number | null
+  latitude: runtime.Decimal | null
+  longitude: runtime.Decimal | null
 }
 
 export type JournalEntryMinAggregateOutputType = {
@@ -44,6 +48,10 @@ export type JournalEntryMinAggregateOutputType = {
   createdById: string | null
   projectId: string | null
   countsInLedger: boolean | null
+  address: string | null
+  addressName: string | null
+  latitude: runtime.Decimal | null
+  longitude: runtime.Decimal | null
   createdAt: Date | null
 }
 
@@ -57,6 +65,10 @@ export type JournalEntryMaxAggregateOutputType = {
   createdById: string | null
   projectId: string | null
   countsInLedger: boolean | null
+  address: string | null
+  addressName: string | null
+  latitude: runtime.Decimal | null
+  longitude: runtime.Decimal | null
   createdAt: Date | null
 }
 
@@ -70,6 +82,10 @@ export type JournalEntryCountAggregateOutputType = {
   createdById: number
   projectId: number
   countsInLedger: number
+  address: number
+  addressName: number
+  latitude: number
+  longitude: number
   createdAt: number
   _all: number
 }
@@ -77,10 +93,14 @@ export type JournalEntryCountAggregateOutputType = {
 
 export type JournalEntryAvgAggregateInputType = {
   entryNo?: true
+  latitude?: true
+  longitude?: true
 }
 
 export type JournalEntrySumAggregateInputType = {
   entryNo?: true
+  latitude?: true
+  longitude?: true
 }
 
 export type JournalEntryMinAggregateInputType = {
@@ -93,6 +113,10 @@ export type JournalEntryMinAggregateInputType = {
   createdById?: true
   projectId?: true
   countsInLedger?: true
+  address?: true
+  addressName?: true
+  latitude?: true
+  longitude?: true
   createdAt?: true
 }
 
@@ -106,6 +130,10 @@ export type JournalEntryMaxAggregateInputType = {
   createdById?: true
   projectId?: true
   countsInLedger?: true
+  address?: true
+  addressName?: true
+  latitude?: true
+  longitude?: true
   createdAt?: true
 }
 
@@ -119,6 +147,10 @@ export type JournalEntryCountAggregateInputType = {
   createdById?: true
   projectId?: true
   countsInLedger?: true
+  address?: true
+  addressName?: true
+  latitude?: true
+  longitude?: true
   createdAt?: true
   _all?: true
 }
@@ -219,6 +251,10 @@ export type JournalEntryGroupByOutputType = {
   createdById: string | null
   projectId: string | null
   countsInLedger: boolean
+  address: string | null
+  addressName: string | null
+  latitude: runtime.Decimal | null
+  longitude: runtime.Decimal | null
   createdAt: Date
   _count: JournalEntryCountAggregateOutputType | null
   _avg: JournalEntryAvgAggregateOutputType | null
@@ -255,6 +291,10 @@ export type JournalEntryWhereInput = {
   createdById?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   projectId?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   countsInLedger?: Prisma.BoolFilter<"JournalEntry"> | boolean
+  address?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  addressName?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  latitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"JournalEntry"> | Date | string
   ledger?: Prisma.XOR<Prisma.LedgerScalarRelationFilter, Prisma.LedgerWhereInput>
   createdBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -273,6 +313,10 @@ export type JournalEntryOrderByWithRelationInput = {
   createdById?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   countsInLedger?: Prisma.SortOrder
+  address?: Prisma.SortOrderInput | Prisma.SortOrder
+  addressName?: Prisma.SortOrderInput | Prisma.SortOrder
+  latitude?: Prisma.SortOrderInput | Prisma.SortOrder
+  longitude?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   ledger?: Prisma.LedgerOrderByWithRelationInput
   createdBy?: Prisma.UserOrderByWithRelationInput
@@ -295,6 +339,10 @@ export type JournalEntryWhereUniqueInput = Prisma.AtLeast<{
   createdById?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   projectId?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   countsInLedger?: Prisma.BoolFilter<"JournalEntry"> | boolean
+  address?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  addressName?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  latitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"JournalEntry"> | Date | string
   ledger?: Prisma.XOR<Prisma.LedgerScalarRelationFilter, Prisma.LedgerWhereInput>
   createdBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -313,6 +361,10 @@ export type JournalEntryOrderByWithAggregationInput = {
   createdById?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
   countsInLedger?: Prisma.SortOrder
+  address?: Prisma.SortOrderInput | Prisma.SortOrder
+  addressName?: Prisma.SortOrderInput | Prisma.SortOrder
+  latitude?: Prisma.SortOrderInput | Prisma.SortOrder
+  longitude?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.JournalEntryCountOrderByAggregateInput
   _avg?: Prisma.JournalEntryAvgOrderByAggregateInput
@@ -334,6 +386,10 @@ export type JournalEntryScalarWhereWithAggregatesInput = {
   createdById?: Prisma.StringNullableWithAggregatesFilter<"JournalEntry"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"JournalEntry"> | string | null
   countsInLedger?: Prisma.BoolWithAggregatesFilter<"JournalEntry"> | boolean
+  address?: Prisma.StringNullableWithAggregatesFilter<"JournalEntry"> | string | null
+  addressName?: Prisma.StringNullableWithAggregatesFilter<"JournalEntry"> | string | null
+  latitude?: Prisma.DecimalNullableWithAggregatesFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.DecimalNullableWithAggregatesFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"JournalEntry"> | Date | string
 }
 
@@ -344,6 +400,10 @@ export type JournalEntryCreateInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutEntriesInput
   createdBy?: Prisma.UserCreateNestedOneWithoutQianlaiJournalEntriesInput
@@ -362,6 +422,10 @@ export type JournalEntryUncheckedCreateInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutEntryInput
   participants?: Prisma.JournalEntryParticipantUncheckedCreateNestedManyWithoutEntryInput
@@ -374,6 +438,10 @@ export type JournalEntryUpdateInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutEntriesNestedInput
   createdBy?: Prisma.UserUpdateOneWithoutQianlaiJournalEntriesNestedInput
@@ -392,6 +460,10 @@ export type JournalEntryUncheckedUpdateInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutEntryNestedInput
   participants?: Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput
@@ -407,6 +479,10 @@ export type JournalEntryCreateManyInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -417,6 +493,10 @@ export type JournalEntryUpdateManyMutationInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -430,6 +510,10 @@ export type JournalEntryUncheckedUpdateManyInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -458,11 +542,17 @@ export type JournalEntryCountOrderByAggregateInput = {
   createdById?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   countsInLedger?: Prisma.SortOrder
+  address?: Prisma.SortOrder
+  addressName?: Prisma.SortOrder
+  latitude?: Prisma.SortOrder
+  longitude?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type JournalEntryAvgOrderByAggregateInput = {
   entryNo?: Prisma.SortOrder
+  latitude?: Prisma.SortOrder
+  longitude?: Prisma.SortOrder
 }
 
 export type JournalEntryMaxOrderByAggregateInput = {
@@ -475,6 +565,10 @@ export type JournalEntryMaxOrderByAggregateInput = {
   createdById?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   countsInLedger?: Prisma.SortOrder
+  address?: Prisma.SortOrder
+  addressName?: Prisma.SortOrder
+  latitude?: Prisma.SortOrder
+  longitude?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -488,11 +582,17 @@ export type JournalEntryMinOrderByAggregateInput = {
   createdById?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   countsInLedger?: Prisma.SortOrder
+  address?: Prisma.SortOrder
+  addressName?: Prisma.SortOrder
+  latitude?: Prisma.SortOrder
+  longitude?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type JournalEntrySumOrderByAggregateInput = {
   entryNo?: Prisma.SortOrder
+  latitude?: Prisma.SortOrder
+  longitude?: Prisma.SortOrder
 }
 
 export type JournalEntryScalarRelationFilter = {
@@ -626,6 +726,14 @@ export type JournalEntryUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.JournalEntryScalarWhereInput | Prisma.JournalEntryScalarWhereInput[]
 }
 
+export type NullableDecimalFieldUpdateOperationsInput = {
+  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
 export type JournalEntryCreateNestedOneWithoutLinesInput = {
   create?: Prisma.XOR<Prisma.JournalEntryCreateWithoutLinesInput, Prisma.JournalEntryUncheckedCreateWithoutLinesInput>
   connectOrCreate?: Prisma.JournalEntryCreateOrConnectWithoutLinesInput
@@ -661,6 +769,10 @@ export type JournalEntryCreateWithoutCreatedByInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutEntriesInput
   project?: Prisma.ProjectCreateNestedOneWithoutEntriesInput
@@ -677,6 +789,10 @@ export type JournalEntryUncheckedCreateWithoutCreatedByInput = {
   status?: string
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutEntryInput
   participants?: Prisma.JournalEntryParticipantUncheckedCreateNestedManyWithoutEntryInput
@@ -721,6 +837,10 @@ export type JournalEntryScalarWhereInput = {
   createdById?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   projectId?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
   countsInLedger?: Prisma.BoolFilter<"JournalEntry"> | boolean
+  address?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  addressName?: Prisma.StringNullableFilter<"JournalEntry"> | string | null
+  latitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.DecimalNullableFilter<"JournalEntry"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"JournalEntry"> | Date | string
 }
 
@@ -731,6 +851,10 @@ export type JournalEntryCreateWithoutLedgerInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   createdBy?: Prisma.UserCreateNestedOneWithoutQianlaiJournalEntriesInput
   project?: Prisma.ProjectCreateNestedOneWithoutEntriesInput
@@ -747,6 +871,10 @@ export type JournalEntryUncheckedCreateWithoutLedgerInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutEntryInput
   participants?: Prisma.JournalEntryParticipantUncheckedCreateNestedManyWithoutEntryInput
@@ -785,6 +913,10 @@ export type JournalEntryCreateWithoutProjectInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutEntriesInput
   createdBy?: Prisma.UserCreateNestedOneWithoutQianlaiJournalEntriesInput
@@ -801,6 +933,10 @@ export type JournalEntryUncheckedCreateWithoutProjectInput = {
   status?: string
   createdById?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutEntryInput
   participants?: Prisma.JournalEntryParticipantUncheckedCreateNestedManyWithoutEntryInput
@@ -839,6 +975,10 @@ export type JournalEntryCreateWithoutLinesInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutEntriesInput
   createdBy?: Prisma.UserCreateNestedOneWithoutQianlaiJournalEntriesInput
@@ -856,6 +996,10 @@ export type JournalEntryUncheckedCreateWithoutLinesInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   participants?: Prisma.JournalEntryParticipantUncheckedCreateNestedManyWithoutEntryInput
 }
@@ -883,6 +1027,10 @@ export type JournalEntryUpdateWithoutLinesInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutEntriesNestedInput
   createdBy?: Prisma.UserUpdateOneWithoutQianlaiJournalEntriesNestedInput
@@ -900,6 +1048,10 @@ export type JournalEntryUncheckedUpdateWithoutLinesInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   participants?: Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput
 }
@@ -911,6 +1063,10 @@ export type JournalEntryCreateWithoutParticipantsInput = {
   memo?: string | null
   status?: string
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   ledger: Prisma.LedgerCreateNestedOneWithoutEntriesInput
   createdBy?: Prisma.UserCreateNestedOneWithoutQianlaiJournalEntriesInput
@@ -928,6 +1084,10 @@ export type JournalEntryUncheckedCreateWithoutParticipantsInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutEntryInput
 }
@@ -955,6 +1115,10 @@ export type JournalEntryUpdateWithoutParticipantsInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutEntriesNestedInput
   createdBy?: Prisma.UserUpdateOneWithoutQianlaiJournalEntriesNestedInput
@@ -972,6 +1136,10 @@ export type JournalEntryUncheckedUpdateWithoutParticipantsInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutEntryNestedInput
 }
@@ -985,6 +1153,10 @@ export type JournalEntryCreateManyCreatedByInput = {
   status?: string
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -995,6 +1167,10 @@ export type JournalEntryUpdateWithoutCreatedByInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutEntriesNestedInput
   project?: Prisma.ProjectUpdateOneWithoutEntriesNestedInput
@@ -1011,6 +1187,10 @@ export type JournalEntryUncheckedUpdateWithoutCreatedByInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutEntryNestedInput
   participants?: Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput
@@ -1025,6 +1205,10 @@ export type JournalEntryUncheckedUpdateManyWithoutCreatedByInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1037,6 +1221,10 @@ export type JournalEntryCreateManyLedgerInput = {
   createdById?: string | null
   projectId?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -1047,6 +1235,10 @@ export type JournalEntryUpdateWithoutLedgerInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.UserUpdateOneWithoutQianlaiJournalEntriesNestedInput
   project?: Prisma.ProjectUpdateOneWithoutEntriesNestedInput
@@ -1063,6 +1255,10 @@ export type JournalEntryUncheckedUpdateWithoutLedgerInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutEntryNestedInput
   participants?: Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput
@@ -1077,6 +1273,10 @@ export type JournalEntryUncheckedUpdateManyWithoutLedgerInput = {
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1089,6 +1289,10 @@ export type JournalEntryCreateManyProjectInput = {
   status?: string
   createdById?: string | null
   countsInLedger?: boolean
+  address?: string | null
+  addressName?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -1099,6 +1303,10 @@ export type JournalEntryUpdateWithoutProjectInput = {
   memo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutEntriesNestedInput
   createdBy?: Prisma.UserUpdateOneWithoutQianlaiJournalEntriesNestedInput
@@ -1115,6 +1323,10 @@ export type JournalEntryUncheckedUpdateWithoutProjectInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutEntryNestedInput
   participants?: Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput
@@ -1129,6 +1341,10 @@ export type JournalEntryUncheckedUpdateManyWithoutProjectInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   countsInLedger?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  addressName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1182,6 +1398,10 @@ export type JournalEntrySelect<ExtArgs extends runtime.Types.Extensions.Internal
   createdById?: boolean
   projectId?: boolean
   countsInLedger?: boolean
+  address?: boolean
+  addressName?: boolean
+  latitude?: boolean
+  longitude?: boolean
   createdAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   createdBy?: boolean | Prisma.JournalEntry$createdByArgs<ExtArgs>
@@ -1201,6 +1421,10 @@ export type JournalEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   createdById?: boolean
   projectId?: boolean
   countsInLedger?: boolean
+  address?: boolean
+  addressName?: boolean
+  latitude?: boolean
+  longitude?: boolean
   createdAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   createdBy?: boolean | Prisma.JournalEntry$createdByArgs<ExtArgs>
@@ -1217,6 +1441,10 @@ export type JournalEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   createdById?: boolean
   projectId?: boolean
   countsInLedger?: boolean
+  address?: boolean
+  addressName?: boolean
+  latitude?: boolean
+  longitude?: boolean
   createdAt?: boolean
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   createdBy?: boolean | Prisma.JournalEntry$createdByArgs<ExtArgs>
@@ -1233,10 +1461,14 @@ export type JournalEntrySelectScalar = {
   createdById?: boolean
   projectId?: boolean
   countsInLedger?: boolean
+  address?: boolean
+  addressName?: boolean
+  latitude?: boolean
+  longitude?: boolean
   createdAt?: boolean
 }
 
-export type JournalEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "entryNo" | "date" | "memo" | "status" | "createdById" | "projectId" | "countsInLedger" | "createdAt", ExtArgs["result"]["journalEntry"]>
+export type JournalEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ledgerId" | "entryNo" | "date" | "memo" | "status" | "createdById" | "projectId" | "countsInLedger" | "address" | "addressName" | "latitude" | "longitude" | "createdAt", ExtArgs["result"]["journalEntry"]>
 export type JournalEntryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ledger?: boolean | Prisma.LedgerDefaultArgs<ExtArgs>
   createdBy?: boolean | Prisma.JournalEntry$createdByArgs<ExtArgs>
@@ -1275,6 +1507,10 @@ export type $JournalEntryPayload<ExtArgs extends runtime.Types.Extensions.Intern
     createdById: string | null
     projectId: string | null
     countsInLedger: boolean
+    address: string | null
+    addressName: string | null
+    latitude: runtime.Decimal | null
+    longitude: runtime.Decimal | null
     createdAt: Date
   }, ExtArgs["result"]["journalEntry"]>
   composites: {}
@@ -1713,6 +1949,10 @@ export interface JournalEntryFieldRefs {
   readonly createdById: Prisma.FieldRef<"JournalEntry", 'String'>
   readonly projectId: Prisma.FieldRef<"JournalEntry", 'String'>
   readonly countsInLedger: Prisma.FieldRef<"JournalEntry", 'Boolean'>
+  readonly address: Prisma.FieldRef<"JournalEntry", 'String'>
+  readonly addressName: Prisma.FieldRef<"JournalEntry", 'String'>
+  readonly latitude: Prisma.FieldRef<"JournalEntry", 'Decimal'>
+  readonly longitude: Prisma.FieldRef<"JournalEntry", 'Decimal'>
   readonly createdAt: Prisma.FieldRef<"JournalEntry", 'DateTime'>
 }
     

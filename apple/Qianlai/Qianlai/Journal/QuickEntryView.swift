@@ -28,6 +28,9 @@ struct QuickEntryView: View {
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
     @State private var isPosting = false
+    /// Place chosen on the location picker map; its result is copied into
+    /// the draft.
+    @State private var isLocationPickerPresented = false
     /// Ledger the scoped stores were last loaded for — lets the task tell
     /// the initial load apart from a switcher tap inside the sheet.
     @State private var loadedLedgerId: String?
@@ -220,6 +223,12 @@ struct QuickEntryView: View {
                 selection: $draft.participants
             )
         }
+        .sheet(isPresented: $isLocationPickerPresented) {
+            LocationPickerSheet(initialLocation: draft.location) { place in
+                draft.location = place
+                draft.isLocationCleared = false
+            }
+        }
         .overlay {
             if !canPost {
                 ContentUnavailableView(
@@ -254,6 +263,8 @@ struct QuickEntryView: View {
                     draft.participants = []
                     draft.projectId = nil
                     draft.countsInLedger = true
+                    draft.location = nil
+                    draft.isLocationCleared = false
                     validationError = nil
                 }
             }
@@ -347,6 +358,8 @@ struct QuickEntryView: View {
                     .onSubmit { dismissKeyboard() }
             }
 
+            locationField
+
             if editedEntry == nil, let scopedProject {
                 // Project scope pins the entry: read-only row instead of
                 // the picker.
@@ -376,15 +389,7 @@ struct QuickEntryView: View {
             // choice is theirs only on full-role ledgers.
             if !isGuest {
                 Toggle(isOn: $draft.countsInLedger) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Ledger"))
-                        Text(L10n.string(
-                            "quick.countsInLedger.footer",
-                            defaultValue: "Off keeps the entry out of the ledger's journal and monthly totals — e.g. a credit-card repayment already expensed at purchase."
-                        ))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Ledger"))
                 }
             }
 
@@ -409,6 +414,60 @@ struct QuickEntryView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// Optional place of the entry: opens the map picker while empty; once
+    /// set, shows the resolved label (tap to re-choose) with a clear button.
+    @ViewBuilder
+    private var locationField: some View {
+        if let location = draft.location {
+            LabeledContent {
+                HStack(spacing: 8) {
+                    Text(locationLabel(location))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Button {
+                        // Marks the place for removal: on an edit the
+                        // body sends an explicit null, on a fresh post
+                        // there was nothing to keep anyway.
+                        draft.location = nil
+                        draft.isLocationCleared = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            } label: {
+                Text(
+                    L10n.string("quick.location", defaultValue: "Location")
+                )
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isLocationPickerPresented = true
+            }
+        } else {
+            Button {
+                isLocationPickerPresented = true
+            } label: {
+                HStack {
+                    Text(L10n.string("quick.location.add", defaultValue: "Add Location"))
+                    Spacer()
+                    Image(systemName: "map")
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Trailing label of the location row: POI name → address → formatted
+    /// coordinates, so a geocoding gap never shows a blank value.
+    private func locationLabel(_ location: EntryLocationBody) -> String {
+        location.rowLabel ?? L10n.string("quick.location.set", defaultValue: "Location set")
     }
 
     private var canPost: Bool {

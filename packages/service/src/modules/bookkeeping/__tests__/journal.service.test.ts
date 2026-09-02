@@ -1175,3 +1175,119 @@ describe("deleteEntry", () => {
     );
   });
 });
+
+describe("entry location", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1" },
+      { id: "mem-2" },
+    ]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-1" });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+  });
+
+  it("flattens a location into the entry's columns on create", async () => {
+    await createEntry(
+      "user-a",
+      "led-1",
+      {
+        ...baseEntryInput,
+        location: {
+          addressName: "星巴克",
+          address: "北京市海淀区中关村大街1号",
+          latitude: 39.983425,
+          longitude: 116.322083,
+        },
+      },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: "北京市海淀区中关村大街1号",
+        addressName: "星巴克",
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("stores no location columns when the location is omitted", async () => {
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
+    const data = mockJournalRepo.createEntry.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(data).not.toHaveProperty("address");
+    expect(data).not.toHaveProperty("latitude");
+  });
+
+  it("keeps the stored location on update when omitted and replaces on an object", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: true,
+    });
+
+    // Omitted: the edit form doesn't strip the place it didn't show.
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+    const omitted = mockJournalRepo.updateEntry.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    expect(omitted).not.toHaveProperty("location");
+
+    // An object fully replaces the place.
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      location: { addressName: "New Place" },
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenLastCalledWith(
+      "e-1",
+      expect.objectContaining({
+        location: {
+          address: null,
+          addressName: "New Place",
+          latitude: null,
+          longitude: null,
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("clears the location on an explicit null", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      location: null,
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({
+        location: {
+          address: null,
+          addressName: null,
+          latitude: null,
+          longitude: null,
+        },
+      }),
+      expect.anything(),
+    );
+  });
+});

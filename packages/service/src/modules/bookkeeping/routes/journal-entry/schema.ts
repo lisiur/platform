@@ -50,6 +50,41 @@ export const journalEntryParticipantSchema = z
   })
   .openapi("QianlaiJournalEntryParticipant");
 
+/** Where an entry was recorded, resolved on the client; any part may be
+ * missing when geocoding was partial. Pure annotation — never enters
+ * balances or reports. */
+export const entryLocationSchema = z
+  .object({
+    address: z.string().nullable().openapi({
+      example: "北京市海淀区中关村大街1号",
+      description: "Display text for the recorded place.",
+    }),
+    addressName: z
+      .string()
+      .nullable()
+      .openapi({ example: "星巴克", description: "POI / placemark name." }),
+    latitude: z.number().nullable().openapi({ example: 39.983425 }),
+    longitude: z.number().nullable().openapi({ example: 116.322083 }),
+  })
+  .openapi("QianlaiEntryLocation");
+
+export const entryLocationInputSchema = z
+  .object({
+    address: z.string().max(200).optional(),
+    addressName: z.string().max(100).optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+  })
+  .refine(
+    (location) =>
+      location.address !== undefined ||
+      location.addressName !== undefined ||
+      location.latitude !== undefined ||
+      location.longitude !== undefined,
+    { message: "At least one location field is required" },
+  )
+  .openapi("QianlaiEntryLocationInput");
+
 export const journalEntrySchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -82,6 +117,8 @@ export const journalEntrySchema = z
     // its project and in balances). Forced false for guest-created entries;
     // editors may opt out per entry (e.g. credit-card repayments).
     countsInLedger: z.boolean().openapi({ example: true }),
+    // null = recorded without a location.
+    location: entryLocationSchema.nullable().openapi({ example: null }),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
     participants: journalEntryParticipantSchema.array(),
@@ -159,6 +196,10 @@ export const createEntryBodySchema = z
     // to true; forced false for guests (their entries live in the project
     // books and settlement). On update, omitted = keep the current flag.
     countsInLedger: z.boolean().optional(),
+    // Optional place of the entry. On create, omitted = no location. On
+    // update, omitted = keep the current location and null = clear it (so
+    // clients that don't know the field never strip it accidentally).
+    location: entryLocationInputSchema.nullish(),
   })
   .openapi("QianlaiCreateEntryBody");
 
@@ -183,6 +224,10 @@ export function serializeEntry<
     createdById: string | null;
     createdAt: Date;
     createdBy: unknown;
+    address?: string | null;
+    addressName?: string | null;
+    latitude?: { toString(): string } | null;
+    longitude?: { toString(): string } | null;
     projectId?: string | null;
     project?: { id: string; name: string; status: string } | null;
     lines: Array<{
@@ -215,10 +260,28 @@ export function serializeEntry<
     }>;
   },
 >(entry: T) {
+  // The flat location columns are re-exposed through the nested
+  // `location` object below, so keep the raw fields (and their Decimal
+  // coordinates) out of the spread payload.
+  const { address, addressName, latitude, longitude, ...rest } = entry;
   return {
-    ...entry,
+    ...rest,
     projectId: entry.projectId ?? null,
     project: entry.project ?? null,
+    // Flat nullable columns collapse to a single nested location object;
+    // coordinates arrive as Decimal and leave as JSON numbers.
+    location:
+      entry.address == null &&
+      entry.addressName == null &&
+      entry.latitude == null &&
+      entry.longitude == null
+        ? null
+        : {
+            address: entry.address ?? null,
+            addressName: entry.addressName ?? null,
+            latitude: entry.latitude == null ? null : Number(entry.latitude),
+            longitude: entry.longitude == null ? null : Number(entry.longitude),
+          },
     lines: entry.lines.map((line) => ({
       ...line,
       debit: Number(line.debit),

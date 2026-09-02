@@ -243,13 +243,25 @@ struct EntryRow: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-                if entry.project != nil || !(entry.participants?.isEmpty ?? true) {
+                if entry.project != nil
+                    || !(entry.participants?.isEmpty ?? true)
+                    || entry.location != nil {
                     HStack(spacing: 8) {
                         if let project = entry.project {
                             HStack(spacing: 4) {
                                 Image(systemName: "folder")
                                     .font(.caption2)
                                 Text(project.name)
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.tertiary)
+                        }
+                        if let location = entry.location,
+                           let label = location.displayName ?? coordinateLabel(location) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.caption2)
+                                Text(label)
                                     .font(.caption2)
                             }
                             .foregroundStyle(.tertiary)
@@ -287,6 +299,15 @@ struct EntryRow: View {
     private var categoryLine: JournalLine? {
         entry.lines.first { $0.account.type == .expense }
             ?? entry.lines.first { $0.account.type == .income }
+    }
+
+    /// Coordinates-only fallback for a location whose geocoding never
+    /// produced a name or address.
+    private func coordinateLabel(_ location: EntryLocationRef) -> String? {
+        guard let latitude = location.latitude, let longitude = location.longitude else {
+            return nil
+        }
+        return String(format: "%.5f, %.5f", latitude, longitude)
     }
 
     /// Trailing meta text. Transfers (no category line) read
