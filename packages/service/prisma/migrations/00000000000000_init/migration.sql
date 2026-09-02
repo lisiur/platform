@@ -936,6 +936,10 @@ CREATE TABLE "qianlai_journal_entry" (
     "createdById" TEXT,
     "projectId" TEXT,
     "countsInLedger" BOOLEAN NOT NULL DEFAULT true,
+    "address" TEXT,
+    "addressName" TEXT,
+    "latitude" DECIMAL(9,6),
+    "longitude" DECIMAL(9,6),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "qianlai_journal_entry_pkey" PRIMARY KEY ("id")
