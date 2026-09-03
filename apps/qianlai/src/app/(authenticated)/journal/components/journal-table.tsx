@@ -380,7 +380,7 @@ export function JournalTable() {
                           {entry.project.name}
                         </Badge>
                       )}
-                      {(!entry.countsInLedger || entry.guestCreated) && (
+                      {!entry.countsInLedger && (
                         <Badge variant="secondary" className="ml-2 text-xs">
                           {t("notCounted")}
                         </Badge>

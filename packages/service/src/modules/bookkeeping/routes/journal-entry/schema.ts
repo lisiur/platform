@@ -150,7 +150,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     }),
     includeExcluded: z.enum(["true", "false"]).optional().openapi({
       description:
-        "Also return entries excluded from the personal books — user opt-outs (countsInLedger=false) and guest posts (audit/search escape hatch for ledger-wide listing). Ignored when projectId is set — a project's books always show all of its entries.",
+        "Also return entries the creator opted out of the ledger's surfaces (countsInLedger=false). Ignored when projectId is set — a project's books always show all of its entries.",
     }),
   })
   .openapi("QianlaiListEntriesQuery");

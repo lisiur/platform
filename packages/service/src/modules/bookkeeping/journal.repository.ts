@@ -24,25 +24,23 @@ export type EntryWindow = {
   /** Guest scope: entries of any of these projects (forced filter). */
   scopeProjectIds?: string[];
   /**
-   * Ledger-wide escape hatch: also return entries excluded from the
-   * personal books (user opt-out via `countsInLedger`, or a guest post).
-   * Never honored for project-scoped queries — a project's books always
-   * show all of its entries.
+   * Ledger-wide escape hatch: also return entries the creator opted out of
+   * the ledger's surfaces (`countsInLedger = false`). Never honored for
+   * project-scoped queries — a project's books always show all of its
+   * entries.
    */
   includeExcluded?: boolean;
 };
 
 /**
- * LEDGER-WIDE (personal books) predicate: the entry stayed in the owner's
- * books (`countsInLedger` — the owner's intent, forced false for guest
- * posts) AND the system guest rule passes (`guestCreated`). One definition
- * reused by every ledger-wide surface — journal list, dashboard month,
- * income statement, recent entries — so the exclusion dimensions never
- * drift.
+ * LEDGER-WIDE (journal activity) predicate: member entries the creator kept
+ * in (`countsInLedger` is the creator's personal-books intent) plus guest
+ * posts — the share-based statement counts every viewer's participant share
+ * of guest entries, so those entries must stay visible and drillable here.
+ * Only the creator's own opt-outs are excluded.
  */
-export const personalBooksWhere = {
-  countsInLedger: true,
-  guestCreated: false,
+export const ledgerActivityWhere = {
+  OR: [{ guestCreated: true }, { countsInLedger: true }],
 } as const satisfies Prisma.JournalEntryWhereInput;
 
 /** Participant rows with the member's user profile, as returned on entries. */
@@ -67,12 +65,14 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   const projectScoped = Boolean(window.projectId || window.scopeProjectIds);
   return {
     ledgerId,
-    // The personal-books predicate scopes LEDGER-WIDE surfaces only (journal,
-    // dashboard month, income statement): user opt-out (countsInLedger) plus
-    // the guest rule (guestCreated). Project books always show all of their
-    // entries — settlement depends on them — so the filter is skipped
-    // whenever the query is pinned to project(s).
-    ...(!projectScoped && !window.includeExcluded ? personalBooksWhere : {}),
+    // The ledger-activity predicate scopes LEDGER-WIDE surfaces only
+    // (journal list, dashboard recent entries): member entries the creator
+    // kept in plus every guest post, so entries that feed the share-based
+    // statement stay visible and drillable. Only the creator's own opt-outs
+    // are excluded (and even those return via `includeExcluded`). Project
+    // books always show all of their entries — settlement depends on them —
+    // so the filter is skipped whenever the query is pinned to project(s).
+    ...(!projectScoped && !window.includeExcluded ? ledgerActivityWhere : {}),
     ...(window.from || window.to
       ? {
           date: {
@@ -406,19 +406,13 @@ export const journalRepository = {
   listRecent(
     ledgerId: string,
     limit: number,
-    opts: { countsInLedger?: boolean; guestCreated?: boolean } = {},
+    opts: { includeExcluded?: boolean } = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalEntry.findMany({
-      where: {
-        ledgerId,
-        ...(opts.countsInLedger !== undefined
-          ? { countsInLedger: opts.countsInLedger }
-          : {}),
-        ...(opts.guestCreated !== undefined
-          ? { guestCreated: opts.guestCreated }
-          : {}),
-      },
+      where: entryFilterWhere(ledgerId, {
+        includeExcluded: opts.includeExcluded,
+      }),
       include: entryInclude,
       take: limit,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],

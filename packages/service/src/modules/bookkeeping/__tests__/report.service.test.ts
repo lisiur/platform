@@ -12,8 +12,6 @@ vi.mock("../journal.repository", () => ({
     sumLinesByAccount: vi.fn(),
     listShareEntries: vi.fn(),
   },
-  // The real predicate constants, so report.service spreads actual values.
-  personalBooksWhere: { countsInLedger: true, guestCreated: false },
 }));
 
 vi.mock("../ledger-member.repository", () => ({
@@ -275,11 +273,10 @@ describe("dashboard", () => {
     expect(result.assets).toBe(-100);
     // Month statement: the viewer's share of the shared expense.
     expect(result.month.totalExpense).toBe(50);
-    // Recent entries: personal-books only (user opt-outs + guest posts out).
-    expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5, {
-      countsInLedger: true,
-      guestCreated: false,
-    });
+    // Recent entries mirror the journal activity: member entries the creator
+    // kept in plus every guest post (entries that feed the share-based
+    // statement stay visible at the top of the dashboard too).
+    expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5);
   });
 });
 

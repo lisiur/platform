@@ -1,7 +1,7 @@
 import type { Prisma } from "#generated/prisma/client";
 import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
-import { journalRepository, personalBooksWhere } from "./journal.repository";
+import { journalRepository } from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 
 type AccountSums = Map<string, { debit: number; credit: number }>;
@@ -358,9 +358,12 @@ export async function dashboard(
     shareSumsByAccount(monthEntries, userId),
   );
 
-  const recentEntries = (
-    await journalRepository.listRecent(ledgerId, 5, personalBooksWhere)
-  ).map((e) => redactEntryCreatorEmail(e, viewerRole));
+  // Recent entries mirror the journal activity: member entries the creator
+  // kept in plus every guest post (entries that feed the share-based
+  // statement stay visible at the top of the dashboard too).
+  const recentEntries = (await journalRepository.listRecent(ledgerId, 5)).map(
+    (e) => redactEntryCreatorEmail(e, viewerRole),
+  );
 
   return {
     assets: round(assets),

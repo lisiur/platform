@@ -23,7 +23,7 @@ export const dashboardRoute = defineOpenAPIRoute({
     tags: ["QianlaiReport"],
     summary: "Dashboard summary of the ledger",
     description:
-      "Net worth (assets − liabilities, accounting-true), the selected month's (defaults to current) income vs expense share-based for the viewer (each entry counts at the viewer's participant share), and the 5 most recent personal-books entries.",
+      "Net worth (assets − liabilities, accounting-true), the selected month's (defaults to current) income vs expense share-based for the viewer (each entry counts at the viewer's participant share), and the 5 most recent ledger-activity entries (member + guest posts).",
     request: {
       params: ledgerIdParamSchema,
       query: dashboardQuerySchema,

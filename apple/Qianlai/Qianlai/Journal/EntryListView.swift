@@ -249,7 +249,7 @@ struct EntryRow: View {
                     }
                     .lineLimit(1)
                 }
-                if !entry.countsInLedger || entry.guestCreated {
+                if !entry.countsInLedger {
                     HStack(spacing: 4) {
                         Image(systemName: "minus.circle")
                             .font(.caption2)
