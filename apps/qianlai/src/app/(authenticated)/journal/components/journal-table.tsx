@@ -63,6 +63,7 @@ interface EntryRow {
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
   countsInLedger: boolean;
+  guestCreated: boolean;
   projectId: string | null;
   project: { id: string; name: string; status: string } | null;
   lines: JournalLineDto[];
@@ -379,7 +380,7 @@ export function JournalTable() {
                           {entry.project.name}
                         </Badge>
                       )}
-                      {!entry.countsInLedger && (
+                      {(!entry.countsInLedger || entry.guestCreated) && (
                         <Badge variant="secondary" className="ml-2 text-xs">
                           {t("notCounted")}
                         </Badge>

@@ -1029,6 +1029,7 @@ export const JournalEntryScalarFieldEnum = {
   createdById: 'createdById',
   projectId: 'projectId',
   countsInLedger: 'countsInLedger',
+  guestCreated: 'guestCreated',
   address: 'address',
   addressName: 'addressName',
   latitude: 'latitude',

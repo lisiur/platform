@@ -117,6 +117,10 @@ export const journalEntrySchema = z
     // its project and in balances). Forced false for guest-created entries;
     // editors may opt out per entry (e.g. credit-card repayments).
     countsInLedger: z.boolean().openapi({ example: true }),
+    // System rule, set once at posting: true when the creator was a guest.
+    // The client-immutable second dimension of the same ledger-wide
+    // exclusion — guest posts settle in their project's books.
+    guestCreated: z.boolean().openapi({ example: false }),
     // null = recorded without a location.
     location: entryLocationSchema.nullable().openapi({ example: null }),
     createdAt: z.date(),
@@ -146,7 +150,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     }),
     includeExcluded: z.enum(["true", "false"]).optional().openapi({
       description:
-        "Also return entries flagged countsInLedger=false (audit/search escape hatch for ledger-wide listing). Ignored when projectId is set — a project's books always show all of its entries.",
+        "Also return entries excluded from the personal books — user opt-outs (countsInLedger=false) and guest posts (audit/search escape hatch for ledger-wide listing). Ignored when projectId is set — a project's books always show all of its entries.",
     }),
   })
   .openapi("QianlaiListEntriesQuery");
@@ -194,7 +198,8 @@ export const createEntryBodySchema = z
     projectId: z.string().min(1).nullable().optional(),
     // Whether the entry counts in ledger-wide journal/statements. Defaults
     // to true; forced false for guests (their entries live in the project
-    // books and settlement). On update, omitted = keep the current flag.
+    // books and settlement — the system-set guestCreated flag excludes them
+    // ledger-wide regardless). On update, omitted = keep the current flag.
     countsInLedger: z.boolean().optional(),
     // Optional place of the entry. On create, omitted = no location. On
     // update, omitted = keep the current location and null = clear it (so
@@ -223,6 +228,7 @@ export function serializeEntry<
     status: string;
     createdById: string | null;
     createdAt: Date;
+    guestCreated?: boolean;
     createdBy: unknown;
     address?: string | null;
     addressName?: string | null;

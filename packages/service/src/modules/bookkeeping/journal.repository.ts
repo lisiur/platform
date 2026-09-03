@@ -24,12 +24,26 @@ export type EntryWindow = {
   /** Guest scope: entries of any of these projects (forced filter). */
   scopeProjectIds?: string[];
   /**
-   * Ledger-wide escape hatch: also return entries flagged
-   * `countsInLedger = false`. Never honored for project-scoped queries —
-   * a project's books always show all of its entries.
+   * Ledger-wide escape hatch: also return entries excluded from the
+   * personal books (user opt-out via `countsInLedger`, or a guest post).
+   * Never honored for project-scoped queries — a project's books always
+   * show all of its entries.
    */
   includeExcluded?: boolean;
 };
+
+/**
+ * LEDGER-WIDE (personal books) predicate: the entry stayed in the owner's
+ * books (`countsInLedger` — the owner's intent, forced false for guest
+ * posts) AND the system guest rule passes (`guestCreated`). One definition
+ * reused by every ledger-wide surface — journal list, dashboard month,
+ * income statement, recent entries — so the exclusion dimensions never
+ * drift.
+ */
+export const personalBooksWhere = {
+  countsInLedger: true,
+  guestCreated: false,
+} as const satisfies Prisma.JournalEntryWhereInput;
 
 /** Participant rows with the member's user profile, as returned on entries. */
 const participantInclude = {
@@ -53,13 +67,12 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   const projectScoped = Boolean(window.projectId || window.scopeProjectIds);
   return {
     ledgerId,
-    // The countsInLedger flag scopes LEDGER-WIDE surfaces only (journal,
-    // dashboard month, income statement). Project books always show all of
-    // their entries — settlement depends on them — so the filter is skipped
+    // The personal-books predicate scopes LEDGER-WIDE surfaces only (journal,
+    // dashboard month, income statement): user opt-out (countsInLedger) plus
+    // the guest rule (guestCreated). Project books always show all of their
+    // entries — settlement depends on them — so the filter is skipped
     // whenever the query is pinned to project(s).
-    ...(!projectScoped && !window.includeExcluded
-      ? { countsInLedger: true }
-      : {}),
+    ...(!projectScoped && !window.includeExcluded ? personalBooksWhere : {}),
     ...(window.from || window.to
       ? {
           date: {
@@ -205,6 +218,8 @@ export const journalRepository = {
       createdById: string;
       projectId?: string;
       countsInLedger?: boolean;
+      /** System guest rule, set once at posting. */
+      guestCreated?: boolean;
       /** Flat location columns; omitted fields store as null. */
       address?: string | null;
       addressName?: string | null;
@@ -229,6 +244,7 @@ export const journalRepository = {
         createdById: data.createdById,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
+        guestCreated: data.guestCreated ?? false,
         address: data.address ?? null,
         addressName: data.addressName ?? null,
         latitude: data.latitude ?? null,
@@ -318,14 +334,20 @@ export const journalRepository = {
    * entries dated within [from, to]. Grouped on JournalLine with the entry
    * relation filtered, so each account's totals reflect only this ledger.
    *
-   * `countsInLedger` is opt-in and explicit: pass `true` for behavioral
-   * statements (income statement, dashboard month) so flagged-out entries
-   * don't count, and leave it undefined for accounting truth (trial balance,
-   * net worth) where every posted entry must be summed.
+   * The exclusion flags are opt-in and explicit: pass
+   * `{ countsInLedger: true, guestCreated: false }` for behavioral
+   * statements (income statement, dashboard month) so opted-out and guest
+   * entries don't count, and leave both undefined for accounting truth
+   * (trial balance, net worth) where every posted entry must be summed.
    */
   sumLinesByAccount(
     ledgerId: string,
-    window: { from?: Date; to?: Date; countsInLedger?: boolean } = {},
+    window: {
+      from?: Date;
+      to?: Date;
+      countsInLedger?: boolean;
+      guestCreated?: boolean;
+    } = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalLine.groupBy({
@@ -335,6 +357,9 @@ export const journalRepository = {
         entry: {
           ...(window.countsInLedger !== undefined
             ? { countsInLedger: window.countsInLedger }
+            : {}),
+          ...(window.guestCreated !== undefined
+            ? { guestCreated: window.guestCreated }
             : {}),
           date: {
             ...(window.from ? { gte: window.from } : {}),
@@ -381,7 +406,7 @@ export const journalRepository = {
   listRecent(
     ledgerId: string,
     limit: number,
-    opts: { countsInLedger?: boolean } = {},
+    opts: { countsInLedger?: boolean; guestCreated?: boolean } = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalEntry.findMany({
@@ -389,6 +414,9 @@ export const journalRepository = {
         ledgerId,
         ...(opts.countsInLedger !== undefined
           ? { countsInLedger: opts.countsInLedger }
+          : {}),
+        ...(opts.guestCreated !== undefined
+          ? { guestCreated: opts.guestCreated }
           : {}),
       },
       include: entryInclude,

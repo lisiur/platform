@@ -348,11 +348,15 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     let date: Date
     var memo: String?
     var status: String
-    /// False = excluded from ledger-wide surfaces (journal, dashboard month,
-    /// income statement) but still fully visible in its project and balances.
-    /// Guest posts and opted-out repayments (credit-card payoff already
-    /// expensed at purchase time) are flagged out.
+    /// Pure user intent: false = excluded from ledger-wide surfaces (journal,
+    /// dashboard month, income statement) but still fully visible in its
+    /// project and balances — e.g. a credit-card repayment already expensed
+    /// at purchase time.
     var countsInLedger: Bool
+    /// System rule, set once at posting: true when the creator was a guest.
+    /// Guest posts stay out of ledger-wide surfaces regardless of
+    /// `countsInLedger` — they settle inside their project's books.
+    var guestCreated: Bool
     var createdById: String?
     var createdBy: EntryUserRef?
     var createdAt: Date
@@ -846,8 +850,9 @@ struct CreateEntryBody: Encodable {
     var participantMemberIds: [String]?
     /// Project assignment; guests must target one of their projects.
     var projectId: String?
-    /// nil counts in the ledger (server default); false opts out. The server
-    /// forces false for guests regardless.
+    /// nil counts in the ledger (server default); false opts out. Pure user
+    /// intent — guest posts are excluded by the server's guestCreated rule,
+    /// not by this flag.
     var countsInLedger: Bool?
     /// nil omits the field: no location on create, keep-on-edit.
     var location: EntryLocationPayload? = nil
@@ -896,8 +901,7 @@ struct QuickEntryDraft: Equatable {
     var participants: Set<String> = []
     var projectId: String?
     /// False marks the entry as not counting in ledger-wide surfaces (e.g.
-    /// a credit-card repayment already expensed at purchase time). The
-    /// server forces false for guest posts regardless of this flag.
+    /// a credit-card repayment already expensed at purchase time).
     var countsInLedger = true
     /// The captured place shown in the form; nil = no location row value.
     var location: EntryLocationBody? = nil

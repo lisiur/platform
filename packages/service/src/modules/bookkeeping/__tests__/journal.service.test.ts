@@ -620,7 +620,7 @@ describe("createEntry", () => {
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-5" });
     await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ countsInLedger: true }),
+      expect.objectContaining({ countsInLedger: true, guestCreated: false }),
       expect.anything(),
     );
 
@@ -951,7 +951,7 @@ describe("createEntry as guest", () => {
     );
   });
 
-  it("forces countsInLedger=false even when the client asks to count", async () => {
+  it("forces countsInLedger=false and stamps guestCreated for guests", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
@@ -973,8 +973,10 @@ describe("createEntry as guest", () => {
       },
       guestAccess,
     );
+    // The forced countsInLedger=false is belt; the system-set guestCreated
+    // snapshot is suspenders — the client never gets a say in either.
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ countsInLedger: false }),
+      expect.objectContaining({ countsInLedger: false, guestCreated: true }),
       expect.anything(),
     );
   });

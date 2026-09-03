@@ -874,8 +874,6 @@ CREATE TABLE "qianlai_ledger_member" (
 );
 
 -- CreateTable
-
--- CreateTable
 CREATE TABLE "qianlai_real_account" (
     "id" TEXT NOT NULL,
     "ownerId" TEXT NOT NULL,
@@ -921,6 +919,7 @@ CREATE TABLE "qianlai_journal_entry" (
     "createdById" TEXT,
     "projectId" TEXT,
     "countsInLedger" BOOLEAN NOT NULL DEFAULT true,
+    "guestCreated" BOOLEAN NOT NULL DEFAULT false,
     "address" TEXT,
     "addressName" TEXT,
     "latitude" DECIMAL(9,6),
@@ -1346,10 +1345,6 @@ CREATE INDEX "qianlai_ledger_member_userId_idx" ON "qianlai_ledger_member"("user
 CREATE UNIQUE INDEX "qianlai_ledger_member_ledgerId_userId_key" ON "qianlai_ledger_member"("ledgerId", "userId");
 
 -- CreateIndex
-
--- CreateIndex
-
--- CreateIndex
 CREATE INDEX "qianlai_real_account_ownerId_idx" ON "qianlai_real_account"("ownerId");
 
 -- CreateIndex
@@ -1552,12 +1547,6 @@ ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_ledger
 
 -- AddForeignKey
 ALTER TABLE "qianlai_ledger_member" ADD CONSTRAINT "qianlai_ledger_member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-
--- AddForeignKey
-
--- AddForeignKey
 
 -- AddForeignKey
 ALTER TABLE "qianlai_real_account" ADD CONSTRAINT "qianlai_real_account_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

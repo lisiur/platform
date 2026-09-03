@@ -11,6 +11,8 @@ vi.mock("../journal.repository", () => ({
     listRecent: vi.fn(),
     sumLinesByAccount: vi.fn(),
   },
+  // The real predicate constants, so report.service spreads actual values.
+  personalBooksWhere: { countsInLedger: true, guestCreated: false },
 }));
 
 vi.mock("../ledger-member.repository", () => ({
@@ -61,6 +63,7 @@ function monthWindowCall() {
     from: Date;
     to: Date;
     countsInLedger?: boolean;
+    guestCreated?: boolean;
   };
 }
 
@@ -107,13 +110,15 @@ describe("dashboard", () => {
     const allTimeWindow = mockJournalRepo.sumLinesByAccount.mock.calls[0]?.[1];
     expect(allTimeWindow?.countsInLedger).toBeUndefined();
 
-    // Call [1] is the month statement: behavioral view — flagged-out entries
-    // (guest posts, opted-out repayments) don't count.
+    // Call [1] is the month statement: behavioral view — entries outside
+    // the personal books (guest posts, opted-out repayments) don't count.
     const monthWindow = monthWindowCall();
     expect(monthWindow.countsInLedger).toBe(true);
+    expect(monthWindow.guestCreated).toBe(false);
 
     expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5, {
       countsInLedger: true,
+      guestCreated: false,
     });
   });
 });
@@ -125,6 +130,7 @@ describe("incomeStatement vs trialBalance flag policy", () => {
     await incomeStatement("led-1");
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {
       countsInLedger: true,
+      guestCreated: false,
     });
 
     mockJournalRepo.sumLinesByAccount.mockClear();

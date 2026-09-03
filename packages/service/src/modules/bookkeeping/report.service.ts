@@ -1,6 +1,6 @@
 import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
-import { journalRepository } from "./journal.repository";
+import { journalRepository, personalBooksWhere } from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 
 type AccountSums = Map<string, { debit: number; credit: number }>;
@@ -36,7 +36,12 @@ function redactEntryCreatorEmail<
 
 async function sumsByAccount(
   ledgerId: string,
-  window: { from?: Date; to?: Date; countsInLedger?: boolean } = {},
+  window: {
+    from?: Date;
+    to?: Date;
+    countsInLedger?: boolean;
+    guestCreated?: boolean;
+  } = {},
 ): Promise<AccountSums> {
   const grouped = await journalRepository.sumLinesByAccount(ledgerId, window);
   const map: AccountSums = new Map();
@@ -96,9 +101,10 @@ export async function trialBalance(
 }
 
 /**
- * Ledger-wide P&L. Behavioral view: entries flagged countsInLedger=false
- * (guest posts, opted-out repayments) don't count — they settle in their
- * project, or were already expensed elsewhere.
+ * Ledger-wide P&L. Behavioral view: entries excluded from the personal
+ * books don't count — user opt-outs (countsInLedger=false, e.g. a
+ * repayment already expensed elsewhere) and guest posts (guestCreated,
+ * group spending that settles inside its project).
  */
 export async function incomeStatement(
   ledgerId: string,
@@ -106,7 +112,10 @@ export async function incomeStatement(
 ) {
   const [accounts, sums] = await Promise.all([
     accountRepository.listByLedger(ledgerId),
-    sumsByAccount(ledgerId, { ...window, countsInLedger: true }),
+    sumsByAccount(ledgerId, {
+      ...window,
+      ...personalBooksWhere,
+    }),
   ]);
   return buildStatementRows(accounts, sums);
 }
@@ -209,16 +218,16 @@ export async function dashboard(
   const monthSums = await sumsByAccount(ledgerId, {
     from: monthStart,
     to: monthEnd,
-    // Behavioral month statement: countsInLedger=false entries (guest posts,
-    // opted-out repayments) don't count. Net worth above stays accounting-
-    // true — the money really moved — but the personal books don't expense
-    // group spending that settles inside a project.
-    countsInLedger: true,
+    // Behavioral month statement: entries outside the personal books
+    // (guest posts, opted-out repayments) don't count. Net worth above
+    // stays accounting-true — the money really moved — but the personal
+    // books don't expense group spending that settles inside a project.
+    ...personalBooksWhere,
   });
   const statement = buildStatementRows(accounts, monthSums);
 
   const recentEntries = (
-    await journalRepository.listRecent(ledgerId, 5, { countsInLedger: true })
+    await journalRepository.listRecent(ledgerId, 5, personalBooksWhere)
   ).map((e) => redactEntryCreatorEmail(e, viewerRole));
 
   return {

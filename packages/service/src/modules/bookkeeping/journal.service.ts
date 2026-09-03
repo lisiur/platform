@@ -304,12 +304,15 @@ export async function createEntry(
       ...data,
       projectId,
       participantMemberIds,
-      // Snapshot at creation: guest entries are group spending that settles
-      // inside the project, so they never count in ledger-wide surfaces —
-      // regardless of what the client asked for. A later role change never
-      // rewrites history.
+      // The owner's keep-in intent — never honored for guests: their posts
+      // settle inside the project, so the flag is forced false at posting
+      // regardless of what the client asked for.
       countsInLedger:
         access.membership.role === "guest" ? false : data.countsInLedger,
+      // System snapshot: true when the creator was a guest. The second,
+      // client-immutable dimension of the same ledger-wide exclusion — a
+      // later role change never rewrites history.
+      guestCreated: access.membership.role === "guest",
       rawLines: data.lines,
       ledgerAccounts,
       ledgerMembers,
@@ -345,6 +348,8 @@ export async function postEntryInTransaction(
     expenseOnly?: boolean;
     /** Defaults to true when omitted (e.g. system balance adjustments). */
     countsInLedger?: boolean;
+    /** System guest rule (see schema): true for guest-created posts. */
+    guestCreated?: boolean;
     location?: EntryLocationInput | null;
   },
 ) {
@@ -370,6 +375,7 @@ export async function postEntryInTransaction(
         createdById: userId,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
+        guestCreated: data.guestCreated ?? false,
         ...locationColumns(data.location),
         lines: lines.map((line) => ({
           accountId: line.accountId,
@@ -453,7 +459,8 @@ async function withAutoParticipants(
  * transaction-consistent account list and the archived guard is
  * re-evaluated under the lock. entryNo and the original creator are kept —
  * editing corrects values, it does not re-post the entry. `countsInLedger`
- * keeps-on-omit and stays guest-pinned (see below).
+ * keeps-on-omit and stays guest-pinned (see below); the system guest rule
+ * (`guestCreated`) is set once at posting and never editable here.
  *
  * Guests may only edit entries they created, and only within (and keeping
  * them in) one of their projects.
@@ -542,9 +549,11 @@ export async function updateEntry(
     // entry; the repo's delete-and-recreate treats [] as "no tags".
     const participantIds = participantMemberIds ?? [];
     // countsInLedger deviates from replace semantics: omitted = keep the
-    // entry's current flag, so editing an excluded entry (repayment, guest
-    // post) doesn't silently re-include it. Guests can never change it —
-    // the creation-time false sticks, mirroring the projectId pinning above.
+    // entry's current flag, so editing an excluded entry (repayment)
+    // doesn't silently re-include it. Guests can never change it — the
+    // creation-time false sticks, mirroring the projectId pinning above;
+    // the system guest rule stays in the immutable guestCreated column,
+    // which this update never touches.
     const countsInLedger =
       actor.role === "guest"
         ? entry.countsInLedger

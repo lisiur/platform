@@ -1246,8 +1246,18 @@ model JournalEntry {
   // and opt-out for editors (e.g. a credit-card repayment already expensed
   // at purchase time). Balance computations (trial balance, net worth,
   // pocket balances), project reports, and settlement always count every
-  // entry regardless of this flag.
+  // entry regardless of this flag. `guestCreated` below is the second,
+  // client-immutable dimension of the same exclusion.
   countsInLedger Boolean     @default(true)
+  // System rule, set once at posting and never user-editable: true when the
+  // creator was a guest. Guest posts are group spending that settles inside
+  // the project, so they stay out of the owner's personal books; the
+  // share-based stats (member turnover) count every participant-tagged
+  // entry, so the members' shares stay real. Kept as its own column
+  // (instead of inferring "creator is not a ledger member" at query time)
+  // because createdById is nullable (SetNull on account deletion) and
+  // per-query membership joins are costly.
+  guestCreated  Boolean      @default(false)
   // Optional location captured at posting time, resolved on the client
   // (CoreLocation / browser geolocation + reverse geocoding) — the service
   // only stores what was captured. `address` is the display text,
