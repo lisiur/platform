@@ -18,7 +18,6 @@ struct LedgerSwitcherMenu: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
     @State private var isShowingManage = false
-    @State private var isShowingJoin = false
 
     private var isGuestActive: Bool {
         ledgerStore.activeLedger?.isGuest ?? false
@@ -92,11 +91,6 @@ struct LedgerSwitcherMenu: View {
             }
             Section {
                 Button {
-                    isShowingJoin = true
-                } label: {
-                    Label("Join", systemImage: "qrcode")
-                }
-                Button {
                     isShowingManage = true
                 } label: {
                     Label("Manage Ledgers", systemImage: "gearshape")
@@ -141,9 +135,6 @@ struct LedgerSwitcherMenu: View {
                 // instead of ledger names the project member shouldn't see.
                 LedgersView(expandGuestLedgers: isGuestActive)
             }
-        }
-        .sheet(isPresented: $isShowingJoin) {
-            JoinLedgerScanView()
         }
     }
 
