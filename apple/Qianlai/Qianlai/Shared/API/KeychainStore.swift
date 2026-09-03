@@ -76,12 +76,6 @@ struct KeychainStore: Sendable {
         }
     }
 
-    /// Whether an item exists for `account`. Never triggers authentication,
-    /// unlike `read` on user-presence items.
-    func contains(account: String) -> Bool {
-        SecItemCopyMatching(baseQuery(account) as CFDictionary, nil) == errSecSuccess
-    }
-
     func readString(account: String) -> String? {
         read(account: account).flatMap { String(data: $0, encoding: .utf8) }
     }

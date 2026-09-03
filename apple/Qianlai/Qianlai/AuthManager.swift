@@ -56,6 +56,7 @@ struct UserMutationResponse: Codable {
 @Observable
 final class AuthManager {
     private static let quickLoginEmailKey = "auth.quickLogin.email"
+    private static let quickLoginHasPasswordKey = "auth.quickLogin.hasPassword"
     private static let keychainService = APIConfig.keychainService
     private static let passwordAccount = "quick-login-password"
 
@@ -103,8 +104,12 @@ final class AuthManager {
         return context.biometryType
     }
 
+    /// Whether quick login is offered. Deliberately reads a UserDefaults flag
+    /// instead of `keychain.contains` — the password item is `.userPresence`
+    /// protected, and querying it from a view render raises a Face ID prompt
+    /// on device (twice per Apple sign-in, once per logout).
     var quickLoginEmail: String? {
-        guard keychain.contains(account: Self.passwordAccount) else { return nil }
+        guard UserDefaults.standard.bool(forKey: Self.quickLoginHasPasswordKey) else { return nil }
         return UserDefaults.standard.string(forKey: Self.quickLoginEmailKey)
     }
 
@@ -274,11 +279,13 @@ final class AuthManager {
     // MARK: - Quick login storage
 
     private func storeQuickLogin(email: String, password: String) {
-        UserDefaults.standard.set(email, forKey: Self.quickLoginEmailKey)
+        let defaults = UserDefaults.standard
+        defaults.set(email, forKey: Self.quickLoginEmailKey)
         // Only keep a password copy when biometrics can later unlock it;
         // otherwise it's a credential copy nothing can use.
         guard isBiometricsAvailable else {
             keychain.write(nil, account: Self.passwordAccount)
+            defaults.set(false, forKey: Self.quickLoginHasPasswordKey)
             return
         }
         keychain.write(
@@ -286,6 +293,7 @@ final class AuthManager {
             account: Self.passwordAccount,
             requiresUserPresence: true
         )
+        defaults.set(true, forKey: Self.quickLoginHasPasswordKey)
     }
 }
 
