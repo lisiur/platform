@@ -134,9 +134,6 @@ struct LiveInviteQR: View {
                 Text(L10n.string("invite.scanToJoin", defaultValue: "Scan to join"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text("Expires \(Text(invite.expiresAt ?? .now, style: .relative))")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             } else {
                 ProgressView()
                     .frame(height: 240)
@@ -167,32 +164,6 @@ struct LiveInviteQR: View {
             }
             try? await Task.sleep(for: Self.refreshInterval)
         }
-    }
-}
-
-/// Sheet wrapper for `LiveInviteQR` — the owner shows this to let someone
-/// scan. The QR keeps refreshing while the sheet is open.
-struct InviteQRSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let title: String
-    let mint: () async throws -> ShareCode
-
-    var body: some View {
-        NavigationStack {
-            LiveInviteQR(mint: mint)
-                .padding(20)
-                .navigationTitle(Text(title))
-                .inlineNavigationBarTitle()
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { dismiss() }
-                    }
-                }
-        }
-        #if os(iOS)
-        .presentationDetents([.medium, .large])
-        #endif
     }
 }
 
@@ -297,18 +268,41 @@ struct QRScannerView: UIViewControllerRepresentable {
 }
 
 /// Full-screen scanning UI: camera preview, dimmed surround with a
-/// cut-out frame, hint caption, and cancel. Reports the first scanned
-/// payload through `onDetected`.
+/// cut-out frame, hint caption, and cancel. Reports each scanned payload
+/// through `onDetected`; by default the first detection dismisses the
+/// screen, or the caller can stay up and keep scanning.
 struct QRScanScreen: View {
     let onDetected: (String) -> Void
+    /// A detection normally dismisses the screen right away. Pass `false`
+    /// when the caller acts on the payload first and dismisses itself —
+    /// e.g. redeem-on-scan join, which stays up to surface errors.
+    var dismissesOnDetect = true
 
     @Environment(\.dismiss) private var dismiss
     @State private var isUnavailable = false
+    /// Re-keys the scanner after a delivered scan so a caller that stays
+    /// up (no dismiss) gets a fresh session — and thus a fresh delivery —
+    /// for the next scan (e.g. re-scanning after a failed redeem).
+    @State private var scanEpoch = 0
+
+    /// Scan window side length, shared by the stroke frame and the
+    /// cut-out in `surround` so the two can't drift apart.
+    private static let frameSize: CGFloat = 260
 
     var body: some View {
+        // Toolbar items (the Cancel button) only render inside a
+        // navigation context — a bare `fullScreenCover` would otherwise
+        // strand the user on the camera with no way out.
+        NavigationStack {
+            scanContent
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var scanContent: some View {
         ZStack {
             if isUnavailable {
-                Color(.systemBackground).ignoresSafeArea()
+                Color(.systemBackground)
                 VStack(spacing: 12) {
                     Image(systemName: "camera.badge.ellipsis")
                         .font(.largeTitle)
@@ -321,41 +315,67 @@ struct QRScanScreen: View {
                 QRScannerView(
                     onDetected: { payload in
                         onDetected(payload)
-                        dismiss()
+                        if dismissesOnDetect {
+                            dismiss()
+                        } else {
+                            // Staying up: re-key the scanner so the next
+                            // scan delivers again (one delivery per
+                            // session).
+                            scanEpoch += 1
+                        }
                     },
                     onUnavailable: { isUnavailable = true }
                 )
-                .ignoresSafeArea()
+                .id(scanEpoch)
                 surround
-                VStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(Color.white, lineWidth: 3)
-                        .frame(width: 260, height: 260)
-                    Spacer().frame(height: 28)
-                    Text(L10n.string("invite.scanHint", defaultValue: "Point the camera at the invite QR code"))
-                        .font(.footnote)
-                        .foregroundStyle(.white)
-                    Spacer()
-                }
+                scanFrame
             }
         }
+        // One full-screen coordinate space for every layer: the cut-out in
+        // `surround` and the stroke in `scanFrame` must center over the
+        // same bounds. With safe-area insets in play (nav bar, status bar,
+        // home indicator) the two centers diverge by (topInset -
+        // bottomInset) / 2 and the stroke drifts off the hole.
+        .ignoresSafeArea()
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
+                    .foregroundStyle(.white)
             }
         }
     }
 
-    /// Dimmed backdrop with the scan window punched out.
+    /// The scan window stroke and hint caption. The stroke is centered by
+    /// the ZStack so it lines up exactly with the hole punched in
+    /// `surround`; the caption hangs off it as an overlay, which never
+    /// affects layout — otherwise the frame+caption *group* would center
+    /// and the frame would drift above the cut-out.
+    private var scanFrame: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .strokeBorder(Color.white, lineWidth: 3)
+            .frame(width: Self.frameSize, height: Self.frameSize)
+            .overlay(alignment: .top) {
+                Text(L10n.string("invite.scanHint", defaultValue: "Point the camera at the invite QR code"))
+                    .font(.footnote)
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Self.frameSize + 28)
+            }
+    }
+
+    /// Dimmed backdrop with the scan window punched out. Lives inside the
+    /// ZStack's full-screen bounds (see `.ignoresSafeArea` there), so the
+    /// hole centers on the true screen center — same as the stroke.
     private var surround: some View {
         Color.black.opacity(0.5)
             .overlay {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .frame(width: 260, height: 260)
+                    .frame(width: Self.frameSize, height: Self.frameSize)
                     .blendMode(.destinationOut)
             }
             .compositingGroup()
-            .ignoresSafeArea()
             .allowsHitTesting(false)
     }
 }

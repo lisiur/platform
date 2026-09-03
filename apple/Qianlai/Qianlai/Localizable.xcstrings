@@ -1,8 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {},
-    "·" : {},
+    "" : {
+
+    },
+    "·" : {
+
+    },
     "#%lld" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3225,7 +3229,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请"
+            "value" : "邀请成员"
           }
         }
       }
@@ -3337,7 +3341,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "加入"
+            "value" : "扫码加入"
           }
         }
       }
@@ -3759,6 +3763,40 @@
         }
       }
     },
+    "ledgers.invite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite Members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邀请成员"
+          }
+        }
+      }
+    },
+    "ledgers.inviteFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let others scan this QR to join the ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "让他人扫描此二维码加入账本——二维码会自动刷新，每个邀请码有效期为 1 分钟。记账人可以记账，查看者仅可浏览。"
+          }
+        }
+      }
+    },
     "ledgers.inviteToJoin" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4030,6 +4068,9 @@
           }
         }
       }
+    },
+    "Let others scan this QR to join the ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
+
     },
     "Liabilities" : {
       "extractionState" : "manual",
@@ -6942,7 +6983,26 @@
         }
       }
     },
-    "Show" : {},
+    "Show" : {
+
+    },
+    "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出示二维码即可让别人加入这个账本——二维码会自动刷新，每次有效期为 1 分钟。记账人可以记录流水；查看者只能浏览。"
+          }
+        }
+      }
+    },
     "Sign in" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7215,6 +7275,9 @@
         }
       }
     },
+    "Transfer" : {
+
+    },
     "Transfer Ownership" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7479,23 +7542,6 @@
     },
     "简体中文" : {
       "comment" : "Language name: Simplified Chinese (native form)"
-    },
-    "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出示二维码即可让别人加入这个账本——二维码会自动刷新，每次有效期为 1 分钟。记账人可以记录流水；查看者只能浏览。"
-          }
-        }
-      }
     }
   },
   "version" : "1.0"

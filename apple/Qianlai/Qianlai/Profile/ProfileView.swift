@@ -139,6 +139,13 @@ struct ProfileView: View {
             } label: {
                 Label("Categories", systemImage: "tag")
             }
+            if let ledger = ledgerStore.activeLedger {
+                NavigationLink {
+                    MembersView(ledger: ledger)
+                } label: {
+                    Label("Members", systemImage: "person.2")
+                }
+            }
             NavigationLink {
                 ProjectsView()
             } label: {

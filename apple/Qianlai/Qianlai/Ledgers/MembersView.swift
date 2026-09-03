@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// Members + invite manager for one ledger (owner sees role controls,
-/// transfer, removal, and the live invite QR).
+/// Members manager for one ledger (owner sees role controls, transfer,
+/// and removal). Invites live in `LedgerInviteView`.
 struct MembersView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var auth
@@ -18,17 +18,12 @@ struct MembersView: View {
     let ledger: QianlaiLedger
 
     @State private var store = MemberStore()
-    @State private var inviteRole: LedgerRole = .editor
     @State private var memberPendingRemove: LedgerMember?
     @State private var memberPendingTransfer: LedgerMember?
-    @State private var isShowingInviteQR = false
 
     var body: some View {
         List {
             membersSection
-            if store.isOwner {
-                inviteSection
-            }
         }
         .navigationTitle(Text("Members"))
         .inlineNavigationBarTitle()
@@ -92,16 +87,6 @@ struct MembersView: View {
             if let member = memberPendingTransfer {
                 Text("Transfer ownership to \(member.displayName)? You become an editor.")
             }
-        }
-        .sheet(isPresented: $isShowingInviteQR) {
-            InviteQRSheet(
-                title: L10n.string(
-                    "ledgers.inviteToJoin",
-                    defaultValue: "Invite to %@",
-                    ledger.name
-                ),
-                mint: { try await store.mintInvite(role: inviteRole) }
-            )
         }
     }
 
@@ -215,6 +200,21 @@ struct MembersView: View {
                 }
             }
         }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if store.isOwner, member.userId != myUserId {
+                Button(role: .destructive) {
+                    memberPendingRemove = member
+                } label: {
+                    Label("Remove", systemImage: "person.badge.minus")
+                }
+                Button {
+                    memberPendingTransfer = member
+                } label: {
+                    Label("Transfer", systemImage: "crown")
+                }
+                .tint(.orange)
+            }
+        }
     }
 
     private func avatar(_ member: LedgerMember) -> some View {
@@ -242,32 +242,6 @@ struct MembersView: View {
         .frame(width: 36, height: 36)
         .background(Circle().fill(Color.accentColor.opacity(0.85)))
         .clipShape(Circle())
-    }
-
-    /// Owner's invite section: pick the role joining members get, then show
-    /// the live QR. Codes are minted on demand and die after a minute, so
-    /// there is no list to manage — just re-show the QR whenever needed.
-    @ViewBuilder
-    private var inviteSection: some View {
-        Section {
-            Picker("Role", selection: $inviteRole) {
-                Text(LedgerRole.editor.label).tag(LedgerRole.editor)
-                Text(LedgerRole.viewer.label).tag(LedgerRole.viewer)
-            }
-            .pickerStyle(.segmented)
-            Button {
-                isShowingInviteQR = true
-            } label: {
-                Label(
-                    L10n.string("invite.showQR", defaultValue: "Show QR Code"),
-                    systemImage: "qrcode"
-                )
-            }
-        } header: {
-            Text("Invite")
-        } footer: {
-            Text("Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse.")
-        }
     }
 }
 

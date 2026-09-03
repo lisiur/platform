@@ -184,21 +184,19 @@ struct DashboardView: View {
         .sheet(isPresented: $isShowingInvite) {
             // The invite surface follows the dashboard's scope: a
             // project-scoped manager invites guests to the project,
-            // otherwise the ledger owner issues member share codes.
+            // otherwise the ledger owner invites members via share codes.
             if let project = activeProject, let ledger = ledgerStore.activeLedger {
                 NavigationStack {
                     ProjectInviteView(ledgerId: ledger.id, project: project)
                 }
             } else if let ledger = ledgerStore.activeLedger {
                 NavigationStack {
-                    MembersView(ledger: ledger)
+                    LedgerInviteView(ledger: ledger)
                 }
             }
         }
         .sheet(isPresented: $isShowingJoin) {
-            NavigationStack {
-                JoinLedgerView()
-            }
+            JoinLedgerScanView()
         }
     }
 

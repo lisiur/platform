@@ -196,9 +196,7 @@ struct LedgersView: View {
             }
         }
         .sheet(isPresented: $isShowingJoin) {
-            NavigationStack {
-                JoinLedgerView()
-            }
+            JoinLedgerScanView()
         }
         .sheet(item: $membersLedger) { ledger in
             NavigationStack {
@@ -566,123 +564,77 @@ struct LedgerFormView: View {
     }
 }
 
-/// Join someone else's ledger by pasting a share code.
-struct JoinLedgerView: View {
+/// Join someone else's ledger by scanning their invite QR — the scanner
+/// is the whole surface. Nothing is shown for a recognized payload; the
+/// join request fires immediately (the scan itself is the confirmation).
+/// Success toasts and dismisses; a failed redeem keeps the camera up and
+/// shows an error hint so a fresh code can simply be re-scanned.
+struct JoinLedgerScanView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
     @Environment(ToastCenter.self) private var toast
 
-    @State private var code = ""
-    @State private var error: String?
     @State private var isJoining = false
-    @State private var isScanning = false
-    @FocusState private var isCodeFocused: Bool
+    @State private var errorText: String?
 
     var body: some View {
-        Form {
-            Section {
-                #if canImport(UIKit)
-                Button {
-                    isScanning = true
-                } label: {
-                    HStack {
-                        Label(
-                            L10n.string("invite.scan", defaultValue: "Scan QR Code"),
-                            systemImage: "qrcode.viewfinder"
-                        )
-                        Spacer()
-                        if isJoining {
-                            ProgressView().controlSize(.small)
-                        }
-                    }
-                }
-                #endif
-                FormField(title: "Share Code", error: nil) {
-                    TextField("e.g. A2B4C6D8E9F2", text: $code)
-                        .textFieldStyle(.plain)
-                        #if os(iOS)
-                        .textInputAutocapitalization(.characters)
-                        #endif
-                        .autocorrectionDisabled()
-                        .focused($isCodeFocused)
-                        .submitLabel(.done)
-                        .onSubmit { dismissKeyboard() }
-                }
-                .listRowBackground(Color.clear)
-            } header: {
-                Text("Join a Ledger")
-            } footer: {
-                Text(L10n.string(
-                    "ledgers.joinFooter",
-                    defaultValue: "Scan the invite QR code, or paste a share code to join as an editor or viewer."
-                ))
-            }
-            if let error {
-                Section {
-                    Label(error, systemImage: "exclamationmark.circle")
-                        .foregroundStyle(.red)
-                        .font(.footnote)
-                }
+        QRScanScreen(dismissesOnDetect: false) { payload in
+            join(from: payload)
+        }
+        .overlay {
+            if isJoining {
+                ProgressView()
+                    .tint(.white)
+                    .scaleEffect(1.4)
             }
         }
-        .navigationTitle(Text("Join"))
-        .inlineNavigationBarTitle()
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
-                    .disabled(isJoining)
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button(isJoining ? "Joining…" : "Join") {
-                    Task { await join() }
-                }
-                .disabled(isJoining || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        #if canImport(UIKit)
-        .fullScreenCover(isPresented: $isScanning) {
-            QRScanScreen { payload in
-                handleScan(payload)
+        .overlay(alignment: .bottom) {
+            if let errorText {
+                Label(errorText, systemImage: "exclamationmark.circle")
+                    .font(.footnote)
+                    .multilineTextAlignment(.leading)
+                    .foregroundStyle(.red)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        .thinMaterial,
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
             }
         }
-        #endif
-        .onAppear { isCodeFocused = true }
     }
 
-    /// A scanned QR becomes the code and joining starts right away — the
-    /// scan itself is the confirmation. Unrecognized payloads surface the
-    /// same error UI a failed paste would.
-    private func handleScan(_ payload: String) {
-        guard let scanned = InviteCode.code(from: payload) else { return }
-        code = scanned
-        Task { await join() }
-    }
-
-    private func join() async {
-        // A scan and a tapped Join button can race; the loser must not
-        // fire a second redeem (it would report "already a member").
+    /// Redeems a scanned payload directly — no result screen, no confirm
+    /// step. The lenient decode accepts app-scheme QRs and bare codes, so
+    /// anything unrecognized fails server-side and lands in the error hint.
+    private func join(from payload: String) {
         guard !isJoining else { return }
-        isCodeFocused = false
+        guard let code = InviteCode.code(from: payload) else { return }
+        errorText = nil
         isJoining = true
-        defer { isJoining = false }
-        do {
-            let joined = try await ledgerStore.join(code: code)
-            ledgerStore.setActive(joined.ledgerId)
-            // Refresh the joined ledger's project cache immediately: the
-            // switcher's per-ledger project task only refires when the
-            // active ledger id CHANGES, so a guest joining another project
-            // of a ledger they're already in would not see it until
-            // relaunch. Load first, then select — `load` clears a selection
-            // the fresh list doesn't contain.
-            await projectStore.load(ledgerId: joined.ledgerId)
-            if let projectId = joined.projectId {
-                projectStore.select(projectId)
+        Task {
+            defer { isJoining = false }
+            do {
+                let joined = try await ledgerStore.join(code: code)
+                ledgerStore.setActive(joined.ledgerId)
+                // Refresh the joined ledger's project cache immediately: the
+                // switcher's per-ledger project task only refires when the
+                // active ledger id CHANGES, so a guest joining another project
+                // of a ledger they're already in would not see it until
+                // relaunch. Load first, then select — `load` clears a selection
+                // the fresh list doesn't contain.
+                await projectStore.load(ledgerId: joined.ledgerId)
+                if let projectId = joined.projectId {
+                    projectStore.select(projectId)
+                }
+                toast.show(L10n.string("ledgers.joinSuccess", defaultValue: "Joined the ledger"))
+                dismiss()
+            } catch {
+                errorText = error.localizedDescription
             }
-            toast.show(L10n.string("ledgers.joinSuccess", defaultValue: "Joined the ledger"))
-            dismiss()
-        } catch {
-            self.error = error.localizedDescription
         }
     }
 }

@@ -143,9 +143,7 @@ struct LedgerSwitcherMenu: View {
             }
         }
         .sheet(isPresented: $isShowingJoin) {
-            NavigationStack {
-                JoinLedgerView()
-            }
+            JoinLedgerScanView()
         }
     }
 
