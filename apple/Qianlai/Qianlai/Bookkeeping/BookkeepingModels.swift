@@ -372,6 +372,51 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var amount: Double {
         lines.reduce(0) { $0 + $1.debit }
     }
+
+    /// The entry's value in integer cents: expense portion minus income
+    /// portion (balance-sheet lines don't count). Mirrors the server's
+    /// `entryValueCents` so client displays reconcile with reports.
+    var valueCents: Int {
+        var value = 0
+        for line in lines {
+            let debit = Int((line.debit * 100).rounded())
+            let credit = Int((line.credit * 100).rounded())
+            switch line.account.type {
+            case .expense: value += debit - credit
+            case .income: value -= credit - debit
+            case .asset, .liability, .equity: break
+            }
+        }
+        return value
+    }
+
+    /// The viewer's share of this entry's value in cents, mirroring the
+    /// server's `viewerShareCents` (report.service.ts): equal split across
+    /// the deduped tagged participants — remainder cents to the earliest
+    /// sorted user ids — full value when untagged (personal entries are
+    /// borne by their creator alone), zero when the viewer is outside the
+    /// split set.
+    func viewerShareCents(viewerUserId: String) -> Int {
+        let value = valueCents
+        guard value != 0 else { return 0 }
+        let tagged = (participants ?? []).compactMap(\.userId)
+        let splitUserIds = tagged.isEmpty
+            ? [createdById ?? viewerUserId]
+            : Array(Set(tagged)).sorted()
+        guard let index = splitUserIds.firstIndex(of: viewerUserId) else { return 0 }
+        let count = splitUserIds.count
+        let base = Self.floorDiv(value, count)
+        let remainder = value - base * count
+        return base + (index < remainder ? 1 : 0)
+    }
+
+    /// Floor division with JS `Math.floor` semantics — Swift `/` truncates
+    /// toward zero, and negative values (income-heavy entries) must floor
+    /// like the server does.
+    static func floorDiv(_ a: Int, _ b: Int) -> Int {
+        let q = a.quotientAndRemainder(dividingBy: b)
+        return q.remainder != 0 && (q.remainder < 0) != (b < 0) ? q.quotient - 1 : q.quotient
+    }
 }
 
 extension [JournalEntry] {

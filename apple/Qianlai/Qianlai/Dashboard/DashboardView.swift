@@ -95,7 +95,8 @@ struct DashboardView: View {
                         emptyMessage: L10n.string(
                             "dashboard.noEntriesThisMonth",
                             defaultValue: "No entries this month yet"
-                        )
+                        ),
+                        showsViewerShare: true
                     )
                     // Pinned above the list like the Journal's search
                     // bar: takes the page's top padding instead of

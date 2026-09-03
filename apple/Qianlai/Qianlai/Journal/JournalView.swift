@@ -32,7 +32,11 @@ struct JournalView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let ledger = ledgerStore.activeLedger {
-                EntryListView(ledger: ledger, emptyMessage: L10n.string("No entries yet", defaultValue: "No entries yet"))
+                EntryListView(
+                    ledger: ledger,
+                    emptyMessage: L10n.string("No entries yet", defaultValue: "No entries yet"),
+                    showsViewerShare: true
+                )
             } else {
                 EmptyStateView(
                     message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),

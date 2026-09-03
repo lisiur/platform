@@ -80,7 +80,7 @@ struct ProjectEntriesDetailView: View {
             ledger: ledger,
             emptyMessage: emptyMessage,
             showsPostHint: false,
-            entryDetail: settlementEntryDetail
+            amountSection: settlementAmountSection
         )
         .environment(entryStore)
         .navigationTitle(Text(title))
@@ -123,23 +123,38 @@ struct ProjectEntriesDetailView: View {
         return nil
     }
 
-    private var settlementEntryDetail: ((JournalEntry) -> String?)? {
-        guard settlementUserId != nil else { return nil }
-        return { [self] entry in detail(for: entry) }
+    /// Custom right-hand column per settlement row: the member's share as
+    /// the main amount, the entry total, and their 垫付 (fronted) line — so
+    /// each row reconciles with the settlement table's paid/share columns.
+    private var settlementAmountSection: ((JournalEntry) -> EntryAmountSection?)? {
+        guard let userId = settlementUserId else { return nil }
+        return { [self] entry in makeAmountSection(for: entry, userId: userId) }
     }
 
-    /// Per-row caption: what this entry contributed to the member's
-    /// settlement row, so the drill-down reconciles with the table.
-    private func detail(for entry: JournalEntry) -> String? {
-        guard let userId = settlementUserId else { return nil }
+    private func makeAmountSection(for entry: JournalEntry, userId: String) -> EntryAmountSection {
         let (paid, share) = SettlementSplit.entryContribution(
             entry: entry,
             userId: userId,
             memberUserIds: currentMemberUserIds
         )
+        let currency = ledger.currency
+        let shareValue = Double(share) / 100
+        let headline: EntryAmountSection.Headline
+        switch shareValue {
+        case ..<0:
+            headline = .init(text: "+\(Money.format(abs(shareValue), currency: currency))", color: .income)
+        case 0:
+            headline = .init(text: Money.format(0, currency: currency), color: .primary)
+        default:
+            headline = .init(text: "−\(Money.format(shareValue, currency: currency))", color: .expense)
+        }
+        let totalLabel = L10n.string("journal.totalAmount", defaultValue: "Total")
         let paidLabel = L10n.string("projects.paid", defaultValue: "Paid")
-        let shareLabel = L10n.string("projects.share", defaultValue: "Share")
-        return "\(paidLabel) \(Money.format(Double(paid) / 100, currency: ledger.currency)) · \(shareLabel) \(Money.format(Double(share) / 100, currency: ledger.currency))"
+        return EntryAmountSection(
+            headline: headline,
+            total: "\(totalLabel) \(Money.format(entry.amount, currency: currency))",
+            paid: "\(paidLabel) \(Money.format(Double(paid) / 100, currency: currency))"
+        )
     }
 
     private var currentMemberUserIds: [String]? {
@@ -164,7 +179,7 @@ private enum SettlementSplit {
         userId: String,
         memberUserIds: [String]?
     ) -> (paid: Int, share: Int) {
-        let value = entryValueCents(entry)
+        let value = entry.valueCents
         let paid = entry.createdById == userId ? value : 0
 
         let tagged = (entry.participants ?? []).compactMap { $0.user?.id }
@@ -186,30 +201,15 @@ private enum SettlementSplit {
             return (paid, 0)
         }
         let n = splitUserIds.count
-        let base = floorDiv(value, n)
+        let base = JournalEntry.floorDiv(value, n)
         let remainder = value - base * n
         return (paid, base + (index < remainder ? 1 : 0))
-    }
-
-    private static func entryValueCents(_ entry: JournalEntry) -> Int {
-        var value = 0
-        for line in entry.lines {
-            let debit = Int((line.debit * 100).rounded())
-            let credit = Int((line.credit * 100).rounded())
-            switch line.account.type {
-            case .expense: value += debit - credit
-            case .income: value -= credit - debit
-            case .asset, .liability, .equity: break
-            }
-        }
-        return value
     }
 
     /// Floor division with JS Math.floor semantics — Swift's `/` truncates
     /// toward zero, and negative values (income-heavy entries) must floor
     /// like the server does.
     private static func floorDiv(_ a: Int, _ b: Int) -> Int {
-        let q = a.quotientAndRemainder(dividingBy: b)
-        return q.remainder != 0 && (q.remainder < 0) != (b < 0) ? q.quotient - 1 : q.quotient
+        JournalEntry.floorDiv(a, b)
     }
 }

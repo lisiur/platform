@@ -16,6 +16,7 @@ struct EntryListView: View {
     @Environment(JournalStore.self) private var store
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
+    @Environment(AuthManager.self) private var auth
     @Environment(\.locale) private var locale
 
     let ledger: QianlaiLedger
@@ -23,9 +24,15 @@ struct EntryListView: View {
     /// Whether the "posting requires editor access" footnote renders.
     /// Statement drill-downs pass false — that page is read-only analysis.
     var showsPostHint = true
-    /// Optional per-entry detail line under the memo (settlement
-    /// drill-downs: this member's paid/share contribution on the entry).
-    var entryDetail: ((JournalEntry) -> String?)?
+    /// Optional custom right-hand amount column for each row (settlement
+    /// drill-downs: the member's share, the entry total, their paid line).
+    /// Nil renders the standard headline.
+    var amountSection: ((JournalEntry) -> EntryAmountSection?)?
+    /// Journal/dashboard switch: rows headline the viewer's own share of
+    /// each entry — the real shared cost for me — instead of the gross
+    /// total. Entries outside the viewer's split set read zero with the
+    /// total captioned beneath. Drill-downs keep the gross.
+    var showsViewerShare = false
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
@@ -34,12 +41,14 @@ struct EntryListView: View {
         ledger: QianlaiLedger,
         emptyMessage: String,
         showsPostHint: Bool = true,
-        entryDetail: ((JournalEntry) -> String?)? = nil
+        amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
+        showsViewerShare: Bool = false
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
-        self.entryDetail = entryDetail
+        self.amountSection = amountSection
+        self.showsViewerShare = showsViewerShare
     }
 
     var body: some View {
@@ -71,7 +80,17 @@ struct EntryListView: View {
                     // Me page.
                     Section {
                         ForEach(group.entries) { entry in
-                            EntryRow(entry: entry, currency: ledger.currency, detail: entryDetail?(entry))
+                            NavigationLink {
+                                JournalDetailView(entry: entry)
+                            } label: {
+                                EntryRow(
+                                    entry: entry,
+                                    currency: ledger.currency,
+                                    amountSection: amountSection?(entry),
+                                    viewerUserId: auth.currentUser?.id,
+                                    showsViewerShare: showsViewerShare
+                                )
+                            }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if ledger.canPost {
                                         Button(role: .destructive) {
@@ -153,6 +172,20 @@ struct EntryListView: View {
     }
 }
 
+/// Custom right-hand amount column for one entry row: a main colored
+/// amount plus optional secondary captions beneath it (settlement
+/// drill-downs: the member's share, the entry total, their paid line).
+struct EntryAmountSection: Hashable {
+    var headline: Headline
+    var total: String?
+    var paid: String?
+
+    struct Headline: Hashable {
+        var text: String
+        var color: Color
+    }
+}
+
 /// One journal entry card: category icon + title, HH:mm + creator (the
 /// enclosing day group header carries the date), memo, other account names,
 /// participants, signed amount. Shared by the dashboard and journal list.
@@ -167,96 +200,117 @@ struct EntryRow: View {
 
     let entry: JournalEntry
     let currency: String
-    /// Optional secondary caption (settlement drill-downs: this member's
-    /// paid/share on the entry); nil renders nothing.
-    var detail: String?
+    /// Custom right-hand column replacing the standard headline (settlement
+    /// drill-downs); nil renders the entry's own amount.
+    var amountSection: EntryAmountSection?
+    /// The signed-in viewer whose share the headline shows; nil keeps the
+    /// gross total.
+    var viewerUserId: String?
+    /// Journal/dashboard switch: headline the viewer's own share instead
+    /// of the gross total (see `EntryListView.showsViewerShare`).
+    var showsViewerShare = false
 
     var body: some View {
         HStack(spacing: 10) {
             categoryBadge
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
-                    Spacer()
-                    Text(headlineAmount.text)
-                        .font(.callout.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(headlineAmount.color)
-                }
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(AppDates.formatEntryTime(entry.date))
-                    if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
-                        Text("·")
-                        Text(creatorName)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                    Spacer(minLength: 8)
-                    if let payAccount = payAccountNames {
-                        Text(payAccount)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                if let memo = entry.memo, !memo.isEmpty {
-                    Text(memo)
-                        .font(.caption)
-                        .lineLimit(2)
-                }
-                if let detail, !detail.isEmpty {
-                    Text(detail)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                if entry.project != nil
-                    || !(entry.participants?.isEmpty ?? true)
-                    || entry.location != nil {
-                    HStack(spacing: 8) {
-                        if let project = entry.project {
-                            HStack(spacing: 4) {
-                                Image(systemName: "folder")
-                                    .font(.caption2)
-                                Text(project.name)
-                                    .font(.caption2)
-                            }
-                            .foregroundStyle(.tertiary)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(AppDates.formatEntryTime(entry.date))
+                        if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
+                            Text("·")
+                            Text(creatorName)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                         }
-                        if let location = entry.location,
-                           let label = location.displayName ?? coordinateLabel(location) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .font(.caption2)
-                                Text(label)
-                                    .font(.caption2)
-                            }
-                            .foregroundStyle(.tertiary)
-                        }
-                        if let participants = entry.participants, !participants.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "person.2")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                            }
+                        if let payAccount = payAccountNames {
+                            Text("·")
+                            Text(payAccount)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                         }
                     }
-                    .lineLimit(1)
-                }
-                if !entry.countsInLedger {
-                    HStack(spacing: 4) {
-                        Image(systemName: "minus.circle")
-                            .font(.caption2)
-                        Text(L10n.string("journal.notCounted", defaultValue: "Not counted in income & expense"))
-                            .font(.caption2)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    if let memo = entry.memo, !memo.isEmpty {
+                        Text(memo)
+                            .font(.caption)
+                            .lineLimit(2)
                     }
-                    .foregroundStyle(.tertiary)
+                    if entry.project != nil
+                        || !(entry.participants?.isEmpty ?? true)
+                        || entry.location != nil {
+                        HStack(spacing: 8) {
+                            if let project = entry.project {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "folder")
+                                        .font(.caption2)
+                                    Text(project.name)
+                                        .font(.caption2)
+                                }
+                                .foregroundStyle(.tertiary)
+                            }
+                            if let location = entry.location,
+                               let label = location.displayName ?? coordinateLabel(location) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.caption2)
+                                    Text(label)
+                                        .font(.caption2)
+                                }
+                                .foregroundStyle(.tertiary)
+                            }
+                            if let participants = entry.participants, !participants.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "person.2")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                    Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                        }
+                        .lineLimit(1)
+                    }
+                    if !entry.countsInLedger {
+                        HStack(spacing: 4) {
+                            Image(systemName: "minus.circle")
+                                .font(.caption2)
+                            Text(L10n.string("journal.notCounted", defaultValue: "Not counted in income & expense"))
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.tertiary)
+                    }
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 1) {
+                    if let amountSection {
+                        Text(amountSection.headline.text)
+                            .font(.callout.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(amountSection.headline.color)
+                        let captions = [amountSection.total, amountSection.paid].compactMap { $0 }
+                        if !captions.isEmpty {
+                            Text(captions.joined(separator: " · "))
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    } else {
+                        Text(headlineAmount.text)
+                            .font(.callout.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(headlineAmount.color)
+                        if let sharedTotalCaption {
+                            Text(sharedTotalCaption)
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
@@ -328,14 +382,43 @@ struct EntryRow: View {
         }
     }
 
+    /// When the headline shows the viewer's share and it differs from the
+    /// gross total, caption the total underneath so the two reconcile.
+    private var sharedTotalCaption: String? {
+        guard showsViewerShare, categoryLine != nil, let viewerUserId else { return nil }
+        let share = Double(entry.viewerShareCents(viewerUserId: viewerUserId)) / 100
+        guard share != entry.amount else { return nil }
+        let totalLabel = L10n.string("journal.totalAmount", defaultValue: "Total")
+        return "\(totalLabel) \(Money.format(entry.amount, currency: currency))"
+    }
+
+    /// The headline value: the gross total normally; with
+    /// `showsViewerShare`, the viewer's own share — zero outside the
+    /// viewer's split set, gross kept for transfers (no shared cost) and
+    /// when the viewer is unknown.
+    private var displayAmount: Double {
+        guard showsViewerShare, categoryLine != nil, let viewerUserId else {
+            return entry.amount
+        }
+        return Double(entry.viewerShareCents(viewerUserId: viewerUserId)) / 100
+    }
+
     /// The headline amount carries the entry's money flow: an expense
     /// category line makes it negative, an income line positive; transfers
-    /// (no category line) stay unsigned.
+    /// (no category line) stay unsigned. Zero shares render plain so a
+    /// non-participant never sees "−¥0.00".
     private var headlineAmount: (text: String, color: Color) {
+        let value = displayAmount
+        if value == 0 {
+            return (Money.format(0, currency: currency), .primary)
+        }
         switch categoryLine?.account.type {
-        case .expense: ("−\(Money.format(entry.amount, currency: currency))", .expense)
-        case .income: ("+\(Money.format(entry.amount, currency: currency))", .income)
-        default: (Money.format(entry.amount, currency: currency), .primary)
+        case .expense:
+            return ("−\(Money.format(value, currency: currency))", .expense)
+        case .income:
+            return ("+\(Money.format(value, currency: currency))", .income)
+        default:
+            return (Money.format(value, currency: currency), .primary)
         }
     }
 }
