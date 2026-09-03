@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight, Scale, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { NoLedgerState } from "@/components/no-ledger-state";
 import { useAccountName } from "@/hooks/use-account-name";
 import { useLedgers } from "@/hooks/use-ledgers";
 import { appClient, withApiFeedback } from "@/lib/api";
@@ -108,11 +109,7 @@ export function DashboardOverview() {
   }
 
   if (!activeLedger) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center text-muted-foreground">
-        {t("selectLedger")}
-      </div>
-    );
+    return <NoLedgerState />;
   }
 
   return (

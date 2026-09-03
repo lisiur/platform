@@ -67,62 +67,6 @@ export async function listLedgers(userId: string) {
   return { ledgers: sorted.map((row) => serializeLedger(userId, row)) };
 }
 
-/**
- * Lazily ensures the user has a default ledger. If the user already owns an
- * active ledger (their default was archived or transferred away), the
- * earliest one is promoted — no unrequested ledger is provisioned. Only
- * first-time users get a fresh default ledger (with owner membership and a
- * localized starter chart of accounts). Idempotent: returns the existing
- * default ledger as-is — the ledger, membership and accounts are created in
- * one transaction, so an interrupted seed rolls back entirely and needs no
- * repair. An empty chart of accounts is a deliberate user choice (they
- * deleted the starter accounts) and must not be re-seeded.
- */
-export async function ensureDefaultLedger(userId: string) {
-  const existing = await ledgerRepository.findDefaultForOwner(userId);
-  if (existing) {
-    return existing;
-  }
-
-  return prisma.$transaction(async (tx) => {
-    // Advisory lock first: for a brand-new owner the row lock below guards
-    // nothing (empty result set), and this is exactly the provisioning race
-    // it needs to close. Order matters — always advisory, then rows.
-    await lockOwnerProvisioning(tx, userId);
-    await lockOwnerLedgers(tx, userId);
-    const again = await ledgerRepository.findDefaultForOwner(userId, tx);
-    if (again) {
-      return again;
-    }
-
-    const candidate = await ledgerRepository.findFirstActiveOwned(userId, tx);
-    if (candidate) {
-      await ledgerRepository.setDefault(candidate.id, true, tx);
-      return candidate;
-    }
-
-    await ledgerRepository.clearDefaultForOwner(userId, tx);
-    const ledger = await ledgerRepository.create(
-      {
-        ownerId: userId,
-        name: "Default Ledger",
-        isDefault: true,
-      },
-      tx,
-    );
-    await ledgerMemberRepository.create(
-      { ledgerId: ledger.id, userId, role: "owner" },
-      tx,
-    );
-    await accountRepository.createStarterAccounts(
-      ledger.id,
-      STARTER_ACCOUNTS,
-      tx,
-    );
-    return ledger;
-  });
-}
-
 export async function createLedger(
   userId: string,
   data: {
@@ -193,11 +137,9 @@ export async function updateLedger(
       }
     }
     if (data.status) parseStatus(data.status);
-    // Archiving the default ledger drops the flag, otherwise every later
-    // ensureDefaultLedger keeps handing out a read-only ledger. Promoting a
-    // replacement (or provisioning one for ledger-less users) is left to
-    // ensureDefaultLedger, matching what releaseOwnedLedgers does when a
-    // default ledger leaves its owner.
+    // Archiving the default ledger drops the flag: a read-only archived
+    // ledger must not be auto-selected by clients as the default. A new
+    // default is chosen explicitly via setDefaultLedger.
     if (data.status === "archived" && ledger.isDefault) {
       await ledgerRepository.setDefault(ledgerId, false, tx);
     }
@@ -207,8 +149,8 @@ export async function updateLedger(
 
 export async function setDefaultLedger(userId: string, ledgerId: string) {
   await prisma.$transaction(async (tx) => {
-    // Same advisory-then-rows lock order as ensureDefaultLedger so default
-    // swaps serialize against first-boot provisioning for this owner.
+    // Same advisory-then-rows lock order as releaseOwnedLedgers' row locking
+    // so default swaps serialize against concurrent ownership transfers.
     await lockOwnerProvisioning(tx, userId);
     await lockOwnerLedgers(tx, userId);
     // Lock the target row too (last, so no lock-order cycle with

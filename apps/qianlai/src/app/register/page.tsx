@@ -14,8 +14,9 @@ import { useEffect, useRef } from "react";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { RegisterForm } from "@/components/auth/register-form";
 import { appClient, useSession } from "@/lib/api";
-import { redirectToFirstMenuOrProfile } from "@/lib/navigation/menu-redirect";
+import { redirectAfterAuth } from "@/lib/navigation/menu-redirect";
 import { useMenuStore } from "@/stores/menu-store";
+import { useSessionStore } from "@/stores/session-store";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -31,13 +32,17 @@ export default function RegisterPage() {
 
   async function handleRegisterSuccess() {
     await refetch();
-    await redirectToFirstMenuOrProfile(router, refetchMenus);
+    await redirectAfterAuth(
+      router,
+      refetchMenus,
+      useSessionStore.getState().data?.user.flags,
+    );
   }
 
   useEffect(() => {
     if (!session || handledValidSessionRef.current) return;
     handledValidSessionRef.current = true;
-    void redirectToFirstMenuOrProfile(router, refetchMenus);
+    void redirectAfterAuth(router, refetchMenus, session.user.flags);
   }, [session, router, refetchMenus]);
 
   useEffect(() => {

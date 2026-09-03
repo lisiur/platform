@@ -58,8 +58,7 @@
     "recentEntries": "最近记账",
     "noRecentEntries": "还没有记账，去日记账记下第一笔吧。",
     "viewAll": "查看全部",
-    "loadFailed": "加载仪表盘失败",
-    "selectLedger": "请先选择一个账本"
+    "loadFailed": "加载仪表盘失败"
   },
   "RealAccounts": {
     "title": "资产",
@@ -111,7 +110,8 @@
   "Ledgers": {
     "title": "账本",
     "description": "管理你的记账账本与协作",
-    "empty": "暂无账本，创建一个或使用共享码加入。",
+    "emptyTitle": "还没有账本",
+    "empty": "创建第一个账本开始记账，或使用共享码加入。",
     "name": "名称",
     "currency": "币种",
     "status": "状态",
@@ -411,7 +411,30 @@
   "LedgerSwitcher": {
     "label": "账本",
     "shared": "共享",
-    "manage": "管理账本"
+    "manage": "管理账本",
+    "empty": "还没有账本"
+  },
+  "Onboarding": {
+    "welcome": "欢迎，{name}！",
+    "description": "只需几步就能准备好你的记账工作区，以下内容均可跳过。",
+    "profileTitle": "个人资料",
+    "name": "名称",
+    "nameRequired": "名称为必填项",
+    "save": "保存",
+    "saving": "保存中…",
+    "profileSaved": "资料已更新",
+    "ledgerTitle": "你的第一个账本",
+    "ledgerHint": "账本是一套用于记录收支的科目账簿，之后也可以随时创建或加入。",
+    "ledgerCreate": "创建账本",
+    "ledgerNameRequired": "名称为必填项",
+    "ledgerCreated": "账本已就绪，之后可以随时创建更多。",
+    "skip": "暂时跳过",
+    "start": "开始使用"
+  },
+  "NoLedger": {
+    "title": "还没有账本",
+    "description": "创建第一个账本开始记录收支，或使用共享码加入别人的账本。",
+    "cta": "前往账本"
   },
   "Profile": {
     "title": "个人资料",

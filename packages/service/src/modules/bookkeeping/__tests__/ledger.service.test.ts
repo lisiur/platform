@@ -14,8 +14,6 @@ vi.mock("#lib/db", () => ({
 vi.mock("../ledger.repository", () => ({
   ledgerRepository: {
     findById: vi.fn(),
-    findDefaultForOwner: vi.fn(),
-    findFirstActiveOwned: vi.fn(),
     listForUser: vi.fn(),
     listOwnedIds: vi.fn(),
     clearDefaultForOwner: vi.fn(),
@@ -38,12 +36,6 @@ vi.mock("../ledger-member.repository", () => ({
   },
 }));
 
-vi.mock("../account.repository", () => ({
-  accountRepository: {
-    createStarterAccounts: vi.fn(),
-  },
-}));
-
 vi.mock("../journal.repository", () => ({
   journalRepository: {
     deleteByLedger: vi.fn(),
@@ -51,12 +43,10 @@ vi.mock("../journal.repository", () => ({
 }));
 
 import { prisma } from "#lib/db";
-import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
 import { ledgerRepository } from "../ledger.repository";
 import {
   deleteLedger,
-  ensureDefaultLedger,
   listLedgers,
   releaseOwnedLedgers,
   setDefaultLedger,
@@ -73,9 +63,6 @@ const mockMemberRepo = ledgerMemberRepository as unknown as {
   updateRole: ReturnType<typeof vi.fn>;
   findFirstOtherMember: ReturnType<typeof vi.fn>;
 };
-const mockAccountRepo = accountRepository as unknown as {
-  createStarterAccounts: ReturnType<typeof vi.fn>;
-};
 const mockJournalRepo = journalRepository as unknown as {
   deleteByLedger: ReturnType<typeof vi.fn>;
 };
@@ -91,96 +78,6 @@ async function expectStatus(
   expect(err).toBeInstanceOf(HTTPException);
   expect((err as HTTPException).status).toBe(status);
 }
-
-describe("ensureDefaultLedger", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) =>
-        fn({ ledger: { update: vi.fn() } }),
-    );
-  });
-
-  it("returns the existing default without creating anything", async () => {
-    const existing = { id: "led-1", isDefault: true };
-    mockLedgerRepo.findDefaultForOwner.mockResolvedValue(existing);
-    const result = await ensureDefaultLedger("user-a");
-    expect(result).toBe(existing);
-    expect(mockLedgerRepo.create).not.toHaveBeenCalled();
-    expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
-  });
-
-  it("does not re-seed a deliberately emptied chart of accounts", async () => {
-    const existing = { id: "led-1", isDefault: true };
-    mockLedgerRepo.findDefaultForOwner.mockResolvedValue(existing);
-    const result = await ensureDefaultLedger("user-a");
-    expect(result).toBe(existing);
-    expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
-  });
-
-  it("returns the default a concurrent caller created (no double create)", async () => {
-    const existing = { id: "led-1", isDefault: true };
-    // Pre-check outside the tx sees none; re-check under the lock sees one.
-    mockLedgerRepo.findDefaultForOwner
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(existing);
-    const result = await ensureDefaultLedger("user-a");
-    expect(result).toBe(existing);
-    expect(mockLedgerRepo.create).not.toHaveBeenCalled();
-    expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
-  });
-
-  it("creates a default ledger with owner membership and a coded starter chart", async () => {
-    mockLedgerRepo.findDefaultForOwner
-      .mockResolvedValueOnce(null) // pre-check outside tx
-      .mockResolvedValueOnce(null); // re-check inside tx
-    mockLedgerRepo.findFirstActiveOwned.mockResolvedValue(null);
-    mockLedgerRepo.create.mockResolvedValue({ id: "led-new" });
-    await ensureDefaultLedger("user-a");
-    expect(mockLedgerRepo.clearDefaultForOwner).toHaveBeenCalledWith(
-      "user-a",
-      expect.anything(),
-    );
-    expect(mockLedgerRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ ownerId: "user-a", isDefault: true }),
-      expect.anything(),
-    );
-    expect(mockMemberRepo.create).toHaveBeenCalledWith(
-      { ledgerId: "led-new", userId: "user-a", role: "owner" },
-      expect.anything(),
-    );
-    const [, accounts] = mockAccountRepo.createStarterAccounts.mock
-      .calls[0] as [
-      string,
-      Array<{ code?: string; flags?: string[] }>,
-      unknown,
-    ];
-    expect(accounts.some((a) => a.code === "openingBalance")).toBe(true);
-    const defaultAccount = accounts.find((a) => a.code === "defaultAccount");
-    expect(defaultAccount?.flags).toContain("defaultDebit");
-    expect(defaultAccount?.flags).toContain("defaultCredit");
-  });
-
-  it("promotes the earliest active owned ledger instead of provisioning a new one", async () => {
-    // The default was archived or transferred away, but active owned
-    // ledgers remain: the earliest is promoted, nothing new is created.
-    mockLedgerRepo.findDefaultForOwner
-      .mockResolvedValueOnce(null) // pre-check outside tx
-      .mockResolvedValueOnce(null); // re-check inside tx
-    const candidate = { id: "led-earliest", ownerId: "user-a" };
-    mockLedgerRepo.findFirstActiveOwned.mockResolvedValue(candidate);
-    const result = await ensureDefaultLedger("user-a");
-    expect(result).toBe(candidate);
-    expect(mockLedgerRepo.setDefault).toHaveBeenCalledWith(
-      "led-earliest",
-      true,
-      expect.anything(),
-    );
-    expect(mockLedgerRepo.create).not.toHaveBeenCalled();
-    expect(mockMemberRepo.create).not.toHaveBeenCalled();
-    expect(mockAccountRepo.createStarterAccounts).not.toHaveBeenCalled();
-  });
-});
 
 describe("updateLedger", () => {
   beforeEach(() => {
@@ -274,7 +171,7 @@ describe("updateLedger", () => {
       status: "archived",
     });
     await updateLedger("user-a", "led-1", { status: "archived" });
-    // Otherwise ensureDefaultLedger keeps handing out a read-only ledger.
+    // An archived ledger must never be auto-selected as the default.
     expect(mockLedgerRepo.setDefault).toHaveBeenCalledWith(
       "led-1",
       false,

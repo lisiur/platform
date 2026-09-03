@@ -22,8 +22,9 @@ export interface QianlaiLedger {
 
 /**
  * Loads the caller's ledgers and resolves the active one: the persisted
- * choice when still valid, else the default, else the first. The first call
- * lazily provisions the default ledger server-side.
+ * choice when still valid, else the default, else the first. Ledgers are
+ * user-created; an empty list is a valid state (first-run or after leaving
+ * every ledger).
  */
 export function useLedgers() {
   const activeLedgerId = useLedgerStore((s) => s.activeLedgerId);

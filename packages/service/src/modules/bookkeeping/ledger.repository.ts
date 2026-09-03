@@ -21,10 +21,10 @@ export async function lockOwnerLedgers(
 }
 
 /**
- * Transaction-scoped advisory lock keyed on the owner, serializing default-
- * ledger provisioning. `lockOwnerLedgers` alone can't guard a brand-new owner:
- * an empty result set gives FOR UPDATE nothing to lock under READ COMMITTED,
- * so two concurrent first requests could both insert a default ledger.
+ * Transaction-scoped advisory lock keyed on the owner, serializing
+ * default-ledger mutations (setDefaultLedger, ownership release). Row locks
+ * alone can't guard a brand-new owner: an empty result set gives FOR UPDATE
+ * nothing to lock under READ COMMITTED.
  */
 export async function lockOwnerProvisioning(
   t: Prisma.TransactionClient,
@@ -38,13 +38,6 @@ export async function lockOwnerProvisioning(
 export const ledgerRepository = {
   findById(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.ledger.findUnique({ where: { id } });
-  },
-
-  findDefaultForOwner(ownerId: string, tx: Prisma.TransactionClient = prisma) {
-    return tx.ledger.findFirst({
-      where: { ownerId, isDefault: true },
-      orderBy: { createdAt: "asc" },
-    });
   },
 
   /** Ledgers the user owns or is a member of, with their membership role. */
@@ -61,14 +54,6 @@ export const ledgerRepository = {
         },
         _count: { select: { members: true } },
       },
-      orderBy: { createdAt: "asc" },
-    });
-  },
-
-  /** Earliest active ledger the user owns — the default-ledger promotion candidate. */
-  findFirstActiveOwned(ownerId: string, tx: Prisma.TransactionClient = prisma) {
-    return tx.ledger.findFirst({
-      where: { ownerId, status: "active" },
       orderBy: { createdAt: "asc" },
     });
   },

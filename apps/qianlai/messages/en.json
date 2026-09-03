@@ -58,8 +58,7 @@
     "recentEntries": "Recent Entries",
     "noRecentEntries": "No entries yet. Post your first entry in the journal.",
     "viewAll": "View all",
-    "loadFailed": "Failed to load the dashboard",
-    "selectLedger": "Select a ledger to get started"
+    "loadFailed": "Failed to load the dashboard"
   },
   "RealAccounts": {
     "title": "Assets",
@@ -111,7 +110,8 @@
   "Ledgers": {
     "title": "Ledgers",
     "description": "Manage your bookkeeping ledgers and collaboration",
-    "empty": "No ledgers yet. Create one or join with a share code.",
+    "emptyTitle": "No ledgers yet",
+    "empty": "Create your first ledger to start bookkeeping, or join a shared one with a code.",
     "name": "Name",
     "currency": "Currency",
     "status": "Status",
@@ -412,7 +412,30 @@
   "LedgerSwitcher": {
     "label": "Ledger",
     "shared": "Shared",
-    "manage": "Manage ledgers"
+    "manage": "Manage ledgers",
+    "empty": "No ledgers yet"
+  },
+  "Onboarding": {
+    "welcome": "Welcome, {name}!",
+    "description": "A couple of quick steps to set up your workspace. Everything here is optional.",
+    "profileTitle": "Your profile",
+    "name": "Name",
+    "nameRequired": "Name is required",
+    "save": "Save",
+    "saving": "Saving…",
+    "profileSaved": "Profile updated",
+    "ledgerTitle": "Your first ledger",
+    "ledgerHint": "A ledger is a book of accounts for tracking income and expenses. You can also create or join one later.",
+    "ledgerCreate": "Create Ledger",
+    "ledgerNameRequired": "Name is required",
+    "ledgerCreated": "Your ledger is ready. You can create more at any time.",
+    "skip": "Skip for now",
+    "start": "Get Started"
+  },
+  "NoLedger": {
+    "title": "No ledger yet",
+    "description": "Create your first ledger to start tracking income and expenses, or join one with a share code.",
+    "cta": "Go to Ledgers"
   },
   "Profile": {
     "title": "Profile",

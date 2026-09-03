@@ -28,6 +28,7 @@ import { Plus, Search, Trash2, Users, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
+import { NoLedgerState } from "@/components/no-ledger-state";
 import { useAccountName } from "@/hooks/use-account-name";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useLedgers } from "@/hooks/use-ledgers";
@@ -239,6 +240,10 @@ export function JournalTable() {
         <Spinner />
       </div>
     );
+  }
+
+  if (!activeLedger) {
+    return <NoLedgerState />;
   }
 
   return (

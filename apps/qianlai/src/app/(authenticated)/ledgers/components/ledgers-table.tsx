@@ -20,6 +20,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
+  BookOpen,
   LogOut,
   Pencil,
   Plus,
@@ -129,8 +130,12 @@ export function LedgersTable() {
         </Button>
       </div>
       {ledgers.length === 0 ? (
-        <div className="flex min-h-[200px] items-center justify-center text-muted-foreground">
-          {t("empty")}
+        <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <BookOpen className="size-6" />
+          </div>
+          <p className="font-medium">{t("emptyTitle")}</p>
+          <p className="text-muted-foreground max-w-sm text-sm">{t("empty")}</p>
         </div>
       ) : (
         <Table containerClassName="overflow-auto rounded-md border">

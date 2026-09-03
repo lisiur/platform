@@ -13,23 +13,31 @@ import { useEffect, useRef } from "react";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { LoginForm } from "@/components/auth/login-form";
 import { useSession } from "@/lib/api";
+import { redirectAfterAuth } from "@/lib/navigation/menu-redirect";
+import { useMenuStore } from "@/stores/menu-store";
+import { useSessionStore } from "@/stores/session-store";
 
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
   const { data: session, isPending, refetch } = useSession();
+  const refetchMenus = useMenuStore((state) => state.refetchMenus);
   const handledValidSessionRef = useRef(false);
 
   async function handleLoginSuccess() {
     await refetch();
-    router.push("/");
+    await redirectAfterAuth(
+      router,
+      refetchMenus,
+      useSessionStore.getState().data?.user.flags,
+    );
   }
 
   useEffect(() => {
     if (!session || handledValidSessionRef.current) return;
     handledValidSessionRef.current = true;
-    router.push("/");
-  }, [session, router]);
+    void redirectAfterAuth(router, refetchMenus, session.user.flags);
+  }, [session, router, refetchMenus]);
 
   if (isPending || session) {
     return (

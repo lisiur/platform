@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { ONBOARDING_PENDING_FLAG } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import {
@@ -200,6 +201,9 @@ export async function signUpWithEmail(params: {
     name: params.name,
     email,
     password: params.password,
+    // Self-registered users go through the onboarding guide (profile +
+    // first ledger) before settling into the app.
+    flags: [ONBOARDING_PENDING_FLAG],
   });
 
   await enqueueWelcomeNotifications(user.id, user.name, params.appId);
@@ -258,13 +262,14 @@ export async function createUser(body: {
   name: string;
   email: string;
   password: string;
+  flags?: string[];
 }) {
   const user = await prisma.user.create({
     data: {
       name: body.name,
       email: body.email.toLowerCase(),
       emailVerified: false,
-      flags: [],
+      flags: body.flags ?? [],
       accounts: {
         create: {
           accountId: body.email.toLowerCase(),
@@ -272,6 +277,27 @@ export async function createUser(body: {
           providerData: { password: await hashPassword(body.password) },
         },
       },
+    },
+  });
+  return { user };
+}
+
+/**
+ * Clears the onboarding-pending flag once the user has finished (or skipped)
+ * the first-login guide. Idempotent: removing an absent flag is a no-op, and
+ * any other flags (e.g. "builtin") are preserved.
+ */
+export async function completeOnboarding(userId: string) {
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { flags: true },
+  });
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      flags: (existing?.flags ?? []).filter(
+        (flag) => flag !== ONBOARDING_PENDING_FLAG,
+      ),
     },
   });
   return { user };
@@ -428,7 +454,7 @@ export async function signInWithWechat(params: {
       data: {
         name: `wx_${oauthUserSuffix()}`,
         emailVerified: false,
-        flags: [],
+        flags: [ONBOARDING_PENDING_FLAG],
         accounts: {
           create: {
             accountId: wechatResult.openid,
@@ -588,7 +614,7 @@ export async function signInWithApple(params: {
       data: {
         name,
         emailVerified: false,
-        flags: [],
+        flags: [ONBOARDING_PENDING_FLAG],
         accounts: {
           create: {
             accountId: token.sub,

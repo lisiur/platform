@@ -1,7 +1,9 @@
+import { hasPendingOnboarding } from "@repo/shared";
 import { getFirstMenuUrl, useMenuStore } from "@/stores/menu-store";
 
 const QIANLAI_BASE_PATH = "/qianlai";
 const PROFILE_PATH = "/profile";
+const ONBOARDING_PATH = "/onboarding";
 
 interface Router {
   push: (href: string) => void;
@@ -17,6 +19,22 @@ export function toAppInternalPath(url: string | null): string | null {
 
   if (!href.startsWith("/") || href.startsWith("//")) return null;
   return href;
+}
+
+/**
+ * Post-auth destination: first-time users (onboarding flag still set) go to
+ * the guide page; everyone else lands on their first menu or the profile.
+ */
+export async function redirectAfterAuth(
+  router: Router,
+  refetchMenus: () => Promise<void>,
+  flags: string[] | undefined | null,
+) {
+  if (hasPendingOnboarding(flags)) {
+    router.push(ONBOARDING_PATH);
+    return;
+  }
+  await redirectToFirstMenuOrProfile(router, refetchMenus);
 }
 
 export async function redirectToFirstMenuOrProfile(

@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { changePassword } from "./changePassword";
+import { completeOnboardingRoute } from "./completeOnboarding";
 import { getAppleStatus } from "./getAppleStatus";
 import { getRegistrationStatus } from "./getRegistrationStatus";
 import { getSession } from "./getSession";
@@ -31,6 +32,7 @@ const routes = authRoutes.openapiRoutes([
   getRegistrationStatus,
   getAppleStatus,
   updateUser,
+  completeOnboardingRoute,
   changePassword,
   webAuthnStatus,
   webAuthnRegisterOptions,
