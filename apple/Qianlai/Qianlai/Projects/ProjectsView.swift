@@ -119,6 +119,7 @@ private struct ProjectListRow: View {
 struct ProjectDetailView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
+    @Environment(ReportStore.self) private var reportStore
     @Environment(AuthManager.self) private var auth
     @Environment(ToastCenter.self) private var toast
 
@@ -238,6 +239,14 @@ struct ProjectDetailView: View {
             defer { isLoadingReport = false }
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId)
+        }
+        // A post/update/delete elsewhere (quick-entry sheet, Journal tab)
+        // bumps this epoch; this view's report lives in the shared project
+        // store, invisible to those callers, so refetch it here — same
+        // pattern as ProjectEntriesDetailView.
+        .onChange(of: reportStore.journalEpoch) { _, _ in
+            guard let ledger else { return }
+            Task { await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId) }
         }
     }
 
