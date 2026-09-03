@@ -239,8 +239,9 @@ struct CalculatorEngine {
 }
 
 /// The amount calculator as one inline unit: the display — pending
-/// formula above the big live total — sits directly on the keypad, so the
-/// number being typed and the keys producing it read together. The host
+/// formula above the big live total in a card on the host's canvas —
+/// sits directly above the keypad, so the number being typed and the
+/// keys producing it read together. The host
 /// form owns the engine as `@State` and every key press mutates it live
 /// through the binding. The check key runs `onCommit` — for quick entry
 /// that saves the entry, making it the form's save control — with
@@ -268,7 +269,9 @@ struct CalculatorView: View {
     var isCommitting = false
 
     var body: some View {
-        VStack(spacing: 8) {
+        // Wider gap between display card and keypad than the keys' own
+        // 8pt spacing, so the two blocks read separately.
+        VStack(spacing: 14) {
             display
             pad
         }
@@ -277,11 +280,6 @@ struct CalculatorView: View {
         // sized, centered in whatever width the host gives.
         .frame(maxWidth: 420)
         .frame(maxWidth: .infinity)
-        // Hairline across the block's top edge, separating the pinned
-        // calculator from the scrolling form above.
-        .overlay(alignment: .top) {
-            Divider()
-        }
     }
 
     private var errorText: String? {
@@ -289,10 +287,11 @@ struct CalculatorView: View {
             ? L10n.string("calculator.error", defaultValue: "Error") : nil
     }
 
-    /// Pending-operation formula above the big live total (or error text)
-    /// — no background chrome, the host supplies the look. Both lines
-    /// carry fixed heights so the layout never shifts when the formula
-    /// appears.
+    /// Pending-operation formula above the big live total (or error text),
+    /// presented as a card on the host's canvas — the same surface the
+    /// grouped form's sections use, so the display reads as a sibling of
+    /// the form's cards. Both lines carry fixed heights so the card never
+    /// changes size when the formula appears.
     private var display: some View {
         VStack(alignment: .trailing, spacing: 4) {
             // Always laid out at opacity zero when idle so the display
@@ -311,7 +310,13 @@ struct CalculatorView: View {
                 .minimumScaleFactor(0.4)
                 .frame(height: 38)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.cardSurface)
+        )
     }
 
     /// The big line — the currency symbol leading the live total in the
@@ -335,7 +340,7 @@ struct CalculatorView: View {
     /// Column-major (four equal-width columns) so the check key can fill
     /// two key rows — `Grid` cannot span rows vertically. HStack splits
     /// the width evenly across the four flexible columns, and matching key
-    /// heights keep the rows aligned: the pad is exactly `4 × 40 + 3 × 8`
+    /// heights keep the rows aligned: the pad is exactly `4 × 48 + 3 × 8`
     /// tall.
     private var pad: some View {
         HStack(spacing: 8) {
@@ -388,7 +393,7 @@ struct CalculatorView: View {
                 }
             }
             .foregroundStyle(KeyRole.commit.foreground)
-            .frame(maxWidth: .infinity, minHeight: 40 * 2 + 8)
+            .frame(maxWidth: .infinity, minHeight: 48 * 2 + 8)
             .background(
                 KeyRole.commit.background,
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -411,7 +416,7 @@ struct CalculatorView: View {
     private func key(
         _ label: String,
         role: KeyRole,
-        height: CGFloat = 40,
+        height: CGFloat = 48,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -431,7 +436,7 @@ struct CalculatorView: View {
     private func key(
         systemImage: String,
         role: KeyRole,
-        height: CGFloat = 40,
+        height: CGFloat = 48,
         accessibilityLabel: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {

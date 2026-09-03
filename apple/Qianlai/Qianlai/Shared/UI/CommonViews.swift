@@ -106,6 +106,16 @@ extension Color {
         Color(nsColor: .controlBackgroundColor)
         #endif
     }
+
+    /// Canvas a grouped list scrolls on — the counterpart of `cardSurface`:
+    /// light gray in light mode, black in dark mode.
+    static var groupedCanvas: Color {
+        #if canImport(UIKit)
+        Color(uiColor: .systemGroupedBackground)
+        #elseif canImport(AppKit)
+        Color(nsColor: .windowBackgroundColor)
+        #endif
+    }
 }
 
 /// Icon + label + tabular amount, used by the dashboard and real-accounts

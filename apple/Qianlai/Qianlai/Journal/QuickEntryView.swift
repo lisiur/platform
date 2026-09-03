@@ -30,6 +30,8 @@ struct QuickEntryView: View {
     /// Place chosen on the location picker map; its result is copied into
     /// the draft.
     @State private var isLocationPickerPresented = false
+    /// Expanded inline date-and-time picker under the collapsed row.
+    @State private var isDateTimePresented = false
     /// Ledger the scoped stores were last loaded for — lets the task tell
     /// the initial load apart from a switcher tap inside the sheet.
     @State private var loadedLedgerId: String?
@@ -90,8 +92,8 @@ struct QuickEntryView: View {
 
     var body: some View {
         // Zero spacing: the form and the calculator must sit flush, or the
-        // sheet's white background would peek through as a strip between
-        // the form's canvas and the calculator's top border.
+        // grouped canvas would peek through as a strip between the form's
+        // canvas and the calculator's top border.
         VStack(spacing: 0) {
             // Guests are scoped to expense-only entries; the kind picker is
             // hidden and `draft.kind` stays at its default (`.expense`).
@@ -135,9 +137,7 @@ struct QuickEntryView: View {
             // Compact inter-section spacing so the grouped form's cards sit
             // close together. Zeroing the top content margin drops the
             // grouped style's built-in first-section inset, so the fields
-            // card sits flush under the tabs. The background matches the
-            // form's grouped canvas so the segmented control's translucent
-            // chrome picks it up instead of the default white.
+            // card sits flush under the tabs.
             .compactListSectionSpacing()
             // A small top content margin leaves a breathing gap between the
             // pinned tabs and the fields card — zero would sit them flush.
@@ -147,7 +147,9 @@ struct QuickEntryView: View {
             // edge: display and keypad combined, always visible, so the
             // amount is typed and adjusted without presenting anything.
             // The pad's check key posts the entry — the sheet's only save
-            // control, spinner while posting.
+            // control, spinner while posting. The display paints a card
+            // matching the form's sections; the pad itself stays
+            // transparent on the canvas.
             CalculatorView(
                 engine: $engine,
                 currency: ledgerStore.activeLedger?.currency,
@@ -156,11 +158,22 @@ struct QuickEntryView: View {
                 isCommitting: isPosting
             )
         }
+        // The whole sheet sits on the form's grouped canvas: the keypad is
+        // transparent, so without this it would read as a plain-white
+        // panel against the form's gray in light mode. On the shared
+        // canvas the display card and keys float on the same surface the
+        // form scrolls on, and the segmented control's translucent chrome
+        // picks the canvas up too.
+        .background(Color.groupedCanvas)
+        // Opt out of keyboard avoidance: focusing the memo field must not
+        // shrink this layout or shove the pinned calculator above the
+        // keyboard — the whole stack stays exactly where it is and the
+        // keyboard just slides over the lower half.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         // Disables the form and its fields only — attached before the
         // toolbar so Cancel and the ledger switcher stay usable on a
         // read-only ledger (switching away is the escape hatch there).
         .disabled(!canPost)
-        .background(Color.cardSurface)
         .navigationTitle(Text(navigationTitleText))
         .inlineNavigationBarTitle()
         .toolbar {
@@ -202,6 +215,34 @@ struct QuickEntryView: View {
                 draft.location = place
                 draft.isLocationCleared = false
             }
+        }
+        // Popup date-and-time picker: binds the draft live, Done just
+        // dismisses. The default detent sits a bit above medium so the
+        // calendar and time wheel fit without clipping the wheel's bottom.
+        .sheet(isPresented: $isDateTimePresented) {
+            NavigationStack {
+                ScrollView {
+                    DatePicker(
+                        L10n.string("Date", defaultValue: "Date"),
+                        selection: $draft.date,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                }
+                .navigationTitle(Text(dateTimeLabel))
+                .inlineNavigationBarTitle()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { isDateTimePresented = false }
+                    }
+                }
+            }
+            #if os(iOS)
+            .presentationDetents([.fraction(0.65), .large])
+            #endif
         }
         .overlay {
             if !canPost {
@@ -311,11 +352,7 @@ struct QuickEntryView: View {
                 .foregroundStyle(.orange)
             }
 
-            DatePicker(
-                "Date",
-                selection: $draft.date,
-                displayedComponents: [.date, .hourAndMinute]
-            )
+            dateTimeField
 
             LabeledContent("Memo") {
                 TextField("e.g. weekly groceries", text: $draft.memo)
@@ -380,6 +417,46 @@ struct QuickEntryView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// Collapsed date-and-time row: shows only what matters — the time while
+    /// the entry falls on today, date + time once it doesn't. Tapping opens
+    /// the popup picker, so the hidden date stays editable.
+    private var dateTimeField: some View {
+        LabeledContent {
+            Button {
+                isDateTimePresented = true
+            } label: {
+                HStack(spacing: 6) {
+                    if isEntryToday {
+                        Text(draft.date, format: .dateTime.hour().minute())
+                    } else {
+                        Text(draft.date, format: .dateTime.day().month(.abbreviated).hour().minute())
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } label: {
+            Text(dateTimeLabel)
+        }
+    }
+
+    /// Whether the entry falls on today — the display-only condition behind
+    /// the collapsed row's date hiding.
+    private var isEntryToday: Bool {
+        Calendar.current.isDateInToday(draft.date)
+    }
+
+    /// Row title mirroring what the collapsed row shows: "Time" while the
+    /// entry falls on today, "Date" once it doesn't.
+    private var dateTimeLabel: String {
+        isEntryToday
+            ? L10n.string("quick.time", defaultValue: "Time")
+            : L10n.string("Date", defaultValue: "Date")
     }
 
     /// Optional place of the entry: opens the map picker while empty; once

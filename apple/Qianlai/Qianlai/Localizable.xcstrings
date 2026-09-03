@@ -6176,6 +6176,23 @@
         }
       }
     },
+    "quick.time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间"
+          }
+        }
+      }
+    },
     "quick.toAccount" : {
       "extractionState" : "manual",
       "localizations" : {
