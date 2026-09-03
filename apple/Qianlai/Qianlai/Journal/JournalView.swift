@@ -38,6 +38,7 @@ struct JournalView: View {
                     message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),
                     systemImage: "book"
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle(Text("Journal"))

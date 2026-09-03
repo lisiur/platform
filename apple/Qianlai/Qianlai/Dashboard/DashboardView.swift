@@ -22,7 +22,7 @@ struct DashboardView: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale
-    @State private var isShowingLedgerManagement = false
+    @State private var isShowingLedgerForm = false
     @State private var isShowingInvite = false
     @State private var isShowingJoin = false
     /// Month the cards and the entry list summarize; stepped with the
@@ -104,15 +104,27 @@ struct DashboardView: View {
                     }
                 }
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: 28) {
                     EmptyStateView(
                         message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),
                         systemImage: "book"
                     )
-                    Button("Create Ledger") {
-                        isShowingLedgerManagement = true
+                    VStack(spacing: 24) {
+                        Button {
+                            isShowingLedgerForm = true
+                        } label: {
+                            Label("Create Ledger", systemImage: "plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        Button {
+                            isShowingJoin = true
+                        } label: {
+                            Label("Join via qrcode", systemImage: "qrcode")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
                     }
-                    .buttonStyle(.borderedProminent)
                 }
             }
         }
@@ -176,9 +188,9 @@ struct DashboardView: View {
                 Task { await entryStore.reload() }
             }
         }
-        .sheet(isPresented: $isShowingLedgerManagement) {
+        .sheet(isPresented: $isShowingLedgerForm) {
             NavigationStack {
-                LedgersView(expandGuestLedgers: ledgerStore.activeLedger?.isGuest ?? false)
+                LedgerFormView(ledger: nil)
             }
         }
         .sheet(isPresented: $isShowingInvite) {
@@ -214,10 +226,10 @@ struct DashboardView: View {
             Button {
                 isShowingJoin = true
             } label: {
-                Label("Join", systemImage: "qrcode")
+                Label("Join via qrcode", systemImage: "qrcode")
             }
         } label: {
-            Image(systemName: "person.crop.circle.badge.plus")
+            Image(systemName: "plus.circle")
         }
     }
 

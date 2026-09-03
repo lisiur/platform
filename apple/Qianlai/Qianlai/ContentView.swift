@@ -57,6 +57,7 @@ enum AppTab: Hashable {
 struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var journalStore
+    @Environment(ToastCenter.self) private var toast
 
     var body: some View {
         Group {
@@ -132,6 +133,10 @@ struct ContentView: View {
                 guard newValue != .quickAdd else {
                     if ledgerStore.activeLedger != nil, ledgerStore.canPost {
                         isQuickAddPresented = true
+                    } else if ledgerStore.activeLedger == nil {
+                        toast.show(L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first"))
+                    } else {
+                        toast.show(L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger"))
                     }
                     return
                 }

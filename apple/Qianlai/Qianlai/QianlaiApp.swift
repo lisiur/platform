@@ -32,7 +32,13 @@ struct QianlaiApp: App {
                 if ProcessInfo.processInfo.arguments.contains("--ui-demo-location-picker") {
                     LocationPickerSheet(initialLocation: nil) { _ in }
                 } else if authManager.isLoggedIn {
-                    ContentView()
+                    // First-login guide: self-registered users (flag still
+                    // set) see onboarding instead of the main tabs.
+                    if authManager.isOnboardingPending {
+                        OnboardingView()
+                    } else {
+                        ContentView()
+                    }
                 } else if authManager.isRestoringSession {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -9,8 +9,9 @@ import Foundation
 import Observation
 
 /// Loads the caller's ledgers and resolves the active one: the persisted
-/// choice when still valid, else the default, else the first active. The
-/// first list call lazily provisions the default ledger server-side.
+/// choice when still valid, else the default, else the first active. An
+/// empty list is a valid state (first-run or after leaving every ledger) —
+/// surfaces show a create/empty state for it.
 @MainActor
 @Observable
 final class LedgerStore {

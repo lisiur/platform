@@ -10,14 +10,23 @@ import LocalAuthentication
 import Observation
 
 struct User: Equatable, Codable {
+    /// Set on self-registered users (email/WeChat/Apple) until the
+    /// first-login guide is completed or skipped.
+    static let onboardingPendingFlag = "onboarding-pending"
+
     let id: String
     var name: String?
     var email: String?
     var emailVerified: Bool?
     var avatar: String?
+    var flags: [String]?
 
     var greetingName: String {
         name ?? email ?? "there"
+    }
+
+    var isOnboardingPending: Bool {
+        flags?.contains(Self.onboardingPendingFlag) ?? false
     }
 }
 
@@ -39,6 +48,10 @@ struct SessionInfoResponse: Codable {
     let permissions: [String]?
 }
 
+struct UserMutationResponse: Codable {
+    let user: User
+}
+
 @MainActor
 @Observable
 final class AuthManager {
@@ -52,6 +65,11 @@ final class AuthManager {
 
     private(set) var currentUser: User?
     private(set) var permissions: [String] = []
+
+    /// True while the signed-in user still carries the onboarding-pending
+    /// flag — the app shows the first-login guide instead of the main tabs
+    /// until it is completed or skipped.
+    private(set) var isOnboardingPending = false
 
     /// True while a stored session token is being validated on launch. The
     /// login screen waits for this to become false so a valid restore lands
@@ -179,6 +197,7 @@ final class AuthManager {
         }
         currentUser = user
         permissions = info.permissions ?? []
+        isOnboardingPending = user.isOnboardingPending
     }
 
     func loginWithBiometrics() async throws {
@@ -232,11 +251,24 @@ final class AuthManager {
         client.sessionToken = nil
         currentUser = nil
         permissions = []
+        isOnboardingPending = false
     }
 
     private func acceptSession(_ response: SignInResponse) {
         client.sessionToken = response.session.token
         currentUser = response.user
+        isOnboardingPending = response.user.isOnboardingPending
+    }
+
+    // MARK: - Onboarding
+
+    /// Clears the onboarding-pending flag on the server and locally.
+    func completeOnboarding() async throws {
+        let response: UserMutationResponse = try await client.request(
+            "POST", "auth/complete-onboarding"
+        )
+        currentUser = response.user
+        isOnboardingPending = response.user.isOnboardingPending
     }
 
     // MARK: - Quick login storage

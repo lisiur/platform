@@ -181,6 +181,23 @@
         }
       }
     },
+    "A ledger is a book of accounts for tracking income and expenses. You can also create or join one later." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ledger is a book of accounts for tracking income and expenses. You can also create or join one later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账本是一套用于记录收支的科目账簿，之后也可以随时创建或加入。"
+          }
+        }
+      }
+    },
     "A liability balance is the amount you owe." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2196,6 +2213,70 @@
         }
       }
     },
+    "Totally optional — create a ledger now, or do it anytime later." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totally optional — create a ledger now, or do it anytime later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全可选——现在可以创建账本，也可以以后随时创建。"
+          }
+        }
+      }
+    },
+    "A couple of quick steps to set up your workspace." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A couple of quick steps to set up your workspace."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只需几步就能准备好你的记账工作区。"
+          }
+        }
+      }
+    },
+    "Create & Use" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create & Use"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建并使用"
+          }
+        }
+      }
+    },
+    "Create a ledger" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a ledger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建账本"
+          }
+        }
+      }
+    },
     "Create account" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2464,6 +2545,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除真实账户「%@」？"
+          }
+        }
+      }
+    },
+    "Description" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述"
           }
         }
       }
@@ -3359,6 +3451,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通过共享码加入账本"
+          }
+        }
+      }
+    },
+    "Join via qrcode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join via qrcode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫码加入"
           }
         }
       }
@@ -4699,6 +4808,39 @@
         }
       }
     },
+    "onboarding.ledgerCreated" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your ledger is ready. You can create more at any time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账本已就绪，之后可以随时创建更多。"
+          }
+        }
+      }
+    },
+    "Optional" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可选"
+          }
+        }
+      }
+    },
     "Owner" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5000,7 +5142,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "姓名为必填项"
+            "value" : "请输入名称"
           }
         }
       }
@@ -5819,6 +5961,23 @@
         }
       }
     },
+    "quick.cannotPost" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can't add entries in this ledger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前账本无法记账"
+          }
+        }
+      }
+    },
     "quick.countsInLedger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6176,6 +6335,23 @@
         }
       }
     },
+    "quick.selectLedgerFirst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a ledger first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先选择账本"
+          }
+        }
+      }
+    },
     "quick.time" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6443,6 +6619,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近流水"
+          }
+        }
+      }
+    },
+    "Recommended" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
           }
         }
       }
@@ -6831,6 +7024,22 @@
         }
       }
     },
+    "Save & Continue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save & Continue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存并继续"
+          }
+        }
+      }
+    },
     "Saving…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7101,6 +7310,33 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录中…"
+          }
+        }
+      }
+    },
+    "Skip" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过"
+          }
+        }
+      }
+    },
+    "Skip for now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂时跳过"
           }
         }
       }
@@ -7480,6 +7716,16 @@
         }
       }
     },
+    "Welcome" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎"
+          }
+        }
+      }
+    },
     "Welcome back! Sign in to continue." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7493,6 +7739,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "欢迎回来！登录以继续。"
+          }
+        }
+      }
+    },
+    "Welcome, %@!" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎，%@！"
           }
         }
       }
@@ -7520,6 +7776,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "you@example.com"
+          }
+        }
+      }
+    },
+    "Your first ledger" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的第一个账本"
           }
         }
       }
@@ -7554,6 +7820,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的昵称"
+          }
+        }
+      }
+    },
+    "Your profile" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个人资料"
           }
         }
       }

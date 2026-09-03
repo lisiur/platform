@@ -5,11 +5,8 @@
 //  Created by Lisiur Day on 2026/8/26.
 //
 
-import CoreTransferable
-import ImageIO
 import PhotosUI
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// Account hub: avatar/name/password management plus links to real accounts,
 /// ledger management, and language — with chart of accounts and reports
@@ -240,7 +237,7 @@ struct ProfileView: View {
                 toast.show(L10n.string("profile.uploadFailed", defaultValue: "Upload failed"))
                 return
             }
-            guard let data = Self.avatarJPEG(image.data) else {
+            guard let data = ProfileStore.avatarJPEG(image.data) else {
                 toast.show(L10n.string("profile.uploadFailed", defaultValue: "Upload failed"))
                 return
             }
@@ -259,48 +256,6 @@ struct ProfileView: View {
             toast.show(error.localizedDescription)
         }
     }
-
-    /// Downsamples to at most 256px on the longest side and re-encodes as
-    /// JPEG — mirrors the admin web app's 128×128 crop with retina headroom.
-    /// ImageIO keeps this identical on iOS and macOS (no UIKit dependency).
-    private static func avatarJPEG(_ data: Data, maxDimension: CGFloat = 256) -> Data? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        let width = properties?[kCGImagePropertyPixelWidth] as? CGFloat ?? 0
-        let height = properties?[kCGImagePropertyPixelHeight] as? CGFloat ?? 0
-        guard max(width, height) > maxDimension else { return data }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
-        ]
-        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(
-            output, UTType.jpeg.identifier as CFString, 1, nil
-        ) else { return nil }
-        CGImageDestinationAddImage(
-            destination, thumbnail,
-            [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary
-        )
-        guard CGImageDestinationFinalize(destination) else { return nil }
-        return output as Data
-    }
-}
-
-/// Loads photo-library items as JPEG bytes regardless of the source format
-/// (HEIC, PNG, …) — the service only accepts bitmap MIME types.
-private struct AvatarImage: Transferable {
-    let data: Data
-
-    static let transferRepresentation: some TransferRepresentation =
-        DataRepresentation(contentType: .jpeg) { image in
-            image.data
-        } importing: { data in
-            Self(data: data)
-        }
 }
 
 /// Display-name editor.
