@@ -299,7 +299,7 @@ struct QuickEntryView: View {
     }
 
     /// Every field except the amount, in one section: accounts, date,
-    /// memo, project, participants.
+    /// project, participants, memo, location, counts-in-ledger.
     @ViewBuilder
     private var fieldsSection: some View {
         Section {
@@ -354,15 +354,6 @@ struct QuickEntryView: View {
 
             dateTimeField
 
-            LabeledContent("Memo") {
-                TextField("e.g. weekly groceries", text: $draft.memo)
-                    .multilineTextAlignment(.trailing)
-                    .submitLabel(.done)
-                    .onSubmit { dismissKeyboard() }
-            }
-
-            locationField
-
             if editedEntry == nil, let scopedProject {
                 // Project scope pins the entry: read-only row instead of
                 // the picker.
@@ -388,14 +379,6 @@ struct QuickEntryView: View {
                 }
             }
 
-            // Guests are forced into project scope server-side, so the
-            // choice is theirs only on full-role ledgers.
-            if !isGuest {
-                Toggle(isOn: $draft.countsInLedger) {
-                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Income & Expense"))
-                }
-            }
-
             if !participantCandidates.isEmpty {
                 // Opens the participant sheet instead of listing members
                 // inline: the form stays compact once a ledger grows.
@@ -415,6 +398,23 @@ struct QuickEntryView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            }
+
+            LabeledContent("Memo") {
+                TextField("e.g. weekly groceries", text: $draft.memo)
+                    .multilineTextAlignment(.trailing)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
+            }
+
+            locationField
+
+            // Guests are forced into project scope server-side, so the
+            // choice is theirs only on full-role ledgers.
+            if !isGuest {
+                Toggle(isOn: $draft.countsInLedger) {
+                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Income & Expense"))
+                }
             }
         }
     }
