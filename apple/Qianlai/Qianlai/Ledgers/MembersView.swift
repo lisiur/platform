@@ -28,7 +28,7 @@ struct MembersView: View {
         .navigationTitle(Text("Members"))
         .inlineNavigationBarTitle()
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
+            ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
         }
