@@ -355,7 +355,7 @@ struct QuickEntryView: View {
             // choice is theirs only on full-role ledgers.
             if !isGuest {
                 Toggle(isOn: $draft.countsInLedger) {
-                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Ledger"))
+                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Income & Expense"))
                 }
             }
 

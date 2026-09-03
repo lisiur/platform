@@ -3471,13 +3471,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not counted in ledger"
+            "value" : "Not counted in income & expense"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入账本"
+            "value" : "不计入收支"
           }
         }
       }
@@ -3522,13 +3522,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Counted in Ledger"
+            "value" : "Counted in Income & Expense"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "计入账本"
+            "value" : "计入收支"
           }
         }
       }
@@ -3539,13 +3539,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guest posts and opted-out entries (e.g. credit-card repayments) settle outside the ledger's books."
+            "value" : "Guest posts and opted-out entries (e.g. credit-card repayments) don't count toward the ledger's income & expense totals."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "访客提交和不计入账本的记录（如信用卡还款）不会进入账本流水。"
+            "value" : "访客提交和不计入收支的记录（如信用卡还款）不会出现在账本的收支统计中。"
           }
         }
       }
@@ -5825,13 +5825,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Count in Ledger"
+            "value" : "Count in Income & Expense"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "计入账本"
+            "value" : "计入收支"
           }
         }
       }

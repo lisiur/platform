@@ -339,8 +339,8 @@
       "noProject": "个人（不归属项目）",
       "projectHint": "可选择将这笔记录归入某个项目",
       "projectGuestHint": "你的记录将记入所选项目",
-      "countsInLedger": "计入账本",
-      "countsInLedgerHint": "取消勾选后，这笔记录不会出现在账本的流水和月度汇总中——例如购买时已记过支出的信用卡还款。"
+      "countsInLedger": "计入收支",
+      "countsInLedgerHint": "取消勾选后，账本的收支统计和流水将不包含这笔记录——例如购买时已记过支出的信用卡还款。"
     },
     "dateLabel": "日期",
     "memoPlaceholder": "例如：每周买菜",
@@ -363,9 +363,9 @@
     "allProjects": "全部项目",
     "filterByProject": "按项目筛选",
     "scope": "显示",
-    "countedOnly": "计入账本",
+    "countedOnly": "计入收支",
     "allEntries": "全部记录",
-    "notCounted": "不计入",
+    "notCounted": "不计入收支",
     "entryCount": "{count} 笔记录"
   },
   "Reports": {

@@ -158,13 +158,13 @@ struct JournalView: View {
                             set: { store.includeExcluded = $0 == "all" }
                         )
                     ) {
-                        Text(L10n.string("journal.show.counted", defaultValue: "Counted in Ledger")).tag("counted")
+                        Text(L10n.string("journal.show.counted", defaultValue: "Counted in Income & Expense")).tag("counted")
                         Text(L10n.string("journal.show.all", defaultValue: "All Entries")).tag("all")
                     }
                 } footer: {
                     Text(L10n.string(
                         "journal.show.footer",
-                        defaultValue: "Guest posts and opted-out entries (e.g. credit-card repayments) settle outside the ledger's books."
+                        defaultValue: "Guest posts and opted-out entries (e.g. credit-card repayments) don't count toward the ledger's income & expense totals."
                     ))
                 }
             }
