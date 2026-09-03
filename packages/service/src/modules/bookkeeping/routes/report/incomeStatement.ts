@@ -21,6 +21,8 @@ export const incomeStatementRoute = defineOpenAPIRoute({
     path: "/ledgers/{ledgerId}/reports/income-statement",
     tags: ["QianlaiReport"],
     summary: "Income statement for a period",
+    description:
+      "The viewer's income vs expense for the period, share-based: each entry counts at the viewer's participant share (equal split across tagged participants; guest-created entries count through the viewer's share), and the viewer's own untagged entries count in full.",
     request: {
       params: ledgerIdParamSchema,
       query: incomeStatementQuerySchema,
@@ -41,6 +43,6 @@ export const incomeStatementRoute = defineOpenAPIRoute({
     const { ledgerId } = c.req.valid("param");
     const { from, to } = c.req.valid("query");
     await requireLedgerAccess(userId, ledgerId, "viewer");
-    return c.json(await incomeStatement(ledgerId, { from, to }), 200);
+    return c.json(await incomeStatement(userId, ledgerId, { from, to }), 200);
   },
 });

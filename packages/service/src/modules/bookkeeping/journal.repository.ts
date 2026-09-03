@@ -458,4 +458,71 @@ export const journalRepository = {
       orderBy: [{ date: "asc" }, { entryNo: "asc" }],
     });
   },
+
+  /**
+   * Entries that feed the viewer's share-based statement ("my actual
+   * spending"): project entries the viewer participates in — including
+   * guest-created ones, whose participant shares are real consumption —
+   * plus the viewer's own untagged entries, where the creator bears the
+   * full value. The viewer's own opted-out entries stay out everywhere (a
+   * repayment already expensed at purchase must not count twice); other
+   * members' countsInLedger flags are their personal-books intent and must
+   * not touch the viewer's share. Untagged PROJECT entries are excluded:
+   * the split-set freeze (auto-tagging at posting) means only legacy rows
+   * can be untagged, and their honest split set (members at read time) is
+   * not resolvable in this ledger-wide query.
+   */
+  listShareEntries(
+    ledgerId: string,
+    viewerUserId: string,
+    window: { from?: Date; to?: Date } = {},
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.findMany({
+      where: {
+        ledgerId,
+        ...(window.from || window.to
+          ? {
+              date: {
+                ...(window.from ? { gte: window.from } : {}),
+                ...(window.to ? { lte: window.to } : {}),
+              },
+            }
+          : {}),
+        OR: [
+          {
+            // Project entries I participate in — unless I created the entry
+            // and opted it out of my books myself.
+            projectId: { not: null },
+            participants: {
+              some: { ledgerMember: { userId: viewerUserId } },
+            },
+            NOT: {
+              AND: [{ createdById: viewerUserId }, { countsInLedger: false }],
+            },
+          },
+          {
+            // My own untagged entries: personal books, creator bears all.
+            projectId: null,
+            createdById: viewerUserId,
+            countsInLedger: true,
+          },
+        ],
+      },
+      select: {
+        createdById: true,
+        lines: {
+          select: {
+            accountId: true,
+            debit: true,
+            credit: true,
+            account: { select: { type: true } },
+          },
+        },
+        participants: {
+          select: { ledgerMember: { select: { userId: true } } },
+        },
+      },
+    });
+  },
 };
