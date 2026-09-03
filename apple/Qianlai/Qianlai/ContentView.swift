@@ -107,6 +107,7 @@ struct ContentView: View {
             NavigationStack {
                 QuickEntryView()
             }
+            .interactiveDismissDisabled()
         }
         // The quick-add sheet posts through the root JournalStore, whose
         // ledgerId used to be set only by the Journal tab's .task — posting

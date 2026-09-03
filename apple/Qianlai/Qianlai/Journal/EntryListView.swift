@@ -138,6 +138,7 @@ struct EntryListView: View {
             NavigationStack {
                 QuickEntryView(entry: entry)
             }
+            .interactiveDismissDisabled()
         }
     }
 
