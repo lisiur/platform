@@ -5961,6 +5961,23 @@
         }
       }
     },
+    "quick.cannotAddTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't Add Entry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法记账"
+          }
+        }
+      }
+    },
     "quick.cannotPost" : {
       "extractionState" : "manual",
       "localizations" : {

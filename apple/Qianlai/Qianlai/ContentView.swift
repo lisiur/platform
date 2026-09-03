@@ -57,7 +57,6 @@ enum AppTab: Hashable {
 struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var journalStore
-    @Environment(ToastCenter.self) private var toast
 
     var body: some View {
         Group {
@@ -92,14 +91,20 @@ struct ContentView: View {
                 // Apple Music-style trailing search pill: renders as a
                 // separated capsule at the right end of the glass tab bar.
                 // Its tap is intercepted in `tabSelection` to present the
-                // quick-entry sheet, so the page below is never shown.
+                // quick-entry sheet, so this page is never navigated to —
+                // but the system still activates the tab briefly when the
+                // tap is rejected (no postable ledger), so it mirrors the
+                // current page instead of flashing a blank screen.
                 Tab(
                     AppTab.quickAdd.label,
                     systemImage: AppTab.quickAdd.icon,
                     value: AppTab.quickAdd,
                     role: .search
                 ) {
-                    Color.clear
+                    NavigationStack {
+                        tabPage(tab)
+                            .navigationTitle(Text(tab.label))
+                    }
                 }
             }
             #endif
@@ -109,6 +114,17 @@ struct ContentView: View {
                 QuickEntryView()
             }
             .interactiveDismissDisabled()
+        }
+        .alert(
+            L10n.string("quick.cannotAddTitle", defaultValue: "Can't Add Entry"),
+            isPresented: Binding(
+                get: { quickAddDeniedReason != nil },
+                set: { if !$0 { quickAddDeniedReason = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(quickAddDeniedReason ?? "")
         }
         // The quick-add sheet posts through the root JournalStore, whose
         // ledgerId used to be set only by the Journal tab's .task — posting
@@ -122,6 +138,9 @@ struct ContentView: View {
 
     @State private var tab: AppTab = .dashboard
     @State private var isQuickAddPresented = false
+    /// Set when the quick-add pill is tapped without a postable ledger;
+    /// drives the denial alert and clears on dismiss.
+    @State private var quickAddDeniedReason: String?
 
     /// Rejects `.quickAdd` as a selection — tapping the pill presents the
     /// quick-entry sheet while the visible tab stays unchanged. Requires an
@@ -134,9 +153,9 @@ struct ContentView: View {
                     if ledgerStore.activeLedger != nil, ledgerStore.canPost {
                         isQuickAddPresented = true
                     } else if ledgerStore.activeLedger == nil {
-                        toast.show(L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first"))
+                        quickAddDeniedReason = L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first")
                     } else {
-                        toast.show(L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger"))
+                        quickAddDeniedReason = L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger")
                     }
                     return
                 }
