@@ -7379,6 +7379,7 @@
       }
     },
     "Update" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

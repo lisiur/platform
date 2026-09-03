@@ -19,11 +19,10 @@ struct QuickEntryView: View {
     @Environment(ReportStore.self) private var reportStore
     private let editedEntry: JournalEntry?
     @State private var draft: QuickEntryDraft
-    /// The calculator engine doubles as the amount field: `CalculatorDisplay`
-    /// renders it inline and the keypad sheet mutates it through a binding —
-    /// every edit applies immediately.
+    /// The calculator engine doubles as the amount field: the inline
+    /// `CalculatorView` — display and keypad as one unit — mutates it
+    /// through a binding, so every edit applies immediately.
     @State private var engine: CalculatorEngine
-    @State private var isCalculatorPresented = false
     @State private var isParticipantsPresented = false
     @State private var activeAccountSide: AccountSide?
     @State private var validationError: String?
@@ -90,7 +89,10 @@ struct QuickEntryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        // Zero spacing: the form and the calculator must sit flush, or the
+        // sheet's white background would peek through as a strip between
+        // the form's canvas and the calculator's top border.
+        VStack(spacing: 0) {
             // Guests are scoped to expense-only entries; the kind picker is
             // hidden and `draft.kind` stays at its default (`.expense`).
             if !isGuest {
@@ -106,6 +108,9 @@ struct QuickEntryView: View {
                 .pickerStyle(.segmented)
                 .controlSize(.regular)
                 .padding(.horizontal, 16)
+                // Breathing gap to the form below (the VStack spacing is
+                // zero so the form meets the calculator flush).
+                .padding(.bottom, 8)
                 .onChange(of: draft.kind) {
                     // Both sides restart unselected when the scenario
                     // changes.
@@ -117,18 +122,6 @@ struct QuickEntryView: View {
             }
 
             Form {
-                Section {
-                    // The calculator's display doubles as the amount field —
-                    // tapping it opens the keypad sheet, whose edits land
-                    // here live.
-                    Button {
-                        isCalculatorPresented = true
-                    } label: {
-                        CalculatorDisplay(engine: engine, currency: ledgerStore.activeLedger?.currency)
-                    }
-                    .buttonStyle(.plain)
-                }
-
                 fieldsSection
 
                 if let validationError {
@@ -139,45 +132,29 @@ struct QuickEntryView: View {
                     }
                 }
             }
-            // Compact inter-section spacing: the amount card and the fields
-            // card otherwise sit far apart in the grouped form. Zeroing the
-            // top content margin drops the grouped style's built-in
-            // first-section inset, so the amount card sits flush under the
-            // tabs. The background matches the form's grouped canvas so the
-            // segmented control's translucent chrome picks it up instead of
-            // the default white.
+            // Compact inter-section spacing so the grouped form's cards sit
+            // close together. Zeroing the top content margin drops the
+            // grouped style's built-in first-section inset, so the fields
+            // card sits flush under the tabs. The background matches the
+            // form's grouped canvas so the segmented control's translucent
+            // chrome picks it up instead of the default white.
             .compactListSectionSpacing()
             // A small top content margin leaves a breathing gap between the
-            // pinned tabs and the amount card — zero would sit them flush.
+            // pinned tabs and the fields card — zero would sit them flush.
             .contentMargins(.top, 12, for: .scrollContent)
 
-            // Pinned action row under the form: the save stays reachable
-            // without scrolling to the form's bottom. It is the sheet's
-            // only save button — the toolbar's trailing slot belongs to
-            // the ledger switcher.
-            Button {
-                Task { await save() }
-            } label: {
-                Group {
-                    if isPosting {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text(postingTitle)
-                        }
-                    } else {
-                        Text(saveTitle)
-                    }
-                }
-                .font(.body.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 36)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .disabled(!canPost || isPosting || draft.isSameAccount)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            // Pinned calculator between the form and the sheet's bottom
+            // edge: display and keypad combined, always visible, so the
+            // amount is typed and adjusted without presenting anything.
+            // The pad's check key posts the entry — the sheet's only save
+            // control, spinner while posting.
+            CalculatorView(
+                engine: $engine,
+                currency: ledgerStore.activeLedger?.currency,
+                onCommit: { Task { await save() } },
+                isCommitDisabled: isPosting || draft.isSameAccount,
+                isCommitting: isPosting
+            )
         }
         // Disables the form and its fields only — attached before the
         // toolbar so Cancel and the ledger switcher stay usable on a
@@ -191,14 +168,11 @@ struct QuickEntryView: View {
                 Button("Cancel") { dismiss() }
             }
             // The trailing slot is the ledger switcher, not a save button:
-            // the entry's target ledger is picked here while the pinned
-            // button under the form does the posting.
+            // the entry's target ledger is picked here while the
+            // calculator's check key does the posting.
             ToolbarItem(placement: .confirmationAction) {
                 LedgerSwitcherMenu()
             }
-        }
-        .sheet(isPresented: $isCalculatorPresented) {
-            CalculatorSheet(engine: $engine)
         }
         .sheet(item: $activeAccountSide) { side in
             NavigationStack {
@@ -280,14 +254,6 @@ struct QuickEntryView: View {
         // unscoped sheet picks the scope up as soon as one is claimed.
         .onChange(of: scopedProject?.id) {
             applyScopedProjectDefault()
-        }
-        // The amount is the first thing to enter on a new entry, so the
-        // keypad opens with the sheet — editing already has a prefilled
-        // amount, so it doesn't.
-        .onAppear {
-            if editedEntry == nil {
-                isCalculatorPresented = true
-            }
         }
     }
 
@@ -482,18 +448,6 @@ struct QuickEntryView: View {
             : L10n.string("Edit Entry", defaultValue: "Edit Entry")
     }
 
-    private var saveTitle: String {
-        editedEntry == nil
-            ? L10n.string("Save", defaultValue: "Save")
-            : L10n.string("Update", defaultValue: "Update")
-    }
-
-    private var postingTitle: String {
-        editedEntry == nil
-            ? L10n.string("Posting…", defaultValue: "Posting…")
-            : L10n.string("Saving…", defaultValue: "Saving…")
-    }
-
     // Debit side = where value goes (expense category / receiving pocket /
     // transfer destination); credit side = where it comes from (paying
     // pocket / income source / transfer origin).
@@ -661,6 +615,9 @@ struct QuickEntryView: View {
     }
 
     private func save() async {
+        // Settle any pending operation first ("14 + 5" reading 19 posts 19)
+        // — there is no keypad sheet dismissal to fold it in anymore.
+        engine.commitPending()
         guard let amount = Double(engine.entry), amount > 0 else {
             validationError = L10n.string("quick.amountRequired", defaultValue: "Enter an amount greater than 0.")
             return

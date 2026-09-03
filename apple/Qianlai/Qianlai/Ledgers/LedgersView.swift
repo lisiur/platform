@@ -579,9 +579,9 @@ struct JoinLedgerScanView: View {
     @State private var errorText: String?
 
     var body: some View {
-        QRScanScreen(dismissesOnDetect: false) { payload in
+        QRScanScreen(onDetected: { payload in
             join(from: payload)
-        }
+        }, dismissesOnDetect: false)
         .overlay {
             if isJoining {
                 ProgressView()
