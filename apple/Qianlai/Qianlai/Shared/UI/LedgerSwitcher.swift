@@ -17,7 +17,14 @@ struct LedgerSwitcherMenu: View {
     @Environment(AuthManager.self) private var auth
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
-    @State private var isShowingManage = false
+    /// Presentation state owned by the enclosing surface when set. A sheet
+    /// attached inside `ToolbarItem` content is cancelled when the toolbar
+    /// rebuilds mid-presentation — with no active ledger, the manage sheet's
+    /// ledger load flips DashboardView's loading branch and dismisses it
+    /// instantly — so the toolbar owner presents it from its stable surface
+    /// instead. nil keeps the sheet here for toolbar-less contexts.
+    var isShowingManage: Binding<Bool>? = nil
+    @State private var isPresentingManageInternally = false
 
     private var isGuestActive: Bool {
         ledgerStore.activeLedger?.isGuest ?? false
@@ -67,6 +74,29 @@ struct LedgerSwitcherMenu: View {
     }
 
     var body: some View {
+        // Owner-presented mode attaches no sheet: the owner shows it from a
+        // surface that survives toolbar rebuilds.
+        if isShowingManage != nil {
+            switcher
+        } else {
+            switcher
+                .sheet(isPresented: $isPresentingManageInternally) {
+                    manageSheet
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var manageSheet: some View {
+        NavigationStack {
+            // In project scope, replace each guest-ledger entry with
+            // its projects so the manage sheet shows project names
+            // instead of ledger names the project member shouldn't see.
+            LedgersView(expandGuestLedgers: isGuestActive)
+        }
+    }
+
+    private var switcher: some View {
         Menu {
             if !ownLedgers.isEmpty {
                 Section("My Ledgers") {
@@ -91,7 +121,11 @@ struct LedgerSwitcherMenu: View {
             }
             Section {
                 Button {
-                    isShowingManage = true
+                    if let isShowingManage {
+                        isShowingManage.wrappedValue = true
+                    } else {
+                        isPresentingManageInternally = true
+                    }
                 } label: {
                     Label("Manage Ledgers", systemImage: "gearshape")
                 }
@@ -126,14 +160,6 @@ struct LedgerSwitcherMenu: View {
             let activeId = ledgerStore.activeLedger?.id
             for ledger in ledgerStore.activeLedgers where ledger.id != activeId {
                 await projectStore.prefetch(ledgerId: ledger.id)
-            }
-        }
-        .sheet(isPresented: $isShowingManage) {
-            NavigationStack {
-                // In project scope, replace each guest-ledger entry with
-                // its projects so the manage sheet shows project names
-                // instead of ledger names the project member shouldn't see.
-                LedgersView(expandGuestLedgers: isGuestActive)
             }
         }
     }

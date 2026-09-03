@@ -25,6 +25,7 @@ struct DashboardView: View {
     @State private var isShowingLedgerForm = false
     @State private var isShowingInvite = false
     @State private var isShowingJoin = false
+    @State private var isShowingLedgerManager = false
     /// Month the cards and the entry list summarize; stepped with the
     /// chevrons in the month header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
@@ -132,14 +133,14 @@ struct DashboardView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
-                LedgerSwitcherMenu()
+                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 collaborationMenu
             }
             #else
             ToolbarItem(placement: .navigation) {
-                LedgerSwitcherMenu()
+                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager)
             }
             ToolbarItem(placement: .primaryAction) {
                 collaborationMenu
@@ -209,6 +210,17 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $isShowingJoin) {
             JoinLedgerScanView()
+        }
+        // Presented here instead of from the switcher's toolbar menu: a
+        // sheet attached inside `ToolbarItem` content is cancelled when the
+        // toolbar rebuilds mid-presentation — with no active ledger, the
+        // sheet's ledger load flips this page's loading branch above and
+        // would dismiss it instantly. The Group's identity is stable across
+        // that branch switch, so the sheet survives.
+        .sheet(isPresented: $isShowingLedgerManager) {
+            NavigationStack {
+                LedgersView(expandGuestLedgers: ledgerStore.activeLedger?.isGuest ?? false)
+            }
         }
     }
 
