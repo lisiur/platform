@@ -58,11 +58,13 @@ interface IncomeStatementDto {
 }
 
 interface MemberTurnoverRow {
-  ledgerMemberId: string;
+  /** Primary key: the user (departed members keep historical rows). */
   userId: string;
+  /** Null when the user is no longer a current member of this ledger. */
+  ledgerMemberId: string | null;
   name: string;
   avatar: string | null;
-  role: "owner" | "editor" | "viewer";
+  role: "owner" | "editor" | "viewer" | "guest";
   entryCount: number;
   turnover: number;
 }
@@ -330,7 +332,7 @@ export function ReportsView() {
             </TableHeader>
             <TableBody>
               {turnover.members.map((row) => (
-                <TableRow key={row.ledgerMemberId}>
+                <TableRow key={row.userId}>
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{t(`roles.${row.role}`)}</Badge>

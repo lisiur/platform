@@ -277,7 +277,7 @@ describe("projectReport settlement", () => {
       createdById: input.createdById,
       lines: input.lines,
       participants: (input.participants ?? []).map((userId) => ({
-        ledgerMember: { userId },
+        userId,
       })),
     };
   }

@@ -6,7 +6,7 @@ export type EntryWindow = {
   from?: Date;
   to?: Date;
   q?: string;
-  participantMemberId?: string;
+  participantUserId?: string;
   /** Restrict to entries of one project. */
   projectId?: string;
   /** Restrict to entries with a line against this account (category drill-down). */
@@ -43,12 +43,10 @@ export const ledgerActivityWhere = {
   OR: [{ guestCreated: true }, { countsInLedger: true }],
 } as const satisfies Prisma.JournalEntryWhereInput;
 
-/** Participant rows with the member's user profile, as returned on entries. */
+/** Participant rows with the user's profile, as returned on entries. */
 const participantInclude = {
-  ledgerMember: {
-    include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
-    },
+  user: {
+    select: { id: true, name: true, email: true, avatar: true },
   },
 } as const satisfies Prisma.JournalEntryParticipantInclude;
 
@@ -106,7 +104,7 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
                 { createdById: window.memberUserId },
                 {
                   participants: {
-                    some: { ledgerMember: { userId: window.memberUserId } },
+                    some: { userId: window.memberUserId },
                   },
                 },
                 {
@@ -169,10 +167,10 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
           ],
         }
       : {}),
-    ...(window.participantMemberId
+    ...(window.participantUserId
       ? {
           participants: {
-            some: { ledgerMemberId: window.participantMemberId },
+            some: { userId: window.participantUserId },
           },
         }
       : {}),
@@ -231,7 +229,7 @@ export const journalRepository = {
         credit: Prisma.Decimal | number;
         memo?: string;
       }>;
-      participantMemberIds?: string[];
+      participantUserIds?: string[];
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
@@ -251,8 +249,8 @@ export const journalRepository = {
         longitude: data.longitude ?? null,
         lines: { create: data.lines },
         participants: {
-          create: (data.participantMemberIds ?? []).map((ledgerMemberId) => ({
-            ledgerMemberId,
+          create: (data.participantUserIds ?? []).map((userId) => ({
+            userId,
           })),
         },
       },
@@ -294,7 +292,7 @@ export const journalRepository = {
         credit: Prisma.Decimal | number;
         memo?: string;
       }>;
-      participantMemberIds: string[];
+      participantUserIds: string[];
     },
     tx: Prisma.TransactionClient = prisma,
   ) {
@@ -316,8 +314,8 @@ export const journalRepository = {
         lines: { deleteMany: {}, create: data.lines },
         participants: {
           deleteMany: {},
-          create: data.participantMemberIds.map((ledgerMemberId) => ({
-            ledgerMemberId,
+          create: data.participantUserIds.map((userId) => ({
+            userId,
           })),
         },
       },
@@ -376,7 +374,7 @@ export const journalRepository = {
    * [from, to] that have at least one participant, with each entry's
    * participant ids and raw lines (whose debit sum is the entry's gross
    * amount). The per-member aggregation itself runs in the service —
-   * Prisma can't groupBy a relation key like ledgerMemberId.
+   * Prisma can't groupBy a relation key like userId.
    */
   listTaggedEntries(
     ledgerId: string,
@@ -397,7 +395,7 @@ export const journalRepository = {
           : {}),
       },
       select: {
-        participants: { select: { ledgerMemberId: true } },
+        participants: { select: { userId: true } },
         lines: { select: { debit: true } },
       },
     });
@@ -421,8 +419,9 @@ export const journalRepository = {
 
   /**
    * Every entry of a project with the shape the settlement report needs:
-   * raw lines (account types classify the flow), participants as member
-   * userIds (the split set), and the creator (who fronted the money).
+   * raw lines (account types classify the flow), participants as userIds
+   * (the split set — anchored to User, so departed members still carry
+   * their historical share), and the creator (who fronted the money).
    */
   listByProject(projectId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.journalEntry.findMany({
@@ -446,7 +445,7 @@ export const journalRepository = {
           },
         },
         participants: {
-          select: { ledgerMember: { select: { userId: true } } },
+          select: { userId: true },
         },
       },
       orderBy: [{ date: "asc" }, { entryNo: "asc" }],
@@ -489,7 +488,7 @@ export const journalRepository = {
             // and opted it out of my books myself.
             projectId: { not: null },
             participants: {
-              some: { ledgerMember: { userId: viewerUserId } },
+              some: { userId: viewerUserId },
             },
             NOT: {
               AND: [{ createdById: viewerUserId }, { countsInLedger: false }],
@@ -514,7 +513,7 @@ export const journalRepository = {
           },
         },
         participants: {
-          select: { ledgerMember: { select: { userId: true } } },
+          select: { userId: true },
         },
       },
     });

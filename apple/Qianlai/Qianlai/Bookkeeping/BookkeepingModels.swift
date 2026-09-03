@@ -260,9 +260,11 @@ struct JournalLine: Codable, Identifiable, Hashable {
     var memo: String?
 }
 
+/// A participant tag on a journal entry — anchored to the user (not the
+/// ledger member) so the split survives the participant leaving the ledger.
 struct EntryParticipant: Codable, Identifiable, Hashable {
     let id: String
-    let ledgerMemberId: String
+    let userId: String
     var user: EntryUserRef?
 }
 
@@ -629,15 +631,18 @@ struct IncomeStatement: Codable, Hashable {
 }
 
 struct MemberTurnoverRow: Codable, Identifiable, Hashable {
-    var ledgerMemberId: String
+    /// Primary key: the user. A departed member with historical tags still
+    /// gets a row even though their LedgerMember row is gone.
     var userId: String
+    /// Nil when the user is no longer a current member of this ledger.
+    var ledgerMemberId: String?
     var name: String
     var avatar: String?
     var role: LedgerRole
     var entryCount: Int
     var turnover: Double
 
-    var id: String { ledgerMemberId }
+    var id: String { userId }
 }
 
 struct MemberTurnoverTotals: Codable, Hashable {
@@ -847,7 +852,9 @@ struct CreateEntryBody: Encodable {
     var date: Date
     var memo: String?
     var lines: [JournalLineInput]
-    var participantMemberIds: [String]?
+    /// The users this entry concerns — keyed by userId, so the split set
+    /// survives a participant leaving the ledger.
+    var participantUserIds: [String]?
     /// Project assignment; guests must target one of their projects.
     var projectId: String?
     /// nil counts in the ledger (server default); false opts out. Pure user
@@ -936,7 +943,7 @@ struct QuickEntryDraft: Equatable {
                 JournalLineInput(accountId: debitAccountId, debit: amount, credit: 0, memo: nil),
                 JournalLineInput(accountId: creditAccountId, debit: 0, credit: amount, memo: nil),
             ],
-            participantMemberIds: participants.isEmpty ? nil : Array(participants).sorted(),
+            participantUserIds: participants.isEmpty ? nil : Array(participants).sorted(),
             projectId: projectId,
             countsInLedger: countsInLedger,
             location: location.map(EntryLocationPayload.capture)
@@ -981,7 +988,7 @@ extension QuickEntryDraft {
             debitAccountId: debitAccountId,
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",
-            participants: Set(entry.participants?.map(\.ledgerMemberId) ?? []),
+            participants: Set(entry.participants?.map(\.userId) ?? []),
             projectId: entry.projectId,
             countsInLedger: entry.countsInLedger,
             location: entry.location.map { EntryLocationBody($0) }

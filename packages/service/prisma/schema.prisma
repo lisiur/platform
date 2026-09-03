@@ -40,6 +40,7 @@ model User {
   qianlaiMemberships   LedgerMember[]
   qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
   qianlaiProjectMemberships ProjectMember[] @relation("QianlaiProjectMember")
+  qianlaiEntryParticipations JournalEntryParticipant[]
 
   @@unique([email])
   @@map("user")
@@ -1148,8 +1149,6 @@ model LedgerMember {
   role      String   @default("editor")
   createdAt DateTime @default(now())
 
-  entryParticipants JournalEntryParticipant[]
-
   @@unique([ledgerId, userId])
   @@index([userId])
   @@map("qianlai_ledger_member")
@@ -1294,21 +1293,24 @@ model JournalLine {
   @@map("qianlai_journal_line")
 }
 
-// Tags which ledger members an entry concerns (e.g. a shared expense for
-// Alice and Bob) — the basis for per-member turnover reports. Pure tagging:
-// an entry's full gross amount is attributed to each participant; amount
-// splits live in the journal lines. Cascade on LedgerMember means a member
-// leaving the ledger drops their tags (entries themselves survive); on
-// JournalEntry it means deleting an entry cleans its tags up with it.
+// Tags which users an entry concerns (e.g. a shared expense for Alice and
+// Bob) — the basis for per-user turnover reports, the viewer's share-based
+// statement, and project settlement. Anchored to User rather than
+// LedgerMember so the tag survives a member leaving the ledger: settlement
+// is a historical fact (Alice ate that dinner even after she left the
+// group), while membership is just access scope — keeping them coupled
+// would re-split old entries onto whoever remains. Cascade on User means a
+// hard-deleted account erases its tags; on JournalEntry it means deleting
+// an entry cleans its tags up with it.
 model JournalEntryParticipant {
-  id             String       @id @default(cuid())
-  entryId        String
-  entry          JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  ledgerMemberId String
-  ledgerMember   LedgerMember @relation(fields: [ledgerMemberId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
+  id        String       @id @default(cuid())
+  entryId   String
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
 
-  @@unique([entryId, ledgerMemberId])
-  @@index([ledgerMemberId])
+  @@unique([entryId, userId])
+  @@index([userId])
   @@map("qianlai_journal_entry_participant")
 }

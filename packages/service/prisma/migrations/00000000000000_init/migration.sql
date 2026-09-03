@@ -945,7 +945,7 @@ CREATE TABLE "qianlai_journal_line" (
 CREATE TABLE "qianlai_journal_entry_participant" (
     "id" TEXT NOT NULL,
     "entryId" TEXT NOT NULL,
-    "ledgerMemberId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "qianlai_journal_entry_participant_pkey" PRIMARY KEY ("id")
@@ -1366,10 +1366,10 @@ CREATE UNIQUE INDEX "qianlai_journal_entry_ledgerId_entryNo_key" ON "qianlai_jou
 CREATE INDEX "qianlai_journal_line_accountId_idx" ON "qianlai_journal_line"("accountId");
 
 -- CreateIndex
-CREATE INDEX "qianlai_journal_entry_participant_ledgerMemberId_idx" ON "qianlai_journal_entry_participant"("ledgerMemberId");
+CREATE INDEX "qianlai_journal_entry_participant_userId_idx" ON "qianlai_journal_entry_participant"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "qianlai_journal_entry_participant_entryId_ledgerMemberId_key" ON "qianlai_journal_entry_participant"("entryId", "ledgerMemberId");
+CREATE UNIQUE INDEX "qianlai_journal_entry_participant_entryId_userId_key" ON "qianlai_journal_entry_participant"("entryId", "userId");
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1579,5 +1579,5 @@ ALTER TABLE "qianlai_journal_line" ADD CONSTRAINT "qianlai_journal_line_accountI
 ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_entryId_fkey" FOREIGN KEY ("entryId") REFERENCES "qianlai_journal_entry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_ledgerMemberId_fkey" FOREIGN KEY ("ledgerMemberId") REFERENCES "qianlai_ledger_member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

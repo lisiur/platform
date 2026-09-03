@@ -5955,7 +5955,7 @@ export type JournalLineScalarFieldEnum = (typeof JournalLineScalarFieldEnum)[key
 export const JournalEntryParticipantScalarFieldEnum = {
   id: 'id',
   entryId: 'entryId',
-  ledgerMemberId: 'ledgerMemberId',
+  userId: 'userId',
   createdAt: 'createdAt'
 } as const
 

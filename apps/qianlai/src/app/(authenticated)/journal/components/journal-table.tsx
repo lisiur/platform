@@ -69,7 +69,7 @@ interface EntryRow {
   lines: JournalLineDto[];
   participants: Array<{
     id: string;
-    ledgerMemberId: string;
+    userId: string;
     user: { id: string; name: string } | null;
   }>;
 }
@@ -93,7 +93,7 @@ export function JournalTable() {
   const [appliedDateRange, setAppliedDateRange] = useState<
     DateRange | undefined
   >();
-  const [participantMemberId, setParticipantMemberId] = useState<string>("");
+  const [participantUserId, setParticipantUserId] = useState<string>("");
   const [appliedMemberId, setAppliedMemberId] = useState<string>("");
   const [projectFilter, setProjectFilter] = useState<string>("");
   const [appliedProjectId, setAppliedProjectId] = useState<string>("");
@@ -158,7 +158,7 @@ export function JournalTable() {
           to: appliedDateRange?.to
             ? endOfLocalDay(appliedDateRange.to).toISOString()
             : undefined,
-          participantMemberId: appliedMemberId || undefined,
+          participantUserId: appliedMemberId || undefined,
           projectId: appliedProjectId || undefined,
           includeExcluded: includeExcluded ? "true" : undefined,
         },
@@ -182,7 +182,7 @@ export function JournalTable() {
   function applyFilters() {
     setAppliedQ(q.trim());
     setAppliedDateRange(dateRange);
-    setAppliedMemberId(participantMemberId);
+    setAppliedMemberId(participantUserId);
     setAppliedProjectId(projectFilter);
     setPage(1);
   }
@@ -192,7 +192,7 @@ export function JournalTable() {
     setAppliedQ("");
     setDateRange(undefined);
     setAppliedDateRange(undefined);
-    setParticipantMemberId("");
+    setParticipantUserId("");
     setAppliedMemberId("");
     setProjectFilter("");
     setAppliedProjectId("");
@@ -272,14 +272,14 @@ export function JournalTable() {
           className="w-64"
         />
         <Select
-          value={participantMemberId || "all"}
+          value={participantUserId || "all"}
           onValueChange={(v) =>
-            setParticipantMemberId(!v || v === "all" ? "" : v)
+            setParticipantUserId(!v || v === "all" ? "" : v)
           }
           items={[
             { value: "all", label: t("allMembers") },
             ...members.map((m) => ({
-              value: m.id,
+              value: m.userId,
               label: m.user?.name ?? m.userId,
             })),
           ]}
@@ -410,8 +410,7 @@ export function JournalTable() {
                             variant="secondary"
                             className="text-xs"
                           >
-                            {participant.user?.name ??
-                              participant.ledgerMemberId}
+                            {participant.user?.name ?? participant.userId}
                           </Badge>
                         ))}
                       </div>

@@ -27,21 +27,21 @@ export type AggregateJournalEntryParticipant = {
 export type JournalEntryParticipantMinAggregateOutputType = {
   id: string | null
   entryId: string | null
-  ledgerMemberId: string | null
+  userId: string | null
   createdAt: Date | null
 }
 
 export type JournalEntryParticipantMaxAggregateOutputType = {
   id: string | null
   entryId: string | null
-  ledgerMemberId: string | null
+  userId: string | null
   createdAt: Date | null
 }
 
 export type JournalEntryParticipantCountAggregateOutputType = {
   id: number
   entryId: number
-  ledgerMemberId: number
+  userId: number
   createdAt: number
   _all: number
 }
@@ -50,21 +50,21 @@ export type JournalEntryParticipantCountAggregateOutputType = {
 export type JournalEntryParticipantMinAggregateInputType = {
   id?: true
   entryId?: true
-  ledgerMemberId?: true
+  userId?: true
   createdAt?: true
 }
 
 export type JournalEntryParticipantMaxAggregateInputType = {
   id?: true
   entryId?: true
-  ledgerMemberId?: true
+  userId?: true
   createdAt?: true
 }
 
 export type JournalEntryParticipantCountAggregateInputType = {
   id?: true
   entryId?: true
-  ledgerMemberId?: true
+  userId?: true
   createdAt?: true
   _all?: true
 }
@@ -144,7 +144,7 @@ export type JournalEntryParticipantGroupByArgs<ExtArgs extends runtime.Types.Ext
 export type JournalEntryParticipantGroupByOutputType = {
   id: string
   entryId: string
-  ledgerMemberId: string
+  userId: string
   createdAt: Date
   _count: JournalEntryParticipantCountAggregateOutputType | null
   _min: JournalEntryParticipantMinAggregateOutputType | null
@@ -172,38 +172,38 @@ export type JournalEntryParticipantWhereInput = {
   NOT?: Prisma.JournalEntryParticipantWhereInput | Prisma.JournalEntryParticipantWhereInput[]
   id?: Prisma.StringFilter<"JournalEntryParticipant"> | string
   entryId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
-  ledgerMemberId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
+  userId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
   createdAt?: Prisma.DateTimeFilter<"JournalEntryParticipant"> | Date | string
   entry?: Prisma.XOR<Prisma.JournalEntryScalarRelationFilter, Prisma.JournalEntryWhereInput>
-  ledgerMember?: Prisma.XOR<Prisma.LedgerMemberScalarRelationFilter, Prisma.LedgerMemberWhereInput>
+  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
 export type JournalEntryParticipantOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   entryId?: Prisma.SortOrder
-  ledgerMemberId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   entry?: Prisma.JournalEntryOrderByWithRelationInput
-  ledgerMember?: Prisma.LedgerMemberOrderByWithRelationInput
+  user?: Prisma.UserOrderByWithRelationInput
 }
 
 export type JournalEntryParticipantWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  entryId_ledgerMemberId?: Prisma.JournalEntryParticipantEntryIdLedgerMemberIdCompoundUniqueInput
+  entryId_userId?: Prisma.JournalEntryParticipantEntryIdUserIdCompoundUniqueInput
   AND?: Prisma.JournalEntryParticipantWhereInput | Prisma.JournalEntryParticipantWhereInput[]
   OR?: Prisma.JournalEntryParticipantWhereInput[]
   NOT?: Prisma.JournalEntryParticipantWhereInput | Prisma.JournalEntryParticipantWhereInput[]
   entryId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
-  ledgerMemberId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
+  userId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
   createdAt?: Prisma.DateTimeFilter<"JournalEntryParticipant"> | Date | string
   entry?: Prisma.XOR<Prisma.JournalEntryScalarRelationFilter, Prisma.JournalEntryWhereInput>
-  ledgerMember?: Prisma.XOR<Prisma.LedgerMemberScalarRelationFilter, Prisma.LedgerMemberWhereInput>
-}, "id" | "entryId_ledgerMemberId">
+  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+}, "id" | "entryId_userId">
 
 export type JournalEntryParticipantOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   entryId?: Prisma.SortOrder
-  ledgerMemberId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.JournalEntryParticipantCountOrderByAggregateInput
   _max?: Prisma.JournalEntryParticipantMaxOrderByAggregateInput
@@ -216,7 +216,7 @@ export type JournalEntryParticipantScalarWhereWithAggregatesInput = {
   NOT?: Prisma.JournalEntryParticipantScalarWhereWithAggregatesInput | Prisma.JournalEntryParticipantScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"JournalEntryParticipant"> | string
   entryId?: Prisma.StringWithAggregatesFilter<"JournalEntryParticipant"> | string
-  ledgerMemberId?: Prisma.StringWithAggregatesFilter<"JournalEntryParticipant"> | string
+  userId?: Prisma.StringWithAggregatesFilter<"JournalEntryParticipant"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"JournalEntryParticipant"> | Date | string
 }
 
@@ -224,13 +224,13 @@ export type JournalEntryParticipantCreateInput = {
   id?: string
   createdAt?: Date | string
   entry: Prisma.JournalEntryCreateNestedOneWithoutParticipantsInput
-  ledgerMember: Prisma.LedgerMemberCreateNestedOneWithoutEntryParticipantsInput
+  user: Prisma.UserCreateNestedOneWithoutQianlaiEntryParticipationsInput
 }
 
 export type JournalEntryParticipantUncheckedCreateInput = {
   id?: string
   entryId: string
-  ledgerMemberId: string
+  userId: string
   createdAt?: Date | string
 }
 
@@ -238,20 +238,20 @@ export type JournalEntryParticipantUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entry?: Prisma.JournalEntryUpdateOneRequiredWithoutParticipantsNestedInput
-  ledgerMember?: Prisma.LedgerMemberUpdateOneRequiredWithoutEntryParticipantsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutQianlaiEntryParticipationsNestedInput
 }
 
 export type JournalEntryParticipantUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   entryId?: Prisma.StringFieldUpdateOperationsInput | string
-  ledgerMemberId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type JournalEntryParticipantCreateManyInput = {
   id?: string
   entryId: string
-  ledgerMemberId: string
+  userId: string
   createdAt?: Date | string
 }
 
@@ -263,7 +263,7 @@ export type JournalEntryParticipantUpdateManyMutationInput = {
 export type JournalEntryParticipantUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   entryId?: Prisma.StringFieldUpdateOperationsInput | string
-  ledgerMemberId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -277,71 +277,71 @@ export type JournalEntryParticipantOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type JournalEntryParticipantEntryIdLedgerMemberIdCompoundUniqueInput = {
+export type JournalEntryParticipantEntryIdUserIdCompoundUniqueInput = {
   entryId: string
-  ledgerMemberId: string
+  userId: string
 }
 
 export type JournalEntryParticipantCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   entryId?: Prisma.SortOrder
-  ledgerMemberId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type JournalEntryParticipantMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   entryId?: Prisma.SortOrder
-  ledgerMemberId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type JournalEntryParticipantMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   entryId?: Prisma.SortOrder
-  ledgerMemberId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
-export type JournalEntryParticipantCreateNestedManyWithoutLedgerMemberInput = {
-  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput> | Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput[]
-  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput[]
-  createMany?: Prisma.JournalEntryParticipantCreateManyLedgerMemberInputEnvelope
+export type JournalEntryParticipantCreateNestedManyWithoutUserInput = {
+  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput> | Prisma.JournalEntryParticipantCreateWithoutUserInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput[]
+  createMany?: Prisma.JournalEntryParticipantCreateManyUserInputEnvelope
   connect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
 }
 
-export type JournalEntryParticipantUncheckedCreateNestedManyWithoutLedgerMemberInput = {
-  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput> | Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput[]
-  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput[]
-  createMany?: Prisma.JournalEntryParticipantCreateManyLedgerMemberInputEnvelope
+export type JournalEntryParticipantUncheckedCreateNestedManyWithoutUserInput = {
+  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput> | Prisma.JournalEntryParticipantCreateWithoutUserInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput[]
+  createMany?: Prisma.JournalEntryParticipantCreateManyUserInputEnvelope
   connect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
 }
 
-export type JournalEntryParticipantUpdateManyWithoutLedgerMemberNestedInput = {
-  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput> | Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput[]
-  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput[]
-  upsert?: Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutLedgerMemberInput[]
-  createMany?: Prisma.JournalEntryParticipantCreateManyLedgerMemberInputEnvelope
+export type JournalEntryParticipantUpdateManyWithoutUserNestedInput = {
+  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput> | Prisma.JournalEntryParticipantCreateWithoutUserInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput[]
+  upsert?: Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutUserInput | Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutUserInput[]
+  createMany?: Prisma.JournalEntryParticipantCreateManyUserInputEnvelope
   set?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   disconnect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   delete?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   connect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
-  update?: Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutLedgerMemberInput[]
-  updateMany?: Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutLedgerMemberInput[]
+  update?: Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutUserInput | Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutUserInput[]
+  updateMany?: Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutUserInput | Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutUserInput[]
   deleteMany?: Prisma.JournalEntryParticipantScalarWhereInput | Prisma.JournalEntryParticipantScalarWhereInput[]
 }
 
-export type JournalEntryParticipantUncheckedUpdateManyWithoutLedgerMemberNestedInput = {
-  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput> | Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput[]
-  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput[]
-  upsert?: Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutLedgerMemberInput[]
-  createMany?: Prisma.JournalEntryParticipantCreateManyLedgerMemberInputEnvelope
+export type JournalEntryParticipantUncheckedUpdateManyWithoutUserNestedInput = {
+  create?: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput> | Prisma.JournalEntryParticipantCreateWithoutUserInput[] | Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput[]
+  connectOrCreate?: Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput | Prisma.JournalEntryParticipantCreateOrConnectWithoutUserInput[]
+  upsert?: Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutUserInput | Prisma.JournalEntryParticipantUpsertWithWhereUniqueWithoutUserInput[]
+  createMany?: Prisma.JournalEntryParticipantCreateManyUserInputEnvelope
   set?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   disconnect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   delete?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
   connect?: Prisma.JournalEntryParticipantWhereUniqueInput | Prisma.JournalEntryParticipantWhereUniqueInput[]
-  update?: Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutLedgerMemberInput[]
-  updateMany?: Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutLedgerMemberInput | Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutLedgerMemberInput[]
+  update?: Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutUserInput | Prisma.JournalEntryParticipantUpdateWithWhereUniqueWithoutUserInput[]
+  updateMany?: Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutUserInput | Prisma.JournalEntryParticipantUpdateManyWithWhereWithoutUserInput[]
   deleteMany?: Prisma.JournalEntryParticipantScalarWhereInput | Prisma.JournalEntryParticipantScalarWhereInput[]
 }
 
@@ -387,42 +387,42 @@ export type JournalEntryParticipantUncheckedUpdateManyWithoutEntryNestedInput = 
   deleteMany?: Prisma.JournalEntryParticipantScalarWhereInput | Prisma.JournalEntryParticipantScalarWhereInput[]
 }
 
-export type JournalEntryParticipantCreateWithoutLedgerMemberInput = {
+export type JournalEntryParticipantCreateWithoutUserInput = {
   id?: string
   createdAt?: Date | string
   entry: Prisma.JournalEntryCreateNestedOneWithoutParticipantsInput
 }
 
-export type JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUncheckedCreateWithoutUserInput = {
   id?: string
   entryId: string
   createdAt?: Date | string
 }
 
-export type JournalEntryParticipantCreateOrConnectWithoutLedgerMemberInput = {
+export type JournalEntryParticipantCreateOrConnectWithoutUserInput = {
   where: Prisma.JournalEntryParticipantWhereUniqueInput
-  create: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput>
+  create: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput>
 }
 
-export type JournalEntryParticipantCreateManyLedgerMemberInputEnvelope = {
-  data: Prisma.JournalEntryParticipantCreateManyLedgerMemberInput | Prisma.JournalEntryParticipantCreateManyLedgerMemberInput[]
+export type JournalEntryParticipantCreateManyUserInputEnvelope = {
+  data: Prisma.JournalEntryParticipantCreateManyUserInput | Prisma.JournalEntryParticipantCreateManyUserInput[]
   skipDuplicates?: boolean
 }
 
-export type JournalEntryParticipantUpsertWithWhereUniqueWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUpsertWithWhereUniqueWithoutUserInput = {
   where: Prisma.JournalEntryParticipantWhereUniqueInput
-  update: Prisma.XOR<Prisma.JournalEntryParticipantUpdateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedUpdateWithoutLedgerMemberInput>
-  create: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutLedgerMemberInput>
+  update: Prisma.XOR<Prisma.JournalEntryParticipantUpdateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedUpdateWithoutUserInput>
+  create: Prisma.XOR<Prisma.JournalEntryParticipantCreateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedCreateWithoutUserInput>
 }
 
-export type JournalEntryParticipantUpdateWithWhereUniqueWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUpdateWithWhereUniqueWithoutUserInput = {
   where: Prisma.JournalEntryParticipantWhereUniqueInput
-  data: Prisma.XOR<Prisma.JournalEntryParticipantUpdateWithoutLedgerMemberInput, Prisma.JournalEntryParticipantUncheckedUpdateWithoutLedgerMemberInput>
+  data: Prisma.XOR<Prisma.JournalEntryParticipantUpdateWithoutUserInput, Prisma.JournalEntryParticipantUncheckedUpdateWithoutUserInput>
 }
 
-export type JournalEntryParticipantUpdateManyWithWhereWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUpdateManyWithWhereWithoutUserInput = {
   where: Prisma.JournalEntryParticipantScalarWhereInput
-  data: Prisma.XOR<Prisma.JournalEntryParticipantUpdateManyMutationInput, Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutLedgerMemberInput>
+  data: Prisma.XOR<Prisma.JournalEntryParticipantUpdateManyMutationInput, Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutUserInput>
 }
 
 export type JournalEntryParticipantScalarWhereInput = {
@@ -431,19 +431,19 @@ export type JournalEntryParticipantScalarWhereInput = {
   NOT?: Prisma.JournalEntryParticipantScalarWhereInput | Prisma.JournalEntryParticipantScalarWhereInput[]
   id?: Prisma.StringFilter<"JournalEntryParticipant"> | string
   entryId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
-  ledgerMemberId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
+  userId?: Prisma.StringFilter<"JournalEntryParticipant"> | string
   createdAt?: Prisma.DateTimeFilter<"JournalEntryParticipant"> | Date | string
 }
 
 export type JournalEntryParticipantCreateWithoutEntryInput = {
   id?: string
   createdAt?: Date | string
-  ledgerMember: Prisma.LedgerMemberCreateNestedOneWithoutEntryParticipantsInput
+  user: Prisma.UserCreateNestedOneWithoutQianlaiEntryParticipationsInput
 }
 
 export type JournalEntryParticipantUncheckedCreateWithoutEntryInput = {
   id?: string
-  ledgerMemberId: string
+  userId: string
   createdAt?: Date | string
 }
 
@@ -473,25 +473,25 @@ export type JournalEntryParticipantUpdateManyWithWhereWithoutEntryInput = {
   data: Prisma.XOR<Prisma.JournalEntryParticipantUpdateManyMutationInput, Prisma.JournalEntryParticipantUncheckedUpdateManyWithoutEntryInput>
 }
 
-export type JournalEntryParticipantCreateManyLedgerMemberInput = {
+export type JournalEntryParticipantCreateManyUserInput = {
   id?: string
   entryId: string
   createdAt?: Date | string
 }
 
-export type JournalEntryParticipantUpdateWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entry?: Prisma.JournalEntryUpdateOneRequiredWithoutParticipantsNestedInput
 }
 
-export type JournalEntryParticipantUncheckedUpdateWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   entryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type JournalEntryParticipantUncheckedUpdateManyWithoutLedgerMemberInput = {
+export type JournalEntryParticipantUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   entryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -499,25 +499,25 @@ export type JournalEntryParticipantUncheckedUpdateManyWithoutLedgerMemberInput =
 
 export type JournalEntryParticipantCreateManyEntryInput = {
   id?: string
-  ledgerMemberId: string
+  userId: string
   createdAt?: Date | string
 }
 
 export type JournalEntryParticipantUpdateWithoutEntryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  ledgerMember?: Prisma.LedgerMemberUpdateOneRequiredWithoutEntryParticipantsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutQianlaiEntryParticipationsNestedInput
 }
 
 export type JournalEntryParticipantUncheckedUpdateWithoutEntryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ledgerMemberId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type JournalEntryParticipantUncheckedUpdateManyWithoutEntryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  ledgerMemberId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -526,61 +526,61 @@ export type JournalEntryParticipantUncheckedUpdateManyWithoutEntryInput = {
 export type JournalEntryParticipantSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   entryId?: boolean
-  ledgerMemberId?: boolean
+  userId?: boolean
   createdAt?: boolean
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["journalEntryParticipant"]>
 
 export type JournalEntryParticipantSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   entryId?: boolean
-  ledgerMemberId?: boolean
+  userId?: boolean
   createdAt?: boolean
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["journalEntryParticipant"]>
 
 export type JournalEntryParticipantSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   entryId?: boolean
-  ledgerMemberId?: boolean
+  userId?: boolean
   createdAt?: boolean
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["journalEntryParticipant"]>
 
 export type JournalEntryParticipantSelectScalar = {
   id?: boolean
   entryId?: boolean
-  ledgerMemberId?: boolean
+  userId?: boolean
   createdAt?: boolean
 }
 
-export type JournalEntryParticipantOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "entryId" | "ledgerMemberId" | "createdAt", ExtArgs["result"]["journalEntryParticipant"]>
+export type JournalEntryParticipantOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "entryId" | "userId" | "createdAt", ExtArgs["result"]["journalEntryParticipant"]>
 export type JournalEntryParticipantInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type JournalEntryParticipantIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type JournalEntryParticipantIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   entry?: boolean | Prisma.JournalEntryDefaultArgs<ExtArgs>
-  ledgerMember?: boolean | Prisma.LedgerMemberDefaultArgs<ExtArgs>
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
 export type $JournalEntryParticipantPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "JournalEntryParticipant"
   objects: {
     entry: Prisma.$JournalEntryPayload<ExtArgs>
-    ledgerMember: Prisma.$LedgerMemberPayload<ExtArgs>
+    user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     entryId: string
-    ledgerMemberId: string
+    userId: string
     createdAt: Date
   }, ExtArgs["result"]["journalEntryParticipant"]>
   composites: {}
@@ -977,7 +977,7 @@ readonly fields: JournalEntryParticipantFieldRefs;
 export interface Prisma__JournalEntryParticipantClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   entry<T extends Prisma.JournalEntryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.JournalEntryDefaultArgs<ExtArgs>>): Prisma.Prisma__JournalEntryClient<runtime.Types.Result.GetResult<Prisma.$JournalEntryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  ledgerMember<T extends Prisma.LedgerMemberDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LedgerMemberDefaultArgs<ExtArgs>>): Prisma.Prisma__LedgerMemberClient<runtime.Types.Result.GetResult<Prisma.$LedgerMemberPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1009,7 +1009,7 @@ export interface Prisma__JournalEntryParticipantClient<T, Null = never, ExtArgs 
 export interface JournalEntryParticipantFieldRefs {
   readonly id: Prisma.FieldRef<"JournalEntryParticipant", 'String'>
   readonly entryId: Prisma.FieldRef<"JournalEntryParticipant", 'String'>
-  readonly ledgerMemberId: Prisma.FieldRef<"JournalEntryParticipant", 'String'>
+  readonly userId: Prisma.FieldRef<"JournalEntryParticipant", 'String'>
   readonly createdAt: Prisma.FieldRef<"JournalEntryParticipant", 'DateTime'>
 }
     

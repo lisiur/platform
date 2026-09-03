@@ -349,12 +349,13 @@ export function QuickEntryDialog({
             { accountId: data.debitAccount || null, debit: amount, credit: 0 },
             { accountId: data.creditAccount || null, debit: 0, credit: amount },
           ],
-          participantMemberIds: data.participants.length
+          participantUserIds: data.participants.length
             ? data.participants
             : undefined,
           projectId: data.projectId || undefined,
-          // Omitted = count in the ledger (server default); the server
-          // forces false for guest posts either way.
+          // Omitted = count in the ledger (server default); pure user
+          // intent — guest posts are excluded by the server's guestCreated
+          // rule, not by this flag.
           countsInLedger: data.countsInLedger ? undefined : false,
         },
       });
@@ -674,7 +675,7 @@ export function QuickEntryDialog({
                     render={({ field }) => (
                       <MultiSelect
                         options={members.map((member) => ({
-                          value: member.id,
+                          value: member.userId,
                           label: member.user?.name ?? member.userId,
                         }))}
                         value={field.value}

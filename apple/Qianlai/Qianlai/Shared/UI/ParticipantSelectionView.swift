@@ -10,7 +10,8 @@ import SwiftUI
 /// Multi-select member sheet behind quick entry's Participants row: toggles
 /// apply to a local copy and only land in `selection` on the confirmation
 /// button, so Cancel really discards. The full member list no longer
-/// crowds the entry form.
+/// crowds the entry form. Selection is keyed by the member's **userId** —
+/// the API tags participants by user, not by ledger membership.
 struct ParticipantSelectionView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -48,17 +49,17 @@ struct ParticipantSelectionView: View {
 
     private func row(for member: LedgerMember) -> some View {
         Button {
-            if pending.contains(member.id) {
-                pending.remove(member.id)
+            if pending.contains(member.userId) {
+                pending.remove(member.userId)
             } else {
-                pending.insert(member.id)
+                pending.insert(member.userId)
             }
         } label: {
             HStack {
                 Text(member.displayName)
                     .foregroundStyle(.primary)
                 Spacer()
-                if pending.contains(member.id) {
+                if pending.contains(member.userId) {
                     Image(systemName: "checkmark")
                         .foregroundStyle(Color.accentColor)
                 }

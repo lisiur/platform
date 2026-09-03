@@ -94,11 +94,14 @@ export const trialBalanceQuerySchema = z
 
 export const memberTurnoverRowSchema = z
   .object({
-    ledgerMemberId: z.string(),
+    // Primary key of the row: the user (a departed member with historical
+    // tags still gets a row even though their LedgerMember row is gone).
     userId: z.string(),
-    name: z.string().openapi({ example: "Alice" }),
-    avatar: z.string().nullable().openapi({ example: null }),
-    role: z.enum(LEDGER_ROLES).openapi({ example: "editor" }),
+    // Null when the user is no longer a current member of this ledger.
+    ledgerMemberId: z.string().nullable(),
+    name: z.string(),
+    avatar: z.string().nullable(),
+    role: z.enum(LEDGER_ROLES),
     entryCount: z.number().int().openapi({ example: 12 }),
     turnover: z.number().openapi({ example: 3250.5 }),
   })

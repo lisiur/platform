@@ -57,7 +57,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
         from: query.from,
         to: query.to,
         q: query.q,
-        participantMemberId: query.participantMemberId,
+        participantUserId: query.participantUserId,
         projectId,
         accountId: query.accountId,
         accountType: query.accountType,

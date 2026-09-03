@@ -69,9 +69,8 @@ struct QuickEntryView: View {
 
     /// Who can be tagged on this entry. When the entry targets a project
     /// (mandatory for guests), only that project's members are eligible —
-    /// each project member is resolved to their ledger membership so the
-    /// posted `participantMemberIds` stay ledger-scoped (the API keys
-    /// participants by ledger membership, not by project membership).
+    /// selection and the posted `participantUserIds` are keyed by userId
+    /// (the API tags participants by user, not by ledger membership).
     /// Personal entries fall back to the whole ledger roster.
     private var participantCandidates: [LedgerMember] {
         if let projectId = draft.projectId,
@@ -621,7 +620,7 @@ struct QuickEntryView: View {
             draft.participants = []
             return
         }
-        let candidateIds = Set(participantCandidates.map(\.id))
+        let candidateIds = Set(participantCandidates.map(\.userId))
         draft.participants.formIntersection(candidateIds)
     }
 
@@ -677,7 +676,7 @@ struct QuickEntryView: View {
     /// the ledger-wide "Not selected".
     private var participantSummary: String {
         let names = memberStore.members
-            .filter { draft.participants.contains($0.id) }
+            .filter { draft.participants.contains($0.userId) }
             .map(\.displayName)
         guard !names.isEmpty else {
             if draft.projectId != nil {

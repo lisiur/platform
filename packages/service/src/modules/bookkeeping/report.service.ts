@@ -14,9 +14,7 @@ type AccountSums = Map<string, { debit: number; credit: number }>;
 function redactEntryCreatorEmail<
   T extends {
     createdBy?: { email: string | null } | null;
-    participants?: Array<{
-      ledgerMember: { user: { email: string | null } };
-    }>;
+    participants?: Array<{ user: { email: string | null } }>;
   },
 >(entry: T, viewerRole: LedgerRole): T {
   if (viewerRole === "owner") return entry;
@@ -27,10 +25,7 @@ function redactEntryCreatorEmail<
       : entry.createdBy,
     participants: entry.participants?.map((p) => ({
       ...p,
-      ledgerMember: {
-        ...p.ledgerMember,
-        user: { ...p.ledgerMember.user, email: null },
-      },
+      user: { ...p.user, email: null },
     })),
   };
 }
@@ -81,7 +76,7 @@ interface ShareLine {
 interface ShareEntry {
   createdById: string | null;
   lines: ShareLine[];
-  participants: Array<{ ledgerMember: { userId: string } }>;
+  participants: Array<{ userId: string }>;
 }
 
 /** A line's flow amount in integer cents, signed per statement convention:
@@ -119,9 +114,7 @@ function entryValueCents(lines: ShareLine[]): number {
 function viewerShareCents(entry: ShareEntry, viewerUserId: string): number {
   const value = entryValueCents(entry.lines);
   if (value === 0) return 0;
-  const tagged = [
-    ...new Set(entry.participants.map((p) => p.ledgerMember.userId)),
-  ].sort();
+  const tagged = [...new Set(entry.participants.map((p) => p.userId))].sort();
   const splitUserIds =
     tagged.length > 0 ? tagged : [entry.createdById ?? viewerUserId];
   const index = splitUserIds.indexOf(viewerUserId);
@@ -246,11 +239,15 @@ export async function incomeStatement(
 }
 
 /**
- * Per-member turnover: the gross amount (total debits) of every entry a
- * member is tagged on, summed over the window. An entry tagged with several
- * members counts in full for each of them — "related turnover", not a split
- * (amount splits live in the journal lines). All current members are
- * returned, zero turnover included, so clients can render a complete table.
+ * Per-user turnover: the gross amount (total debits) of every entry a
+ * user is tagged on, summed over the window. An entry tagged with several
+ * users counts in full for each of them — "related turnover", not a split
+ * (amount splits live in the journal lines). The output is keyed by user
+ * (one row per user with turnover in the window); current members with no
+ * tagged entries are omitted (zero turnover), so a user with rows is
+ * always a member of this ledger. Departed members with historical tags
+ * keep their row alongside current ones — their participation in past
+ * entries is a fact the owner still wants to see.
  */
 export async function memberTurnover(
   ledgerId: string,
@@ -261,7 +258,9 @@ export async function memberTurnover(
     journalRepository.listTaggedEntries(ledgerId, window),
   ]);
 
-  const turnoverByMember = new Map<
+  const memberByUserId = new Map(members.map((m) => [m.userId, m]));
+
+  const turnoverByUserId = new Map<
     string,
     { turnover: number; entries: number }
   >();
@@ -272,26 +271,28 @@ export async function memberTurnover(
       0,
     );
     for (const participant of entry.participants) {
-      const current = turnoverByMember.get(participant.ledgerMemberId) ?? {
+      const current = turnoverByUserId.get(participant.userId) ?? {
         turnover: 0,
         entries: 0,
       };
       current.turnover += gross;
       current.entries += 1;
-      turnoverByMember.set(participant.ledgerMemberId, current);
+      turnoverByUserId.set(participant.userId, current);
     }
   }
 
-  const rows = members.map((member) => {
-    const { turnover = 0, entries = 0 } = turnoverByMember.get(member.id) ?? {};
+  const rows = [...turnoverByUserId.entries()].map(([userId, agg]) => {
+    const member = memberByUserId.get(userId);
     return {
-      ledgerMemberId: member.id,
-      userId: member.userId,
-      name: member.user?.name ?? member.userId,
-      avatar: member.user?.avatar ?? null,
-      role: member.role as LedgerRole,
-      entryCount: entries,
-      turnover: round(turnover),
+      // Forward the userId so the client can disambiguate a row even when
+      // the user is no longer a current ledger member.
+      userId,
+      ledgerMemberId: member?.id ?? null,
+      name: member?.user?.name ?? userId,
+      avatar: member?.user?.avatar ?? null,
+      role: (member?.role ?? "editor") as LedgerRole,
+      entryCount: agg.entries,
+      turnover: round(agg.turnover),
     };
   });
 

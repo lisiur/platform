@@ -239,7 +239,7 @@ struct EntryRow: View {
                                 Image(systemName: "person.2")
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
-                                Text(participants.map { $0.user?.name ?? $0.ledgerMemberId }.joined(separator: ", "))
+                                Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
                                     .font(.caption2.weight(.medium))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)

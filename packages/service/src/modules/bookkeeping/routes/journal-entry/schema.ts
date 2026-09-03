@@ -35,11 +35,12 @@ export const journalLineSchema = z
   })
   .openapi("QianlaiJournalLine");
 
-/** Which ledger member an entry concerns; feeds member turnover reports. */
+/** Which user an entry concerns; the tag is anchored to User (not
+ * LedgerMember) so a participant's split survives their leaving the ledger. */
 export const journalEntryParticipantSchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
-    ledgerMemberId: z.string().openapi({ example: "clx1234567890" }),
+    userId: z.string().openapi({ example: "clx1234567890" }),
     // Owner-only, same redaction policy as entry creators' emails.
     user: z.object({
       id: z.string(),
@@ -134,7 +135,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     from: z.coerce.date().optional(),
     to: z.coerce.date().optional(),
     q: z.string().optional(),
-    participantMemberId: z.string().optional(),
+    participantUserId: z.string().optional(),
     projectId: z.string().optional(),
     accountId: z.string().optional().openapi({
       description:
@@ -192,7 +193,7 @@ export const createEntryBodySchema = z
     lines: z.array(journalLineInputSchema).min(2).max(50),
     // Optional ledger-member ids this entry concerns; must be members of the
     // ledger. Repeats are collapsed server-side.
-    participantMemberIds: z.array(z.string().min(1)).max(20).optional(),
+    participantUserIds: z.array(z.string().min(1)).max(20).optional(),
     // Optional project assignment. Guests must target one of their projects
     // and are restricted to expense categories.
     projectId: z.string().min(1).nullable().optional(),
@@ -254,14 +255,12 @@ export function serializeEntry<
     }>;
     participants?: Array<{
       id: string;
-      ledgerMemberId: string;
-      ledgerMember: {
-        user: {
-          id: string;
-          name: string;
-          email: string | null;
-          avatar: string | null;
-        };
+      userId: string;
+      user: {
+        id: string;
+        name: string;
+        email: string | null;
+        avatar: string | null;
       };
     }>;
   },
@@ -295,8 +294,8 @@ export function serializeEntry<
     })),
     participants: (entry.participants ?? []).map((participant) => ({
       id: participant.id,
-      ledgerMemberId: participant.ledgerMemberId,
-      user: participant.ledgerMember.user,
+      userId: participant.userId,
+      user: participant.user,
     })),
   };
 }

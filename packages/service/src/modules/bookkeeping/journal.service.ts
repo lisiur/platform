@@ -199,9 +199,7 @@ export function validateJournalLines(
 function redactEntryCreatorEmail<
   T extends {
     createdBy?: { email: string | null } | null;
-    participants?: Array<{
-      ledgerMember: { user: { email: string | null } };
-    }>;
+    participants?: Array<{ user: { email: string | null } }>;
   },
 >(entry: T, viewerRole: LedgerRole): T {
   if (viewerRole === "owner") return entry;
@@ -212,10 +210,7 @@ function redactEntryCreatorEmail<
       : entry.createdBy,
     participants: entry.participants?.map((p) => ({
       ...p,
-      ledgerMember: {
-        ...p.ledgerMember,
-        user: { ...p.ledgerMember.user, email: null },
-      },
+      user: { ...p.user, email: null },
     })),
   };
 }
@@ -270,7 +265,7 @@ export async function createEntry(
     date: Date;
     memo?: string;
     lines: JournalLineInput[];
-    participantMemberIds?: string[];
+    participantUserIds?: string[];
     projectId?: string | null;
     countsInLedger?: boolean;
     location?: EntryLocationInput | null;
@@ -294,21 +289,19 @@ export async function createEntry(
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
     ]);
-    const participantMemberIds = await withAutoParticipants(
+    const participantUserIds = await withAutoParticipants(
       tx,
       projectId,
-      data.participantMemberIds,
+      data.participantUserIds,
       ledgerMembers,
     );
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
       projectId,
-      participantMemberIds,
-      // The owner's keep-in intent — never honored for guests: their posts
-      // settle inside the project, so the flag is forced false at posting
-      // regardless of what the client asked for.
-      countsInLedger:
-        access.membership.role === "guest" ? false : data.countsInLedger,
+      participantUserIds,
+      // Pure user intent — passes through exactly as the client set it.
+      // The guest rule lives in `guestCreated` below, not here.
+      countsInLedger: data.countsInLedger,
       // System snapshot: true when the creator was a guest. The second,
       // client-immutable dimension of the same ledger-wide exclusion — a
       // later role change never rewrites history.
@@ -327,9 +320,11 @@ export async function createEntry(
  * `createEntry` above, or `setAccountBalance`) so entryNo stays race-free and
  * line validation runs against a transaction-consistent account list.
  *
- * `participantMemberIds` tags the entry to ledger members (for turnover
- * reports); it must be a subset of `ledgerMembers`, which the caller loads
- * under the same lock so a member removed concurrently is caught here.
+ * `participantUserIds` tags the entry to users (for turnover reports,
+ * the viewer's share-based statement, and project settlement); each must
+ * be a current member of this ledger. Anchored to User — not
+ * LedgerMember — so the tag survives a member leaving the ledger
+ * (settlement is a historical fact; membership is just access scope).
  */
 export async function postEntryInTransaction(
   tx: Prisma.TransactionClient,
@@ -341,8 +336,8 @@ export async function postEntryInTransaction(
     memo?: string;
     rawLines: JournalLineInput[];
     ledgerAccounts: BookAccount[];
-    ledgerMembers?: Array<{ id: string }>;
-    participantMemberIds?: string[];
+    ledgerMembers?: Array<{ id: string; userId: string }>;
+    participantUserIds?: string[];
     projectId?: string;
     /** Guest mode: lines restricted to expense categories. */
     expenseOnly?: boolean;
@@ -356,8 +351,8 @@ export async function postEntryInTransaction(
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
     expenseOnly: data.expenseOnly,
   });
-  const participantMemberIds = validateParticipants(
-    data.participantMemberIds,
+  const participantUserIds = validateParticipants(
+    data.participantUserIds,
     data.ledgerMembers ?? [],
   );
   // entryNo comes from the ledger's monotonic counter so numbers are never
@@ -383,7 +378,7 @@ export async function postEntryInTransaction(
           credit: new Prisma.Decimal(line.creditCents).div(100),
           memo: line.memo,
         })),
-        participantMemberIds,
+        participantUserIds,
       },
       tx,
     );
@@ -398,25 +393,26 @@ export async function postEntryInTransaction(
 }
 
 /**
- * Participants must be current members of this ledger. Deduplicated so a
- * repeated id can't violate the (entryId, ledgerMemberId) unique constraint.
- * Returns undefined (not []) when no participants are given, so
- * system-generated posts (balance adjustments) skip the relation entirely.
+ * Each participant userId must be a current member of this ledger.
+ * Deduplicated so a repeated id can't violate the (entryId, userId)
+ * unique constraint. Returns undefined (not []) when no participants are
+ * given, so system-generated posts (balance adjustments) skip the
+ * relation entirely.
  */
 function validateParticipants(
-  participantMemberIds: string[] | undefined,
-  ledgerMembers: Array<{ id: string }>,
+  participantUserIds: string[] | undefined,
+  ledgerMembers: Array<{ userId: string }>,
 ): string[] | undefined {
-  if (!participantMemberIds?.length) return undefined;
-  const memberIds = new Set(ledgerMembers.map((m) => m.id));
-  for (const id of new Set(participantMemberIds)) {
-    if (!memberIds.has(id)) {
+  if (!participantUserIds?.length) return undefined;
+  const memberUserIds = new Set(ledgerMembers.map((m) => m.userId));
+  for (const userId of new Set(participantUserIds)) {
+    if (!memberUserIds.has(userId)) {
       throw new HTTPException(400, {
         message: "Participants must be members of this ledger",
       });
     }
   }
-  return [...new Set(participantMemberIds)];
+  return [...new Set(participantUserIds)];
 }
 
 /**
@@ -426,29 +422,32 @@ function validateParticipants(
  * across its tagged participants, and without this snapshot the legacy
  * fallback (untagged = members at read time) would re-split history whenever
  * membership changes — a member who leaves stops owing their share of an
- * entry they consumed. Project members are keyed by userId while
- * participants are keyed by ledger membership, so the ids resolve through
- * the ledger roster (project members who left the ledger drop out silently;
- * validateParticipants would reject them). Ledger-wide entries keep the
- * optional-participant state — no settlement semantics apply there.
+ * entry they consumed. Tags are userIds: project members are keyed by
+ * userId, and tagging by userId (not ledgerMemberId) means a member who
+ * later leaves the ledger keeps the historical split set anchored to their
+ * userId — the tag survives the LedgerMember deletion. Project members who
+ * are not in the ledger roster are dropped silently; members who are in the
+ * ledger but have no User record fail validateParticipants. Ledger-wide
+ * entries keep the optional-participant state — no settlement semantics
+ * apply there.
  */
 async function withAutoParticipants(
   tx: Prisma.TransactionClient,
   projectId: string | null | undefined,
-  participantMemberIds: string[] | undefined,
+  participantUserIds: string[] | undefined,
   ledgerMembers: Array<{ id: string; userId: string }>,
 ): Promise<string[] | undefined> {
-  if (participantMemberIds?.length || !projectId) return participantMemberIds;
+  // Empty array = explicitly cleared → falls through to re-tagging,
+  // mirroring create's "no explicit participants" behavior.
+  if (participantUserIds?.length || !projectId) return participantUserIds;
   const project = await projectRepository.findByIdWithMembers(projectId, tx);
-  if (!project) return participantMemberIds;
-  const ledgerMemberIdByUserId = new Map(
-    ledgerMembers.map((member) => [member.userId, member.id]),
-  );
+  if (!project) return participantUserIds;
+  const memberUserIds = new Set(ledgerMembers.map((m) => m.userId));
   return [
     ...new Set(
       project.members
-        .map((member) => ledgerMemberIdByUserId.get(member.userId))
-        .filter((id): id is string => id !== undefined),
+        .map((member) => member.userId)
+        .filter((userId): userId is string => memberUserIds.has(userId)),
     ),
   ].sort();
 }
@@ -473,7 +472,7 @@ export async function updateEntry(
     date: Date;
     memo?: string;
     lines: JournalLineInput[];
-    participantMemberIds?: string[];
+    participantUserIds?: string[];
     projectId?: string | null;
     countsInLedger?: boolean;
     location?: EntryLocationInput | null;
@@ -539,25 +538,21 @@ export async function updateEntry(
     // form fully specifies the entry — and a project entry cleared to none
     // is re-tagged with the project's current members (split-set freeze,
     // mirroring create).
-    const participantMemberIds = await withAutoParticipants(
+    const participantUserIds = await withAutoParticipants(
       tx,
       projectId,
-      validateParticipants(data.participantMemberIds, ledgerMembers) ?? [],
+      validateParticipants(data.participantUserIds, ledgerMembers) ?? [],
       ledgerMembers,
     );
     // withAutoParticipants returns undefined for an untagged ledger-wide
     // entry; the repo's delete-and-recreate treats [] as "no tags".
-    const participantIds = participantMemberIds ?? [];
+    const participantIds = participantUserIds ?? [];
     // countsInLedger deviates from replace semantics: omitted = keep the
     // entry's current flag, so editing an excluded entry (repayment)
-    // doesn't silently re-include it. Guests can never change it — the
-    // creation-time false sticks, mirroring the projectId pinning above;
-    // the system guest rule stays in the immutable guestCreated column,
-    // which this update never touches.
-    const countsInLedger =
-      actor.role === "guest"
-        ? entry.countsInLedger
-        : (data.countsInLedger ?? entry.countsInLedger);
+    // doesn't silently re-include it. Pure user intent — guests toggle it
+    // like anyone else; the guest rule lives in the immutable guestCreated
+    // column, which this update never touches.
+    const countsInLedger = data.countsInLedger ?? entry.countsInLedger;
     // Location deviates from replace semantics like countsInLedger: omitted
     // = keep the stored place (edit forms that don't surface the field
     // can't strip it), explicit null = clear, an object = full replacement
@@ -599,7 +594,7 @@ export async function updateEntry(
             credit: new Prisma.Decimal(line.creditCents).div(100),
             memo: line.memo,
           })),
-          participantMemberIds: participantIds,
+          participantUserIds: participantIds,
         },
         tx,
       );

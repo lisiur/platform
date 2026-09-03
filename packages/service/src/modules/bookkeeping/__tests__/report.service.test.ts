@@ -74,7 +74,7 @@ function shareEntry(
       account: { type: line.type ?? "expense" },
     })),
     participants: (overrides.participants ?? ["user-a"]).map((userId) => ({
-      ledgerMember: { userId },
+      userId,
     })),
   };
 }

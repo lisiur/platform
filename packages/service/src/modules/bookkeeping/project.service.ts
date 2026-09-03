@@ -472,7 +472,7 @@ export async function projectReport(userId: string, projectId: string) {
   for (const entry of entries) {
     if (entry.createdById) referencedUserIds.add(entry.createdById);
     for (const p of entry.participants) {
-      referencedUserIds.add(p.ledgerMember.userId);
+      referencedUserIds.add(p.userId);
     }
   }
   const departedUserIds = [...referencedUserIds].filter(
@@ -564,9 +564,7 @@ export async function projectReport(userId: string, projectId: string) {
     // legacy-only — entries posted before auto-tagging — and splits across
     // the current membership at read time.
     const splitUserIds = entry.participants.length
-      ? [
-          ...new Set(entry.participants.map((p) => p.ledgerMember.userId)),
-        ].sort()
+      ? [...new Set(entry.participants.map((p) => p.userId))].sort()
       : memberUserIds;
     const n = splitUserIds.length;
     if (n > 0 && valueCents !== 0) {

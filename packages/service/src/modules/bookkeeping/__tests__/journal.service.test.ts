@@ -388,8 +388,8 @@ describe("createEntry", () => {
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
     mockMemberRepo.listByLedger.mockResolvedValue([
-      { id: "mem-1" },
-      { id: "mem-2" },
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
     ]);
   });
 
@@ -479,7 +479,7 @@ describe("createEntry", () => {
           "led-1",
           {
             ...baseEntryInput,
-            participantMemberIds: ["mem-1", "mem-foreign"],
+            participantUserIds: ["user-a", "user-foreign"],
           },
           editorAccess,
         ),
@@ -504,12 +504,12 @@ describe("createEntry", () => {
       "led-1",
       {
         ...baseEntryInput,
-        participantMemberIds: ["mem-2", "mem-1", "mem-2"],
+        participantUserIds: ["user-b", "user-a", "user-b"],
       },
       editorAccess,
     );
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ participantMemberIds: ["mem-2", "mem-1"] }),
+      expect.objectContaining({ participantUserIds: ["user-b", "user-a"] }),
       expect.anything(),
     );
   });
@@ -527,7 +527,7 @@ describe("createEntry", () => {
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-4" });
     await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ participantMemberIds: undefined }),
+      expect.objectContaining({ participantUserIds: undefined }),
       expect.anything(),
     );
   });
@@ -562,10 +562,10 @@ describe("createEntry", () => {
       { ...baseEntryInput, projectId: "proj-1" },
       editorAccess,
     );
-    // Sorted ledger member ids, one per project member, so the split set
-    // is frozen even after membership changes.
+    // Sorted userIds, one per project member — the split set is frozen
+    // by userId (not ledgerMemberId), so it survives membership changes.
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ participantMemberIds: ["mem-1", "mem-2"] }),
+      expect.objectContaining({ participantUserIds: ["user-a", "user-b"] }),
       expect.anything(),
     );
   });
@@ -596,13 +596,13 @@ describe("createEntry", () => {
       {
         ...baseEntryInput,
         projectId: "proj-1",
-        participantMemberIds: ["mem-2"],
+        participantUserIds: ["user-b"],
       },
       editorAccess,
     );
     expect(mockProjectRepo.findByIdWithMembers).not.toHaveBeenCalled();
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ participantMemberIds: ["mem-2"] }),
+      expect.objectContaining({ participantUserIds: ["user-b"] }),
       expect.anything(),
     );
   });
@@ -647,8 +647,8 @@ describe("updateEntry", () => {
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
     mockMemberRepo.listByLedger.mockResolvedValue([
-      { id: "mem-1" },
-      { id: "mem-2" },
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
     ]);
   });
 
@@ -707,7 +707,7 @@ describe("updateEntry", () => {
       "e-1",
       expect.objectContaining({
         memo: "edited",
-        participantMemberIds: [],
+        participantUserIds: [],
         lines: [
           expect.objectContaining({ accountId: "acc-cash" }),
           expect.objectContaining({ accountId: "acc-food" }),
@@ -752,7 +752,7 @@ describe("updateEntry", () => {
     // must not fall back to "untagged = current members at read time".
     expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
       "e-1",
-      expect.objectContaining({ participantMemberIds: ["mem-2"] }),
+      expect.objectContaining({ participantUserIds: ["user-b"] }),
       expect.anything(),
     );
   });
@@ -794,7 +794,7 @@ describe("updateEntry", () => {
       () =>
         updateEntry("led-1", "e-1", ownerActor, {
           ...baseEntryInput,
-          participantMemberIds: ["mem-foreign"],
+          participantUserIds: ["user-foreign"],
         }),
       400,
     );
@@ -844,7 +844,9 @@ describe("createEntry as guest", () => {
     mockPrisma.$transaction.mockImplementation(
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
-    mockMemberRepo.listByLedger.mockResolvedValue([{ id: "mem-1" }]);
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+    ]);
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
       status: "active",
@@ -951,7 +953,7 @@ describe("createEntry as guest", () => {
     );
   });
 
-  it("forces countsInLedger=false and stamps guestCreated for guests", async () => {
+  it("passes the client's countsInLedger through and stamps guestCreated for guests", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
@@ -973,10 +975,11 @@ describe("createEntry as guest", () => {
       },
       guestAccess,
     );
-    // The forced countsInLedger=false is belt; the system-set guestCreated
-    // snapshot is suspenders — the client never gets a say in either.
+    // countsInLedger is pure user intent (the toggle is hidden in the
+    // guest form, so it stays at the default true); the guest rule lives
+    // only in the system-set guestCreated snapshot.
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ countsInLedger: false, guestCreated: true }),
+      expect.objectContaining({ countsInLedger: true, guestCreated: true }),
       expect.anything(),
     );
   });
@@ -1015,7 +1018,9 @@ describe("updateEntry as guest", () => {
     mockPrisma.$transaction.mockImplementation(
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
-    mockMemberRepo.listByLedger.mockResolvedValue([{ id: "mem-1" }]);
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+    ]);
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
       status: "active",
@@ -1099,7 +1104,7 @@ describe("updateEntry as guest", () => {
     expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
   });
 
-  it("pins countsInLedger to the entry's value for guests", async () => {
+  it("honors a guest's countsInLedger toggle (pure user intent)", async () => {
     mockJournalRepo.findById.mockResolvedValue({
       id: "e-1",
       ledgerId: "led-1",
@@ -1119,7 +1124,7 @@ describe("updateEntry as guest", () => {
     });
     expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
       "e-1",
-      expect.objectContaining({ countsInLedger: false }),
+      expect.objectContaining({ countsInLedger: true }),
       expect.anything(),
     );
   });
@@ -1185,8 +1190,8 @@ describe("entry location", () => {
       (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
     mockMemberRepo.listByLedger.mockResolvedValue([
-      { id: "mem-1" },
-      { id: "mem-2" },
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
     ]);
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
