@@ -240,18 +240,17 @@ struct EntryRow: View {
                             .font(.caption)
                             .lineLimit(2)
                     }
-                    if entry.project != nil
-                        || !(entry.participants?.isEmpty ?? true)
-                        || entry.location != nil {
+                    if entry.project != nil || entry.location != nil {
                         HStack(spacing: 8) {
                             if let project = entry.project {
                                 HStack(spacing: 4) {
                                     Image(systemName: "folder")
                                         .font(.caption2)
+                                        .foregroundStyle(.tertiary)
                                     Text(project.name)
                                         .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
-                                .foregroundStyle(.tertiary)
                             }
                             if let location = entry.location,
                                let label = location.displayName ?? coordinateLabel(location) {
@@ -263,20 +262,20 @@ struct EntryRow: View {
                                 }
                                 .foregroundStyle(.tertiary)
                             }
-                            if let participants = entry.participants, !participants.isEmpty {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "person.2")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                    Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                }
-                            }
                         }
                         .lineLimit(1)
+                    }
+                    if let participants = entry.participants, !participants.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.2")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                            Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
                     }
                     if !entry.countsInLedger {
                         HStack(spacing: 4) {
@@ -295,8 +294,8 @@ struct EntryRow: View {
                             .font(.callout.weight(.semibold).monospacedDigit())
                             .foregroundStyle(amountSection.headline.color)
                         let captions = [amountSection.total, amountSection.paid].compactMap { $0 }
-                        if !captions.isEmpty {
-                            Text(captions.joined(separator: " · "))
+                        ForEach(captions.indices, id: \.self) { index in
+                            Text(captions[index])
                                 .font(.caption2.monospacedDigit())
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

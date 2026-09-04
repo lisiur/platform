@@ -3688,7 +3688,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "垫付人"
+            "value" : "付款人"
           }
         }
       }
@@ -3790,7 +3790,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@垫付"
+            "value" : "由%@付款"
           }
         }
       }
@@ -3859,6 +3859,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "访客提交和不计入收支的记录（如信用卡还款）不会出现在账本的收支统计中。"
+          }
+        }
+      }
+    },
+    "journal.totalAmount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合计"
           }
         }
       }
@@ -6517,7 +6534,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "垫付人"
+            "value" : "付款人"
           }
         }
       }

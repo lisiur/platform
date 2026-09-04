@@ -104,17 +104,10 @@ struct JournalDetailView: View {
                     value: creatorName
                 )
             }
-            // Only a payer distinct from the creator earns their own row —
-            // when they're the same person the Created By row says it all.
-            // A deleted payer's account (SetNull) hides the row: unknown,
-            // not mislabeled.
-            if let paidByName = resolved.paidBy?.name, !paidByName.isEmpty,
-               resolved.paidById != resolved.createdById {
-                row(
-                    L10n.string("journal.detail.paidBy", defaultValue: "Paid By"),
-                    value: paidByName
-                )
-            }
+            row(
+                L10n.string("journal.detail.paidBy", defaultValue: "Paid By"),
+                value: paidByNameRowValue
+            )
             if let project = resolved.project {
                 row(
                     L10n.string("journal.detail.project", defaultValue: "Project"),
@@ -262,6 +255,17 @@ struct JournalDetailView: View {
             Text(label)
                 .foregroundStyle(.primary)
         }
+    }
+
+    /// Who fronted the money is part of the record even when they're the
+    /// creator (the default), so the details row is always shown. A deleted
+    /// payer's account (SetNull) reads "—": unknown, not mislabeled — the
+    /// web table's Paid By column does the same.
+    private var paidByNameRowValue: String {
+        if let name = resolved.paidBy?.name, !name.isEmpty {
+            return name
+        }
+        return "—"
     }
 
     private var menu: some View {
