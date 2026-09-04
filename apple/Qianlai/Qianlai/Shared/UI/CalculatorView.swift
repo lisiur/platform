@@ -276,10 +276,10 @@ struct CalculatorView: View {
             display
             pad
         }
-        .padding(10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .sensoryFeedback(.selection, trigger: keyPressCount)
-        // Capped on wide surfaces (iPad form sheet) so the keys stay key
-        // sized, centered in whatever width the host gives.
+        // Keep the calculator aligned with the form on wide surfaces.
         .frame(maxWidth: 420)
         .frame(maxWidth: .infinity)
     }

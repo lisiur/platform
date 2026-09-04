@@ -164,7 +164,7 @@ final class ProjectStore {
         reportRequestID = requestID
         reportLoadTask?.cancel()
         let client = self.client
-        let task = Task.detached(priority: .userInitiated) { () -> Result<ProjectReport, Error> in
+        let task = Task(priority: .userInitiated) { () -> Result<ProjectReport, Error> in
             do {
                 return .success(try await client.request("GET", path))
             } catch {

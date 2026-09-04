@@ -63,6 +63,7 @@ struct EntryListView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             } else if let error = store.loadError, store.entries.isEmpty {
                 ErrorRetryView(message: error) {
                     Task { await store.reload() }
