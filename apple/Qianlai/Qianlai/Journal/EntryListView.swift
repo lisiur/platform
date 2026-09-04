@@ -220,9 +220,9 @@ struct EntryRow: View {
                         .lineLimit(1)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(AppDates.formatEntryTime(entry.date))
-                        if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
+                        if let payerCaption {
                             Text("·")
-                            Text(creatorName)
+                            Text(payerCaption)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
@@ -347,6 +347,24 @@ struct EntryRow: View {
             .filter { !$0.account.isDefaultPocket && $0 != categoryLine }
             .map { $0.account.displayName }
         return names.isEmpty ? nil : names.joined(separator: " · ")
+    }
+
+    /// The meta caption's person slot. The row's caption historically showed
+    /// the creator's plain name, but with explicit payers the interesting
+    /// fact is who fronted the money: when someone other than the creator
+    /// paid, the slot reads "Paid by ⟨payer⟩" instead.
+    private var payerCaption: String? {
+        if entry.paidById != entry.createdById,
+           let paidByName = entry.paidBy?.name, !paidByName.isEmpty {
+            return String(
+                format: L10n.string("journal.paidByFormat", defaultValue: "Paid by %@"),
+                paidByName
+            )
+        }
+        if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
+            return creatorName
+        }
+        return nil
     }
 
     private var title: String {

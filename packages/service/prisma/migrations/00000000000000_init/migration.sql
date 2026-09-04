@@ -917,6 +917,7 @@ CREATE TABLE "qianlai_journal_entry" (
     "memo" TEXT,
     "status" TEXT NOT NULL DEFAULT 'posted',
     "createdById" TEXT,
+    "paidById" TEXT,
     "projectId" TEXT,
     "countsInLedger" BOOLEAN NOT NULL DEFAULT true,
     "guestCreated" BOOLEAN NOT NULL DEFAULT false,
@@ -1565,6 +1566,9 @@ ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_ledger
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_paidById_fkey" FOREIGN KEY ("paidById") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_entry" ADD CONSTRAINT "qianlai_journal_entry_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "qianlai_project"("id") ON DELETE SET NULL ON UPDATE CASCADE;

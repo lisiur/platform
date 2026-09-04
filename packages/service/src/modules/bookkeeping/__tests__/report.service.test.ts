@@ -55,7 +55,7 @@ function account(
 /** A plain number stands in for Prisma Decimal in these tests. */
 function shareEntry(
   overrides: {
-    createdById?: string | null;
+    paidById?: string | null;
     lines?: Array<{
       accountId: string;
       debit: number;
@@ -66,7 +66,7 @@ function shareEntry(
   } = {},
 ) {
   return {
-    createdById: overrides.createdById ?? "user-a",
+    paidById: overrides.paidById ?? "user-a",
     lines: (overrides.lines ?? []).map((line) => ({
       accountId: line.accountId,
       debit: line.debit,
@@ -123,7 +123,7 @@ describe("incomeStatement (share-based)", () => {
       // A guest posted 30 for something the viewer shared in: real
       // consumption, counted through the participant share.
       shareEntry({
-        createdById: "user-guest",
+        paidById: "user-guest",
         lines: [{ accountId: "acc-food", debit: 30, credit: 0 }],
         participants: ["user-a", "user-guest"],
       }),
@@ -137,7 +137,7 @@ describe("incomeStatement (share-based)", () => {
   it("counts the viewer's own untagged entries in full", async () => {
     mockJournalRepo.listShareEntries.mockResolvedValue([
       shareEntry({
-        createdById: "user-a",
+        paidById: "user-a",
         lines: [{ accountId: "acc-food", debit: 80, credit: 0 }],
         participants: [],
       }),
@@ -146,6 +146,22 @@ describe("incomeStatement (share-based)", () => {
     const result = await incomeStatement("user-a", "led-1");
 
     expect(result.totalExpense).toBe(80);
+  });
+
+  it("charges untagged entries to the payer, not the recorder", async () => {
+    mockJournalRepo.listShareEntries.mockResolvedValue([
+      // The viewer recorded the entry but John fronted the 80: it belongs
+      // to John's personal books, not the viewer's.
+      shareEntry({
+        paidById: "user-b",
+        lines: [{ accountId: "acc-food", debit: 80, credit: 0 }],
+        participants: [],
+      }),
+    ]);
+
+    const result = await incomeStatement("user-a", "led-1");
+
+    expect(result.totalExpense).toBe(0);
   });
 
   it("gives the split remainder to the earliest sorted participant", async () => {
@@ -165,7 +181,7 @@ describe("incomeStatement (share-based)", () => {
   it("attributes income-heavy entries to income rows at the viewer's share", async () => {
     mockJournalRepo.listShareEntries.mockResolvedValue([
       shareEntry({
-        createdById: "user-b",
+        paidById: "user-b",
         lines: [
           { accountId: "acc-salary", debit: 0, credit: 90, type: "income" },
         ],

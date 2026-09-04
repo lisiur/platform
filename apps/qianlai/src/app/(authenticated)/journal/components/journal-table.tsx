@@ -62,6 +62,8 @@ interface EntryRow {
   memo: string | null;
   createdById: string | null;
   createdBy: { id: string; name: string } | null;
+  paidById: string | null;
+  paidBy: { id: string; name: string } | null;
   countsInLedger: boolean;
   guestCreated: boolean;
   projectId: string | null;
@@ -350,6 +352,7 @@ export function JournalTable() {
             <TableHead className="w-28">{t("date")}</TableHead>
             <TableHead>{t("lines")}</TableHead>
             <TableHead className="w-28 text-right">{t("amount")}</TableHead>
+            <TableHead className="w-24">{t("paidBy")}</TableHead>
             <TableHead className="w-24">{t("createdBy")}</TableHead>
             <TableActionHead />
           </TableRow>
@@ -419,6 +422,12 @@ export function JournalTable() {
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatAmount(amount)}
+                </TableCell>
+                {/* Labeled column: only the payer belongs here. A deleted
+                    payer's account (SetNull) leaves the payer unknown — a
+                    dash, never the creator's name. */}
+                <TableCell className="text-muted-foreground text-sm">
+                  {entry.paidBy?.name ?? "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {entry.createdBy?.name ?? "—"}

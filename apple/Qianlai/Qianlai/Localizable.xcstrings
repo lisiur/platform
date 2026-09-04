@@ -3676,6 +3676,23 @@
         }
       }
     },
+    "journal.detail.paidBy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid By"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "垫付人"
+          }
+        }
+      }
+    },
     "journal.detail.participants" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3757,6 +3774,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不计入收支"
+          }
+        }
+      }
+    },
+    "journal.paidByFormat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid by %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@垫付"
           }
         }
       }
@@ -6467,6 +6501,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部项目成员"
+          }
+        }
+      }
+    },
+    "quick.paidBy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paid By"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "垫付人"
+          }
+        }
+      }
+    },
+    "quick.paidByFormerMember" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (no longer a member)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（已不在本账本）"
           }
         }
       }

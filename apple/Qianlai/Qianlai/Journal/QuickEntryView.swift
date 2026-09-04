@@ -17,6 +17,7 @@ struct QuickEntryView: View {
     @Environment(ToastCenter.self) private var toast
     @Environment(JournalStore.self) private var journalStore
     @Environment(ReportStore.self) private var reportStore
+    @Environment(AuthManager.self) private var auth
     private let editedEntry: JournalEntry?
     @State private var draft: QuickEntryDraft
     /// The calculator engine doubles as the amount field: the inline
@@ -86,6 +87,36 @@ struct QuickEntryView: View {
             return memberStore.members.filter { memberUserIds.contains($0.userId) }
         }
         return memberStore.members
+    }
+
+    /// Who can be named as the payer: any ledger member — the recorder is
+    /// not always the person who fronted the money. Ledger-wide, unlike the
+    /// participant set: someone outside the picked project can still have
+    /// paid for it.
+    private var payerCandidates: [LedgerMember] {
+        memberStore.members
+    }
+
+    /// When editing, the entry's stored payer may no longer be a member
+    /// (they left the ledger after posting). The server keeps a resubmitted
+    /// historical payer, so the picker must still list them — without a tag
+    /// matching the draft's selection it would render blank.
+    private var historicalPayer: (id: String, label: String)? {
+        guard let entry = editedEntry,
+              let paidById = entry.paidById,
+              !payerCandidates.contains(where: { $0.userId == paidById })
+        else { return nil }
+        let name = entry.paidBy?.name ?? paidById
+        return (
+            paidById,
+            String(
+                format: L10n.string(
+                    "quick.paidByFormerMember",
+                    defaultValue: "%@ (no longer a member)"
+                ),
+                name
+            )
+        )
     }
 
     /// Which side's account picker the sheet is showing — one presentation
@@ -282,6 +313,9 @@ struct QuickEntryView: View {
                     draft.debitAccountId = nil
                     draft.creditAccountId = nil
                     draft.participants = []
+                    // paidByUserId stays nil: the server defaults the payer
+                    // to the recorder, and the picker's binding displays the
+                    // signed-in user for a nil draft value.
                     draft.projectId = nil
                     draft.countsInLedger = true
                     draft.location = nil
@@ -360,6 +394,23 @@ struct QuickEntryView: View {
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
+            }
+
+            // Who fronted the money — a person, unlike the "Pay From" pocket
+            // above. Defaults to the recorder; picking a teammate records
+            // that THEY paid while I only wrote the entry down.
+            if !payerCandidates.isEmpty || historicalPayer != nil {
+                Picker(L10n.string("quick.paidBy", defaultValue: "Paid By"), selection: Binding(
+                    get: { draft.paidByUserId ?? auth.currentUser?.id ?? "" },
+                    set: { draft.paidByUserId = $0.isEmpty ? nil : $0 }
+                )) {
+                    ForEach(payerCandidates) { member in
+                        Text(member.displayName).tag(member.userId)
+                    }
+                    if let historicalPayer {
+                        Text(historicalPayer.label).tag(historicalPayer.id)
+                    }
+                }
             }
 
             dateTimeField

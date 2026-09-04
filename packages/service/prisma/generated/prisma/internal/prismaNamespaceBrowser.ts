@@ -1027,6 +1027,7 @@ export const JournalEntryScalarFieldEnum = {
   memo: 'memo',
   status: 'status',
   createdById: 'createdById',
+  paidById: 'paidById',
   projectId: 'projectId',
   countsInLedger: 'countsInLedger',
   guestCreated: 'guestCreated',

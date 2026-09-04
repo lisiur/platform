@@ -192,13 +192,14 @@ export function validateJournalLines(
 }
 
 /**
- * Only owners see entry creators' and participants' email addresses — same
- * policy as `listMembers`: non-owners must not be able to harvest members'
- * emails through the journal history.
+ * Only owners see entry creators'/payers' and participants' email
+ * addresses — same policy as `listMembers`: non-owners must not be able to
+ * harvest members' emails through the journal history.
  */
 function redactEntryCreatorEmail<
   T extends {
     createdBy?: { email: string | null } | null;
+    paidBy?: { email: string | null } | null;
     participants?: Array<{ user: { email: string | null } }>;
   },
 >(entry: T, viewerRole: LedgerRole): T {
@@ -208,6 +209,7 @@ function redactEntryCreatorEmail<
     createdBy: entry.createdBy
       ? { ...entry.createdBy, email: null }
       : entry.createdBy,
+    paidBy: entry.paidBy ? { ...entry.paidBy, email: null } : entry.paidBy,
     participants: entry.participants?.map((p) => ({
       ...p,
       user: { ...p.user, email: null },
@@ -256,7 +258,9 @@ export async function getEntry(
  * the transaction so the per-ledger entryNo sequence is race-free; lines are
  * validated under the same lock against a transaction-consistent account list,
  * and the archived guard is re-evaluated under the lock (the route's check ran
- * on a pre-transaction snapshot).
+ * on a pre-transaction snapshot). `paidByUserId` may name any ledger member —
+ * recording an entry someone else paid for is the point of the field; it
+ * defaults to the creator.
  */
 export async function createEntry(
   userId: string,
@@ -266,6 +270,8 @@ export async function createEntry(
     memo?: string;
     lines: JournalLineInput[];
     participantUserIds?: string[];
+    /** Who fronted the money; omitted/null defaults to the creator. */
+    paidByUserId?: string | null;
     projectId?: string | null;
     countsInLedger?: boolean;
     location?: EntryLocationInput | null;
@@ -325,6 +331,10 @@ export async function createEntry(
  * be a current member of this ledger. Anchored to User — not
  * LedgerMember — so the tag survives a member leaving the ledger
  * (settlement is a historical fact; membership is just access scope).
+ *
+ * `paidByUserId` records who fronted the money — not necessarily the
+ * recorder; omitted/null falls back to the creator, and an explicit id
+ * must be a current ledger member (same roster check as participants).
  */
 export async function postEntryInTransaction(
   tx: Prisma.TransactionClient,
@@ -338,6 +348,8 @@ export async function postEntryInTransaction(
     ledgerAccounts: BookAccount[];
     ledgerMembers?: Array<{ id: string; userId: string }>;
     participantUserIds?: string[];
+    /** Who fronted the money; omitted/null defaults to the creator. */
+    paidByUserId?: string | null;
     projectId?: string;
     /** Guest mode: lines restricted to expense categories. */
     expenseOnly?: boolean;
@@ -355,6 +367,11 @@ export async function postEntryInTransaction(
     data.participantUserIds,
     data.ledgerMembers ?? [],
   );
+  const paidById = resolvePaidById(
+    data.paidByUserId,
+    userId,
+    data.ledgerMembers ?? [],
+  );
   // entryNo comes from the ledger's monotonic counter so numbers are never
   // reused, even after deleting the highest-numbered entry. Race-free
   // because we hold the ledger row lock.
@@ -368,6 +385,7 @@ export async function postEntryInTransaction(
         date: data.date,
         memo: data.memo,
         createdById: userId,
+        paidById,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
         guestCreated: data.guestCreated ?? false,
@@ -416,6 +434,27 @@ function validateParticipants(
 }
 
 /**
+ * Resolves the entry's payer: an explicit `paidByUserId` must be a current
+ * member of this ledger (recording for someone else is fine — paying
+ * from outside the ledger is not), while omitted/null falls back to the
+ * creator, so plain posts and system adjustments behave exactly as before
+ * explicit payers existed.
+ */
+function resolvePaidById(
+  paidByUserId: string | null | undefined,
+  creatorId: string,
+  ledgerMembers: Array<{ userId: string }>,
+): string {
+  if (!paidByUserId) return creatorId;
+  if (!ledgerMembers.some((m) => m.userId === paidByUserId)) {
+    throw new HTTPException(400, {
+      message: "The payer must be a member of this ledger",
+    });
+  }
+  return paidByUserId;
+}
+
+/**
  * Freezes a project entry's split set at write time. An entry posted into a
  * project without explicit participants involves the project's whole current
  * membership, so tag them now: the settlement report splits each entry
@@ -458,8 +497,10 @@ async function withAutoParticipants(
  * transaction-consistent account list and the archived guard is
  * re-evaluated under the lock. entryNo and the original creator are kept —
  * editing corrects values, it does not re-post the entry. `countsInLedger`
- * keeps-on-omit and stays guest-pinned (see below); the system guest rule
- * (`guestCreated`) is set once at posting and never editable here.
+ * keeps-on-omit and stays guest-pinned (see below); the payer keeps-on-omit
+ * too, with null resetting to the original creator (see below); the system
+ * guest rule (`guestCreated`) is set once at posting and never editable
+ * here.
  *
  * Guests may only edit entries they created, and only within (and keeping
  * them in) one of their projects.
@@ -473,6 +514,14 @@ export async function updateEntry(
     memo?: string;
     lines: JournalLineInput[];
     participantUserIds?: string[];
+    /**
+     * Who fronted the money. Omitted = keep the current payer, null =
+     * reset to the original creator, an id = reassign. A reassignment must
+     * name a current ledger member — but resubmitting the entry's stored
+     * payer is not a reassignment and is kept even after they left the
+     * ledger (edit forms echo the stored payer back).
+     */
+    paidByUserId?: string | null;
     projectId?: string | null;
     countsInLedger?: boolean;
     location?: EntryLocationInput | null;
@@ -553,6 +602,25 @@ export async function updateEntry(
     // like anyone else; the guest rule lives in the immutable guestCreated
     // column, which this update never touches.
     const countsInLedger = data.countsInLedger ?? entry.countsInLedger;
+    // The payer mirrors that keep-on-omit pattern: omitted = keep the
+    // current payer (edit forms that don't surface the field can't strip
+    // it), null = reset to the original creator (may itself be null when
+    // that account was deleted), an id = reassign after the roster check —
+    // except an id that equals the entry's stored payer: echoing history
+    // back is not a reassignment, so a payer who left the ledger after
+    // posting stays put instead of blocking every future edit.
+    const paidByIdUpdate =
+      data.paidByUserId === undefined
+        ? undefined
+        : data.paidByUserId === null
+          ? (entry.createdById ?? null)
+          : data.paidByUserId === entry.paidById
+            ? entry.paidById
+            : resolvePaidById(
+                data.paidByUserId,
+                entry.createdById ?? actor.userId,
+                ledgerMembers,
+              );
     // Location deviates from replace semantics like countsInLedger: omitted
     // = keep the stored place (edit forms that don't surface the field
     // can't strip it), explicit null = clear, an object = full replacement
@@ -587,6 +655,7 @@ export async function updateEntry(
           memo: data.memo,
           projectId: projectId ?? null,
           countsInLedger,
+          ...(paidByIdUpdate !== undefined ? { paidById: paidByIdUpdate } : {}),
           ...(locationUpdate ? { location: locationUpdate } : {}),
           lines: lines.map((line) => ({
             accountId: line.accountId,

@@ -341,7 +341,10 @@
       "projectHint": "Optionally file this entry under a project",
       "projectGuestHint": "Your entries are recorded inside the selected project",
       "countsInLedger": "Count in income & expense",
-      "countsInLedgerHint": "Unchecked keeps this entry out of the ledger's income & expense totals and journal — e.g. a credit-card repayment already expensed at purchase."
+      "countsInLedgerHint": "Unchecked keeps this entry out of the ledger's income & expense totals and journal — e.g. a credit-card repayment already expensed at purchase.",
+      "paidBy": "Paid By",
+      "paidBySelf": "Me",
+      "paidByHint": "Who actually fronted the money — defaults to you. Pick a member when someone else paid but you're recording the entry."
     },
     "dateLabel": "Date",
     "memoPlaceholder": "e.g. Weekly groceries",
@@ -367,7 +370,8 @@
     "countedOnly": "Counted in income & expense",
     "allEntries": "All entries",
     "notCounted": "Not counted",
-    "entryCount": "{count, plural, one {# entry} other {# entries}}"
+    "entryCount": "{count, plural, one {# entry} other {# entries}}",
+    "paidBy": "Paid By"
   },
   "Reports": {
     "title": "Reports",

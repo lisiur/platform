@@ -197,6 +197,79 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertTrue(cleared["location"] is NSNull)
     }
 
+    func testQuickEntrySendsPaidByUserAndOmitsWhenNil() throws {
+        var draft = QuickEntryDraft()
+        draft.kind = .expense
+        draft.amount = 10
+        draft.debitAccountId = "food"
+
+        // nil omits the key: the server defaults the payer to the recorder
+        // on create and keeps the stored payer on edit.
+        let omitted = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertFalse(omitted.keys.contains("paidByUserId"))
+
+        // A teammate fronted the money: the id is sent explicitly.
+        draft.paidByUserId = "user-john"
+        let explicit = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(explicit["paidByUserId"] as? String, "user-john")
+    }
+
+    func testViewerShareChargesUntaggedEntriesToThePayer() {
+        // The recorder bears nothing when someone else fronted the money;
+        // the payer bears the untagged entry in full — mirroring the
+        // server's viewerShareCents fallback.
+        let johnPaid = makeEntry(paidById: "user-john", participants: [])
+        XCTAssertEqual(johnPaid.viewerShareCents(viewerUserId: "user-john"), 1000)
+        XCTAssertEqual(johnPaid.viewerShareCents(viewerUserId: "user-me"), 0)
+
+        // No explicit payer (legacy/deleted payer): falls back to the
+        // recorder exactly as before the field existed.
+        let recorderPaid = makeEntry(paidById: nil, participants: [])
+        XCTAssertEqual(recorderPaid.viewerShareCents(viewerUserId: "user-me"), 1000)
+    }
+
+    /// A ¥10 expense with the category and default-pocket lines, recorded
+    /// by user-me.
+    private func makeEntry(paidById: String?, participants: [EntryParticipant]) -> JournalEntry {
+        let food = JournalLineAccountRef(
+            id: "acc-food", name: "Food", code: nil, type: .expense,
+            sortOrder: 10, icon: nil, flags: nil
+        )
+        let pocket = JournalLineAccountRef(
+            id: "acc-pocket", name: nil, code: "defaultAccount", type: .asset,
+            sortOrder: 5, icon: nil, flags: nil
+        )
+        return JournalEntry(
+            id: "e-1",
+            ledgerId: "led-1",
+            entryNo: 1,
+            date: Date(timeIntervalSince1970: 0),
+            memo: nil,
+            status: "posted",
+            countsInLedger: true,
+            guestCreated: false,
+            createdById: "user-me",
+            createdBy: EntryUserRef(id: "user-me", name: "Me", email: nil, avatar: nil),
+            paidById: paidById,
+            paidBy: paidById.map {
+                EntryUserRef(id: $0, name: $0 == "user-me" ? "Me" : "John", email: nil, avatar: nil)
+            },
+            createdAt: Date(timeIntervalSince1970: 0),
+            projectId: nil,
+            project: nil,
+            location: nil,
+            lines: [
+                JournalLine(id: "l-1", accountId: "acc-food", account: food, debit: 10, credit: 0, memo: nil),
+                JournalLine(id: "l-2", accountId: "acc-pocket", account: pocket, debit: 0, credit: 10, memo: nil),
+            ],
+            participants: participants
+        )
+    }
+
     func testEntryLocationRefDisplayNameFallbacks() {
         let named = EntryLocationRef(
             address: "1 Zhongguancun St, Beijing",

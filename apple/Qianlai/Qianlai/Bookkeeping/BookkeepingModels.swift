@@ -361,6 +361,11 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var guestCreated: Bool
     var createdById: String?
     var createdBy: EntryUserRef?
+    /// Who actually fronted the money — not necessarily the creator: anyone
+    /// in the ledger can record an entry someone else paid for. Defaults to
+    /// the creator server-side; nil once the payer's account is deleted.
+    var paidById: String?
+    var paidBy: EntryUserRef?
     var createdAt: Date
     var projectId: String?
     var project: EntryProjectRef?
@@ -394,14 +399,15 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     /// server's `viewerShareCents` (report.service.ts): equal split across
     /// the deduped tagged participants — remainder cents to the earliest
     /// sorted user ids — full value when untagged (personal entries are
-    /// borne by their creator alone), zero when the viewer is outside the
+    /// borne by their payer alone — the payer fronts the money, not
+    /// necessarily the creator), zero when the viewer is outside the
     /// split set.
     func viewerShareCents(viewerUserId: String) -> Int {
         let value = valueCents
         guard value != 0 else { return 0 }
         let tagged = (participants ?? []).compactMap(\.userId)
         let splitUserIds = tagged.isEmpty
-            ? [createdById ?? viewerUserId]
+            ? [paidById ?? viewerUserId]
             : Array(Set(tagged)).sorted()
         guard let index = splitUserIds.firstIndex(of: viewerUserId) else { return 0 }
         let count = splitUserIds.count
@@ -900,6 +906,10 @@ struct CreateEntryBody: Encodable {
     /// The users this entry concerns — keyed by userId, so the split set
     /// survives a participant leaving the ledger.
     var participantUserIds: [String]?
+    /// Who actually fronted the money — a ledger member id. The recorder is
+    /// not always the payer. nil omits the field: the server defaults to
+    /// the recorder on create and keeps the current payer on edit.
+    var paidByUserId: String?
     /// Project assignment; guests must target one of their projects.
     var projectId: String?
     /// nil counts in the ledger (server default); false opts out. Pure user
@@ -951,6 +961,9 @@ struct QuickEntryDraft: Equatable {
     var creditAccountId: String?
     var memo: String = ""
     var participants: Set<String> = []
+    /// Who fronted the money; nil = the recorder (the server applies the
+    /// same default). The form pins it to the signed-in user once known.
+    var paidByUserId: String?
     var projectId: String?
     /// False marks the entry as not counting in ledger-wide surfaces (e.g.
     /// a credit-card repayment already expensed at purchase time).
@@ -989,6 +1002,7 @@ struct QuickEntryDraft: Equatable {
                 JournalLineInput(accountId: creditAccountId, debit: 0, credit: amount, memo: nil),
             ],
             participantUserIds: participants.isEmpty ? nil : Array(participants).sorted(),
+            paidByUserId: paidByUserId,
             projectId: projectId,
             countsInLedger: countsInLedger,
             location: location.map(EntryLocationPayload.capture)
@@ -1034,6 +1048,7 @@ extension QuickEntryDraft {
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",
             participants: Set(entry.participants?.map(\.userId) ?? []),
+            paidByUserId: entry.paidById,
             projectId: entry.projectId,
             countsInLedger: entry.countsInLedger,
             location: entry.location.map { EntryLocationBody($0) }

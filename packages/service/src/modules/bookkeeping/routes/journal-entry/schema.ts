@@ -105,6 +105,18 @@ export const journalEntrySchema = z
         avatar: z.string().nullable(),
       })
       .nullable(),
+    // Who actually fronted the money — defaults to the creator but may name
+    // any ledger member (recording an entry someone else paid for).
+    // Nullable once the payer's account is deleted (FK is SetNull).
+    paidById: z.string().nullable().openapi({ example: "clx1234567890" }),
+    paidBy: z
+      .object({
+        id: z.string(),
+        name: z.string().openapi({ example: "John" }),
+        email: z.string().nullable(),
+        avatar: z.string().nullable(),
+      })
+      .nullable(),
     // Project the entry belongs to; null = personal (not in any project).
     projectId: z.string().nullable().openapi({ example: "clx1234567890" }),
     project: z
@@ -147,7 +159,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     }),
     memberUserId: z.string().optional().openapi({
       description:
-        "Only entries that involve this user in settlement terms: entries they created, entries tagged with them as a participant, and untagged entries (which split across all project members). Use together with projectId for a member's settlement drill-down.",
+        "Only entries that involve this user in settlement terms: entries they created or paid for, entries tagged with them as a participant, and untagged entries (which split across all project members). Use together with projectId for a member's settlement drill-down.",
     }),
     includeExcluded: z.enum(["true", "false"]).optional().openapi({
       description:
@@ -194,6 +206,12 @@ export const createEntryBodySchema = z
     // Optional ledger-member ids this entry concerns; must be members of the
     // ledger. Repeats are collapsed server-side.
     participantUserIds: z.array(z.string().min(1)).max(20).optional(),
+    // Who actually fronted the money — a ledger member id. The recorder is
+    // not always the payer: this names the person whose pocket the value
+    // left. Omitted/null defaults to the recorder on create. On update,
+    // omitted = keep the current payer, null = reset to the original
+    // creator.
+    paidByUserId: z.string().min(1).nullable().optional(),
     // Optional project assignment. Guests must target one of their projects
     // and are restricted to expense categories.
     projectId: z.string().min(1).nullable().optional(),
@@ -231,6 +249,8 @@ export function serializeEntry<
     createdAt: Date;
     guestCreated?: boolean;
     createdBy: unknown;
+    paidById?: string | null;
+    paidBy?: unknown;
     address?: string | null;
     addressName?: string | null;
     latitude?: { toString(): string } | null;

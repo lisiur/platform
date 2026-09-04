@@ -104,6 +104,17 @@ struct JournalDetailView: View {
                     value: creatorName
                 )
             }
+            // Only a payer distinct from the creator earns their own row —
+            // when they're the same person the Created By row says it all.
+            // A deleted payer's account (SetNull) hides the row: unknown,
+            // not mislabeled.
+            if let paidByName = resolved.paidBy?.name, !paidByName.isEmpty,
+               resolved.paidById != resolved.createdById {
+                row(
+                    L10n.string("journal.detail.paidBy", defaultValue: "Paid By"),
+                    value: paidByName
+                )
+            }
             if let project = resolved.project {
                 row(
                     L10n.string("journal.detail.project", defaultValue: "Project"),
@@ -131,7 +142,7 @@ struct JournalDetailView: View {
     /// same split math as the server (deduped, sorted by userId, remainder
     /// cents to the earliest ids), signed by flow direction: owing renders
     /// "−", receiving "+". Hidden for untagged entries, whose value belongs
-    /// to the creator alone.
+    /// to the payer alone.
     @ViewBuilder
     private var sharesSection: some View {
         let rows = shareRows

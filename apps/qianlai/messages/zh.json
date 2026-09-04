@@ -340,7 +340,10 @@
       "projectHint": "可选择将这笔记录归入某个项目",
       "projectGuestHint": "你的记录将记入所选项目",
       "countsInLedger": "计入收支",
-      "countsInLedgerHint": "取消勾选后，账本的收支统计和流水将不包含这笔记录——例如购买时已记过支出的信用卡还款。"
+      "countsInLedgerHint": "取消勾选后，账本的收支统计和流水将不包含这笔记录——例如购买时已记过支出的信用卡还款。",
+      "paidBy": "垫付人",
+      "paidBySelf": "我自己",
+      "paidByHint": "钱实际由谁垫付，默认为我自己；由他人垫付时选择相应成员。"
     },
     "dateLabel": "日期",
     "memoPlaceholder": "例如：每周买菜",
@@ -366,7 +369,8 @@
     "countedOnly": "计入收支",
     "allEntries": "全部记录",
     "notCounted": "不计入收支",
-    "entryCount": "{count} 笔记录"
+    "entryCount": "{count} 笔记录",
+    "paidBy": "垫付人"
   },
   "Reports": {
     "title": "报表",

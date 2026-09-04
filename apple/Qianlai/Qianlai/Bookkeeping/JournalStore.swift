@@ -41,7 +41,8 @@ final class JournalStore {
     /// account of this type (expense vs income totals).
     var accountType: String? { didSet { scheduleReload() } }
     /// Settlement drill-down: entries that involve this user — created by
-    /// them, tagged with them, or untagged (split across all members).
+    /// or paid for by them, tagged with them, or untagged (split across all
+    /// members).
     var memberUserId: String? { didSet { scheduleReload() } }
     /// Ledger-wide escape hatch: also list entries flagged out of the
     /// ledger's books (guest posts, opted-out repayments). Irrelevant while

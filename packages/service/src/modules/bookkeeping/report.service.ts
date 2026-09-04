@@ -7,13 +7,14 @@ import { ledgerMemberRepository } from "./ledger-member.repository";
 type AccountSums = Map<string, { debit: number; credit: number }>;
 
 /**
- * Only owners see entry creators' and participants' email addresses — same
- * policy as `listMembers`: non-owners must not be able to harvest members'
- * emails through the dashboard's recent entries.
+ * Only owners see entry creators'/payers' and participants' email
+ * addresses — same policy as `listMembers`: non-owners must not be able to
+ * harvest members' emails through the dashboard's recent entries.
  */
 function redactEntryCreatorEmail<
   T extends {
     createdBy?: { email: string | null } | null;
+    paidBy?: { email: string | null } | null;
     participants?: Array<{ user: { email: string | null } }>;
   },
 >(entry: T, viewerRole: LedgerRole): T {
@@ -23,6 +24,7 @@ function redactEntryCreatorEmail<
     createdBy: entry.createdBy
       ? { ...entry.createdBy, email: null }
       : entry.createdBy,
+    paidBy: entry.paidBy ? { ...entry.paidBy, email: null } : entry.paidBy,
     participants: entry.participants?.map((p) => ({
       ...p,
       user: { ...p.user, email: null },
@@ -74,7 +76,7 @@ interface ShareLine {
 }
 
 interface ShareEntry {
-  createdById: string | null;
+  paidById: string | null;
   lines: ShareLine[];
   participants: Array<{ userId: string }>;
 }
@@ -108,15 +110,16 @@ function entryValueCents(lines: ShareLine[]): number {
  * The viewer's share of an entry's value in cents: equal split across the
  * tagged participant set (deduped, sorted by userId, remainder to the
  * earliest ids — mirrors the settlement math), full value when untagged
- * (personal entries: the creator bears it all). Zero when the viewer is
- * not in the split set.
+ * (personal entries: the payer bears it all — the payer fronts the money,
+ * not necessarily the creator). Zero when the viewer is not in the split
+ * set.
  */
 function viewerShareCents(entry: ShareEntry, viewerUserId: string): number {
   const value = entryValueCents(entry.lines);
   if (value === 0) return 0;
   const tagged = [...new Set(entry.participants.map((p) => p.userId))].sort();
   const splitUserIds =
-    tagged.length > 0 ? tagged : [entry.createdById ?? viewerUserId];
+    tagged.length > 0 ? tagged : [entry.paidById ?? viewerUserId];
   const index = splitUserIds.indexOf(viewerUserId);
   if (index === -1) return 0;
   const base = Math.floor(value / splitUserIds.length);

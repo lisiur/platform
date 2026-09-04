@@ -1012,6 +1012,198 @@ describe("createEntry as guest", () => {
   });
 });
 
+describe("entry payer (paidByUserId)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-1" });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+  });
+
+  it("defaults the payer to the creator when omitted", async () => {
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ createdById: "user-a", paidById: "user-a" }),
+      expect.anything(),
+    );
+  });
+
+  it("records an explicit payer other than the creator", async () => {
+    // Alice records an entry John fronted — the whole point of the field.
+    await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, paidByUserId: "user-b" },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ createdById: "user-a", paidById: "user-b" }),
+      expect.anything(),
+    );
+  });
+
+  it("treats an explicit null payer as the creator on create", async () => {
+    await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, paidByUserId: null },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ paidById: "user-a" }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects a payer who is not a ledger member (400)", async () => {
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-a",
+          "led-1",
+          { ...baseEntryInput, paidByUserId: "user-foreign" },
+          editorAccess,
+        ),
+      400,
+    );
+    expect(mockJournalRepo.createEntry).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current payer when the update omits paidByUserId", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-b",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.not.objectContaining({ paidById: expect.anything() }),
+      expect.anything(),
+    );
+  });
+
+  it("reassigns the payer on update when paidByUserId is given", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      paidByUserId: "user-b",
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ paidById: "user-b" }),
+      expect.anything(),
+    );
+  });
+
+  it("resets the payer to the original creator on explicit null", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-b",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      paidByUserId: null,
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ paidById: "user-a" }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects reassigning the payer to a non-member on update (400)", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+    });
+    await expectStatus(
+      () =>
+        updateEntry("led-1", "e-1", ownerActor, {
+          ...baseEntryInput,
+          paidByUserId: "user-foreign",
+        }),
+      400,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("keeps a stored payer who has since left the ledger when the edit resubmits them", async () => {
+    // Edit forms echo the entry's stored payer back; resubmitting history
+    // is not a reassignment, so a departed payer must not block the edit.
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-departed",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      paidByUserId: "user-departed",
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ paidById: "user-departed" }),
+      expect.anything(),
+    );
+  });
+
+  it("still rejects an explicit reassignment onto a departed payer id (400)", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      projectId: null,
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+    });
+    await expectStatus(
+      () =>
+        updateEntry("led-1", "e-1", ownerActor, {
+          ...baseEntryInput,
+          paidByUserId: "user-departed",
+        }),
+      400,
+    );
+    expect(mockJournalRepo.updateEntry).not.toHaveBeenCalled();
+  });
+});
+
 describe("updateEntry as guest", () => {
   beforeEach(() => {
     vi.resetAllMocks();

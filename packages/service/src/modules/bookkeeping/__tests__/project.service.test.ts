@@ -259,6 +259,8 @@ describe("projectReport settlement", () => {
 
   function entry(input: {
     createdById: string;
+    /** Who fronted the money; defaults to the creator like the server. */
+    paidById?: string;
     lines: Array<{
       account: {
         id: string;
@@ -274,7 +276,7 @@ describe("projectReport settlement", () => {
     participants?: string[];
   }) {
     return {
-      createdById: input.createdById,
+      paidById: input.paidById ?? input.createdById,
       lines: input.lines,
       participants: (input.participants ?? []).map((userId) => ({
         userId,
@@ -359,6 +361,26 @@ describe("projectReport settlement", () => {
     // The settlement always nets to zero.
     const net = report.settlement.reduce((acc, r) => acc + r.balance, 0);
     expect(Math.round(net * 100)).toBe(0);
+  });
+
+  it("credits the payer, not the creator, when they differ", async () => {
+    mockJournalRepo.listByProject.mockResolvedValue([
+      // Alice records an untagged 100.00 expense John fronted.
+      entry({
+        createdById: "user-a",
+        paidById: "user-b",
+        lines: [
+          { account: expenseAccount, debit: 100, credit: 0 },
+          { account: pocketAccount, debit: 0, credit: 100 },
+        ],
+      }),
+    ]);
+
+    const report = await projectReport("user-a", "proj-1");
+
+    const byUser = new Map(report.settlement.map((r) => [r.userId, r]));
+    expect(byUser.get("user-a")).toMatchObject({ paid: 0, share: 50 });
+    expect(byUser.get("user-b")).toMatchObject({ paid: 100, share: 50 });
   });
 
   it("includes zero-activity members so the table is complete", async () => {

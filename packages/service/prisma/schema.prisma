@@ -39,6 +39,7 @@ model User {
   ownedQianlaiRealAccounts RealAccount[] @relation("QianlaiRealAccountOwner")
   qianlaiMemberships   LedgerMember[]
   qianlaiJournalEntries JournalEntry[]   @relation("QianlaiJournalEntryCreator")
+  qianlaiPaidJournalEntries JournalEntry[] @relation("QianlaiJournalEntryPayer")
   qianlaiProjectMemberships ProjectMember[] @relation("QianlaiProjectMember")
   qianlaiEntryParticipations JournalEntryParticipant[]
 
@@ -1233,6 +1234,15 @@ model JournalEntry {
   // the entry survives with a null creator instead of vanishing for everyone.
   createdById String?
   createdBy   User?         @relation("QianlaiJournalEntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  // Who actually fronted the money — NOT necessarily the creator: anyone in
+  // the ledger can record an entry someone else paid for. Defaults to the
+  // creator when omitted, so legacy rows and plain posts behave exactly as
+  // before; every "who fronted it" surface (settlement paidCents, the
+  // untagged share fallback, settlement drill-downs) reads this field, not
+  // createdById. SetNull keeps the entry intact when the payer's account is
+  // deleted — the value then credits nobody.
+  paidById    String?
+  paidBy      User?         @relation("QianlaiJournalEntryPayer", fields: [paidById], references: [id], onDelete: SetNull)
   // SetNull keeps entry history when a project is deleted: entries survive
   // unassigned (same philosophy as createdById). Archiving (soft status)
   // is the preferred path for keeping projects referenceable.

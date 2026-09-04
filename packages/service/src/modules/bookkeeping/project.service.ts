@@ -439,7 +439,8 @@ type SettlementRow = {
  * Split semantics (as agreed): an entry tagged with participants splits
  * across exactly those people; an untagged entry splits across ALL current
  * project members. Per entry, `value = expense portion − income portion`
- * (positive = money out of the group): the creator fronted it, every split
+ * (positive = money out of the group): the payer fronted it — the payer is
+ * whoever `paidById` names, not necessarily the creator — and every split
  * member owes their share of it. Splits run in integer cents with the
  * remainder distributed to the earliest sorted member ids, so shares always
  * sum to the entry's exact value and the settlement nets to zero.
@@ -463,14 +464,15 @@ export async function projectReport(userId: string, projectId: string) {
     ]),
   );
   // Current members' names come from the membership include above; entries
-  // can still reference people outside the current member list: a creator
-  // who has left the ledger entirely (only account deletion clears
-  // createdById), or a tagged participant removed from this project who
-  // remains a ledger member. Resolve those straight from the User table so
-  // settlement rows render real names and avatars, never raw ids.
+  // can still reference people outside the current member list: a payer or
+  // creator who has left the ledger entirely (only account deletion clears
+  // paidById/createdById), or a tagged participant removed from this
+  // project who remains a ledger member. Resolve those straight from the
+  // User table so settlement rows render real names and avatars, never raw
+  // ids.
   const referencedUserIds = new Set<string>();
   for (const entry of entries) {
-    if (entry.createdById) referencedUserIds.add(entry.createdById);
+    if (entry.paidById) referencedUserIds.add(entry.paidById);
     for (const p of entry.participants) {
       referencedUserIds.add(p.userId);
     }
@@ -555,8 +557,8 @@ export async function projectReport(userId: string, projectId: string) {
     totalIncomeCents += incomeCents;
 
     const valueCents = expenseCents - incomeCents;
-    if (entry.createdById) {
-      rowFor(entry.createdById).paidCents += valueCents;
+    if (entry.paidById) {
+      rowFor(entry.paidById).paidCents += valueCents;
     }
 
     // Tagged participants are the creation-time snapshot of who owes (see

@@ -97,6 +97,9 @@ const quickEntrySchema = z
     creditAccount: z.string(),
     memo: z.string().optional(),
     participants: z.array(z.string()),
+    // "" = the recorder paid (server default); a member id names whoever
+    // actually fronted the money.
+    paidByUserId: z.string(),
     projectId: z.string(),
     countsInLedger: z.boolean(),
   })
@@ -225,6 +228,7 @@ export function QuickEntryDialog({
     creditAccount: "",
     memo: "",
     participants: [],
+    paidByUserId: "",
     projectId: "",
     countsInLedger: true,
   };
@@ -352,6 +356,9 @@ export function QuickEntryDialog({
           participantUserIds: data.participants.length
             ? data.participants
             : undefined,
+          // Omitted = the recorder paid (server default). A picked member
+          // records that THEY fronted the money, not the recorder.
+          paidByUserId: data.paidByUserId || undefined,
           projectId: data.projectId || undefined,
           // Omitted = count in the ledger (server default); pure user
           // intent — guest posts are excluded by the server's guestCreated
@@ -628,6 +635,49 @@ export function QuickEntryDialog({
                   />
                 </Field>
               )}
+
+              <Field>
+                <FieldLabel htmlFor="quick-paid-by">
+                  {t("quick.paidBy")}
+                </FieldLabel>
+                <Controller
+                  control={form.control}
+                  name="paidByUserId"
+                  render={({ field }) => {
+                    const payerItems = [
+                      { value: "", label: t("quick.paidBySelf") },
+                      ...members.map((member) => ({
+                        value: member.userId,
+                        label: member.user?.name ?? member.userId,
+                      })),
+                    ];
+                    return (
+                      <Select
+                        value={field.value || null}
+                        onValueChange={(v) => field.onChange(v ?? "")}
+                        items={payerItems}
+                      >
+                        <SelectTrigger id="quick-paid-by">
+                          <SelectValue>
+                            {(value) =>
+                              payerItems.find((item) => item.value === value)
+                                ?.label ?? t("quick.paidBySelf")
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {payerItems.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  }}
+                />
+                <FieldDescription>{t("quick.paidByHint")}</FieldDescription>
+              </Field>
 
               <Field>
                 <FieldLabel htmlFor="quick-memo">{t("memo")}</FieldLabel>

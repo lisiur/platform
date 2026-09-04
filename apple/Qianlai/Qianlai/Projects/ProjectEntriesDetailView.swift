@@ -167,12 +167,12 @@ struct ProjectEntriesDetailView: View {
 
 /// Client-side mirror of the report's settlement math (project.service.ts):
 /// per entry, value = expense portion − income portion in integer cents;
-/// the creator fronts the value; the split set — tagged participants (the
-/// posting-time membership snapshot; new entries always carry one), else
-/// current members (legacy untagged entries only) — owes equal shares with
-/// the remainder going to the earliest sorted user ids. Kept in exact step
-/// so each row's Paid/Share sums reconcile with the settlement table's
-/// totals.
+/// the payer fronts the value (paidById — not necessarily the creator); the
+/// split set — tagged participants (the posting-time membership snapshot;
+/// new entries always carry one), else current members (legacy untagged
+/// entries only) — owes equal shares with the remainder going to the
+/// earliest sorted user ids. Kept in exact step so each row's Paid/Share
+/// sums reconcile with the settlement table's totals.
 private enum SettlementSplit {
     static func entryContribution(
         entry: JournalEntry,
@@ -180,9 +180,9 @@ private enum SettlementSplit {
         memberUserIds: [String]?
     ) -> (paid: Int, share: Int) {
         let value = entry.valueCents
-        let paid = entry.createdById == userId ? value : 0
+        let paid = entry.paidById == userId ? value : 0
 
-        let tagged = (entry.participants ?? []).compactMap { $0.user?.id }
+        let tagged = (entry.participants ?? []).compactMap(\.userId)
         let splitUserIds: [String]
         if tagged.isEmpty {
             // Legacy entries only: new project entries are auto-tagged at

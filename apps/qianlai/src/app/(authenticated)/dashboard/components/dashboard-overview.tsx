@@ -33,6 +33,8 @@ interface RecentEntryDto {
   date: string;
   memo: string | null;
   createdBy: { id: string; name: string } | null;
+  paidById: string | null;
+  paidBy: { id: string; name: string } | null;
   lines: JournalLineDto[];
 }
 
@@ -183,9 +185,9 @@ export function DashboardOverview() {
                           .map((l) => accountName(l.account))
                           .join(" / ")}
                     </span>
-                    {entry.createdBy && (
+                    {(entry.paidBy ?? entry.createdBy) && (
                       <span className="text-muted-foreground hidden shrink-0 text-xs sm:inline">
-                        {entry.createdBy.name}
+                        {entry.paidBy?.name ?? entry.createdBy?.name}
                       </span>
                     )}
                     <span className="w-24 shrink-0 text-right font-mono tabular-nums">

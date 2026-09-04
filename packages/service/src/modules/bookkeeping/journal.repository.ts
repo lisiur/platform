@@ -56,6 +56,9 @@ const entryInclude = {
   createdBy: {
     select: { id: true, name: true, email: true, avatar: true },
   },
+  paidBy: {
+    select: { id: true, name: true, email: true, avatar: true },
+  },
   project: { select: { id: true, name: true, status: true } },
 } as const satisfies Prisma.JournalEntryInclude;
 
@@ -96,12 +99,15 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     // The untagged branch requires current project membership: untagged
     // splits run across current members, so entries a departed member's
     // settlement math never touched must not appear in their drill-down.
+    // An entry the member paid for but didn't create (or vice versa) is
+    // settlement-relevant to them either way, hence the two actor branches.
     ...(window.memberUserId
       ? {
           AND: [
             {
               OR: [
                 { createdById: window.memberUserId },
+                { paidById: window.memberUserId },
                 {
                   participants: {
                     some: { userId: window.memberUserId },
@@ -214,6 +220,8 @@ export const journalRepository = {
       date: Date;
       memo?: string;
       createdById: string;
+      /** Who fronted the money; the service resolves the creator default. */
+      paidById: string;
       projectId?: string;
       countsInLedger?: boolean;
       /** System guest rule, set once at posting. */
@@ -240,6 +248,7 @@ export const journalRepository = {
         date: data.date,
         memo: data.memo,
         createdById: data.createdById,
+        paidById: data.paidById,
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
         guestCreated: data.guestCreated ?? false,
@@ -266,13 +275,18 @@ export const journalRepository = {
    * Replaces an entry's mutable surface — date, memo, lines, and
    * participants — in one shot; entryNo and the original creator stay
    * untouched. Lines and participants are wiped and recreated so the
-   * update fully specifies them.
+   * update fully specifies them. `paidById` is written whenever given
+   * (including null — the service resolves null = reset to creator);
+   * absent = keep the current payer, so clients that don't know the field
+   * can't strip it.
    */
   updateEntry(
     id: string,
     data: {
       date: Date;
       memo?: string | null;
+      /** Reassigns who fronted the money; absent = keep the current payer. */
+      paidById?: string | null;
       projectId?: string | null;
       /** Required: the service resolves guest pinning and keep-on-omit. */
       countsInLedger: boolean;
@@ -301,6 +315,7 @@ export const journalRepository = {
       data: {
         date: data.date,
         memo: data.memo ?? null,
+        ...(data.paidById !== undefined ? { paidById: data.paidById } : {}),
         projectId: data.projectId ?? null,
         countsInLedger: data.countsInLedger,
         ...(data.location
@@ -421,13 +436,14 @@ export const journalRepository = {
    * Every entry of a project with the shape the settlement report needs:
    * raw lines (account types classify the flow), participants as userIds
    * (the split set — anchored to User, so departed members still carry
-   * their historical share), and the creator (who fronted the money).
+   * their historical share), and the payer (who fronted the money — not
+   * necessarily the creator).
    */
   listByProject(projectId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.journalEntry.findMany({
       where: { projectId },
       select: {
-        createdById: true,
+        paidById: true,
         lines: {
           select: {
             debit: true,
@@ -456,14 +472,15 @@ export const journalRepository = {
    * Entries that feed the viewer's share-based statement ("my actual
    * spending"): project entries the viewer participates in — including
    * guest-created ones, whose participant shares are real consumption —
-   * plus the viewer's own untagged entries, where the creator bears the
-   * full value. The viewer's own opted-out entries stay out everywhere (a
-   * repayment already expensed at purchase must not count twice); other
-   * members' countsInLedger flags are their personal-books intent and must
-   * not touch the viewer's share. Untagged PROJECT entries are excluded:
-   * the split-set freeze (auto-tagging at posting) means only legacy rows
-   * can be untagged, and their honest split set (members at read time) is
-   * not resolvable in this ledger-wide query.
+   * plus untagged entries the viewer paid for, where the payer bears the
+   * full value (the payer is not always the creator). The viewer's own
+   * opted-out entries stay out everywhere (a repayment already expensed at
+   * purchase must not count twice); other members' countsInLedger flags
+   * are their personal-books intent and must not touch the viewer's share.
+   * Untagged PROJECT entries are excluded: the split-set freeze
+   * (auto-tagging at posting) means only legacy rows can be untagged, and
+   * their honest split set (members at read time) is not resolvable in
+   * this ledger-wide query.
    */
   listShareEntries(
     ledgerId: string,
@@ -484,26 +501,29 @@ export const journalRepository = {
           : {}),
         OR: [
           {
-            // Project entries I participate in — unless I created the entry
-            // and opted it out of my books myself.
+            // Project entries I participate in — unless I paid for the
+            // entry and it carries the countsInLedger opt-out. The flag is
+            // entry-level (set by whichever editor saved last), so keyed on
+            // the payer it pulls the entry from the payer's statement
+            // regardless of who set it.
             projectId: { not: null },
             participants: {
               some: { userId: viewerUserId },
             },
             NOT: {
-              AND: [{ createdById: viewerUserId }, { countsInLedger: false }],
+              AND: [{ paidById: viewerUserId }, { countsInLedger: false }],
             },
           },
           {
-            // My own untagged entries: personal books, creator bears all.
+            // Untagged entries I paid for: personal books, payer bears all.
             projectId: null,
-            createdById: viewerUserId,
+            paidById: viewerUserId,
             countsInLedger: true,
           },
         ],
       },
       select: {
-        createdById: true,
+        paidById: true,
         lines: {
           select: {
             accountId: true,
