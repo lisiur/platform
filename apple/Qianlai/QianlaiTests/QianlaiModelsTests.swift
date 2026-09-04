@@ -122,7 +122,7 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertNil(body.lines[1].accountId)
         XCTAssertEqual(body.lines[1].credit, 42.5)
         XCTAssertEqual(body.memo, "lunch")
-        XCTAssertEqual(body.participantMemberIds, ["m1", "m2"])
+        XCTAssertEqual(body.participantUserIds, ["m1", "m2"])
     }
 
     func testQuickEntryOmitsEmptyMemoAndParticipants() {
@@ -132,7 +132,7 @@ final class QianlaiModelsTests: XCTestCase {
         draft.creditAccountId = "salary"
         let body = draft.body
         XCTAssertNil(body.memo)
-        XCTAssertNil(body.participantMemberIds)
+        XCTAssertNil(body.participantUserIds)
     }
 
     func testQuickEntryCountsInLedgerSendsExplicitValue() throws {

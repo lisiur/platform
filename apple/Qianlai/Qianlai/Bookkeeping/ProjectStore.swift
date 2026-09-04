@@ -89,8 +89,7 @@ final class ProjectStore {
     /// Cache-only variant of `load`: refreshes `projectsByLedger` for one
     /// ledger without touching the active-ledger mirror (`projects`,
     /// selection, loading flags). Use whenever the ledger may not be the
-    /// active one — prefetching the switcher menu, or refreshing after
-    /// leaving a project of a background ledger — so active-ledger readers
+    /// active one — prefetching the switcher menu — so active-ledger readers
     /// never observe another ledger's list.
     func prefetch(ledgerId: String) async {
         // Already-resolved ledgers keep their cached list, and an in-flight
@@ -99,6 +98,17 @@ final class ProjectStore {
               inFlightLoads[ledgerId] == nil,
               let projects = try? await fetch(ledgerId: ledgerId)
         else { return }
+        projectsByLedger[ledgerId] = projects
+        resolvedLedgerIds.insert(ledgerId)
+    }
+
+    /// Forced, cache-only refresh of one ledger's project list. Unlike
+    /// `prefetch` it refetches already-resolved ledgers (a left project must
+    /// actually drop from the manage sheet's rows), and unlike `load` it
+    /// never touches the active-ledger mirror or selection — for background
+    /// ledgers only.
+    func refresh(ledgerId: String) async {
+        guard let projects = try? await fetch(ledgerId: ledgerId) else { return }
         projectsByLedger[ledgerId] = projects
         resolvedLedgerIds.insert(ledgerId)
     }
@@ -246,6 +256,45 @@ final class ProjectStore {
         await load(ledgerId: ledgerId, force: true)
     }
 
+    /// Leaves a project and re-resolves the active scope — the shared entry
+    /// point for every leave action (project detail page, manage sheet), so
+    /// the follow-up can't drift between call sites.
+    ///
+    /// The server deletes a guest's ledger membership together with their
+    /// last project membership in the ledger, so the ledger list is
+    /// refreshed before the follow-up: the left ledger may no longer exist
+    /// for this user at all. When it survives, its project list refreshes
+    /// too — a mirror-syncing `load` when it's the active ledger (guests
+    /// auto-scope to the first remaining project, full roles fall back to
+    /// the ledger-wide view via the cleared selection), a cache-only
+    /// `refresh` for a background one. When it's gone, its cached projects
+    /// are dropped and a formerly-active pointer is cleared — `activeLedger`
+    /// falls through to the default / first remaining ledger on its own,
+    /// and an emptied ledger list lands the dashboard on its create/empty
+    /// state page.
+    func leaveAndReselect(
+        ledgerId: String,
+        projectId: String,
+        in ledgerStore: LedgerStore
+    ) async throws {
+        let wasActive = ledgerStore.activeLedger?.id == ledgerId
+        try await leave(ledgerId: ledgerId, projectId: projectId)
+        await ledgerStore.load()
+        if ledgerStore.ledgers.contains(where: { $0.id == ledgerId }) {
+            if wasActive {
+                await load(ledgerId: ledgerId, force: true)
+            } else {
+                await refresh(ledgerId: ledgerId)
+            }
+        } else {
+            projectsByLedger[ledgerId] = nil
+            resolvedLedgerIds.remove(ledgerId)
+            if wasActive {
+                ledgerStore.setActive(nil)
+            }
+        }
+    }
+
     func leave(ledgerId: String, projectId: String) async throws {
         _ = try await client.send(
             "POST",
@@ -254,8 +303,9 @@ final class ProjectStore {
         if selectedProjectId == projectId {
             selectedProjectId = nil
         }
-        // No auto-reload: callers refresh via `load` (active ledger) or
-        // `prefetch` (background ledger) as appropriate.
+        // No auto-reload: use `leaveAndReselect` — it refreshes the ledger
+        // and project lists and re-resolves the active scope. Bare `leave`
+        // stays as the API-only layer.
     }
 
     /// Mints a project-scoped invite and returns it. Redeemers join as

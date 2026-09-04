@@ -568,10 +568,14 @@ struct ProjectDetailView: View {
     private func leaveProject() async {
         guard let ledger else { return }
         do {
-            try await projectStore.leave(ledgerId: ledger.id, projectId: projectId)
-            // Active-ledger context: refresh the mirror so this view and
-            // the dashboard drop the project.
-            await projectStore.load(ledgerId: ledger.id, force: true)
+            // Refreshes the ledger list too — a guest leaving their last
+            // project loses the ledger itself — then re-selects the first
+            // remaining ledger/project, or the dashboard's empty state.
+            try await projectStore.leaveAndReselect(
+                ledgerId: ledger.id,
+                projectId: projectId,
+                in: ledgerStore
+            )
             toast.show(L10n.string("projects.leftProject", defaultValue: "You left the project"))
         } catch {
             toast.show(error.localizedDescription)

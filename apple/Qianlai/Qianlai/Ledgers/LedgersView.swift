@@ -266,10 +266,17 @@ struct LedgersView: View {
                     let projectId = project.id
                     Task {
                         do {
-                            try await projectStore.leave(ledgerId: ledgerId, projectId: projectId)
-                            // This ledger may not be the active one — refresh
-                            // its cache only so the row drops from the list.
-                            await projectStore.prefetch(ledgerId: ledgerId)
+                            // Shared with the project detail page's leave:
+                            // refreshes the ledger list (a guest leaving
+                            // their last project loses the ledger itself),
+                            // force-refreshes this ledger's project rows,
+                            // and re-resolves the active scope when the
+                            // left ledger was the active one.
+                            try await projectStore.leaveAndReselect(
+                                ledgerId: ledgerId,
+                                projectId: projectId,
+                                in: ledgerStore
+                            )
                             toast.show(L10n.string("projects.leftProject", defaultValue: "You left the project"))
                         } catch {
                             toast.show(error.localizedDescription)
