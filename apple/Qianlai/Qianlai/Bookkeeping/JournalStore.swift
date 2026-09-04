@@ -230,6 +230,16 @@ final class JournalStore {
         scheduleReload()
     }
 
+    /// Batched window write: suppresses the per-key didSet storms so both
+    /// bounds commit with at most one scheduled reload — or none, when the
+    /// caller (the dashboard task) fetches immediately after instead.
+    func setWindow(from: Date?, to: Date?) {
+        suppressReload = true
+        fromDate = from
+        toDate = to
+        suppressReload = false
+    }
+
     var hasActiveFilters: Bool {
         !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || includeExcluded
     }

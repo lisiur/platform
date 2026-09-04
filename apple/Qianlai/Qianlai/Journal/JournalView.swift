@@ -12,11 +12,11 @@ import SwiftUI
 struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var store
-    /// The app-level project store that owns the ledger switcher's scope —
-    /// the local `projectStore` below only feeds the filter sheet's picker.
+    /// The app-level project store: owns the ledger switcher's scope and the
+    /// per-ledger cache the filter picker reads — a local fetching instance
+    /// here used to refetch the same list the switcher had just loaded.
     @Environment(ProjectStore.self) private var appProjectStore
     @State private var memberStore = MemberStore()
-    @State private var projectStore = ProjectStore()
     /// Always-visible search field pinned above the list. Deliberately not
     /// `.searchable`: the system search bar is glass chrome that re-lays-out
     /// at the pull-to-refresh boundary on iOS 26 and visibly flashes, and it
@@ -56,7 +56,6 @@ struct JournalView: View {
             syncScopeFilter()
             await store.load(ledgerId: id)
             await memberStore.load(ledgerId: id, myUserId: nil)
-            await projectStore.load(ledgerId: id)
         }
         // The scope can change while this tab stays alive (switcher on the
         // dashboard, ledger switcher inside the quick-entry sheet) or fill
@@ -125,7 +124,7 @@ struct JournalView: View {
             icon: "line.3.horizontal.decrease.circle",
             onClear: { store.clearFilters() }
         ) {
-            if !projectStore.projects.isEmpty {
+            if !ledgerProjects.isEmpty {
                 Section {
                     Picker(
                         "Project",
@@ -135,7 +134,7 @@ struct JournalView: View {
                         )
                     ) {
                         Text("All Projects").tag("")
-                        ForEach(projectStore.projects) { project in
+                        ForEach(ledgerProjects) { project in
                             Text(project.name).tag(project.id)
                         }
                     }
@@ -192,13 +191,20 @@ struct JournalView: View {
         }
     }
 
+    /// Projects of the active ledger, from the app-level per-ledger cache —
+    /// kept warm by the ledger switcher's own load.
+    private var ledgerProjects: [QianlaiProject] {
+        guard let ledger = ledgerStore.activeLedger else { return [] }
+        return appProjectStore.projects(for: ledger.id)
+    }
+
     /// Participant filter options, scoped to the active project filter when
     /// one is set — a project's entries can only be tagged with that
     /// project's members, so offering the whole ledger roster would just
     /// yield empty results. Falls back to the full ledger roster otherwise.
     private var participantCandidates: [LedgerMember] {
         if let projectId = store.projectFilterId,
-           let project = projectStore.projects.first(where: { $0.id == projectId }) {
+           let project = ledgerProjects.first(where: { $0.id == projectId }) {
             let memberUserIds = Set(project.members.map(\.userId))
             return memberStore.members.filter { memberUserIds.contains($0.userId) }
         }

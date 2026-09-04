@@ -26,14 +26,49 @@ final class ProjectStore {
     private(set) var isLoading = false
     private(set) var loadError: String?
     private(set) var selectedProjectId: String?
+    /// Ledgers whose project list finished loading at least once this
+    /// session (success or failure). Scope resolution reads this instead of
+    /// the transient `isLoading` flag: between a ledger becoming active and
+    /// its `load` actually starting, `isLoading` is still false — a gap the
+    /// dashboard used to read as "settled" and fire ledger-wide fetches that
+    /// guests always get 403 on.
+    private(set) var resolvedLedgerIds: Set<String> = []
+    /// In-flight loads per ledger: a caller arriving while a fetch runs (a
+    /// toolbar remount can re-trigger within the fetch window, before the
+    /// resolved set is written) awaits it instead of firing a duplicate
+    /// request.
+    private var inFlightLoads: [String: Task<Void, Never>] = [:]
 
     var selectedProject: QianlaiProject? {
         projects.first { $0.id == selectedProjectId } ?? projects.first
     }
 
-    func load(ledgerId: String) async {
+    /// Loads (or cache-serves) a ledger's projects. Already-resolved ledgers
+    /// sync the active-ledger mirror from the cache instead of refetching —
+    /// mounting views (the toolbar rebuilds on every dashboard branch flip,
+    /// restarting its tasks) used to fire this several times per page open.
+    /// Mutations and pull-to-refresh pass `force: true`.
+    func load(ledgerId: String, force: Bool = false) async {
+        if !force, resolvedLedgerIds.contains(ledgerId) {
+            projects = projectsByLedger[ledgerId] ?? []
+            return
+        }
+        if !force, let existing = inFlightLoads[ledgerId] {
+            await existing.value
+            projects = projectsByLedger[ledgerId] ?? []
+            return
+        }
+        let task = Task { await performLoad(ledgerId: ledgerId) }
+        inFlightLoads[ledgerId] = task
+        await task.value
+    }
+
+    private func performLoad(ledgerId: String) async {
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            inFlightLoads[ledgerId] = nil
+        }
         do {
             let projects = try await fetch(ledgerId: ledgerId)
             self.projects = projects
@@ -45,6 +80,10 @@ final class ProjectStore {
         } catch {
             loadError = error.localizedDescription
         }
+        // The scope-resolution window closes either way — a failed load
+        // leaves the cache empty, but waiting longer would only stall the
+        // dashboard's project-vs-ledger decision.
+        resolvedLedgerIds.insert(ledgerId)
     }
 
     /// Cache-only variant of `load`: refreshes `projectsByLedger` for one
@@ -54,8 +93,21 @@ final class ProjectStore {
     /// leaving a project of a background ledger — so active-ledger readers
     /// never observe another ledger's list.
     func prefetch(ledgerId: String) async {
-        guard let projects = try? await fetch(ledgerId: ledgerId) else { return }
+        // Already-resolved ledgers keep their cached list, and an in-flight
+        // load will fill it — prefetch is a cache warmer, not a refresh.
+        guard !resolvedLedgerIds.contains(ledgerId),
+              inFlightLoads[ledgerId] == nil,
+              let projects = try? await fetch(ledgerId: ledgerId)
+        else { return }
         projectsByLedger[ledgerId] = projects
+        resolvedLedgerIds.insert(ledgerId)
+    }
+
+    /// True once `load(ledgerId:)` or `prefetch(ledgerId:)` has completed
+    /// for this ledger. The cache may still be empty (zero projects or a
+    /// failed fetch), but the scope question is answerable.
+    func isResolved(ledgerId: String) -> Bool {
+        resolvedLedgerIds.contains(ledgerId)
     }
 
     private func fetch(ledgerId: String) async throws -> [QianlaiProject] {
@@ -122,7 +174,7 @@ final class ProjectStore {
                 endDate: endDate
             )
         )
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     func update(
@@ -145,7 +197,7 @@ final class ProjectStore {
                 status: nil
             )
         )
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     func setStatus(ledgerId: String, _ project: QianlaiProject, active: Bool) async throws {
@@ -161,7 +213,7 @@ final class ProjectStore {
                 status: active ? "active" : "archived"
             )
         )
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     func delete(ledgerId: String, _ project: QianlaiProject) async throws {
@@ -172,7 +224,7 @@ final class ProjectStore {
         if selectedProjectId == project.id {
             selectedProjectId = nil
         }
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     // MARK: - Members
@@ -183,7 +235,7 @@ final class ProjectStore {
             "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/members",
             body: AddProjectMemberBody(userId: userId)
         )
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     func removeMember(ledgerId: String, projectId: String, userId: String) async throws {
@@ -191,7 +243,7 @@ final class ProjectStore {
             "DELETE",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/members/\(userId)"
         )
-        await load(ledgerId: ledgerId)
+        await load(ledgerId: ledgerId, force: true)
     }
 
     func leave(ledgerId: String, projectId: String) async throws {

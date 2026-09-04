@@ -46,10 +46,10 @@ struct QuickEntryView: View {
 
     @State private var accountStore = AccountStore()
     @State private var memberStore = MemberStore()
-    @State private var projectStore = ProjectStore()
-    /// The app-level project store that owns the ledger switcher's scope —
-    /// distinct from the local `projectStore` above, which only feeds this
-    /// sheet's picker. A project scoped there pins new entries to itself.
+    /// The app-level project store: owns the ledger switcher's scope and the
+    /// per-ledger cache this sheet's picker reads. A project scoped there
+    /// pins new entries to itself. (A local fetching instance here used to
+    /// refetch the same list the switcher had just loaded.)
     @Environment(ProjectStore.self) private var appProjectStore
 
     /// Whether the viewer is a guest on this ledger — restricts to expense
@@ -57,6 +57,13 @@ struct QuickEntryView: View {
     /// are hidden, project assignment is mandatory).
     private var isGuest: Bool {
         ledgerStore.activeLedger?.isGuest ?? false
+    }
+
+    /// Projects of the active ledger, from the app-level per-ledger cache —
+    /// kept warm by the ledger switcher's own load.
+    private var ledgerProjects: [QianlaiProject] {
+        guard let ledger = ledgerStore.activeLedger else { return [] }
+        return appProjectStore.projects(for: ledger.id)
     }
 
     /// The project currently claiming scope in the ledger switcher — an
@@ -74,7 +81,7 @@ struct QuickEntryView: View {
     /// Personal entries fall back to the whole ledger roster.
     private var participantCandidates: [LedgerMember] {
         if let projectId = draft.projectId,
-           let project = projectStore.projects.first(where: { $0.id == projectId }) {
+           let project = ledgerProjects.first(where: { $0.id == projectId }) {
             let memberUserIds = Set(project.members.map(\.userId))
             return memberStore.members.filter { memberUserIds.contains($0.userId) }
         }
@@ -284,7 +291,11 @@ struct QuickEntryView: View {
             }
             await accountStore.load(ledgerId: ledger.id)
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
-            await projectStore.load(ledgerId: ledger.id)
+            // The sheet posts through (and prefills categories from) the
+            // root JournalStore — this task is what targets it at the
+            // active ledger, so posting works without ever visiting the
+            // Journal tab. The load dedupes against the tab's own.
+            await journalStore.load(ledgerId: ledger.id)
             applyExpenseCategoryDefault()
             applyGuestProjectDefault()
             applyScopedProjectDefault()
@@ -360,13 +371,13 @@ struct QuickEntryView: View {
                     Text(scopedProject.name)
                         .foregroundStyle(.secondary)
                 }
-            } else if !isGuest, !projectStore.projects.isEmpty {
+            } else if !isGuest, !ledgerProjects.isEmpty {
                 Picker("Project", selection: Binding(
                     get: { draft.projectId ?? "" },
                     set: { draft.projectId = $0.isEmpty ? nil : $0 }
                 )) {
                     Text(L10n.string("projects.none", defaultValue: "No project")).tag("")
-                    ForEach(projectStore.projects) { project in
+                    ForEach(ledgerProjects) { project in
                         Text(project.name).tag(project.id)
                     }
                 }
@@ -597,8 +608,8 @@ struct QuickEntryView: View {
     /// project, so the draft is still pinned rather than left unassigned
     /// (validated server-side too).
     private func applyGuestProjectDefault() {
-        guard isGuest, draft.projectId == nil, projectStore.projects.count == 1 else { return }
-        draft.projectId = projectStore.projects[0].id
+        guard isGuest, draft.projectId == nil, ledgerProjects.count == 1 else { return }
+        draft.projectId = ledgerProjects[0].id
     }
 
     /// A project scoped in the ledger switcher fixes new entries: the draft

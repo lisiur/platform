@@ -53,10 +53,17 @@ struct DashboardView: View {
     /// Non-guest roles only enter the loading window with a pending
     /// explicit selection — otherwise a plain ledger load would flash
     /// a spinner instead of the ledger view.
+    ///
+    /// Resolves through ProjectStore's per-ledger resolved set, not the
+    /// transient `isLoading` flag: in the gap between a ledger becoming
+    /// active and its project load starting, `isLoading` still reads false,
+    /// which used to let this page treat the scope as settled and fire
+    /// ledger-wide report fetches (a guaranteed 403 for guests) before the
+    /// scope resolved and discarded them.
     private var isProjectScopeLoading: Bool {
         guard let ledger = ledgerStore.activeLedger else { return false }
         guard ledger.isGuest || projectStore.selectedProjectId != nil else { return false }
-        return activeProject == nil && projectStore.isLoading
+        return activeProject == nil && !projectStore.isResolved(ledgerId: ledger.id)
     }
 
     /// True when the project detail view owns the screen (now or once the
@@ -155,21 +162,30 @@ struct DashboardView: View {
             // settles, so a skip during the loading window is retried
             // after it resolves.
             if showsProjectDetail { return }
-            guard let id = ledgerStore.activeLedger?.id else { return }
-            // Both surfaces follow the selected month; ReportStore remembers
-            // it so post-delete refreshes re-summarize the same month.
-            store.dashboardMonth = selectedMonth
-            await store.load(ledgerId: id)
+            guard let ledger = ledgerStore.activeLedger else { return }
+            // Month and window writes go through the silent setters: this
+            // task fetches immediately below, so the didSet-driven
+            // debounced reloads would only duplicate the requests.
+            //
+            // The ledger-wide report endpoints require viewer+ and always
+            // 403 guests, so guests fetch only the (guest-scoped) entry
+            // list — their stats live in the project detail view.
+            if !ledger.isGuest {
+                store.setDashboardMonthSilently(selectedMonth)
+                await store.load(ledgerId: ledger.id)
+            }
             let window = AppDates.monthWindow(containing: selectedMonth.start)
-            entryStore.fromDate = window.from
-            entryStore.toDate = window.to
-            await entryStore.load(ledgerId: id)
+            entryStore.setWindow(from: window.from, to: window.to)
+            await entryStore.load(ledgerId: ledger.id)
         }
         .onChange(of: selectedMonth) { _, month in
             // Window writes schedule the entries reload; dashboardMonth's
-            // didSet schedules the dashboard reload.
+            // didSet schedules the dashboard reload (skipped for guests —
+            // the report endpoint 403s for them).
             if showsProjectDetail { return }
-            store.dashboardMonth = month
+            if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
+                store.dashboardMonth = month
+            }
             let window = AppDates.monthWindow(containing: month.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
@@ -179,7 +195,9 @@ struct DashboardView: View {
                 // ProjectDetailView owns its own refresh path.
                 return
             }
-            await store.loadDashboard()
+            if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
+                await store.loadDashboard()
+            }
             await entryStore.reload()
         }
         // A post/update/delete elsewhere (quick-entry sheet, Journal tab)

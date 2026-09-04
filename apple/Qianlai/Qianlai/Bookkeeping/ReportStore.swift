@@ -22,8 +22,26 @@ final class ReportStore {
     /// Month the dashboard cards summarize; nil follows the current month
     /// (server default). Writing it schedules a coalesced dashboard reload,
     /// so `refreshAfterPosting` re-summarizes the month on screen.
-    var dashboardMonth: YearMonth? { didSet { scheduleDashboardReload() } }
+    var dashboardMonth: YearMonth? {
+        didSet {
+            // Observable writes notify even when the value is unchanged;
+            // without the guard every re-assignment would schedule another
+            // dashboard request.
+            guard dashboardMonth != oldValue else { return }
+            scheduleDashboardReload()
+        }
+    }
     private var dashboardReloadTask: Task<Void, Never>?
+
+    /// Writes the month without arming the didSet reload — the dashboard
+    /// task fetches immediately after, so the debounced reload would only
+    /// duplicate the request. Any pending debounced reload is cancelled for
+    /// the same reason.
+    func setDashboardMonthSilently(_ month: YearMonth?) {
+        dashboardReloadTask?.cancel()
+        dashboardReloadTask = nil
+        dashboardMonth = month
+    }
 
     /// Bumped by `refreshAfterPosting` after every post/update/delete so
     /// surfaces holding their own entry store (the Dashboard's month list)

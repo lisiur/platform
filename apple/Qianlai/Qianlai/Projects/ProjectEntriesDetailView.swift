@@ -114,7 +114,7 @@ struct ProjectEntriesDetailView: View {
     }
 
     private func refreshReport() async {
-        await projectStore.load(ledgerId: ledger.id)
+        await projectStore.load(ledgerId: ledger.id, force: true)
         await projectStore.loadReport(ledgerId: ledger.id, projectId: scope.projectId)
     }
 

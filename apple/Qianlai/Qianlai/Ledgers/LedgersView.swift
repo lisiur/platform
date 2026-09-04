@@ -626,7 +626,7 @@ struct JoinLedgerScanView: View {
                 // of a ledger they're already in would not see it until
                 // relaunch. Load first, then select — `load` clears a selection
                 // the fresh list doesn't contain.
-                await projectStore.load(ledgerId: joined.ledgerId)
+                await projectStore.load(ledgerId: joined.ledgerId, force: true)
                 if let projectId = joined.projectId {
                     projectStore.select(projectId)
                 }

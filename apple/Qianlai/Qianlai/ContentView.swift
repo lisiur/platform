@@ -56,7 +56,6 @@ enum AppTab: Hashable {
 
 struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
-    @Environment(JournalStore.self) private var journalStore
 
     var body: some View {
         Group {
@@ -125,14 +124,6 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(quickAddDeniedReason ?? "")
-        }
-        // The quick-add sheet posts through the root JournalStore, whose
-        // ledgerId used to be set only by the Journal tab's .task — posting
-        // before ever visiting that tab was a silent no-op. Track the active
-        // ledger here so the sheet always targets it.
-        .task(id: ledgerStore.activeLedger?.id) {
-            guard let id = ledgerStore.activeLedger?.id else { return }
-            await journalStore.load(ledgerId: id)
         }
     }
 

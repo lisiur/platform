@@ -73,7 +73,7 @@ struct ProjectsView: View {
             }
         }
         .refreshable {
-            await projectStore.load(ledgerId: ledger.id)
+            await projectStore.load(ledgerId: ledger.id, force: true)
         }
         .task(id: ledger.id) {
             await projectStore.load(ledgerId: ledger.id)
@@ -267,7 +267,7 @@ struct ProjectDetailView: View {
             membersSection(project, ledger)
         }
         .refreshable {
-            await projectStore.load(ledgerId: ledger.id)
+            await projectStore.load(ledgerId: ledger.id, force: true)
             await projectStore.loadReport(ledgerId: ledger.id, projectId: project.id)
         }
     }
@@ -571,7 +571,7 @@ struct ProjectDetailView: View {
             try await projectStore.leave(ledgerId: ledger.id, projectId: projectId)
             // Active-ledger context: refresh the mirror so this view and
             // the dashboard drop the project.
-            await projectStore.load(ledgerId: ledger.id)
+            await projectStore.load(ledgerId: ledger.id, force: true)
             toast.show(L10n.string("projects.leftProject", defaultValue: "You left the project"))
         } catch {
             toast.show(error.localizedDescription)
