@@ -16,7 +16,17 @@ export const ledgerMemberRepository = {
     return tx.ledgerMember.findMany({
       where: { ledgerId },
       include: {
-        user: { select: { id: true, name: true, email: true, avatar: true } },
+        // `flags` rides along so serializers can derive `isVirtual`; it is
+        // stripped before anything reaches the API.
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            flags: true,
+          },
+        },
       },
       orderBy: [{ role: "asc" }, { createdAt: "asc" }],
     });
@@ -61,5 +71,13 @@ export const ledgerMemberRepository = {
     return tx.ledgerMember.delete({
       where: { ledgerId_userId: { ledgerId, userId } },
     });
+  },
+
+  /** Memberships a user still holds, across all ledgers. */
+  countMembershipsByUser(
+    userId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.ledgerMember.count({ where: { userId } });
   },
 };

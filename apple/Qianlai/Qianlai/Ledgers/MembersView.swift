@@ -20,6 +20,10 @@ struct MembersView: View {
     @State private var store = MemberStore()
     @State private var memberPendingRemove: LedgerMember?
     @State private var memberPendingTransfer: LedgerMember?
+    @State private var isAddingVirtualMember = false
+    @State private var newVirtualMemberName = ""
+    @State private var memberPendingRename: LedgerMember?
+    @State private var renameMemberName = ""
 
     var body: some View {
         List {
@@ -28,6 +32,22 @@ struct MembersView: View {
         .navigationTitle(Text("Members"))
         .inlineNavigationBarTitle()
         .toolbar {
+            if canManageVirtualMembers {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        newVirtualMemberName = ""
+                        isAddingVirtualMember = true
+                    } label: {
+                        Label(
+                            L10n.string(
+                                "ledgers.addVirtualMember",
+                                defaultValue: "Add Virtual Member"
+                            ),
+                            systemImage: "person.badge.plus"
+                        )
+                    }
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
@@ -88,10 +108,116 @@ struct MembersView: View {
                 Text("Transfer ownership to \(member.displayName)? You become an editor.")
             }
         }
+        .alert(
+            L10n.string(
+                "ledgers.addVirtualMember",
+                defaultValue: "Add Virtual Member"
+            ),
+            isPresented: $isAddingVirtualMember
+        ) {
+            TextField(
+                L10n.string(
+                    "ledgers.virtualNamePlaceholder",
+                    defaultValue: "Name"
+                ),
+                text: $newVirtualMemberName
+            )
+            Button(L10n.string("ledgers.add", defaultValue: "Add")) {
+                addVirtualMember()
+            }
+            Button("Cancel", role: .cancel) { newVirtualMemberName = "" }
+        } message: {
+            Text(
+                L10n.string(
+                    "ledgers.virtualMemberMessage",
+                    defaultValue: "No registration needed — they can be named as a payer or participant and count toward stats. A virtual member can never sign in."
+                )
+            )
+        }
+        .alert(
+            L10n.string(
+                "ledgers.renameMember",
+                defaultValue: "Rename"
+            ),
+            isPresented: Binding(
+                get: { memberPendingRename != nil },
+                set: { if !$0 { memberPendingRename = nil } }
+            )
+        ) {
+            TextField(
+                L10n.string(
+                    "ledgers.virtualNamePlaceholder",
+                    defaultValue: "Name"
+                ),
+                text: $renameMemberName
+            )
+            Button("Save") { renameVirtualMember() }
+            Button("Cancel", role: .cancel) {
+                memberPendingRename = nil
+                renameMemberName = ""
+            }
+        } message: {
+            if let member = memberPendingRename {
+                Text(member.displayName)
+            }
+        }
+    }
+
+    private func addVirtualMember() {
+        let name = newVirtualMemberName.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        newVirtualMemberName = ""
+        guard !name.isEmpty else { return }
+        Task {
+            do {
+                try await store.addVirtualMember(name: name)
+                toast.show(
+                    L10n.string(
+                        "ledgers.addVirtualMemberSuccess",
+                        defaultValue: "Virtual member added"
+                    )
+                )
+            } catch {
+                toast.show(error.localizedDescription)
+            }
+        }
+    }
+
+    private func renameVirtualMember() {
+        guard let member = memberPendingRename else { return }
+        memberPendingRename = nil
+        let name = renameMemberName.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        renameMemberName = ""
+        guard !name.isEmpty else { return }
+        Task {
+            do {
+                try await store.rename(member, to: name)
+                toast.show(
+                    L10n.string(
+                        "ledgers.renameMemberSuccess",
+                        defaultValue: "Member renamed"
+                    )
+                )
+            } catch {
+                toast.show(error.localizedDescription)
+            }
+        }
     }
 
     private var myUserId: String? {
         auth.currentUser?.id
+    }
+
+    private var myRole: LedgerRole? {
+        store.members.first { $0.userId == myUserId }?.role
+    }
+
+    private var canManageVirtualMembers: Bool {
+        guard let myRole else { return false }
+        return LedgerPolicy.canManageVirtualMembers(myRole)
     }
 
     @ViewBuilder
@@ -126,13 +252,23 @@ struct MembersView: View {
                 HStack(spacing: 4) {
                     Text(member.displayName)
                         .font(.body.weight(.medium))
+                    if member.isVirtual {
+                        BadgeView(
+                            text: L10n.string(
+                                "ledgers.virtualBadge",
+                                defaultValue: "Virtual"
+                            ),
+                            outlined: true
+                        )
+                    }
                     if member.userId == myUserId {
                         Text(L10n.string("ledgers.you", defaultValue: "(you)"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                if store.isOwner, let email = member.user?.email {
+                if store.isOwner, !member.isVirtual,
+                    let email = member.user?.email {
                     Text(email)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
@@ -141,6 +277,10 @@ struct MembersView: View {
             Spacer()
             if LedgerPolicy.isOwner(member.role) {
                 BadgeView(text: member.role.label, color: .orange)
+            } else if member.isVirtual {
+                // Virtual members can never sign in, so their viewer role is
+                // a fixed fact — badge, not a control.
+                BadgeView(text: member.role.label, outlined: true)
             } else if store.isOwner, member.userId != myUserId {
                 Menu {
                     Button {
@@ -187,12 +327,28 @@ struct MembersView: View {
             }
         }
         .contextMenu {
-            if store.isOwner, member.userId != myUserId {
+            if member.isVirtual, canManageVirtualMembers {
+                Button {
+                    renameMemberName = member.displayName
+                    memberPendingRename = member
+                } label: {
+                    Label(
+                        L10n.string(
+                            "ledgers.renameMember",
+                            defaultValue: "Rename"
+                        ),
+                        systemImage: "pencil"
+                    )
+                }
+            }
+            if store.isOwner, member.userId != myUserId, !member.isVirtual {
                 Button {
                     memberPendingTransfer = member
                 } label: {
                     Label("Transfer Ownership", systemImage: "crown")
                 }
+            }
+            if store.isOwner, member.userId != myUserId {
                 Button(role: .destructive) {
                     memberPendingRemove = member
                 } label: {
@@ -207,12 +363,29 @@ struct MembersView: View {
                 } label: {
                     Label("Remove", systemImage: "person.badge.minus")
                 }
-                Button {
-                    memberPendingTransfer = member
-                } label: {
-                    Label("Transfer", systemImage: "crown")
+                if !member.isVirtual {
+                    Button {
+                        memberPendingTransfer = member
+                    } label: {
+                        Label("Transfer", systemImage: "crown")
+                    }
+                    .tint(.orange)
                 }
-                .tint(.orange)
+            }
+            if member.isVirtual, canManageVirtualMembers {
+                Button {
+                    renameMemberName = member.displayName
+                    memberPendingRename = member
+                } label: {
+                    Label(
+                        L10n.string(
+                            "ledgers.renameMember",
+                            defaultValue: "Rename"
+                        ),
+                        systemImage: "pencil"
+                    )
+                }
+                .tint(.blue)
             }
         }
     }

@@ -3,7 +3,10 @@ import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { hashPassword } from "#lib/password";
-import { assertUserIsNotBuiltin } from "#lib/protected-user";
+import {
+  assertUserIsNotBuiltin,
+  assertUserIsNotVirtual,
+} from "#lib/protected-user";
 import {
   roleAssignmentWhereByRoleScope,
   SYSTEM_SCOPE,
@@ -375,6 +378,7 @@ export async function uploadAvatar(userId: string, file: File) {
 
 export async function deleteUser(id: string) {
   await assertUserIsNotBuiltin(id);
+  await assertUserIsNotVirtual(id);
 
   const user = await prisma.user.findUnique({ where: { id } });
 

@@ -224,6 +224,10 @@ struct EntryUserRef: Codable, Hashable {
     var name: String
     var email: String?
     var avatar: String?
+    /// Only the members roster carries this; embedded entry refs don't.
+    /// True = added directly by an editor, the person never registered and
+    /// can never sign in.
+    var isVirtual: Bool?
 }
 
 struct JournalLineAccountRef: Codable, Hashable {
@@ -448,6 +452,13 @@ struct LedgerMember: Codable, Identifiable, Hashable {
 
     var displayName: String {
         user?.name ?? userId
+    }
+
+    /// A member added directly by an editor without the person ever
+    /// registering — shows up as payer/participant and in stats, can never
+    /// sign in, keeps a fixed viewer role.
+    var isVirtual: Bool {
+        user?.isVirtual ?? false
     }
 }
 
@@ -1068,6 +1079,16 @@ struct RedeemCodeBody: Encodable {
 
 struct UpdateMemberRoleBody: Encodable {
     var role: LedgerRole
+}
+
+/// Rename is only accepted for virtual members; real users own their
+/// account names.
+struct RenameMemberBody: Encodable {
+    var name: String
+}
+
+struct CreateVirtualMemberBody: Encodable {
+    var name: String
 }
 
 struct TransferOwnershipBody: Encodable {

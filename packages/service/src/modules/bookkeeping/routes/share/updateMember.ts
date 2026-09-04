@@ -9,23 +9,23 @@ import {
   unauthorizedResponse,
 } from "#lib/openapi";
 import { requireLedgerAccess } from "../../access";
-import { updateMemberRole } from "../../share.service";
-import { memberParamSchema, updateMemberRoleBodySchema } from "./schema";
+import { updateMember } from "../../share.service";
+import { memberParamSchema, updateMemberBodySchema } from "./schema";
 
-export const updateMemberRoleRoute = defineOpenAPIRoute({
+export const updateMemberRoute = defineOpenAPIRoute({
   route: createRoute({
-    operationId: "updateQianlaiMemberRole",
+    operationId: "updateQianlaiMember",
     method: "patch",
     path: "/ledgers/{ledgerId}/members/{userId}",
     tags: ["QianlaiShare"],
-    summary: "Change a member's role (owner only)",
+    summary: "Update a member (role: owner-only; rename: editor+)",
     description:
-      "Switches the target member between editor and viewer. The owner row is protected — use transfer ownership to reassign it.",
+      "With `role`, switches the target member between editor and viewer (owner only; virtual members have a fixed viewer role). With `name`, renames a virtual member (editor+). The owner row is protected — use transfer ownership to reassign it.",
     request: {
       params: memberParamSchema,
       body: {
         content: {
-          "application/json": { schema: updateMemberRoleBodySchema },
+          "application/json": { schema: updateMemberBodySchema },
         },
       },
     },
@@ -34,17 +34,19 @@ export const updateMemberRoleRoute = defineOpenAPIRoute({
       ...forbiddenResponse,
       ...notFoundResponse,
       ...badRequestResponse,
-      ...okResponseFn(successSchema, "Role updated"),
+      ...okResponseFn(successSchema, "Member updated"),
     },
   }),
   handler: async (c) => {
     const principal = await requirePrincipal(c);
     const userId = getPrincipalUserId(principal);
     const { ledgerId, userId: targetUserId } = c.req.valid("param");
-    const { role } = c.req.valid("json");
-    await requireLedgerAccess(userId, ledgerId, "owner");
+    // Floor editor: renames are editor+; the service re-verifies owner under
+    // the lock when the body carries a role change.
+    await requireLedgerAccess(userId, ledgerId, "editor");
+    const body = c.req.valid("json");
     return c.json(
-      await updateMemberRole(ledgerId, userId, targetUserId, role),
+      await updateMember(ledgerId, userId, targetUserId, body),
       200,
     );
   },

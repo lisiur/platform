@@ -174,7 +174,16 @@
     },
     "guest": "Guest",
     "inviteTitle": "Invite",
-    "inviteDescription": "Codes are minted on demand and expire after a minute — the QR below stays fresh while this is open"
+    "inviteDescription": "Codes are minted on demand and expire after a minute — the QR below stays fresh while this is open",
+    "virtualBadge": "Virtual",
+    "addVirtualMember": "Add Virtual Member",
+    "addVirtualMemberDescription": "Add someone who will never install the app — a child, for example. They can be named as a payer or participant and show up in stats, without registering.",
+    "virtualMemberNamePlaceholder": "Display name, e.g. Xiaoming",
+    "virtualMemberHint": "Virtual members never sign in and keep the viewer role; anyone with the editor role or above can add them",
+    "addVirtualMemberSuccess": "Virtual member {name} added",
+    "renameMember": "Rename",
+    "renameMemberSuccess": "Member renamed",
+    "confirmRemoveVirtualMember": "Remove virtual member {name}? Entries they are part of are kept."
   },
   "Accounts": {
     "title": "Accounts",

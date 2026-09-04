@@ -538,4 +538,26 @@ export const journalRepository = {
       },
     });
   },
+
+  /**
+   * Entries still anchored to this user as creator or payer. Nonzero means
+   * the User row must survive a member removal — historical settlement reads
+   * those anchors (payer credit, untagged-share fallback).
+   */
+  countEntriesAnchoringUser(
+    userId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.count({
+      where: { OR: [{ createdById: userId }, { paidById: userId }] },
+    });
+  },
+
+  /** Participant tags pointing at this user. */
+  countParticipationsByUser(
+    userId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntryParticipant.count({ where: { userId } });
+  },
 };

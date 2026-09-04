@@ -60,6 +60,12 @@ enum LedgerPolicy {
         isOwner(role)
     }
 
+    /// Editors and owners may add virtual members (people who'll never
+    /// register) and rename them; only owners remove members.
+    static func canManageVirtualMembers(_ role: LedgerRole) -> Bool {
+        atLeast(role, .editor)
+    }
+
     static func canEditLedger(_ role: LedgerRole) -> Bool {
         isOwner(role)
     }

@@ -18,4 +18,19 @@ export const userLookupRepository = {
       select: { id: true, name: true, avatar: true },
     });
   },
+
+  findFlagsById(
+    id: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<{ flags: string[] } | null> {
+    return tx.user.findUnique({ where: { id }, select: { flags: true } });
+  },
+
+  renameById(id: string, name: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.user.update({ where: { id }, data: { name } });
+  },
+
+  deleteById(id: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.user.delete({ where: { id } });
+  },
 };

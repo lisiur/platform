@@ -11,6 +11,7 @@ vi.mock("../journal.repository", () => ({
     listRecent: vi.fn(),
     sumLinesByAccount: vi.fn(),
     listShareEntries: vi.fn(),
+    listTaggedEntries: vi.fn(),
   },
 }));
 
@@ -22,7 +23,8 @@ vi.mock("../ledger-member.repository", () => ({
 
 import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
-import { dashboard, incomeStatement } from "../report.service";
+import { ledgerMemberRepository } from "../ledger-member.repository";
+import { dashboard, incomeStatement, memberTurnover } from "../report.service";
 
 const mockAccountRepo = accountRepository as unknown as {
   listByLedger: ReturnType<typeof vi.fn>;
@@ -31,6 +33,10 @@ const mockJournalRepo = journalRepository as unknown as {
   listRecent: ReturnType<typeof vi.fn>;
   sumLinesByAccount: ReturnType<typeof vi.fn>;
   listShareEntries: ReturnType<typeof vi.fn>;
+  listTaggedEntries: ReturnType<typeof vi.fn>;
+};
+const mockMemberRepo = ledgerMemberRepository as unknown as {
+  listByLedger: ReturnType<typeof vi.fn>;
 };
 
 function account(
@@ -302,5 +308,58 @@ describe("trialBalance", () => {
 
     await trialBalance("led-1");
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
+  });
+});
+
+describe("memberTurnover", () => {
+  it("includes virtual members like any other member", async () => {
+    // A virtual member is an ordinary roster row to the turnover math —
+    // its flags never filter it out of stats.
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      {
+        id: "m-a",
+        userId: "user-a",
+        role: "owner",
+        createdAt: new Date(),
+        user: { id: "user-a", name: "A", email: null, avatar: null, flags: [] },
+      },
+      {
+        id: "m-v",
+        userId: "user-v",
+        role: "viewer",
+        createdAt: new Date(),
+        user: {
+          id: "user-v",
+          name: "小明",
+          email: null,
+          avatar: null,
+          flags: ["virtual"],
+        },
+      },
+    ]);
+    mockJournalRepo.listTaggedEntries.mockResolvedValue([
+      {
+        lines: [
+          { debit: 30, credit: 0 },
+          { debit: 0, credit: 30 },
+        ],
+        participants: [{ userId: "user-a" }, { userId: "user-v" }],
+      },
+    ]);
+
+    const { members, totals } = await memberTurnover("led-1");
+
+    expect(members.find((m) => m.userId === "user-v")).toMatchObject({
+      ledgerMemberId: "m-v",
+      name: "小明",
+      role: "viewer",
+      entryCount: 1,
+      turnover: 30,
+    });
+    expect(members.find((m) => m.userId === "user-a")).toMatchObject({
+      entryCount: 1,
+      turnover: 30,
+    });
+    expect(totals).toEqual({ entries: 1, turnover: 60 });
   });
 });

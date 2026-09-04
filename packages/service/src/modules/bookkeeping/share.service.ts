@@ -1,12 +1,15 @@
+import { isVirtualUser, VIRTUAL_USER_FLAG } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import { prisma } from "#lib/db";
+import { userLookupRepository } from "../identity/user-lookup.repository";
 import { assertLedgerWritable } from "./access";
-import { compareLedgerRole, type LedgerRole } from "./domain";
+import { compareLedgerRole, type LedgerRole, roleAtLeast } from "./domain";
 import {
   type InviteRole,
   mintInviteToken,
   verifyInviteToken,
 } from "./invite-token";
+import { journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
@@ -200,16 +203,116 @@ export async function redeemShareCode(userId: string, codeStr: string) {
   });
 }
 
+/** Abuse cap: virtual rows live in the global users table, so a ledger can
+ *  only accumulate so many (people who'll never sign in anyway). */
+export const MAX_VIRTUAL_MEMBERS_PER_LEDGER = 50;
+
 /**
- * Only owners can see co-members' email addresses — redeemers shouldn't be
- * able to harvest emails of everyone else on a shared ledger.
+ * Adds a member directly, without an invitation: the person (a child, or
+ * someone who won't install the app) never registers. The virtual member is
+ * a flag-marked User row with no email and no credential Account — it can
+ * never sign in — plus a viewer LedgerMember row, so every roster check,
+ * payer/participant tag, and settlement computation treats it like any other
+ * member. Claiming it later means attaching a credential Account to the row
+ * and clearing the flag.
  */
-function redactMemberEmail<
-  M extends { user?: { email: string | null } | null },
->(member: M, showEmail: boolean): M {
-  return showEmail || !member.user
-    ? member
-    : { ...member, user: { ...member.user, email: null } };
+export async function createVirtualMember(
+  ledgerId: string,
+  actingUserId: string,
+  name: string,
+) {
+  return prisma.$transaction(async (tx) => {
+    await lockLedgerRow(tx, ledgerId);
+    const ledger = await ledgerRepository.findById(ledgerId, tx);
+    if (!ledger) {
+      throw new HTTPException(404, { message: "Ledger not found" });
+    }
+    if (ledger.status !== "active") {
+      throw new HTTPException(400, { message: "This ledger is archived" });
+    }
+    const membership = await ledgerMemberRepository.findMembership(
+      ledgerId,
+      actingUserId,
+      tx,
+    );
+    if (!membership || !roleAtLeast(membership.role, "editor")) {
+      throw new HTTPException(403, {
+        message: "This action requires the editor role or higher",
+      });
+    }
+    const members = await ledgerMemberRepository.listByLedger(ledgerId, tx);
+    if (
+      members.filter((m) => isVirtualUser(m.user?.flags)).length >=
+      MAX_VIRTUAL_MEMBERS_PER_LEDGER
+    ) {
+      throw new HTTPException(400, {
+        message: `This ledger already has the maximum of ${MAX_VIRTUAL_MEMBERS_PER_LEDGER} virtual members`,
+      });
+    }
+    const user = await tx.user.create({
+      data: { name, flags: [VIRTUAL_USER_FLAG] },
+    });
+    try {
+      const member = await ledgerMemberRepository.create(
+        { ledgerId, userId: user.id, role: "viewer" },
+        tx,
+      );
+      return {
+        id: member.id,
+        ledgerId,
+        userId: user.id,
+        role: "viewer" as const,
+        createdAt: member.createdAt,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: null,
+          avatar: null,
+          isVirtual: true,
+        },
+      };
+    } catch (err) {
+      // Same defense-in-depth as redeemShareCode: an unforeseen path that
+      // drops the ledger mid-transaction surfaces as a clean 404.
+      if (isForeignKeyViolation(err)) {
+        throw new HTTPException(404, { message: "Ledger not found" });
+      }
+      throw err;
+    }
+  });
+}
+
+type RosterUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  avatar: string | null;
+  flags?: string[];
+};
+
+/**
+ * API shape for a roster row: derives `isVirtual` from the user's flags and
+ * strips the raw flags (internal detail, never serialized). Mirrors the
+ * email policy — only owners see co-members' email addresses; redeemers
+ * shouldn't be able to harvest emails of everyone else on a shared ledger.
+ */
+function toRosterMember<M extends { user?: RosterUser | null; role: string }>(
+  member: M,
+  showEmail: boolean,
+) {
+  const { user, ...rest } = member;
+  return {
+    ...rest,
+    user: user
+      ? {
+          id: user.id,
+          name: user.name,
+          email: showEmail ? user.email : null,
+          avatar: user.avatar,
+          ...(isVirtualUser(user.flags) ? { isVirtual: true } : {}),
+        }
+      : null,
+  };
 }
 
 /**
@@ -240,7 +343,7 @@ export async function listMembers(
   );
   const showEmail = viewer.role === "owner";
   return {
-    members: members.map((m) => redactMemberEmail(m, showEmail)),
+    members: members.map((m) => toRosterMember(m, showEmail)),
   };
 }
 
@@ -283,34 +386,85 @@ export async function removeMember(ledgerId: string, targetUserId: string) {
     // Ledger membership ends → project memberships inside it end too.
     await projectMemberRepository.deleteAllInLedger(ledgerId, targetUserId, tx);
     await ledgerMemberRepository.delete(ledgerId, targetUserId, tx);
+    // A virtual member has no account worth keeping. Once nothing anchors to
+    // its User row (no entry it paid/created, no participant tag, no
+    // membership in some other ledger) — say, a typo'd add — delete the row
+    // too; referenced rows survive as the departed-member name source for
+    // historical settlement, same as real users whose membership is gone.
+    if (
+      isVirtualUser(
+        (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
+      )
+    ) {
+      const [anchors, tags, memberships] = await Promise.all([
+        journalRepository.countEntriesAnchoringUser(targetUserId, tx),
+        journalRepository.countParticipationsByUser(targetUserId, tx),
+        ledgerMemberRepository.countMembershipsByUser(targetUserId, tx),
+      ]);
+      if (anchors === 0 && tags === 0 && memberships === 0) {
+        await userLookupRepository.deleteById(targetUserId, tx);
+      }
+    }
   });
   return { success: true as const };
 }
 
 /**
- * Changes a member's role between editor and viewer. Owner-only and refuses
- * to touch the owner row — transfer ownership instead of demoting/altering it.
- * Re-verifies the target under the ledger row lock so a concurrent
- * `transferOwnership` can't make the target the owner mid-change.
+ * Updates a member. Two capabilities on one endpoint, each with its own
+ * permission:
+ * - `role` (owner-only): switch a real member between editor and viewer. The
+ *   owner row is untouchable — transfer ownership instead. Virtual members
+ *   are refused a fixed "viewer".
+ * - `name` (editor+): rename a virtual member — real users own their account
+ *   names.
+ *
+ * Re-verifies actor and target under the ledger row lock so a concurrent
+ * `transferOwnership` can't demote the actor or promote the target
+ * mid-change.
  */
-export async function updateMemberRole(
+export async function updateMember(
   ledgerId: string,
   actingUserId: string,
   targetUserId: string,
-  role: string,
+  data: { role?: string; name?: string },
 ) {
-  if (role !== "editor" && role !== "viewer") {
+  const { role, name } = data;
+  if (role === undefined && name === undefined) {
+    throw new HTTPException(400, {
+      message: "Provide a role or a name to update",
+    });
+  }
+  // The two capabilities target disjoint member kinds (role: real members,
+  // name: virtual ones), so a body carrying both could never apply.
+  if (role !== undefined && name !== undefined) {
+    throw new HTTPException(400, {
+      message: "Provide a role or a name to update, not both",
+    });
+  }
+  if (role !== undefined && role !== "editor" && role !== "viewer") {
     throw new HTTPException(400, {
       message: "Member role must be editor or viewer",
     });
   }
-  if (actingUserId === targetUserId) {
+  if (role !== undefined && actingUserId === targetUserId) {
     throw new HTTPException(400, {
       message: "You cannot change your own role; transfer ownership instead",
     });
   }
   await prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
+    // The route floor is editor; role changes re-verify owner here under the
+    // lock (the route's snapshot can't see a concurrent demotion).
+    const actor = await ledgerMemberRepository.findMembership(
+      ledgerId,
+      actingUserId,
+      tx,
+    );
+    if (!actor || !roleAtLeast(actor.role, "editor")) {
+      throw new HTTPException(403, {
+        message: "This action requires the editor role or higher",
+      });
+    }
     const target = await ledgerMemberRepository.findMembership(
       ledgerId,
       targetUserId,
@@ -319,13 +473,36 @@ export async function updateMemberRole(
     if (!target) {
       throw new HTTPException(404, { message: "Member not found" });
     }
-    if (target.role === "owner") {
-      throw new HTTPException(400, {
-        message:
-          "The owner's role cannot be changed; transfer ownership instead",
-      });
+    const targetIsVirtual = isVirtualUser(
+      (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
+    );
+    if (role !== undefined) {
+      if (actor.role !== "owner") {
+        throw new HTTPException(403, {
+          message: "Only the ledger owner can perform this action",
+        });
+      }
+      if (target.role === "owner") {
+        throw new HTTPException(400, {
+          message:
+            "The owner's role cannot be changed; transfer ownership instead",
+        });
+      }
+      if (targetIsVirtual) {
+        throw new HTTPException(400, {
+          message: "Virtual members have a fixed role",
+        });
+      }
+      await ledgerMemberRepository.updateRole(ledgerId, targetUserId, role, tx);
     }
-    await ledgerMemberRepository.updateRole(ledgerId, targetUserId, role, tx);
+    if (name !== undefined) {
+      if (!targetIsVirtual) {
+        throw new HTTPException(400, {
+          message: "Only virtual members can be renamed",
+        });
+      }
+      await userLookupRepository.renameById(targetUserId, name, tx);
+    }
   });
   return { success: true as const };
 }
@@ -364,6 +541,17 @@ export async function transferOwnership(
     if (!target) {
       throw new HTTPException(404, {
         message: "Target user is not a member",
+      });
+    }
+    // A virtual member can never sign in, so handing it ownership would
+    // strand the ledger behind an owner nobody can act as.
+    if (
+      isVirtualUser(
+        (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
+      )
+    ) {
+      throw new HTTPException(400, {
+        message: "A virtual member cannot own the ledger",
       });
     }
     await ledgerMemberRepository.updateRole(

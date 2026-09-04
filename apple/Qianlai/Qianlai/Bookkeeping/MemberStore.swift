@@ -56,6 +56,34 @@ final class MemberStore {
         await reloadAll()
     }
 
+    /// Adds a member directly, without an invitation: the person (a child,
+    /// or someone who won't install the app) never registers. Server-side
+    /// the member is a flagged user row that can never sign in, created as
+    /// a viewer. Roster consumers (payer/participant pickers, settlement)
+    /// pick it up like any member.
+    @discardableResult
+    func addVirtualMember(name: String) async throws -> LedgerMember {
+        guard let ledgerId else { throw APIError.invalidResponse }
+        let member: LedgerMember = try await client.request(
+            "POST",
+            "bookkeeping/ledgers/\(ledgerId)/members",
+            body: CreateVirtualMemberBody(name: name)
+        )
+        await reloadAll()
+        return member
+    }
+
+    /// Renames a virtual member — the server refuses renames of real users.
+    func rename(_ member: LedgerMember, to name: String) async throws {
+        guard let ledgerId else { return }
+        _ = try await client.send(
+            "PATCH",
+            "bookkeeping/ledgers/\(ledgerId)/members/\(member.userId)",
+            body: RenameMemberBody(name: name)
+        )
+        await reloadAll()
+    }
+
     func remove(_ member: LedgerMember) async throws {
         guard let ledgerId else { return }
         _ = try await client.send(

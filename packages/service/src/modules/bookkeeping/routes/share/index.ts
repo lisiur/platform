@@ -1,18 +1,20 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { createShareCodeRoute } from "./createShareCode";
+import { createVirtualMemberRoute } from "./createVirtualMember";
 import { leaveLedgerRoute } from "./leaveLedger";
 import { listMembersRoute } from "./listMembers";
 import { redeemShareCodeRoute } from "./redeemShareCode";
 import { removeMemberRoute } from "./removeMember";
 import { transferOwnershipRoute } from "./transferOwnership";
-import { updateMemberRoleRoute } from "./updateMemberRole";
+import { updateMemberRoute } from "./updateMember";
 
 const shareRoutes = new OpenAPIHono();
 
 const routes = shareRoutes.openapiRoutes([
   listMembersRoute,
+  createVirtualMemberRoute,
   removeMemberRoute,
-  updateMemberRoleRoute,
+  updateMemberRoute,
   transferOwnershipRoute,
   leaveLedgerRoute,
   createShareCodeRoute,

@@ -17,6 +17,9 @@ export const ledgerMemberSchema = z
         name: z.string().openapi({ example: "Alice" }),
         email: z.string().nullable(),
         avatar: z.string().nullable(),
+        // Virtual members (added directly by an editor, never registered)
+        // carry this so clients can badge them; absent = a real account.
+        isVirtual: z.boolean().optional(),
       })
       .nullable(),
   })
@@ -87,11 +90,37 @@ export const transferBodySchema = z
   })
   .openapi("QianlaiTransferBody");
 
-export const updateMemberRoleBodySchema = z
+export const updateMemberBodySchema = z
   .object({
-    role: z.enum(["editor", "viewer"]).openapi({ example: "editor" }),
+    role: z
+      .enum(["editor", "viewer"])
+      .optional()
+      .openapi({ example: "editor" }),
+    // Renaming is only allowed for virtual members — real users own their
+    // account names.
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .optional()
+      .openapi({ example: "小明" }),
   })
-  .openapi("QianlaiUpdateMemberRoleBody");
+  .refine((data) => data.role !== undefined || data.name !== undefined, {
+    message: "Provide a role or a name to update",
+  })
+  // The two fields target disjoint member kinds (role: real members, name:
+  // virtual ones), so a body carrying both could never apply.
+  .refine((data) => data.role === undefined || data.name === undefined, {
+    message: "Provide a role or a name to update, not both",
+  })
+  .openapi("QianlaiUpdateMemberBody");
+
+export const createVirtualMemberBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(50).openapi({ example: "小明" }),
+  })
+  .openapi("QianlaiCreateVirtualMemberBody");
 
 export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
