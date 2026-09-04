@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { userLookupRepository } from "#modules/identity/public";
+import { isVirtualUser } from "@repo/shared";
 import { assertLedgerWritable, requireProjectAccess } from "./access";
 import { journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
@@ -46,7 +47,15 @@ function serializeProject(
       projectId: m.projectId,
       userId: m.userId,
       createdAt: m.createdAt,
-      user: m.user,
+      user: m.user
+        ? {
+            id: m.user.id,
+            name: m.user.name,
+            email: m.user.email,
+            avatar: m.user.avatar,
+            ...(isVirtualUser(m.user.flags) ? { isVirtual: true } : {}),
+          }
+        : null,
     })),
     entryCount,
   };

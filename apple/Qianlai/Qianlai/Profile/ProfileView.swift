@@ -138,7 +138,7 @@ struct ProfileView: View {
             }
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
-                    MembersView(ledger: ledger)
+                    MembersView(ledger: ledger, isModal: false)
                 } label: {
                     Label("Members", systemImage: "person.2")
                 }

@@ -10,6 +10,7 @@ import SwiftUI
 enum AppTab: Hashable {
     case dashboard
     case journal
+    case members
     case profile
     /// Never an actual selection — identifies the add pill, whose tap is
     /// intercepted to present the quick-entry sheet instead of navigating.
@@ -28,6 +29,12 @@ enum AppTab: Hashable {
                 "tab.journal",
                 defaultValue: "Journal",
                 comment: "Bottom tab: journal entries (Chinese 流水)"
+            )
+        case .members:
+            LocalizedStringResource(
+                "tab.members",
+                defaultValue: "Members",
+                comment: "Bottom tab: active ledger members (Chinese 成员)"
             )
         case .profile:
             LocalizedStringResource(
@@ -48,6 +55,7 @@ enum AppTab: Hashable {
         switch self {
         case .dashboard: "square.grid.2x2"
         case .journal: "list.bullet.rectangle"
+        case .members: "person.2"
         case .profile: "person.crop.circle"
         case .quickAdd: "plus"
         }
@@ -77,6 +85,13 @@ struct ContentView: View {
                     NavigationStack {
                         tabPage(.journal)
                             .navigationTitle(Text(AppTab.journal.label))
+                            .inlineNavigationBarTitle()
+                    }
+                }
+                Tab(AppTab.members.label, systemImage: AppTab.members.icon, value: AppTab.members) {
+                    NavigationStack {
+                        tabPage(.members)
+                            .navigationTitle(Text(AppTab.members.label))
                             .inlineNavigationBarTitle()
                     }
                 }
@@ -160,6 +175,7 @@ struct ContentView: View {
         switch tab {
         case .dashboard: DashboardView()
         case .journal: JournalView()
+        case .members: MembersTabPageView()
         case .profile: ProfileView()
         case .quickAdd: Color.clear
         }
@@ -190,7 +206,7 @@ struct ContentView: View {
 struct AppTabBar: View {
     @Binding var selection: AppTab
 
-    private let tabs = [AppTab.dashboard, .journal, .profile, .quickAdd]
+    private let tabs = [AppTab.dashboard, .journal, .members, .profile, .quickAdd]
 
     var body: some View {
         HStack(spacing: 0) {

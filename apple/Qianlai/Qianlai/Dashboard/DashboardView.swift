@@ -23,7 +23,7 @@ struct DashboardView: View {
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale
     @State private var isShowingLedgerForm = false
-    @State private var isShowingInvite = false
+    @State private var isShowingNewProject = false
     @State private var isShowingJoin = false
     @State private var isShowingLedgerManager = false
     /// Month the cards and the entry list summarize; stepped with the
@@ -122,7 +122,10 @@ struct DashboardView: View {
                         Button {
                             isShowingLedgerForm = true
                         } label: {
-                            Label("Create Ledger", systemImage: "plus")
+                            Label(
+                                L10n.string("ledgers.create", defaultValue: "Create Ledger"),
+                                systemImage: "plus"
+                            )
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
@@ -213,17 +216,13 @@ struct DashboardView: View {
                 LedgerFormView(ledger: nil)
             }
         }
-        .sheet(isPresented: $isShowingInvite) {
-            // The invite surface follows the dashboard's scope: a
-            // project-scoped manager invites guests to the project,
-            // otherwise the ledger owner invites members via share codes.
-            if let project = activeProject, let ledger = ledgerStore.activeLedger {
+        .sheet(isPresented: $isShowingNewProject) {
+            // The form posts into the active ledger; the menu item is only
+            // reachable when one exists, but re-check so a scope switch
+            // mid-presentation can't present a target-less form.
+            if ledgerStore.activeLedger != nil {
                 NavigationStack {
-                    ProjectInviteView(ledgerId: ledger.id, project: project)
-                }
-            } else if let ledger = ledgerStore.activeLedger {
-                NavigationStack {
-                    LedgerInviteView(ledger: ledger)
+                    ProjectFormView(project: nil)
                 }
             }
         }
@@ -243,15 +242,29 @@ struct DashboardView: View {
         }
     }
 
-    /// Top-right collaboration menu: invite others to the current scope
-    /// and join someone else's ledger with a share code.
+    /// Top-right collaboration menu: create a ledger (any signed-in user
+    /// can own one), create a project in the active ledger (editor+,
+    /// mirrors the projects list gate), and join someone else's ledger
+    /// with a share code. Inviting lives on the members page (ledger)
+    /// and the projects list (project).
     private var collaborationMenu: some View {
         Menu {
-            if canInvite {
+            Button {
+                isShowingLedgerForm = true
+            } label: {
+                Label(
+                    L10n.string("ledgers.create", defaultValue: "Create Ledger"),
+                    systemImage: "book.badge.plus"
+                )
+            }
+            if canCreateProject {
                 Button {
-                    isShowingInvite = true
+                    isShowingNewProject = true
                 } label: {
-                    Label("Invite", systemImage: "person.badge.plus")
+                    Label(
+                        L10n.string("projects.create", defaultValue: "New Project"),
+                        systemImage: "folder.badge.plus"
+                    )
                 }
             }
             Button {
@@ -260,20 +273,16 @@ struct DashboardView: View {
                 Label("Join via qrcode", systemImage: "qrcode")
             }
         } label: {
-            Image(systemName: "plus.circle")
+            Image(systemName: "plus")
         }
     }
 
-    /// True when the active scope offers an invite surface — a project
-    /// member with manage rights (project invite codes) or a ledger owner
-    /// (member share codes). Mirrors the rights each invite sheet
-    /// enforces so the menu never offers a dead end.
-    private var canInvite: Bool {
+    /// Mirrors the projects list's create gate exactly: the project form
+    /// posts into the active ledger, so it needs one, active, with the
+    /// caller at editor or above.
+    private var canCreateProject: Bool {
         guard let ledger = ledgerStore.activeLedger else { return false }
-        if activeProject != nil {
-            return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
-        }
-        return LedgerPolicy.canCreateShareCode(ledger.myRole)
+        return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
     private var monthSummary: some View {

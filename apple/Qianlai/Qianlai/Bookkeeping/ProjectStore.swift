@@ -23,6 +23,10 @@ final class ProjectStore {
     /// touches it, so background loads can't leak another ledger's list.
     private(set) var projectsByLedger: [String: [QianlaiProject]] = [:]
     private(set) var report: ProjectReport?
+    /// Identifies the latest report request so a cancelled or late response
+    /// from an older project-detail task cannot clear or overwrite new data.
+    private var reportRequestID = UUID()
+    private var reportLoadTask: Task<Result<ProjectReport, Error>, Never>?
     private(set) var isLoading = false
     private(set) var loadError: String?
     private(set) var selectedProjectId: String?
@@ -155,14 +159,41 @@ final class ProjectStore {
     }
 
     func loadReport(ledgerId: String, projectId: String) async {
-        do {
-            report = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/report"
-            )
-        } catch {
+        let path = "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/report"
+        let requestID = UUID()
+        reportRequestID = requestID
+        reportLoadTask?.cancel()
+        let client = self.client
+        let task = Task.detached(priority: .userInitiated) { () -> Result<ProjectReport, Error> in
+            do {
+                return .success(try await client.request("GET", path))
+            } catch {
+                return .failure(error)
+            }
+        }
+        reportLoadTask = task
+        let result = await task.value
+        guard reportRequestID == requestID else { return }
+
+        switch result {
+        case .success(let loaded):
+            report = loaded
+        case .failure(let error):
+            if Self.isCancellation(error) {
+                return
+            }
             report = nil
         }
+    }
+
+    private static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if let apiError = error as? APIError,
+           case .transport(let urlError) = apiError,
+           urlError.code == .cancelled {
+            return true
+        }
+        return false
     }
 
     // MARK: - CRUD

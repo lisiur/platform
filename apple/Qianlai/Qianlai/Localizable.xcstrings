@@ -2294,23 +2294,6 @@
         }
       }
     },
-    "Create Ledger" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Ledger"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "创建账本"
-          }
-        }
-      }
-    },
     "Creating…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2745,7 +2728,7 @@
         }
       }
     },
-    "Edit Ledger" : {
+    "ledgers.edit" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4076,6 +4059,23 @@
         }
       }
     },
+    "ledgers.create" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Ledger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建账本"
+          }
+        }
+      }
+    },
     "ledgers.createSuccess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4225,6 +4225,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已加入账本"
+          }
+        }
+      }
+    },
+    "ledgers.joinSuccessLedger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined “%@”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已加入「%@」"
+          }
+        }
+      }
+    },
+    "ledgers.joinSuccessProject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joined project “%@”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已加入项目「%@」"
           }
         }
       }
@@ -5165,6 +5199,23 @@
         }
       }
     },
+    "members.selectLedger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a ledger to see its members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择账本后查看成员"
+          }
+        }
+      }
+    },
     "onboarding.ledgerCreated" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5622,19 +5673,19 @@
         }
       }
     },
-    "projects.addMember" : {
+    "projects.addLedgerMember" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add Member"
+            "value" : "Add Ledger Member"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加成员"
+            "value" : "添加账本成员"
           }
         }
       }
@@ -6026,6 +6077,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除成员"
+          }
+        }
+      }
+    },
+    "projects.removeMemberConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ from the project?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 %@ 从项目中移除？"
           }
         }
       }
@@ -7065,16 +7133,6 @@
         }
       }
     },
-    "Remove %@ from the project?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将 %@ 从项目中移除？"
-          }
-        }
-      }
-    },
     "Remove %@ from this ledger?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7830,6 +7888,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "流水"
+          }
+        }
+      }
+    },
+    "tab.members" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成员"
           }
         }
       }

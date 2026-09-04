@@ -16,7 +16,10 @@ export const projectMemberRepository = {
     return tx.projectMember.findMany({
       where: { projectId },
       include: {
-        user: { select: { id: true, name: true, email: true, avatar: true } },
+        // `flags` is needed so the serializer can derive `isVirtual` —
+        // members.manager rows mirror the ledger roster, including the
+        // virtual members added directly by the ledger's editors.
+        user: { select: { id: true, name: true, email: true, avatar: true, flags: true } },
       },
       orderBy: { createdAt: "asc" },
     });

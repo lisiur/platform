@@ -26,8 +26,8 @@ final class MemberStore {
     /// mint invites).
     private(set) var isOwner = false
 
-    func load(ledgerId: String, myUserId: String?) async {
-        guard self.ledgerId != ledgerId || members.isEmpty else { return }
+    func load(ledgerId: String, myUserId: String?, force: Bool = false) async {
+        guard force || self.ledgerId != ledgerId || members.isEmpty else { return }
         self.ledgerId = ledgerId
         isLoading = true
         defer { isLoading = false }
@@ -60,16 +60,21 @@ final class MemberStore {
     /// or someone who won't install the app) never registers. Server-side
     /// the member is a flagged user row that can never sign in, created as
     /// a viewer. Roster consumers (payer/participant pickers, settlement)
-    /// pick it up like any member.
+    /// pick it up like any member. Takes the ledger explicitly — a
+    /// project-scope members page calls this without ever having loaded
+    /// the ledger roster, so the store's own `ledgerId` can't be relied on.
+    /// The cached roster refreshes only when it actually displays this
+    /// ledger; a project-scope caller refreshes the project instead.
     @discardableResult
-    func addVirtualMember(name: String) async throws -> LedgerMember {
-        guard let ledgerId else { throw APIError.invalidResponse }
+    func addVirtualMember(ledgerId: String, name: String) async throws -> LedgerMember {
         let member: LedgerMember = try await client.request(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/members",
             body: CreateVirtualMemberBody(name: name)
         )
-        await reloadAll()
+        if ledgerId == self.ledgerId {
+            await reloadAll()
+        }
         return member
     }
 
@@ -82,6 +87,21 @@ final class MemberStore {
             body: RenameMemberBody(name: name)
         )
         await reloadAll()
+    }
+
+    /// Project-scope rename — the caller has the target's `userId` (from
+    /// `ProjectMemberRow`) but no `LedgerMember`, and in project scope the
+    /// cached ledger roster may not be loaded (a guest can never load it,
+    /// and the rename gate is editor+ on the ledger either way, so the
+    /// lookup isn't reliable). Takes the ledger explicitly so the PATCH
+    /// reaches the right ledger; refreshes the project instead of the
+    /// ledger roster, mirroring `addVirtualMember(ledgerId:name:)`.
+    func renameVirtualMember(ledgerId: String, userId: String, to name: String) async throws {
+        _ = try await client.send(
+            "PATCH",
+            "bookkeeping/ledgers/\(ledgerId)/members/\(userId)",
+            body: RenameMemberBody(name: name)
+        )
     }
 
     func remove(_ member: LedgerMember) async throws {

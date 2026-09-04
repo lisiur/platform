@@ -15,7 +15,6 @@ struct LedgersView: View {
     @Environment(ToastCenter.self) private var toast
     @State private var editingLedger: QianlaiLedger?
     @State private var isShowingCreate = false
-    @State private var isShowingJoin = false
     @State private var membersLedger: QianlaiLedger?
     @State private var ledgerPendingDelete: QianlaiLedger?
     @State private var ledgerPendingLeave: QianlaiLedger?
@@ -166,10 +165,7 @@ struct LedgersView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel(Text("Create Ledger"))
-            }
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Join") { isShowingJoin = true }
+                .accessibilityLabel(Text(L10n.string("ledgers.create", defaultValue: "Create Ledger")))
             }
         }
         .task {
@@ -194,9 +190,6 @@ struct LedgersView: View {
             NavigationStack {
                 LedgerFormView(ledger: ledger)
             }
-        }
-        .sheet(isPresented: $isShowingJoin) {
-            JoinLedgerScanView()
         }
         .sheet(item: $membersLedger) { ledger in
             NavigationStack {
@@ -515,7 +508,7 @@ struct LedgerFormView: View {
                 }
             }
         }
-        .navigationTitle(Text(ledger != nil ? "Edit Ledger" : "Create Ledger"))
+        .navigationTitle(Text(ledger != nil ? L10n.string("ledgers.edit", defaultValue: "Edit Ledger") : L10n.string("ledgers.create", defaultValue: "Create Ledger")))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -574,8 +567,10 @@ struct LedgerFormView: View {
 /// Join someone else's ledger by scanning their invite QR — the scanner
 /// is the whole surface. Nothing is shown for a recognized payload; the
 /// join request fires immediately (the scan itself is the confirmation).
-/// Success toasts and dismisses; a failed redeem keeps the camera up and
-/// shows an error hint so a fresh code can simply be re-scanned.
+/// Success dismisses the scanner right away and shows a "joined …" toast
+/// on the surface underneath (the dashboard) so the user can read it
+/// without dismissing a dialog first; a failed redeem keeps the camera
+/// up and shows an error hint so a fresh code can simply be re-scanned.
 struct JoinLedgerScanView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
@@ -637,8 +632,43 @@ struct JoinLedgerScanView: View {
                 if let projectId = joined.projectId {
                     projectStore.select(projectId)
                 }
-                toast.show(L10n.string("ledgers.joinSuccess", defaultValue: "Joined the ledger"))
+                // Resolve the display name for the toast before the scanner
+                // comes down — `join` refreshed the ledger list, the load
+                // above the project cache; both lookups run on fresh data.
+                let name: String?
+                let isProject: Bool
+                if let projectId = joined.projectId {
+                    isProject = true
+                    name = projectStore.projects(for: joined.ledgerId)
+                        .first { $0.id == projectId }?.name
+                } else {
+                    isProject = false
+                    name = ledgerStore.ledgers.first { $0.id == joined.ledgerId }?.name
+                }
+                // Drop the scanner first so the toast appears on the
+                // surface underneath (the dashboard) rather than overlaying
+                // the alert with the still-live camera behind it.
                 dismiss()
+                let message: String
+                if isProject {
+                    message = L10n.string(
+                        "ledgers.joinSuccessProject",
+                        defaultValue: "Joined project “%@”",
+                        name ?? ""
+                    )
+                } else if let name {
+                    message = L10n.string(
+                        "ledgers.joinSuccessLedger",
+                        defaultValue: "Joined “%@”",
+                        name
+                    )
+                } else {
+                    message = L10n.string(
+                        "ledgers.joinSuccess",
+                        defaultValue: "Joined the ledger"
+                    )
+                }
+                toast.show(message)
             } catch {
                 errorText = error.localizedDescription
             }

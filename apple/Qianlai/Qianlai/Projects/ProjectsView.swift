@@ -131,16 +131,13 @@ struct ProjectDetailView: View {
     /// still gets the project name in the title.
     var hidesNavigationTitle: Bool = false
 
-    @State private var memberStore = MemberStore()
     @State private var isEditPresented = false
-    @State private var isInvitePresented = false
     @State private var confirmation: DetailAction?
     @State private var isLoadingReport = false
 
     private enum DetailAction: Hashable {
         case delete
         case leave
-        case removeMember(String)
     }
 
     /// Re-resolves the project from the active ledger's cached list so
@@ -189,20 +186,12 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $isInvitePresented) {
-            if let project, let ledger {
-                NavigationStack {
-                    ProjectInviteView(ledgerId: ledger.id, project: project)
-                }
-            }
-        }
-        .confirmationDialog(
+        .alert(
             Text("Are you sure?"),
             isPresented: Binding(
                 get: { confirmation != nil },
                 set: { if !$0 { confirmation = nil } }
-            ),
-            titleVisibility: .visible
+            )
         ) {
             if let confirmation {
                 switch confirmation {
@@ -214,10 +203,6 @@ struct ProjectDetailView: View {
                     Button(L10n.string("projects.leave", defaultValue: "Leave Project"), role: .destructive) {
                         Task { await leaveProject() }
                     }
-                case .removeMember(let userId):
-                    Button(L10n.string("projects.removeMember", defaultValue: "Remove Member"), role: .destructive) {
-                        Task { await removeMember(userId) }
-                    }
                 }
             }
             Button(L10n.string("Cancel", defaultValue: "Cancel"), role: .cancel) {}
@@ -227,8 +212,6 @@ struct ProjectDetailView: View {
                 Text("Its records are kept but become unassigned.")
             case .leave:
                 Text("You will no longer see or record in this project.")
-            case .removeMember(let userId):
-                Text("Remove \(project?.members.first { $0.userId == userId }?.displayName ?? userId) from the project?")
             case .none:
                 Text("")
             }
@@ -237,7 +220,6 @@ struct ProjectDetailView: View {
             guard let ledger else { return }
             isLoadingReport = true
             defer { isLoadingReport = false }
-            await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId)
         }
         // A post/update/delete elsewhere (quick-entry sheet, Journal tab)
@@ -246,7 +228,11 @@ struct ProjectDetailView: View {
         // pattern as ProjectEntriesDetailView.
         .onChange(of: reportStore.journalEpoch) { _, _ in
             guard let ledger else { return }
-            Task { await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId) }
+            Task {
+                isLoadingReport = true
+                defer { isLoadingReport = false }
+                await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId)
+            }
         }
     }
 
@@ -263,8 +249,6 @@ struct ProjectDetailView: View {
                     Spacer()
                 }
             }
-
-            membersSection(project, ledger)
         }
         .refreshable {
             await projectStore.load(ledgerId: ledger.id, force: true)
@@ -390,88 +374,6 @@ struct ProjectDetailView: View {
     }
 
     @ViewBuilder
-    private func membersSection(_ project: QianlaiProject, _ ledger: QianlaiLedger) -> some View {
-        Section {
-            ForEach(project.members) { member in
-                HStack(spacing: 10) {
-                    avatar(member.displayName, member.user?.avatar)
-                    Text(member.displayName)
-                    Spacer()
-                    if canManage, project.isActive {
-                        Button {
-                            confirmation = .removeMember(member.userId)
-                        } label: {
-                            Image(systemName: "minus.circle")
-                                .foregroundStyle(.red)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-            }
-            if canManage, project.isActive, !addableMembers(project).isEmpty {
-                Menu {
-                    ForEach(addableMembers(project)) { member in
-                        Button(member.displayName) {
-                            Task { await addMember(project, member) }
-                        }
-                    }
-                } label: {
-                    Label(
-                        L10n.string("projects.addMember", defaultValue: "Add Member"),
-                        systemImage: "person.badge.plus"
-                    )
-                }
-            }
-        } header: {
-            HStack {
-                Text(L10n.string("projects.members", defaultValue: "Members"))
-                Spacer()
-                if canManage, project.isActive {
-                    Button {
-                        isInvitePresented = true
-                    } label: {
-                        Label(
-                            L10n.string("projects.invite", defaultValue: "Invite via Code"),
-                            systemImage: "qrcode"
-                        )
-                    }
-                    .buttonStyle(.borderless)
-                }
-            }
-        }
-    }
-
-    private func avatar(_ name: String, _ path: String?) -> some View {
-        let initial = String(name.prefix(1)).uppercased()
-        return Group {
-            if let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(initial)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            } else {
-                Text(initial)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .frame(width: 36, height: 36)
-        .background(Circle().fill(Color.accentColor.opacity(0.85)))
-        .clipShape(Circle())
-    }
-
-    private func addableMembers(_ project: QianlaiProject) -> [LedgerMember] {
-        memberStore.members.filter { member in
-            !project.members.contains { $0.userId == member.userId }
-        }
-    }
-
-    @ViewBuilder
     private func managementMenu(_ project: QianlaiProject) -> some View {
         Menu {
             if canManage {
@@ -514,32 +416,30 @@ struct ProjectDetailView: View {
         return project.members.contains { $0.userId == myUserId }
     }
 
-    private func addMember(_ project: QianlaiProject, _ member: LedgerMember) async {
-        guard let ledger else { return }
-        do {
-            try await projectStore.addMember(
-                ledgerId: ledger.id,
-                projectId: project.id,
-                userId: member.userId
-            )
-            toast.show(L10n.string("projects.memberAdded", defaultValue: "Member added"))
-        } catch {
-            toast.show(error.localizedDescription)
+    /// Rounded initial-with-avatar used by settlement rows. Member rows
+    /// moved to the Members tab.
+    private func avatar(_ name: String, _ path: String?) -> some View {
+        let initial = String(name.prefix(1)).uppercased()
+        return Group {
+            if let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(initial)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            } else {
+                Text(initial)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
         }
-    }
-
-    private func removeMember(_ userId: String) async {
-        guard let ledger else { return }
-        do {
-            try await projectStore.removeMember(
-                ledgerId: ledger.id,
-                projectId: projectId,
-                userId: userId
-            )
-            toast.show(L10n.string("projects.memberRemoved", defaultValue: "Member removed"))
-        } catch {
-            toast.show(error.localizedDescription)
-        }
+        .frame(width: 36, height: 36)
+        .background(Circle().fill(Color.accentColor.opacity(0.85)))
+        .clipShape(Circle())
     }
 
     private func toggleArchive(_ project: QianlaiProject) async {
