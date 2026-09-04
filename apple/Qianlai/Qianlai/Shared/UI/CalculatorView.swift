@@ -250,6 +250,7 @@ struct CalculatorEngine {
 /// runs.
 struct CalculatorView: View {
     @Binding var engine: CalculatorEngine
+    @State private var keyPressCount = 0
 
     /// ISO currency code whose symbol leads the amount ("¥24"); nil or
     /// empty renders the bare number, matching `Money.format`'s rule for
@@ -276,6 +277,7 @@ struct CalculatorView: View {
             pad
         }
         .padding(10)
+        .sensoryFeedback(.selection, trigger: keyPressCount)
         // Capped on wide surfaces (iPad form sheet) so the keys stay key
         // sized, centered in whatever width the host gives.
         .frame(maxWidth: 420)
@@ -345,30 +347,30 @@ struct CalculatorView: View {
     private var pad: some View {
         HStack(spacing: 8) {
             padColumn {
-                key("7", role: .digit) { engine.inputDigit("7") }
-                key("4", role: .digit) { engine.inputDigit("4") }
-                key("1", role: .digit) { engine.inputDigit("1") }
-                key(".", role: .digit) { engine.inputDecimal() }
+                key("7", role: .digit) { performKeyAction { engine.inputDigit("7") } }
+                key("4", role: .digit) { performKeyAction { engine.inputDigit("4") } }
+                key("1", role: .digit) { performKeyAction { engine.inputDigit("1") } }
+                key(".", role: .digit) { performKeyAction { engine.inputDecimal() } }
             }
             padColumn {
-                key("8", role: .digit) { engine.inputDigit("8") }
-                key("5", role: .digit) { engine.inputDigit("5") }
-                key("2", role: .digit) { engine.inputDigit("2") }
-                key("0", role: .digit) { engine.inputDigit("0") }
+                key("8", role: .digit) { performKeyAction { engine.inputDigit("8") } }
+                key("5", role: .digit) { performKeyAction { engine.inputDigit("5") } }
+                key("2", role: .digit) { performKeyAction { engine.inputDigit("2") } }
+                key("0", role: .digit) { performKeyAction { engine.inputDigit("0") } }
             }
             padColumn {
-                key("9", role: .digit) { engine.inputDigit("9") }
-                key("6", role: .digit) { engine.inputDigit("6") }
-                key("3", role: .digit) { engine.inputDigit("3") }
+                key("9", role: .digit) { performKeyAction { engine.inputDigit("9") } }
+                key("6", role: .digit) { performKeyAction { engine.inputDigit("6") } }
+                key("3", role: .digit) { performKeyAction { engine.inputDigit("3") } }
                 key(
                     systemImage: "delete.left",
                     role: .function,
                     accessibilityLabel: "Backspace"
-                ) { engine.inputBackspace() }
+                ) { performKeyAction { engine.inputBackspace() } }
             }
             padColumn {
-                key(.subtract) { engine.inputOperation(.subtract) }
-                key(.add) { engine.inputOperation(.add) }
+                key(.subtract) { performKeyAction { engine.inputOperation(.subtract) } }
+                key(.add) { performKeyAction { engine.inputOperation(.add) } }
                 commitKey
             }
         }
@@ -378,11 +380,16 @@ struct CalculatorView: View {
         VStack(spacing: 8) { content() }
     }
 
+    private func performKeyAction(_ action: () -> Void) {
+        action()
+        keyPressCount += 1
+    }
+
     /// Check key filling two key rows: the pad's save control. While the
     /// commit runs a spinner replaces the checkmark, and while it can't
     /// run the key dims and ignores taps.
     private var commitKey: some View {
-        Button(action: onCommit) {
+        Button { performKeyAction(onCommit) } label: {
             Group {
                 if isCommitting {
                     ProgressView()
@@ -480,8 +487,17 @@ struct CalculatorView: View {
 /// Keypad touch feedback: the key shrinks while pressed and springs back
 /// on release.
 private struct KeyPressStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        (colorScheme == .dark ? Color.white : Color.black)
+                            .opacity(configuration.isPressed ? 0.14 : 0)
+                    )
+            }
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.6), value: configuration.isPressed)
     }
