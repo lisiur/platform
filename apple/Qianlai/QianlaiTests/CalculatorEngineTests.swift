@@ -177,10 +177,13 @@ final class CalculatorEngineTests: XCTestCase {
         engine.inputOperation(.divide)
         engine.inputDigit("0")
         XCTAssertNil(engine.displayValue)
+        // An unusable fold keeps the formula bare — no trailing equals.
+        XCTAssertEqual(engine.hint, "1 ÷ 0")
         // Growing the divisor to `0.5` recovers the preview without AC.
         engine.inputDecimal()
         engine.inputDigit("5")
         XCTAssertEqual(engine.displayValue, "2")
+        XCTAssertEqual(engine.hint, "1 ÷ 0.5 =")
     }
 
     func testCommitPendingFoldsIntoEntry() {
@@ -202,7 +205,7 @@ final class CalculatorEngineTests: XCTestCase {
         engine.inputOperation(.add)
         XCTAssertEqual(engine.hint, "3 +")
         engine.inputDigit("1")
-        XCTAssertEqual(engine.hint, "3 + 1")
+        XCTAssertEqual(engine.hint, "3 + 1 =")
         XCTAssertEqual(engine.displayValue, "4")
         engine.inputEquals()
         XCTAssertTrue(engine.hint == nil)
@@ -217,7 +220,7 @@ final class CalculatorEngineTests: XCTestCase {
         engine.inputOperation(.add)
         engine.inputDigit("5")
         engine.inputDigit("8")
-        XCTAssertEqual(engine.hint, "14 + 58")
+        XCTAssertEqual(engine.hint, "14 + 58 =")
         XCTAssertEqual(engine.displayValue, "72")
         // A second operator auto-calculates: the first line becomes the
         // result plus the new symbol.
@@ -236,7 +239,7 @@ final class CalculatorEngineTests: XCTestCase {
         engine.inputDigit("8")
         // 58 → 5: trim the operand.
         engine.inputBackspace()
-        XCTAssertEqual(engine.hint, "14 + 5")
+        XCTAssertEqual(engine.hint, "14 + 5 =")
         XCTAssertEqual(engine.displayValue, "19")
         // 5 → operand dropped, back to the not-started state.
         engine.inputBackspace()

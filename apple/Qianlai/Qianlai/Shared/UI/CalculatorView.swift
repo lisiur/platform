@@ -57,15 +57,20 @@ struct CalculatorEngine {
         }
     }
 
-    /// The formula so far, rendered above the live total: `3 +` before the
-    /// next operand starts, then `3 + 1` as it is typed. Cleared by `=`,
-    /// which commits the fold into the entry.
+    /// The formula so far, rendered beside the live total: `3 +` before the
+    /// next operand starts, then `3 + 1 =` as it is typed — the trailing
+    /// equals marks the total beside it as this formula's fold, and is
+    /// dropped when the fold is unusable (`1 ÷ 0`). Cleared by `=`, which
+    /// commits the fold into the entry.
     var hint: String? {
         guard let accumulator, let pending else { return nil }
         if startsNewEntry, !hasEnteredOperand {
             return "\(Self.format(accumulator)) \(pending.symbol)"
         }
-        return "\(Self.format(accumulator)) \(pending.symbol) \(entry)"
+        guard displayValue != nil else {
+            return "\(Self.format(accumulator)) \(pending.symbol) \(entry)"
+        }
+        return "\(Self.format(accumulator)) \(pending.symbol) \(entry) ="
     }
 
     /// What the display shows: while an operation is pending it previews
@@ -163,7 +168,7 @@ struct CalculatorEngine {
     /// operand (`14 + 58` → `14 + 5`), then — once nothing is left to
     /// trim — drops just the operand (`14 + 5` → `14 +`, entry back to the
     /// running total), then drops the whole pending operation (`14 +` →
-    /// plain `14`, first line empty). With nothing pending it edits the
+    /// plain `14`, formula cleared). With nothing pending it edits the
     /// entry directly (`14` → `1`).
     mutating func inputBackspace() {
         guard !isError else { return }
@@ -239,7 +244,7 @@ struct CalculatorEngine {
 }
 
 /// The amount calculator as one inline unit: the display — pending
-/// formula above the big live total in a card on the host's canvas —
+/// formula beside the big live total in a card on the host's canvas —
 /// sits directly above the keypad, so the number being typed and the
 /// keys producing it read together. The host
 /// form owns the engine as `@State` and every key press mutates it live
@@ -270,14 +275,19 @@ struct CalculatorView: View {
     var isCommitting = false
 
     var body: some View {
-        // Wider gap between display card and keypad than the keys' own
-        // 8pt spacing, so the two blocks read separately.
-        VStack(spacing: 14) {
+        // Display and keypad share the keys' own 8pt gap so the whole pad
+        // reads as one compact unit. The outer insets pin the unit to the
+        // host's edges; the top inset sits on the same 8pt rhythm so the
+        // host's chip row, the display card, and the keypad keep one even
+        // gap, while the deeper bottom inset keeps clear of the sheet's
+        // bottom edge.
+        VStack(spacing: 8) {
             display
             pad
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
         .sensoryFeedback(.selection, trigger: keyPressCount)
         // Keep the calculator aligned with the form on wide surfaces.
         .frame(maxWidth: 420)
@@ -289,32 +299,28 @@ struct CalculatorView: View {
             ? L10n.string("calculator.error", defaultValue: "Error") : nil
     }
 
-    /// Pending-operation formula above the big live total (or error text),
-    /// presented as a card on the host's canvas — the same surface the
-    /// grouped form's sections use, so the display reads as a sibling of
-    /// the form's cards. Both lines carry fixed heights so the card never
-    /// changes size when the formula appears.
+    /// Pending-operation formula hugging the trailing big live total (or
+    /// error text) on one row, presented as a card on the host's canvas —
+    /// the same surface the grouped form's sections use, so the display
+    /// reads as a sibling of the form's cards. The total claims its width
+    /// first (shrinking to fit) and the formula truncates into the
+    /// remainder, so the card's height never changes when the formula
+    /// appears.
     private var display: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            // Always laid out at opacity zero when idle so the display
-            // keeps a fixed height and the layout never jumps when the
-            // formula ("3 + 1") appears.
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(engine.hint ?? " ")
                 .font(.system(size: 11).monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .frame(height: 12)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .opacity(engine.hint == nil ? 0 : 1)
             amountLine
                 .foregroundStyle(errorText == nil ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.red))
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
-                .frame(height: 38)
+                .layoutPriority(1)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.cardSurface)
