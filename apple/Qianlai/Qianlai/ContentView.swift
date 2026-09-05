@@ -123,7 +123,7 @@ struct ContentView: View {
             }
             #endif
         }
-        .sheet(isPresented: $isQuickAddPresented) {
+        .fullScreenCover(isPresented: $isQuickAddPresented) {
             NavigationStack {
                 QuickEntryView()
             }

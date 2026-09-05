@@ -21,6 +21,11 @@ struct AccountSelectionView: View {
     let entries: [AccountTreeEntry]
     /// Optional pocket sides show a clear row ("Not selected").
     let allowsEmpty: Bool
+    /// When false, a category that has subs cannot be picked — tapping a
+    /// parent row toggles its fold instead; only leaf rows commit a
+    /// selection. The current choice still shows its checkmark (an edit of
+    /// an entry posted to a parent keeps displaying it).
+    var parentSelectable = true
     @Binding var selection: String?
 
     /// Ids of parents whose children are folded away. Empty by default, so
@@ -132,8 +137,20 @@ struct AccountSelectionView: View {
     ) -> some View {
         HStack(spacing: 0) {
             Button {
-                selection = id
-                dismiss()
+                if !parentSelectable, hasSubtree, let id {
+                    // Unselectable parent: tapping commits nothing — it
+                    // folds or unfolds the subtree instead.
+                    withAnimation(.default) {
+                        if collapsed.contains(id) {
+                            collapsed.remove(id)
+                        } else {
+                            collapsed.insert(id)
+                        }
+                    }
+                } else {
+                    selection = id
+                    dismiss()
+                }
             } label: {
                 HStack(spacing: 0) {
                     HStack(spacing: 8) {

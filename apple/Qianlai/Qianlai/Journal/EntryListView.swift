@@ -154,7 +154,7 @@ struct EntryListView: View {
                 Text("Delete entry #\(entry.entryNo)? Reports will be recalculated.")
             }
         }
-        .sheet(item: $entryPendingEdit) { entry in
+        .fullScreenCover(item: $entryPendingEdit) { entry in
             NavigationStack {
                 QuickEntryView(entry: entry)
             }

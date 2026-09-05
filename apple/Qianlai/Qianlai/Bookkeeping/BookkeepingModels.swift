@@ -957,6 +957,43 @@ enum QuickEntryKind: String, CaseIterable, Identifiable {
     }
 }
 
+/// The arrangeable quick-entry fields — the ones a layout may place as
+/// chips in the pinned bar or as rows in the more-sheet form. The kind
+/// tabs, category grid, and the calculator's amount stay fixed surfaces
+/// outside this arrangement.
+enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
+    case account
+    case memo
+    case time
+    case participants
+    case location
+    case paidBy
+    case project
+    case countsInLedger
+
+    var id: String { rawValue }
+}
+
+/// Which quick-entry fields render as chips in the pinned bar and which
+/// fall through to the more sheet's form. Ships the launch split; a later
+/// release lets the user rearrange and persists that arrangement here.
+struct QuickEntryLayout: Equatable, Codable {
+    /// Chip order left-to-right. Fields absent from the list land in
+    /// `moreFields`.
+    var chipFields: [QuickEntryField]
+
+    /// Everything not arranged as a chip, in canonical `allCases` order.
+    var moreFields: [QuickEntryField] {
+        QuickEntryField.allCases.filter { !chipFields.contains($0) }
+    }
+
+    /// The shipped split: the quick-tweak fields as chips, the rarer
+    /// posting options behind the more sheet.
+    static let standard = QuickEntryLayout(chipFields: [
+        .account, .memo, .time, .participants, .location,
+    ])
+}
+
 /// Expands a quick entry into the balanced two-line double entry the API
 /// expects. Mirrors the webapp's quick-entry dialog exactly:
 /// - expense: debit = expense category (required), credit = paying pocket

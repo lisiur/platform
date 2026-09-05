@@ -56,7 +56,7 @@ struct JournalDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $isEditPresented) {
+        .fullScreenCover(isPresented: $isEditPresented) {
             NavigationStack {
                 QuickEntryView(entry: resolved)
             }
