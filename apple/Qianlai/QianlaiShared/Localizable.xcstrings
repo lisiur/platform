@@ -3768,6 +3768,23 @@
         }
       }
     },
+    "journal.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索…"
+          }
+        }
+      }
+    },
     "journal.show.all" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7628,23 +7645,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索账户"
-          }
-        }
-      }
-    },
-    "Search memos…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search memos…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索摘要…"
           }
         }
       }

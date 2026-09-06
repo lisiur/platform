@@ -92,7 +92,7 @@ struct JournalView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField("Search memos…", text: $searchField)
+            TextField(L10n.string("journal.search.placeholder", defaultValue: "Search…"), text: $searchField)
             if !searchField.isEmpty {
                 Button {
                     searchField = ""
