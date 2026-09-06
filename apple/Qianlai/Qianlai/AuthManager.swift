@@ -199,6 +199,11 @@ final class AuthManager {
 
         if client.sessionToken != session.token {
             client.sessionToken = session.token
+        } else {
+            // The validated token is rewritten (idempotently) so installs
+            // that predate widget sharing move it into the shared keychain
+            // access group the widget reads.
+            client.sessionToken = client.sessionToken
         }
         currentUser = user
         permissions = info.permissions ?? []
@@ -257,6 +262,9 @@ final class AuthManager {
         currentUser = nil
         permissions = []
         isOnboardingPending = false
+        // No session, nothing for the widget to show.
+        WidgetDataStore.clearAll()
+        WidgetSync.reloadTimelines()
     }
 
     private func acceptSession(_ response: SignInResponse) {

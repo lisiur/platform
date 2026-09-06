@@ -80,7 +80,8 @@ struct ProjectEntriesDetailView: View {
             ledger: ledger,
             emptyMessage: emptyMessage,
             showsPostHint: false,
-            amountSection: settlementAmountSection
+            amountSection: settlementAmountSection,
+            alwaysShowsPayer: true
         )
         .environment(entryStore)
         .navigationTitle(Text(title))

@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "—" : {
+
+    },
     "·" : {
 
     },
@@ -23,6 +26,9 @@
           }
         }
       }
+    },
+    "%@" : {
+
     },
     "%@ %@" : {
       "localizations" : {
@@ -177,6 +183,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将自动生成一笔与系统权益账户对冲的平衡分录。截至日期之后的流水不会被改动。"
+          }
+        }
+      }
+    },
+    "A couple of quick steps to set up your workspace." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A couple of quick steps to set up your workspace."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只需几步就能准备好你的记账工作区。"
           }
         }
       }
@@ -2213,38 +2235,6 @@
         }
       }
     },
-    "Totally optional — create a ledger now, or do it anytime later." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Totally optional — create a ledger now, or do it anytime later."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完全可选——现在可以创建账本，也可以以后随时创建。"
-          }
-        }
-      }
-    },
-    "A couple of quick steps to set up your workspace." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A couple of quick steps to set up your workspace."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只需几步就能准备好你的记账工作区。"
-          }
-        }
-      }
-    },
     "Create & Use" : {
       "localizations" : {
         "en" : {
@@ -2724,23 +2714,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑一笔"
-          }
-        }
-      }
-    },
-    "ledgers.edit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Ledger"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑账本"
           }
         }
       }
@@ -4127,6 +4100,23 @@
         }
       }
     },
+    "ledgers.edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Ledger"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑账本"
+          }
+        }
+      }
+    },
     "ledgers.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4825,6 +4815,23 @@
         }
       }
     },
+    "members.selectLedger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a ledger to see its members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择账本后查看成员"
+          }
+        }
+      }
+    },
     "Memo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5212,23 +5219,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
-          }
-        }
-      }
-    },
-    "members.selectLedger" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a ledger to see its members"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择账本后查看成员"
           }
         }
       }
@@ -6794,23 +6784,6 @@
         }
       }
     },
-    "quick.participants.allMembers" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All project members"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部项目成员"
-          }
-        }
-      }
-    },
     "quick.paidBy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6841,6 +6814,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@（已不在本账本）"
+          }
+        }
+      }
+    },
+    "quick.participants.allMembers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All project members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部项目成员"
           }
         }
       }
@@ -8079,6 +8069,22 @@
         }
       }
     },
+    "Totally optional — create a ledger now, or do it anytime later." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totally optional — create a ledger now, or do it anytime later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全可选——现在可以创建账本，也可以以后随时创建。"
+          }
+        }
+      }
+    },
     "Totals" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8317,6 +8323,244 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "欢迎，%@！"
+          }
+        }
+      }
+    },
+    "widget.bound.categoryType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类"
+          }
+        }
+      }
+    },
+    "widget.bound.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bind a ledger or project, and optionally a category."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绑定账本或项目，可选分类。"
+          }
+        }
+      }
+    },
+    "widget.bound.displayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Add (Bound)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速记账（绑定）"
+          }
+        }
+      }
+    },
+    "widget.bound.sharedByFormat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared by %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %@ 共享"
+          }
+        }
+      }
+    },
+    "widget.bound.targetType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entry Target"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记账目标"
+          }
+        }
+      }
+    },
+    "widget.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month expense, balances, and recent entries."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本月支出、资产负债与最近流水。"
+          }
+        }
+      }
+    },
+    "widget.displayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ledger Summary"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账本概览"
+          }
+        }
+      }
+    },
+    "widget.offlineFormat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新于 %@"
+          }
+        }
+      }
+    },
+    "widget.quickAdd.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One tap to record a new entry."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一键打开记一笔。"
+          }
+        }
+      }
+    },
+    "widget.quickAdd.displayName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Add"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速记账"
+          }
+        }
+      }
+    },
+    "widget.signedOutMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Qianlai to see your balances."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开钱来查看你的账目。"
+          }
+        }
+      }
+    },
+    "widget.signedOutTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Signed In"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录"
+          }
+        }
+      }
+    },
+    "widget.unavailableMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Qianlai and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开钱来后重试。"
+          }
+        }
+      }
+    },
+    "widget.unavailableTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't Refresh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新"
           }
         }
       }

@@ -37,10 +37,7 @@ final class LedgerStore {
     /// else the first active one. Archived ledgers are skipped as an
     /// auto-selection fallback (they are read-only).
     var activeLedger: QianlaiLedger? {
-        ledgers.first { $0.id == activeLedgerId }
-            ?? ledgers.first { $0.isDefault && $0.isActive }
-            ?? ledgers.first { $0.isActive }
-            ?? ledgers.first
+        WidgetDataStore.resolveActiveLedger(from: ledgers, storedId: activeLedgerId)
     }
 
     var activeLedgers: [QianlaiLedger] {
@@ -63,6 +60,11 @@ final class LedgerStore {
             let response: LedgersResponse = try await client.request("GET", "bookkeeping/ledgers")
             ledgers = response.ledgers
             loadError = nil
+            // The resolved active ledger may differ from the persisted id
+            // (deleted ledger, first launch) — the widget mirror has to
+            // follow, and a stale widget timeline should refresh now.
+            mirrorWidgetState()
+            WidgetSync.reloadTimelines()
         } catch {
             loadError = error.localizedDescription
         }
@@ -70,6 +72,34 @@ final class LedgerStore {
 
     func setActive(_ id: String?) {
         activeLedgerId = id
+        mirrorWidgetState()
+        WidgetSync.reloadTimelines()
+    }
+
+    /// Mirrors the widget-facing state into the shared App Group suite.
+    /// `widget.activeLedger` holds the GUEST-FREE resolution — a guest of
+    /// someone else's ledger must never see its name or stats in a widget —
+    /// while the raw app context (id + guest flag) accompanies it so
+    /// `ProjectStore` can mirror the quick-entry scope, which for guests is
+    /// legitimately their invited project. The scoped-project mirror is
+    /// cleared here: it belonged to the previous ledger context, and the
+    /// project store re-mirrors the new scope when its load settles.
+    private func mirrorWidgetState() {
+        let widgetLedger = WidgetDataStore.resolveWidgetLedger(from: ledgers, storedId: activeLedgerId)
+        WidgetDataStore.saveActiveLedgerId(widgetLedger?.id)
+        WidgetDataStore.saveActiveLedger(widgetLedger)
+        // Clear the scoped project only when the ledger context really
+        // changed — loads re-run constantly, and a concurrent ProjectStore
+        // load may have just re-mirrored the still-valid scope.
+        if activeLedgerId != WidgetDataStore.loadAppActiveLedgerId() {
+            WidgetDataStore.saveScopedProject(nil)
+        }
+        WidgetAppGroup.defaults?.set(activeLedgerId, forKey: WidgetDataStore.appActiveLedgerIdKey)
+        WidgetAppGroup.defaults?.set(
+            activeLedger?.isGuest ?? false,
+            forKey: WidgetDataStore.appActiveLedgerIsGuestKey
+        )
+        WidgetSync.reloadTimelines()
     }
 
     // MARK: - CRUD

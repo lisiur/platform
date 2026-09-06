@@ -11,6 +11,71 @@ import SwiftUI
 /// and a single amount — the draft expands into the balanced two-line double
 /// entry the API expects. Pass an `entry` to edit it instead: every field is
 /// prefilled and saving issues a full replace of the entry.
+/// The parsed query items of a bound widget's deep link
+/// (`qianlai://quick-entry?ledger=…&project=…&category=…&kind=…`), before
+/// the ledger is resolved against the loaded ledger list.
+struct QuickEntryPreset: Equatable {
+    var ledgerId: String
+    var projectId: String?
+    var categoryId: String?
+    var kind: QuickEntryKind?
+
+    init?(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        var items: [String: String] = [:]
+        for item in components.queryItems ?? [] where item.value != nil {
+            items[item.name] = item.value
+        }
+        guard let ledgerId = items["ledger"], !ledgerId.isEmpty else { return nil }
+        self.ledgerId = ledgerId
+        projectId = items["project"]
+        categoryId = items["category"]
+        kind = items["kind"].flatMap(QuickEntryKind.init(rawValue:))
+    }
+}
+
+/// A bound widget's recording target: its own ledger (never the app's
+/// active one) plus optional project/category/kind prefill, parsed from the
+/// deep link and resolved against the loaded ledger list. The sheet reads
+/// everything it needs from here — the global active-ledger scope is never
+/// consulted, let alone changed.
+struct QuickEntryBinding: Equatable {
+    var ledger: QianlaiLedger
+    var projectId: String?
+    var categoryId: String?
+    var kind: QuickEntryKind?
+
+    init(
+        ledger: QianlaiLedger,
+        projectId: String? = nil,
+        categoryId: String? = nil,
+        kind: QuickEntryKind? = nil
+    ) {
+        self.ledger = ledger
+        self.projectId = projectId
+        self.categoryId = categoryId
+        self.kind = kind
+    }
+
+    /// Parses a bound widget's deep link and resolves its ledger from the
+    /// loaded ledger list; nil when the link carries no ledger (plain quick
+    /// add) or the ledger no longer exists.
+    init?(url: URL, ledgers: [QianlaiLedger]) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        var items: [String: String] = [:]
+        for item in components.queryItems ?? [] where item.value != nil {
+            items[item.name] = item.value
+        }
+        guard let ledgerId = items["ledger"], !ledgerId.isEmpty,
+              let ledger = ledgers.first(where: { $0.id == ledgerId })
+        else { return nil }
+        self.ledger = ledger
+        projectId = items["project"]
+        categoryId = items["category"]
+        kind = items["kind"].flatMap(QuickEntryKind.init(rawValue:))
+    }
+}
+
 struct QuickEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
@@ -18,8 +83,34 @@ struct QuickEntryView: View {
     @Environment(JournalStore.self) private var journalStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(AuthManager.self) private var auth
+    /// In-app language override for date formatting (`quickTimeValue`).
+    @Environment(\.locale) private var locale
     private let editedEntry: JournalEntry?
+    /// The bound widget's target; nil for pill/tab presentations, which
+    /// follow the app's active-ledger scope.
+    private let binding: QuickEntryBinding?
     @State private var draft: QuickEntryDraft
+
+    /// The ledger this sheet records into: the bound target for widget
+    /// presentations, the app's active ledger otherwise. Everything in the
+    /// sheet — guest rules, currency, pickers, posting — reads this, so a
+    /// bound sheet never touches the global scope.
+    private var ledger: QianlaiLedger? {
+        binding?.ledger ?? ledgerStore.activeLedger
+    }
+
+    /// Bound sheets post through a private journal so the shared root store
+    /// (which targets the app's active ledger) never sees a foreign ledger —
+    /// EXCEPT when the bound target is the ledger the root journal is
+    /// already serving: posting through the root there is what makes the
+    /// 流水 page update reactively.
+    @State private var boundJournalStore = JournalStore()
+    private var postingJournal: JournalStore {
+        if let binding, journalStore.ledgerId == binding.ledger.id {
+            return journalStore
+        }
+        return binding == nil ? journalStore : boundJournalStore
+    }
     /// The calculator engine doubles as the amount field: the inline
     /// `CalculatorView` — display and keypad as one unit — mutates it
     /// through a binding, so every edit applies immediately.
@@ -56,10 +147,24 @@ struct QuickEntryView: View {
     /// the initial load apart from a switcher tap inside the sheet.
     @State private var loadedLedgerId: String?
 
-    /// Editing seeds every field from the entry; creating starts blank.
-    init(entry: JournalEntry? = nil) {
+    /// Editing seeds every field from the entry; creating starts blank,
+    /// optionally prefilled from the bound widget's binding.
+    init(entry: JournalEntry? = nil, binding: QuickEntryBinding? = nil) {
         editedEntry = entry
-        _draft = State(initialValue: entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft())
+        self.binding = binding
+        var seed = entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft()
+        if let binding {
+            if let kind = binding.kind { seed.kind = kind }
+            if let projectId = binding.projectId { seed.projectId = projectId }
+            if let categoryId = binding.categoryId, let kind = binding.kind {
+                switch kind {
+                case .expense: seed.debitAccountId = categoryId
+                case .income: seed.creditAccountId = categoryId
+                case .transfer: break
+                }
+            }
+        }
+        _draft = State(initialValue: seed)
         // No grouping separator so post()'s Double parsing round-trips.
         _engine = State(initialValue: CalculatorEngine(initialText: entry.map { String(format: "%.2f", $0.amount) } ?? ""))
     }
@@ -76,21 +181,24 @@ struct QuickEntryView: View {
     /// entries inside their projects (kind picker and pay-side account row
     /// are hidden, project assignment is mandatory).
     private var isGuest: Bool {
-        ledgerStore.activeLedger?.isGuest ?? false
+        ledger?.isGuest ?? false
     }
 
-    /// Projects of the active ledger, from the app-level per-ledger cache —
-    /// kept warm by the ledger switcher's own load.
+    /// Projects of the recording ledger, from the app-level per-ledger
+    /// cache — kept warm by the ledger switcher's own load (bound sheets
+    /// fill it via the cache-only prefetch).
     private var ledgerProjects: [QianlaiProject] {
-        guard let ledger = ledgerStore.activeLedger else { return [] }
+        guard let ledger else { return [] }
         return appProjectStore.projects(for: ledger.id)
     }
 
     /// The project currently claiming scope in the ledger switcher — an
     /// explicit selection for any role, the auto-picked first project for
     /// guests. Non-nil fixes new entries to it in place of the picker.
+    /// Bound sheets never follow the global scope: their project is the
+    /// binding's.
     private var scopedProject: QianlaiProject? {
-        guard let ledger = ledgerStore.activeLedger else { return nil }
+        guard binding == nil, let ledger = ledger else { return nil }
         return appProjectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)
     }
 
@@ -211,7 +319,7 @@ struct QuickEntryView: View {
             // transparent on the canvas.
             CalculatorView(
                 engine: $engine,
-                currency: ledgerStore.activeLedger?.currency,
+                currency: ledger?.currency,
                 onCommit: { Task { await save() } },
                 isCommitDisabled: isPosting || draft.isSameAccount,
                 isCommitting: isPosting
@@ -241,9 +349,15 @@ struct QuickEntryView: View {
             }
             // The trailing slot is the ledger switcher, not a save button:
             // the entry's target ledger is picked here while the
-            // calculator's check key does the posting.
+            // calculator's check key does the posting. Bound sheets hide it
+            // — their target is fixed by the widget configuration — and
+            // show a read-only scope label instead.
             ToolbarItem(placement: .confirmationAction) {
-                LedgerSwitcherMenu()
+                if binding == nil {
+                    LedgerSwitcherMenu()
+                } else {
+                    boundScopeLabel
+                }
             }
         }
         .sheet(item: $activeAccountSide) { side in
@@ -376,13 +490,16 @@ struct QuickEntryView: View {
                 )
             }
         }
-        // Keyed by the active ledger so a switcher tap inside the sheet
-        // reloads the ledger-scoped stores for the new target.
-        .task(id: ledgerStore.activeLedger?.id) {
-            guard let ledger = ledgerStore.activeLedger else { return }
+        // Keyed by the recording ledger — the binding's own for bound
+        // sheets (constant), the active ledger otherwise, so a switcher tap
+        // inside the sheet reloads the ledger-scoped stores for the target.
+        .task(id: ledger?.id) {
+            guard let ledger = self.ledger else { return }
             if loadedLedgerId != ledger.id {
                 loadedLedgerId = ledger.id
-                if editedEntry == nil {
+                // A bound sheet never switches ledgers, so its seeded
+                // binding always survives.
+                if editedEntry == nil && binding == nil {
                     // Account, member, and project ids are all
                     // ledger-scoped, so a fresh add drops the previous
                     // ledger's selections; the defaults below re-apply
@@ -415,10 +532,16 @@ struct QuickEntryView: View {
             // root JournalStore — this task is what targets it at the
             // active ledger, so posting works without ever visiting the
             // Journal tab. The load dedupes against the tab's own.
-            await journalStore.load(ledgerId: ledger.id)
+            // Bound sheets fill the project cache without claiming scope;
+            // unbound ones already have it warm from the switcher.
+            if binding != nil {
+                await appProjectStore.prefetch(ledgerId: ledger.id)
+            }
+            await postingJournal.load(ledgerId: ledger.id)
             applyExpenseCategoryDefault()
             applyGuestProjectDefault()
             applyScopedProjectDefault()
+            applyBinding()
         }
         // The switcher inside this sheet can change the scope mid-edit:
         // follow it so a pinned entry never outlives its scope, and an
@@ -1143,12 +1266,13 @@ struct QuickEntryView: View {
 
     /// The collapsed time display as a plain string for the quick bar chip
     /// — same rule as the form row: time only on today, date + time once
-    /// the entry falls on another day.
+    /// the entry falls on another day. Formatted with the in-app override
+    /// locale (`\.locale`), not the device language.
     private var quickTimeValue: String {
         if isEntryToday {
-            return draft.date.formatted(.dateTime.hour().minute())
+            return draft.date.formatted(.dateTime.hour().minute().locale(locale))
         }
-        return draft.date.formatted(.dateTime.day().month(.abbreviated).hour().minute())
+        return draft.date.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(locale))
     }
 
     /// Capsule chip matching the recents row's styling: secondary icon +
@@ -1196,8 +1320,37 @@ struct QuickEntryView: View {
         location.rowLabel ?? L10n.string("quick.location.set", defaultValue: "Location set")
     }
 
+    /// Whether posting is allowed on the recording ledger.
     private var canPost: Bool {
-        ledgerStore.activeLedger?.canPost ?? false
+        ledger?.canPost ?? false
+    }
+
+    /// Read-only trailing label for bound sheets: the scope the entry will
+    /// record into — the bound project (folder glyph, person-badged on guest
+    /// ledgers) or the bound ledger. Not tappable; the target is fixed.
+    private var boundScopeLabel: some View {
+        HStack(spacing: 4) {
+            if let binding {
+                if binding.projectId != nil {
+                    Image(systemName: binding.ledger.isGuest ? "folder.badge.person.crop" : "folder")
+                } else {
+                    Image(systemName: "book")
+                }
+                Text(boundScopeName)
+            }
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    private var boundScopeName: String {
+        guard let binding else { return "" }
+        if let projectId = binding.projectId,
+           let project = ledgerProjects.first(where: { $0.id == projectId }) {
+            return project.name
+        }
+        return binding.ledger.name
     }
 
     // `Text` with a runtime `String` never localizes, so dynamic titles
@@ -1320,7 +1473,7 @@ struct QuickEntryView: View {
     /// archived/deleted categories resolve (or drop out) correctly even
     /// though the grid itself only shows the top level.
     private var recentCategoryEntries: [AccountTreeEntry] {
-        guard let ledger = ledgerStore.activeLedger, categorySide != nil else { return [] }
+        guard let ledger = self.ledger, categorySide != nil else { return [] }
         let byId = Dictionary(
             categoryTree.map { ($0.account.id, $0) },
             uniquingKeysWith: { first, _ in first }
@@ -1338,7 +1491,7 @@ struct QuickEntryView: View {
     }
 
     private func recordRecentCategory(_ id: String) {
-        guard let ledger = ledgerStore.activeLedger, categorySide != nil else { return }
+        guard let ledger = self.ledger, categorySide != nil else { return }
         RecentCategoryStore.record(id, ledgerId: ledger.id, kind: draft.kind)
     }
 
@@ -1349,7 +1502,7 @@ struct QuickEntryView: View {
         let categories = AccountTreeEntry.build(accountStore.pickable.filter { $0.type == .expense })
         let categoryIds = Set(categories.map(\.account.id))
         // Entries are newest-first; the debit line of an expense is its category.
-        for entry in journalStore.entries {
+        for entry in postingJournal.entries {
             if let line = entry.lines.first(where: { $0.debit > 0 && categoryIds.contains($0.accountId) }) {
                 return line.accountId
             }
@@ -1383,6 +1536,27 @@ struct QuickEntryView: View {
         guard draft.projectId != project.id else { return }
         draft.projectId = project.id
         pruneParticipants()
+    }
+
+    /// Re-applies the bound widget's binding after the ledger-scoped
+    /// defaults run — the binding is why the sheet opened, so it wins over
+    /// the scoped pinning. A bound category is dropped when the ledger's
+    /// account list no longer contains it (deleted since the widget was
+    /// configured).
+    private func applyBinding() {
+        guard let binding, binding.ledger.id == ledger?.id else { return }
+        if let kind = binding.kind { draft.kind = kind }
+        if let projectId = binding.projectId {
+            draft.projectId = projectId
+            pruneParticipants()
+        }
+        guard let categoryId = binding.categoryId, let kind = binding.kind else { return }
+        guard accountStore.items.contains(where: { $0.id == categoryId }) else { return }
+        switch kind {
+        case .expense: draft.debitAccountId = categoryId
+        case .income: draft.creditAccountId = categoryId
+        case .transfer: break
+        }
     }
 
     /// Drops picked participants who aren't members of the entry's current
@@ -1443,10 +1617,10 @@ struct QuickEntryView: View {
         defer { isPosting = false }
         do {
             if let editedEntry {
-                try await journalStore.update(editedEntry, draft: draft)
+                try await postingJournal.update(editedEntry, draft: draft)
                 toast.show(L10n.string("journal.updateSuccess", defaultValue: "Entry updated"))
             } else {
-                try await journalStore.post(draft)
+                try await postingJournal.post(draft)
                 toast.show(L10n.string("journal.createSuccess", defaultValue: "Entry posted"))
             }
             // A posted entry is a used category — feed the recents cache so
@@ -1456,8 +1630,14 @@ struct QuickEntryView: View {
             }
             dismiss()
             // The posting moved balances; refresh dashboard and reports in
-            // the background so they never show stale numbers.
-            Task { await reportStore.refreshAfterPosting() }
+            // the background so they never show stale numbers. Bound sheets
+            // only need this when their target is the app's active ledger —
+            // a posting into a foreign ledger can't change what's on
+            // screen, and the shared report stores have nothing to refresh
+            // for it.
+            if ledgerStore.activeLedger?.id == ledger?.id {
+                Task { await reportStore.refreshAfterPosting() }
+            }
         } catch {
             validationError = error.localizedDescription
         }

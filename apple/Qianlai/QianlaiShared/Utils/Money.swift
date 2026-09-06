@@ -144,8 +144,12 @@ enum AppDates {
     }
 
     /// Timestamp display (createdAt etc.) in the viewer's local timezone.
-    static func formatTimestamp(_ date: Date) -> String {
+    /// `locale` must be passed explicitly (the `\.locale` environment or
+    /// `AppLanguage.resolvedLocale`) — DateFormatter alone would follow the
+    /// device language and ignore the in-app override.
+    static func formatTimestamp(_ date: Date, locale: Locale) -> String {
         let formatter = DateFormatter()
+        formatter.locale = locale
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)

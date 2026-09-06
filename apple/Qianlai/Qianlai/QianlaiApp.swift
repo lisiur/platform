@@ -55,6 +55,11 @@ struct QianlaiApp: App {
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
+            // The widget renders with the mirrored language override on its
+            // next refresh; nudge it so the switch shows up promptly.
+            .onChange(of: localeSettings.identifier) {
+                WidgetSync.reloadTimelines()
+            }
             #if os(macOS)
             .frame(minWidth: 640, minHeight: 640)
             #endif

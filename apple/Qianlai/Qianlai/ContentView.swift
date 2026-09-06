@@ -125,9 +125,22 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $isQuickAddPresented) {
             NavigationStack {
-                QuickEntryView()
+                QuickEntryView(binding: quickAddBinding)
             }
             .interactiveDismissDisabled()
+        }
+        .onOpenURL { url in
+            // Widget deep links: qianlai://quick-entry opens the quick-entry
+            // sheet (a bound widget's link carries its target as query
+            // items), qianlai://dashboard lands on the dashboard tab.
+            switch url.host {
+            case "quick-entry":
+                tryPresentQuickAdd(preset: QuickEntryPreset(url: url))
+            case "dashboard":
+                tab = .dashboard
+            default:
+                break
+            }
         }
         .alert(
             L10n.string("quick.cannotAddTitle", defaultValue: "Can't Add Entry"),
@@ -144,30 +157,78 @@ struct ContentView: View {
 
     @State private var tab: AppTab = .dashboard
     @State private var isQuickAddPresented = false
+    /// The bound widget's target when the sheet was opened from its deep
+    /// link; nil keeps the sheet on the active-ledger defaults. The bound
+    /// sheet records against its own ledger — the global scope is untouched.
+    @State private var quickAddBinding: QuickEntryBinding?
     /// Set when the quick-add pill is tapped without a postable ledger;
     /// drives the denial alert and clears on dismiss.
     @State private var quickAddDeniedReason: String?
 
     /// Rejects `.quickAdd` as a selection — tapping the pill presents the
     /// quick-entry sheet while the visible tab stays unchanged. Requires an
-    /// editable active ledger, matching the floating button it replaces.
+    /// editable active ledger, matching the floating button it replaced.
     private var tabSelection: Binding<AppTab> {
         Binding(
             get: { tab },
             set: { newValue in
                 guard newValue != .quickAdd else {
-                    if ledgerStore.activeLedger != nil, ledgerStore.canPost {
-                        isQuickAddPresented = true
-                    } else if ledgerStore.activeLedger == nil {
-                        quickAddDeniedReason = L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first")
-                    } else {
-                        quickAddDeniedReason = L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger")
-                    }
+                    tryPresentQuickAdd()
                     return
                 }
                 tab = newValue
             }
         )
+    }
+
+    /// Presents the quick-entry sheet when the active ledger allows posting;
+    /// otherwise surfaces the denial alert. Shared by the tab-bar pill and
+    /// the widget's `qianlai://quick-entry` deep link. A bound widget's
+    /// link resolves to its own ledger and the sheet records against it
+    /// without touching the global scope. A widget tap is usually a cold
+    /// launch, so the ledger list may not be loaded yet — the load runs and
+    /// resolution retries before the sheet opens; only a ledger that still
+    /// can't be found (deleted) degrades to a plain quick add.
+    private func tryPresentQuickAdd(preset: QuickEntryPreset? = nil) {
+        if let preset {
+            if let ledger = ledgerStore.ledgers.first(where: { $0.id == preset.ledgerId }) {
+                presentQuickAdd(QuickEntryBinding(
+                    ledger: ledger,
+                    projectId: preset.projectId,
+                    categoryId: preset.categoryId,
+                    kind: preset.kind
+                ))
+            } else {
+                Task { @MainActor in
+                    await ledgerStore.load()
+                    if let ledger = ledgerStore.ledgers.first(where: { $0.id == preset.ledgerId }) {
+                        presentQuickAdd(QuickEntryBinding(
+                            ledger: ledger,
+                            projectId: preset.projectId,
+                            categoryId: preset.categoryId,
+                            kind: preset.kind
+                        ))
+                    } else {
+                        tryPresentQuickAdd()
+                    }
+                }
+            }
+            return
+        }
+        // Plain presentations must never inherit a previous bound target.
+        quickAddBinding = nil
+        if ledgerStore.activeLedger != nil, ledgerStore.canPost {
+            isQuickAddPresented = true
+        } else if ledgerStore.activeLedger == nil {
+            quickAddDeniedReason = L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first")
+        } else {
+            quickAddDeniedReason = L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger")
+        }
+    }
+
+    private func presentQuickAdd(_ binding: QuickEntryBinding) {
+        quickAddBinding = binding
+        isQuickAddPresented = true
     }
 
     @ViewBuilder

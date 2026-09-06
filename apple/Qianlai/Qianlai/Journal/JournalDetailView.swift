@@ -96,7 +96,7 @@ struct JournalDetailView: View {
         Section {
             row(
                 L10n.string("journal.detail.date", defaultValue: "Date"),
-                value: AppDates.formatTimestamp(resolved.date)
+                value: AppDates.formatTimestamp(resolved.date, locale: locale)
             )
             if let creatorName = resolved.createdBy?.name, !creatorName.isEmpty {
                 row(

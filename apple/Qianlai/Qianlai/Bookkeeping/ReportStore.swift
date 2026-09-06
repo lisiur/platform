@@ -131,6 +131,14 @@ final class ReportStore {
                 "GET",
                 "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"
             )
+            // Publish the widget snapshot only when the fetched dashboard is
+            // the current month — the widget always shows month-to-date, and
+            // a user browsing an older month must not overwrite it.
+            if dashboardMonth == nil || dashboardMonth == AppDates.currentYearMonth,
+               let dashboard {
+                WidgetDataStore.saveSnapshot(WidgetSnapshot(ledgerId: ledgerId, dashboard: dashboard))
+                WidgetSync.reloadTimelines()
+            }
         } catch {
             // Keep whatever was loaded; the retry button reloads.
         }

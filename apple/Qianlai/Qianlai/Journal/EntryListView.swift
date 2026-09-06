@@ -33,6 +33,9 @@ struct EntryListView: View {
     /// total. Entries outside the viewer's split set read zero with the
     /// total captioned beneath. Drill-downs keep the gross.
     var showsViewerShare = false
+    /// Project-surface switch: rows always name the payer ("由 X 付款"),
+    /// even when they recorded the entry themselves. See `EntryRow`.
+    var alwaysShowsPayer = false
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
@@ -42,13 +45,15 @@ struct EntryListView: View {
         emptyMessage: String,
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
-        showsViewerShare: Bool = false
+        showsViewerShare: Bool = false,
+        alwaysShowsPayer: Bool = false
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
         self.amountSection = amountSection
         self.showsViewerShare = showsViewerShare
+        self.alwaysShowsPayer = alwaysShowsPayer
     }
 
     var body: some View {
@@ -89,7 +94,8 @@ struct EntryListView: View {
                                     currency: ledger.currency,
                                     amountSection: amountSection?(entry),
                                     viewerUserId: auth.currentUser?.id,
-                                    showsViewerShare: showsViewerShare
+                                    showsViewerShare: showsViewerShare,
+                                    alwaysShowsPayer: alwaysShowsPayer
                                 )
                             }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -210,6 +216,9 @@ struct EntryRow: View {
     /// Journal/dashboard switch: headline the viewer's own share instead
     /// of the gross total (see `EntryListView.showsViewerShare`).
     var showsViewerShare = false
+    /// Project-surface switch: always name the payer ("由 X 付款"), even
+    /// when they recorded the entry themselves.
+    var alwaysShowsPayer = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -349,15 +358,22 @@ struct EntryRow: View {
         return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
-    /// The meta caption's person slot. The row's caption historically showed
-    /// the creator's plain name, but with explicit payers the interesting
-    /// fact is who fronted the money: when someone other than the creator
-    /// paid, the slot reads "Paid by ⟨payer⟩" instead.
+    /// The meta caption's person slot. Ledger surfaces name the payer only
+    /// when they differ from the creator, else the plain creator name —
+    /// project surfaces (`alwaysShowsPayer`) always call the payer out
+    /// ("由 X 付款"), whoever recorded the entry.
     private var payerCaption: String? {
+        let paidByFormat = L10n.string("journal.paidByFormat", defaultValue: "Paid by %@")
+        if alwaysShowsPayer {
+            if let payerName = entry.paidBy?.name ?? entry.createdBy?.name, !payerName.isEmpty {
+                return String(format: paidByFormat, payerName)
+            }
+            return nil
+        }
         if entry.paidById != entry.createdById,
            let paidByName = entry.paidBy?.name, !paidByName.isEmpty {
             return String(
-                format: L10n.string("journal.paidByFormat", defaultValue: "Paid by %@"),
+                format: paidByFormat,
                 paidByName
             )
         }

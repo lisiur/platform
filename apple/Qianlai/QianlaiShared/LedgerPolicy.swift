@@ -11,7 +11,7 @@ import Foundation
 /// bookkeeping access guards (owner: members/codes/ledger admin, editor:
 /// accounts/projects, viewer: reports, guest: project-scoped expense
 /// posting) and the `@repo/shared` ROLE_RANK table.
-enum LedgerPolicy {
+nonisolated enum LedgerPolicy {
     private static let rank: [LedgerRole: Int] = [
         .guest: 0,
         .viewer: 1,

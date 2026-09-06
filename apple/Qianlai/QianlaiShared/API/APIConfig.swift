@@ -25,8 +25,13 @@ struct APIConfig: Equatable, Sendable {
         defaultBaseURL: URL,
         userDefaults: UserDefaults = .standard
     ) -> APIConfig {
+        // The widget process has its own empty standard defaults, so a dev
+        // base-URL override only reaches it through the shared App Group
+        // suite the app mirrors the setting into.
+        let raw = userDefaults.string(forKey: baseURLOverrideKey)
+            ?? WidgetAppGroup.defaults?.string(forKey: baseURLOverrideKey)
         if
-            let raw = userDefaults.string(forKey: baseURLOverrideKey),
+            let raw,
             let url = URL(string: raw),
             url.scheme != nil
         {

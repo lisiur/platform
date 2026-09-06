@@ -13,8 +13,14 @@ import os
 /// modules only deal with typed requests/responses.
 final class APIClient {
     /// The app-wide client. One instance = one keychain-backed session token
-    /// and one URLSession, shared by every feature module.
-    nonisolated static let shared = APIClient(config: .app, keychainService: APIConfig.keychainService)
+    /// and one URLSession, shared by every feature module. The token is
+    /// stored under the shared keychain access group so the widget extension
+    /// can reuse the session.
+    nonisolated static let shared = APIClient(
+        config: .app,
+        keychainService: APIConfig.keychainService,
+        tokenAccessGroup: WidgetAppGroup.keychainAccessGroup
+    )
 
     let config: APIConfig
     let session: URLSession
@@ -26,6 +32,7 @@ final class APIClient {
 
     private let keychain: KeychainStore
     private let tokenAccount: String
+    private let tokenAccessGroup: String?
 
     private let tokenLock = NSLock()
     private var cachedToken: String?
@@ -38,11 +45,13 @@ final class APIClient {
         config: APIConfig,
         keychainService: String,
         tokenAccount: String = "session-token",
+        tokenAccessGroup: String? = nil,
         session: URLSession = .shared
     ) {
         self.config = config
         self.keychain = KeychainStore(service: keychainService)
         self.tokenAccount = tokenAccount
+        self.tokenAccessGroup = tokenAccessGroup
         self.session = session
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -87,7 +96,7 @@ final class APIClient {
         set {
             tokenLock.lock()
             defer { tokenLock.unlock() }
-            keychain.writeString(newValue, account: tokenAccount)
+            keychain.writeString(newValue, account: tokenAccount, accessGroup: tokenAccessGroup)
             cachedToken = newValue
             didLoadToken = true
         }

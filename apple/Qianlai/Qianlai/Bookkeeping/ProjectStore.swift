@@ -55,11 +55,13 @@ final class ProjectStore {
     func load(ledgerId: String, force: Bool = false) async {
         if !force, resolvedLedgerIds.contains(ledgerId) {
             projects = projectsByLedger[ledgerId] ?? []
+            mirrorScopedProject(matchingLedger: ledgerId)
             return
         }
         if !force, let existing = inFlightLoads[ledgerId] {
             await existing.value
             projects = projectsByLedger[ledgerId] ?? []
+            mirrorScopedProject(matchingLedger: ledgerId)
             return
         }
         let task = Task { await performLoad(ledgerId: ledgerId) }
@@ -81,6 +83,7 @@ final class ProjectStore {
             if let selectedProjectId, !projects.contains(where: { $0.id == selectedProjectId }) {
                 self.selectedProjectId = nil
             }
+            mirrorScopedProject(matchingLedger: ledgerId)
         } catch {
             loadError = error.localizedDescription
         }
@@ -156,6 +159,25 @@ final class ProjectStore {
 
     func select(_ id: String?) {
         selectedProjectId = id
+        mirrorScopedProject()
+    }
+
+    /// Publishes the quick-entry/dashboard scope (explicit selection, or
+    /// the auto-picked first project on guest ledgers) to the widget mirror
+    /// and refreshes widget timelines. `matchingLedger` skips writes from
+    /// loads of a non-active ledger — the mirror must only ever describe
+    /// the ledger the widgets would target. Guest ledgers participate
+    /// fully here: their project is the one scope the invited member may
+    /// see, in the summary widget included.
+    private func mirrorScopedProject(matchingLedger: String? = nil) {
+        guard let activeLedgerId = WidgetDataStore.loadAppActiveLedgerId() else { return }
+        if let matchingLedger, matchingLedger != activeLedgerId { return }
+        let isGuestLedger = WidgetDataStore.loadAppActiveLedgerIsGuest()
+        let project = scopedProject(in: activeLedgerId, isGuestLedger: isGuestLedger)
+        WidgetDataStore.saveScopedProject(
+            project.map { WidgetScopedProject(id: $0.id, ledgerId: $0.ledgerId, name: $0.name) }
+        )
+        WidgetSync.reloadTimelines()
     }
 
     func loadReport(ledgerId: String, projectId: String) async {
@@ -178,6 +200,21 @@ final class ProjectStore {
         switch result {
         case .success(let loaded):
             report = loaded
+            // Keep the summary widget's project-mode fallback fresh — only
+            // when the loaded report is the currently mirrored scope.
+            if WidgetDataStore.loadScopedProject()?.id == loaded.project.id {
+                WidgetDataStore.saveProjectSnapshot(
+                    WidgetProjectSnapshot(
+                        project: WidgetScopedProject(
+                            id: loaded.project.id,
+                            ledgerId: loaded.project.ledgerId,
+                            name: loaded.project.name
+                        ),
+                        report: loaded
+                    )
+                )
+                WidgetSync.reloadTimelines()
+            }
         case .failure(let error):
             if Self.isCancellation(error) {
                 return

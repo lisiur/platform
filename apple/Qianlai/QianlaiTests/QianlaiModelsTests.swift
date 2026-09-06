@@ -10,6 +10,15 @@ import XCTest
 
 @MainActor
 final class QianlaiModelsTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        // Keep catalog lookups on the device language: AppLanguage falls
+        // back to the shared App Group mirror, which may hold a stale value
+        // from earlier app runs on this simulator.
+        UserDefaults.standard.removeObject(forKey: LocaleSettings.storageKey)
+        WidgetAppGroup.defaults?.removeObject(forKey: LocaleSettings.storageKey)
+    }
+
     // MARK: - Roles
 
     func testRoleRanking() {

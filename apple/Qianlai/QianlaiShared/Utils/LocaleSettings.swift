@@ -36,6 +36,9 @@ final class LocaleSettings {
         guard identifier != self.identifier else { return }
         self.identifier = identifier
         UserDefaults.standard.set(identifier, forKey: Self.storageKey)
+        // Mirror into the shared suite so the widget extension (whose own
+        // standard defaults are empty) renders in the chosen language too.
+        WidgetAppGroup.defaults?.set(identifier, forKey: Self.storageKey)
     }
 
     /// The locale matching `identifier`, `.autoupdatingCurrent` when

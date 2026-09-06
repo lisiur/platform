@@ -56,7 +56,7 @@ enum AccountType: String, Codable, Hashable, CaseIterable {
 
 // MARK: - Ledger
 
-struct QianlaiLedger: Codable, Identifiable, Hashable {
+nonisolated struct QianlaiLedger: Codable, Identifiable, Hashable {
     let id: String
     let ownerId: String
     var name: String
@@ -613,10 +613,13 @@ struct StatementRow: Codable, Identifiable, Hashable {
 
 /// A calendar month key (UTC) selecting which month a report covers — the
 /// dashboard cards and their month-window entry list.
-struct YearMonth: Hashable, Comparable {
+nonisolated struct YearMonth: Hashable, Comparable {
     var year: Int
     var month: Int
 
+    /// MainActor: reads the local calendar "now" through `AppDates`; used
+    /// only from main-actor UI state.
+    @MainActor
     static var current: YearMonth { AppDates.currentYearMonth }
 
     var previous: YearMonth {

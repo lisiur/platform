@@ -11,12 +11,21 @@ import XCTest
 final class AppLanguageTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        UserDefaults.standard.removeObject(forKey: LocaleSettings.storageKey)
+        Self.clearLanguageOverrides()
     }
 
     override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: LocaleSettings.storageKey)
+        Self.clearLanguageOverrides()
         super.tearDown()
+    }
+
+    /// `AppLanguage` reads the override from standard defaults first, then
+    /// the shared App Group suite the app mirrors it into for the widget.
+    /// The mirror persists across app installs, so clearing standard alone
+    /// no longer yields the "following system" state.
+    private static func clearLanguageOverrides() {
+        UserDefaults.standard.removeObject(forKey: LocaleSettings.storageKey)
+        WidgetAppGroup.defaults?.removeObject(forKey: LocaleSettings.storageKey)
     }
 
     func testNoOverrideWhenFollowingSystem() {

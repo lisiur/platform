@@ -132,7 +132,7 @@ struct LedgerSwitcherMenu: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: isProjectScoped || isGuestActive ? "folder" : "book")
+                Image(systemName: isGuestActive ? "folder.badge.person.crop" : (isProjectScoped ? "folder" : "book"))
                 Text(switcherLabel)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
@@ -143,10 +143,9 @@ struct LedgerSwitcherMenu: View {
         }
         .task(id: ledgerStore.activeLedger?.id) {
             // Make sure the active ledger's projects are loaded so the
-            // label and its active-project star (both read
-            // `projectStore.scopedProject(in:)`) stay in sync. Only `load`
-            // updates the mirror in `projects`; the prefetch below never
-            // does.
+            // switcher label (which reads `projectStore.scopedProject(in:)`)
+            // stays in sync. Only `load` updates the mirror in `projects`;
+            // the prefetch below never does.
             if let id = ledgerStore.activeLedger?.id {
                 await projectStore.load(ledgerId: id)
             }
@@ -190,81 +189,50 @@ struct LedgerSwitcherMenu: View {
     }
 
     private func ledgerButton(for ledger: QianlaiLedger) -> some View {
-        let isActive = isActiveLedger(ledger)
-        return Button {
+        Button {
             // A ledger-row tap always means ledger-wide scope — drop any
             // project selection so owners can exit a scoped project (guests
             // never render ledger rows, so this can't break their flow).
             projectStore.select(nil)
             ledgerStore.setActive(ledger.id)
         } label: {
-            LedgerSwitcherRowLabel(
-                icon: "book",
-                title: ledger.name,
-                trailing: ledger.myRole.label,
-                isActive: isActive
-            )
+            // Menu flattening rules (SwiftUI Menu docs): the first Image is
+            // the row icon, the first Text the title, and the second Text
+            // renders as the system-styled subtitle. Wrapping these in
+            // stacks or a Label would drop the subtitle. (.badge() is
+            // documented for menus but silently ignored on iOS toolbar
+            // menus — the subtitle slot is the only reliable place for the
+            // role.)
+            Image(systemName: "book")
+            Text(ledger.name)
+            Text([ledger.description, ledger.currency, ledger.myRole.label]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: " · "))
         }
-    }
-
-    /// True when `ledger`'s row should carry the active star — only while
-    /// no project claims the scope. Exactly one row (ledger or project)
-    /// stars at a time because both resolve through `scopedProject`.
-    private func isActiveLedger(_ ledger: QianlaiLedger) -> Bool {
-        guard ledgerStore.activeLedger?.id == ledger.id else { return false }
-        return projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) == nil
     }
 
     private func projectButton(for project: QianlaiProject, in ledger: QianlaiLedger) -> some View {
-        let isActive = ledgerStore.activeLedger?.id == ledger.id && isActiveProject(project, in: ledger)
-        return Button {
+        Button {
             ledgerStore.setActive(ledger.id)
             projectStore.select(project.id)
         } label: {
-            LedgerSwitcherRowLabel(
-                icon: "folder",
-                title: project.name,
-                trailing: nil,
-                isActive: isActive
-            )
+            Image(systemName: ledger.isGuest ? "folder.badge.person.crop" : "folder")
+            Text(project.name)
+            Text([projectSubtitle(project, in: ledger), ledger.myRole.label]
+                .filter { !$0.isEmpty }
+                .joined(separator: " · "))
         }
     }
 
-    /// True when the star should render next to `project` — it claims the
-    /// scope of its ledger (explicit selection for any role, auto-picked
-    /// first project for guest ledgers, whose users never see a ledger row).
-    private func isActiveProject(_ project: QianlaiProject, in ledger: QianlaiLedger) -> Bool {
-        projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)?.id == project.id
-    }
-}
-
-/// Row label shared by `ledgerButton` and `projectButton`. Active
-/// state is conveyed by swapping the prefix icon to a star (filled,
-/// accent color) — this works identically on iOS and macOS because
-/// the icon change happens before any trailing-item layout, which
-/// `NSMenu` on macOS can't reliably honor.
-private struct LedgerSwitcherRowLabel: View {
-    let icon: String
-    let title: String
-    let trailing: String?
-    let isActive: Bool
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: isActive ? "star.fill" : icon)
-                .foregroundStyle(isActive ? Color.accentColor : .secondary)
-                .frame(width: 18)
-            Text(title)
-                .lineLimit(1)
-                .foregroundStyle(isActive ? Color.accentColor : .primary)
-            if let trailing {
-                Text(trailing)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+    /// The single subtitle slot for a project row: the owner credit for
+    /// shared (guest) projects, else the description, else the hosting
+    /// ledger's name (own/member ledgers only).
+    private func projectSubtitle(_ project: QianlaiProject, in ledger: QianlaiLedger) -> String {
+        if ledger.isGuest,
+           let owner = project.members.first(where: { $0.userId == ledger.ownerId })?.user?.name {
+            return L10n.string("widget.bound.sharedByFormat", defaultValue: "Shared by %@", owner)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
+        return project.description ?? ledger.name
     }
 }

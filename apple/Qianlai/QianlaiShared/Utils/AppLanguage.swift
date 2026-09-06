@@ -28,10 +28,21 @@ enum AppLanguage {
         LocaleSettings.shared.preferredLocale
     }
 
+    /// The stored language override: the process's standard defaults first
+    /// (launch arguments included), then the shared App Group suite the app
+    /// mirrors the setting into for the widget extension — whose standard
+    /// defaults are empty.
+    static var storedIdentifier: String? {
+        if let stored = UserDefaults.standard.string(forKey: LocaleSettings.storageKey) {
+            return stored
+        }
+        return WidgetAppGroup.defaults?.string(forKey: LocaleSettings.storageKey)
+    }
+
     /// The override bundle for the stored identifier, or nil when following
     /// the system language.
     static var overrideBundle: Bundle? {
-        let identifier = UserDefaults.standard.string(forKey: LocaleSettings.storageKey) ?? ""
+        let identifier = storedIdentifier ?? ""
         guard LocaleSettings.supportedIdentifiers.contains(identifier),
               identifier != LocaleSettings.systemIdentifier
         else { return nil }
@@ -43,6 +54,17 @@ enum AppLanguage {
         else { return nil }
         bundleCache[identifier] = bundle
         return bundle
+    }
+
+    /// The stored override as a `Locale`, `.autoupdatingCurrent` when
+    /// following system. Unlike `preferredLocale` this never touches the
+    /// `LocaleSettings` instance, so it works in the widget process too.
+    static var resolvedLocale: Locale {
+        let identifier = storedIdentifier ?? LocaleSettings.systemIdentifier
+        guard LocaleSettings.supportedIdentifiers.contains(identifier),
+              identifier != LocaleSettings.systemIdentifier
+        else { return .autoupdatingCurrent }
+        return Locale(identifier: identifier)
     }
 }
 
