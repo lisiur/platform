@@ -162,3 +162,59 @@ export type SeedLocale = "en" | "zh";
 export function normalizeSeedLocale(value: string | undefined): SeedLocale {
   return value?.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
+
+/**
+ * Localized labels for seeded account codes — the server-side mirror of the
+ * clients' `account.name.<code>` catalog entries. Seeded accounts store
+ * `name = null` (the label renders client-side from `code`), so journal
+ * search can't match them by name; queries are translated through this map
+ * into codes instead. User-renamed and user-created accounts carry a real
+ * `name` and match directly. Must stay in sync with the client catalogs.
+ */
+export const ACCOUNT_CODE_LABELS: Record<string, Record<SeedLocale, string>> = {
+  defaultAccount: { en: "Default Account", zh: "默认账户" },
+  openingBalance: { en: "Opening Balance", zh: "期初余额" },
+  salary: { en: "Salary", zh: "工资" },
+  bonus: { en: "Bonus", zh: "奖金" },
+  overtime: { en: "Overtime", zh: "加班" },
+  benefits: { en: "Benefits", zh: "福利" },
+  redPacket: { en: "Red Packet", zh: "红包" },
+  partTime: { en: "Part-time Job", zh: "兼职" },
+  sideBusiness: { en: "Side Business", zh: "副业" },
+  taxRefund: { en: "Tax Refund", zh: "退税" },
+  investment: { en: "Investment", zh: "投资" },
+  windfall: { en: "Unexpected Income", zh: "意外收入" },
+  otherIncome: { en: "Other", zh: "其他" },
+  food: { en: "Food", zh: "餐饮" },
+  meals: { en: "Meals", zh: "三餐" },
+  snacks: { en: "Snacks", zh: "零食" },
+  fruit: { en: "Fruit", zh: "水果" },
+  groceries: { en: "Groceries", zh: "食材" },
+  apparel: { en: "Apparel", zh: "服饰" },
+  housing: { en: "Housing", zh: "住房" },
+  transport: { en: "Transport", zh: "交通" },
+  entertainment: { en: "Entertainment", zh: "娱乐" },
+  medical: { en: "Medical", zh: "医疗" },
+  telecom: { en: "Telecom", zh: "通讯" },
+  education: { en: "Education", zh: "学习" },
+  gifts: { en: "Gifts", zh: "人情" },
+  childcare: { en: "Childcare", zh: "育儿" },
+  pets: { en: "Pets", zh: "宠物" },
+  travel: { en: "Travel", zh: "旅行" },
+};
+
+/**
+ * Seeded-category codes whose en or zh label contains `query`
+ * (case-insensitive) — the search translation behind ACCOUNT_CODE_LABELS.
+ */
+export function accountCodesMatchingLabel(query: string): string[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  return Object.entries(ACCOUNT_CODE_LABELS)
+    .filter(([, labels]) =>
+      Object.values(labels).some((label) =>
+        label.toLowerCase().includes(needle),
+      ),
+    )
+    .map(([code]) => code);
+}

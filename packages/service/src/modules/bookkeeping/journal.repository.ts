@@ -1,6 +1,6 @@
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import type { AccountType } from "./domain";
+import { type AccountType, accountCodesMatchingLabel } from "./domain";
 
 export type EntryWindow = {
   from?: Date;
@@ -64,6 +64,11 @@ const entryInclude = {
 
 function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   const projectScoped = Boolean(window.projectId || window.scopeProjectIds);
+  // Seeded categories store name = null — clients render their label from
+  // `code`, so the raw name/code contains-matches only ever hit the English
+  // code text. Translate a query that hits a localized label into those
+  // codes to restore category search for both languages.
+  const labelMatchedCodes = window.q ? accountCodesMatchingLabel(window.q) : [];
   return {
     ledgerId,
     // The ledger-activity predicate scopes LEDGER-WIDE surfaces only
@@ -170,6 +175,17 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
                 },
               },
             },
+            ...(labelMatchedCodes.length
+              ? [
+                  {
+                    lines: {
+                      some: {
+                        account: { code: { in: labelMatchedCodes } },
+                      },
+                    },
+                  },
+                ]
+              : []),
           ],
         }
       : {}),
@@ -347,11 +363,12 @@ export const journalRepository = {
    * entries dated within [from, to]. Grouped on JournalLine with the entry
    * relation filtered, so each account's totals reflect only this ledger.
    *
-   * The exclusion flags are opt-in and explicit: pass
-   * `{ countsInLedger: true, guestCreated: false }` for behavioral
-   * statements (income statement, dashboard month) so opted-out and guest
-   * entries don't count, and leave both undefined for accounting truth
-   * (trial balance, net worth) where every posted entry must be summed.
+   * Accounting truth by default: every current caller (trial balance, net
+   * worth, balance-as-of) passes no flags, so every posted entry is summed
+   * — opted-out and guest entries included. The `countsInLedger` /
+   * `guestCreated` filters stay opt-in for a future caller that needs a
+   * narrower sum; the behavioral income/expense statements are computed
+   * elsewhere, share-based, via `listShareEntries`.
    */
   sumLinesByAccount(
     ledgerId: string,
