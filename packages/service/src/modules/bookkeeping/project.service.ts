@@ -1,8 +1,8 @@
+import { isVirtualUser } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { userLookupRepository } from "#modules/identity/public";
-import { isVirtualUser } from "@repo/shared";
 import { assertLedgerWritable, requireProjectAccess } from "./access";
 import { journalRepository } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";

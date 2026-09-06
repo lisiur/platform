@@ -237,7 +237,7 @@ describe("listProjects", () => {
       { ...baseProject, members: [member("user-b")] },
     ]);
     const { projects } = await listProjects("user-editor", "led-1", "editor");
-    expect(projects[0].members[0].user.email).toBeNull();
+    expect(projects[0].members[0].user?.email).toBeNull();
   });
 });
 

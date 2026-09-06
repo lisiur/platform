@@ -5,7 +5,9 @@ export const PROJECT_STATUSES = ["active", "archived"] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 const projectMemberInclude = {
-  user: { select: { id: true, name: true, email: true, avatar: true, flags: true } },
+  user: {
+    select: { id: true, name: true, email: true, avatar: true, flags: true },
+  },
 } as const satisfies Prisma.ProjectMemberInclude;
 
 export const projectRepository = {
