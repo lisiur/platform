@@ -1913,6 +1913,23 @@
         }
       }
     },
+    "categories.edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑分类"
+          }
+        }
+      }
+    },
     "categories.editorRequired" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1943,6 +1960,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无分类"
+          }
+        }
+      }
+    },
+    "categories.more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多"
           }
         }
       }
@@ -3825,13 +3859,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guest posts and opted-out entries (e.g. credit-card repayments) don't count toward the ledger's income & expense totals."
+            "value" : "Entries opted out of income & expense (e.g. credit-card repayments) don't count toward the ledger's totals; choose All Entries to see them."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "访客提交和不计入收支的记录（如信用卡还款）不会出现在账本的收支统计中。"
+            "value" : "不计入收支的记录（如信用卡还款）不会出现在账本的收支统计中，切换到「全部记录」可查看。"
           }
         }
       }
@@ -6457,6 +6491,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法保存"
+          }
+        }
+      }
+    },
+    "quick.categories.manage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
           }
         }
       }

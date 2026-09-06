@@ -269,6 +269,13 @@ struct AccountsView: View {
     private func row(_ account: BookAccount, hasChildren: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
+                if collapsible {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(expandedIds.contains(account.id) ? 90 : 0))
+                        .opacity(hasChildren ? 1 : 0)
+                }
                 if let icon = account.icon, !icon.isEmpty {
                     Text(icon)
                 }
@@ -282,12 +289,17 @@ struct AccountsView: View {
                     BadgeView(text: L10n.string("status.archived", defaultValue: "Archived"), color: .orange)
                 }
                 Spacer()
-                if collapsible {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(expandedIds.contains(account.id) ? 90 : 0))
-                        .opacity(hasChildren ? 1 : 0)
+                if collapsible, canManage {
+                    Menu {
+                        rowMenuItems(account)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(Text(L10n.string("categories.more", defaultValue: "More")))
                 }
             }
         }
@@ -308,46 +320,53 @@ struct AccountsView: View {
         }
         .contextMenu {
             if canManage {
-                Button {
-                    editingAccount = account
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                if account.isAssetLike {
-                    Button {
-                        balanceAccount = account
-                    } label: {
-                        Label("Set Balance", systemImage: "scalemass")
-                    }
-                }
-                if account.parentId == nil, !account.isBuiltin {
-                    Button {
-                        createParent = account
-                    } label: {
-                        Label(
-                            L10n.string(
-                                collapsible ? "categories.addSub" : "Add Sub-account",
-                                defaultValue: collapsible ? "Add Sub-category" : "Add Sub-account"
-                            ),
-                            systemImage: "arrow.turn.down.right"
-                        )
-                    }
-                }
-                if !account.isBuiltin {
-                    Button {
-                        Task { await archiveToggle(account) }
-                    } label: {
-                        Label(
-                            account.isArchived ? "Unarchive" : "Archive",
-                            systemImage: account.isArchived ? "archivebox.fill" : "archivebox"
-                        )
-                    }
-                    Button(role: .destructive) {
-                        accountPendingDelete = account
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
+                rowMenuItems(account)
+            }
+        }
+    }
+
+    /// Row actions shared by the long-press context menu and the trailing
+    /// ellipsis menu; gated on `canManage` at each call site.
+    @ViewBuilder
+    private func rowMenuItems(_ account: BookAccount) -> some View {
+        Button {
+            editingAccount = account
+        } label: {
+            Label("Edit", systemImage: "pencil")
+        }
+        if account.isAssetLike {
+            Button {
+                balanceAccount = account
+            } label: {
+                Label("Set Balance", systemImage: "scalemass")
+            }
+        }
+        if account.parentId == nil, !account.isBuiltin {
+            Button {
+                createParent = account
+            } label: {
+                Label(
+                    L10n.string(
+                        collapsible ? "categories.addSub" : "Add Sub-account",
+                        defaultValue: collapsible ? "Add Sub-category" : "Add Sub-account"
+                    ),
+                    systemImage: "arrow.turn.down.right"
+                )
+            }
+        }
+        if !account.isBuiltin {
+            Button {
+                Task { await archiveToggle(account) }
+            } label: {
+                Label(
+                    account.isArchived ? "Unarchive" : "Archive",
+                    systemImage: account.isArchived ? "archivebox.fill" : "archivebox"
+                )
+            }
+            Button(role: .destructive) {
+                accountPendingDelete = account
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
     }

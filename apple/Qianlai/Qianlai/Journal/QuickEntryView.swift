@@ -135,6 +135,9 @@ struct QuickEntryView: View {
     /// More-fields sheet behind the quick bar's trailing button: hosts
     /// every field the layout keeps out of the chip row.
     @State private var isMoreFieldsPresented = false
+    /// Categories manage sheet behind the grid's trailing gear chip —
+    /// the shared collapsible CategoriesView.
+    @State private var isCategoryManagePresented = false
     /// Expanded inline date-and-time picker under the collapsed row.
     @State private var isDateTimePresented = false
     /// Parent category whose sub-picker bubble is open — keyed by the
@@ -439,6 +442,29 @@ struct QuickEntryView: View {
             .presentationDetents([.medium, .large])
             #endif
         }
+        // Categories manage sheet behind the grid's gear chip: the shared
+        // collapsible CategoriesView (expense/income tabs, tree list) in a
+        // modal stack — Done dismisses back to the grid.
+        .sheet(isPresented: $isCategoryManagePresented) {
+            NavigationStack {
+                CategoriesView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { isCategoryManagePresented = false }
+                        }
+                    }
+            }
+            #if os(iOS)
+            .presentationDetents([.large])
+            #endif
+        }
+        // Returning from the manage sheet: reload categories so creations,
+        // renames, archives, and deletions there reach the grid — the
+        // .task above only reloads on ledger changes.
+        .onChange(of: isCategoryManagePresented) {
+            guard !isCategoryManagePresented else { return }
+            Task { await accountStore.reload() }
+        }
         // Popup date-and-time picker: binds the draft live, Done just
         // dismisses. The default detent sits a bit above medium so the
         // calendar and time wheel fit without clipping the wheel's bottom.
@@ -590,6 +616,13 @@ struct QuickEntryView: View {
                         categoryChip(entry)
                     }
                     moreChip(side: side)
+                    // Owner/editor on the recording ledger only — guests
+                    // (and viewers) never see it. Bound sheets hide it too:
+                    // the manage screen follows the app's active ledger,
+                    // which a widget-bound sheet may not be recording into.
+                    if binding == nil, canPost {
+                        categoryManageChip
+                    }
                 }
                 .listRowBackground(Color.clear)
             }
@@ -799,6 +832,29 @@ struct QuickEntryView: View {
                     .background(Circle().fill(Color.primary.opacity(0.06)))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.more", defaultValue: "More"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Grid-trailing gear chip, styled like the more chip beside it:
+    /// opens the categories manage sheet.
+    private var categoryManageChip: some View {
+        Button {
+            isCategoryManagePresented = true
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 22))
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.primary.opacity(0.06)))
+                    .foregroundStyle(.secondary)
+                Text(L10n.string("quick.categories.manage", defaultValue: "Manage"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
