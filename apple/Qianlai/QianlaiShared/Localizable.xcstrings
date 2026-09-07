@@ -1155,6 +1155,40 @@
         }
       }
     },
+    "accounts.search.accounts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search accounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索账户"
+          }
+        }
+      }
+    },
+    "accounts.search.categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search categories"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索分类"
+          }
+        }
+      }
+    },
     "accounts.nameRequired" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7985,23 +8019,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "权限范围"
-          }
-        }
-      }
-    },
-    "Search accounts" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search accounts"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜索账户"
           }
         }
       }

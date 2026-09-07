@@ -40,6 +40,15 @@ struct AccountSelectionView: View {
     /// Below this count the plain list reads faster than a search field.
     private var showsSearch: Bool { entries.count >= 10 }
 
+    /// Category sides pick leaves of the chart tree, account sides pick
+    /// flat pockets — the same flag that gates parent folding says which
+    /// search placeholder applies.
+    private var searchPlaceholder: String {
+        parentSelectable
+            ? L10n.string("accounts.search.accounts", defaultValue: "Search accounts")
+            : L10n.string("accounts.search.categories", defaultValue: "Search categories")
+    }
+
     private var childrenByParent: [String: [AccountTreeEntry]] {
         Dictionary(grouping: entries.filter { $0.depth > 0 }) { $0.account.parentId ?? "" }
     }
@@ -54,6 +63,12 @@ struct AccountSelectionView: View {
 
     private func hasChildren(_ id: String) -> Bool {
         !(childrenByParent[id]?.isEmpty ?? true)
+    }
+
+    /// Whether any row carries a subtree — gates the leading fold slot so
+    /// flat pickers (asset sides) don't render an empty 30pt column.
+    private var showsTree: Bool {
+        entries.contains { hasChildren($0.account.id) }
     }
 
     /// Depth-first walk that skips the subtrees folded away by the user;
@@ -84,7 +99,15 @@ struct AccountSelectionView: View {
     var body: some View {
         Group {
             if showsSearch {
-                list.searchable(text: $query, prompt: Text("Search accounts"))
+                #if os(iOS)
+                list.searchable(
+                    text: $query,
+                    placement: .navigationBarDrawer(displayMode: .always),
+                    prompt: Text(searchPlaceholder)
+                )
+                #else
+                list.searchable(text: $query, prompt: Text(searchPlaceholder))
+                #endif
             } else {
                 list
             }
@@ -102,6 +125,10 @@ struct AccountSelectionView: View {
                 row(for: entry)
             }
         }
+        // Plain rows hug the pinned search bar and scroll under it — the
+        // grouped style's card insets leave a dead band below the field
+        // (matches LocationPickerSheet).
+        .listStyle(.plain)
         .overlay {
             if visibleEntries.isEmpty, !allowsEmpty {
                 ContentUnavailableView.search(text: query)
@@ -126,8 +153,9 @@ struct AccountSelectionView: View {
         )
     }
 
-    /// Select button spanning the row plus, for parents, a trailing fold
-    /// toggle; the checkmark trails the name so the chevron owns the edge.
+    /// Select button spanning the row plus, for parents, a leading fold
+    /// toggle; the checkmark trails the name so the chevron owns the
+    /// opposite edge.
     private func rowTemplate(
         depth: Int,
         icon: String?,
@@ -136,6 +164,36 @@ struct AccountSelectionView: View {
         hasSubtree: Bool
     ) -> some View {
         HStack(spacing: 0) {
+            if showsTree {
+                Group {
+                    if hasSubtree, let id {
+                        Button {
+                            withAnimation(.default) {
+                                if collapsed.contains(id) {
+                                    collapsed.remove(id)
+                                } else {
+                                    collapsed.insert(id)
+                                }
+                            }
+                        } label: {
+                            Image(
+                                systemName: collapsed.contains(id)
+                                    ? "chevron.right"
+                                    : "chevron.down"
+                            )
+                            .foregroundStyle(.secondary)
+                            .frame(width: 30, height: 30)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.borderless)
+                    } else {
+                        // Invisible slot keeps leaf names aligned with the
+                        // parents' leading chevrons.
+                        Color.clear.frame(width: 30, height: 30)
+                    }
+                }
+                .padding(.leading, 16 * CGFloat(depth))
+            }
             Button {
                 if !parentSelectable, hasSubtree, let id {
                     // Unselectable parent: tapping commits nothing — it
@@ -162,7 +220,6 @@ struct AccountSelectionView: View {
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                     }
-                    .padding(.leading, 16 * CGFloat(depth))
                     Spacer(minLength: 8)
                     if selection == id {
                         Image(systemName: "checkmark")
@@ -173,27 +230,6 @@ struct AccountSelectionView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if hasSubtree, let id {
-                Button {
-                    withAnimation(.default) {
-                        if collapsed.contains(id) {
-                            collapsed.remove(id)
-                        } else {
-                            collapsed.insert(id)
-                        }
-                    }
-                } label: {
-                    Image(
-                        systemName: collapsed.contains(id)
-                            ? "chevron.right"
-                            : "chevron.down"
-                    )
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.borderless)
-            }
         }
     }
 }
