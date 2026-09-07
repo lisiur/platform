@@ -67,7 +67,7 @@ struct JournalDetailView: View {
             isPresented: $isDeletePending
         ) {
             Button("Delete", role: .destructive) {
-                Task { await delete() }
+                delete()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -285,11 +285,20 @@ struct JournalDetailView: View {
         }
     }
 
-    private func delete() async {
+    /// Optimistic: the page pops back to the list the moment the entry
+    /// leaves it locally, while the server sync runs in the background; the
+    /// reports refresh once the sync settles. A failed sync restores the
+    /// row in the list and its error arrives through the store's callback.
+    private func delete() {
         do {
-            try await store.delete(resolved)
+            let sync = try store.delete(resolved) { message in
+                toast.show(message)
+            }
             toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
-            Task { await reportStore.refreshAfterPosting() }
+            Task {
+                await sync.value
+                await reportStore.refreshAfterPosting()
+            }
             dismiss()
         } catch {
             toast.show(error.localizedDescription)
