@@ -210,8 +210,9 @@ struct RealAccountsView: View {
         } label: {
             Label(
                 L10n.string(
-                    real.isArchived ? "realAccounts.unarchive" : "realAccounts.archive",
-                    defaultValue: real.isArchived ? "Unarchive" : "Archive"
+                    real.isArchived
+                        ? L10n.Entry("realAccounts.unarchive", "Unarchive")
+                        : .init("realAccounts.archive", "Archive")
                 ),
                 systemImage: real.isArchived ? "archivebox.fill" : "archivebox"
             )

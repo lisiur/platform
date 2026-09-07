@@ -79,6 +79,31 @@ enum L10n {
         defaultValue: String,
         _ arguments: CVarArg...
     ) -> String {
+        resolve(key, defaultValue: defaultValue, arguments)
+    }
+
+    /// A (key, defaultValue) pair kept together so branched copy can't
+    /// drift between its catalog key and its fallback.
+    struct Entry {
+        let key: String
+        let defaultValue: String
+
+        init(_ key: String, _ defaultValue: String) {
+            self.key = key
+            self.defaultValue = defaultValue
+        }
+    }
+
+    /// Resolve a branched entry, forwarding optional printf arguments.
+    static func string(_ entry: Entry, _ arguments: CVarArg...) -> String {
+        resolve(entry.key, defaultValue: entry.defaultValue, arguments)
+    }
+
+    private static func resolve(
+        _ key: String,
+        defaultValue: String,
+        _ arguments: [CVarArg]
+    ) -> String {
         let bundle = AppLanguage.overrideBundle ?? .main
         let format = bundle.localizedString(forKey: key, value: defaultValue, table: nil)
         guard !arguments.isEmpty else { return format }

@@ -84,8 +84,9 @@ struct AccountsView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(Text(L10n.string(
-                        collapsible ? "categories.new" : "accounts.newAccount",
-                        defaultValue: collapsible ? "New Category" : "New Account"
+                        collapsible
+                            ? L10n.Entry("categories.new", "New Category")
+                            : .init("accounts.newAccount", "New Account")
                     )))
                 }
             }
@@ -141,8 +142,9 @@ struct AccountsView: View {
         } message: {
             if let account = accountPendingDelete {
                 Text(L10n.string(
-                    collapsible ? "categories.deleteConfirm" : "accounts.deleteAccountConfirm",
-                    defaultValue: collapsible ? "Delete category “%@”?" : "Delete account “%@”?",
+                    collapsible
+                        ? L10n.Entry("categories.deleteConfirm", "Delete category “%@”?")
+                        : .init("accounts.deleteAccountConfirm", "Delete account “%@”?"),
                     account.displayName
                 ))
             }
@@ -170,8 +172,9 @@ struct AccountsView: View {
             if entries.isEmpty {
                 EmptyStateView(
                     message: L10n.string(
-                        collapsible ? "categories.empty" : "accounts.empty",
-                        defaultValue: collapsible ? "No categories" : "No accounts"
+                        collapsible
+                            ? L10n.Entry("categories.empty", "No categories")
+                            : .init("accounts.empty", "No accounts")
                     ),
                     systemImage: "chart.bar.doc.horizontal"
                 )
@@ -346,8 +349,9 @@ struct AccountsView: View {
             } label: {
                 Label(
                     L10n.string(
-                        collapsible ? "categories.addSub" : "accounts.addSub",
-                        defaultValue: collapsible ? "Add Sub-category" : "Add Sub-account"
+                        collapsible
+                            ? L10n.Entry("categories.addSub", "Add Sub-category")
+                            : .init("accounts.addSub", "Add Sub-account")
                     ),
                     systemImage: "arrow.turn.down.right"
                 )
@@ -359,8 +363,9 @@ struct AccountsView: View {
             } label: {
                 Label(
                     L10n.string(
-                        account.isArchived ? "accounts.unarchive" : "accounts.archive",
-                        defaultValue: account.isArchived ? "Unarchive" : "Archive"
+                        account.isArchived
+                            ? L10n.Entry("accounts.unarchive", "Unarchive")
+                            : .init("accounts.archive", "Archive")
                     ),
                     systemImage: account.isArchived ? "archivebox.fill" : "archivebox"
                 )
@@ -395,8 +400,9 @@ struct AccountsView: View {
                 realAccountId: result.realAccountId
             )
             toast.show(L10n.string(
-                collapsible ? "categories.createSuccess" : "accounts.createSuccess",
-                defaultValue: collapsible ? "Category created" : "Account created"
+                collapsible
+                    ? L10n.Entry("categories.createSuccess", "Category created")
+                    : .init("accounts.createSuccess", "Account created")
             ))
             createParent = nil
             return true
@@ -421,8 +427,9 @@ struct AccountsView: View {
                 await realAccountStore.load()
             }
             toast.show(L10n.string(
-                collapsible ? "categories.updateSuccess" : "accounts.updateSuccess",
-                defaultValue: collapsible ? "Category updated" : "Account updated"
+                collapsible
+                    ? L10n.Entry("categories.updateSuccess", "Category updated")
+                    : .init("accounts.updateSuccess", "Account updated")
             ))
             editingAccount = nil
             return true
@@ -438,12 +445,14 @@ struct AccountsView: View {
             toast.show(
                 account.isArchived
                     ? L10n.string(
-                        collapsible ? "categories.unarchiveSuccess" : "accounts.unarchiveSuccess",
-                        defaultValue: collapsible ? "Category unarchived" : "Account unarchived"
+                        collapsible
+                            ? L10n.Entry("categories.unarchiveSuccess", "Category unarchived")
+                            : .init("accounts.unarchiveSuccess", "Account unarchived")
                     )
                     : L10n.string(
-                        collapsible ? "categories.archiveSuccess" : "accounts.archiveSuccess",
-                        defaultValue: collapsible ? "Category archived" : "Account archived"
+                        collapsible
+                            ? L10n.Entry("categories.archiveSuccess", "Category archived")
+                            : .init("accounts.archiveSuccess", "Account archived")
                     )
             )
         } catch {
@@ -455,8 +464,9 @@ struct AccountsView: View {
         do {
             try await store.delete(account)
             toast.show(L10n.string(
-                collapsible ? "categories.deleteSuccess" : "accounts.deleteSuccess",
-                defaultValue: collapsible ? "Category deleted" : "Account deleted"
+                collapsible
+                    ? L10n.Entry("categories.deleteSuccess", "Category deleted")
+                    : .init("accounts.deleteSuccess", "Account deleted")
             ))
         } catch {
             toast.show(friendlyAccountError(error))

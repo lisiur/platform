@@ -433,8 +433,9 @@ struct LedgersView: View {
         } label: {
             Label(
                 L10n.string(
-                    ledger.isActive ? "ledgers.archive" : "ledgers.unarchive",
-                    defaultValue: ledger.isActive ? "Archive" : "Unarchive"
+                    ledger.isActive
+                        ? L10n.Entry("ledgers.archive", "Archive")
+                        : .init("ledgers.unarchive", "Unarchive")
                 ),
                 systemImage: ledger.isActive ? "archivebox" : "archivebox.fill"
             )

@@ -87,20 +87,19 @@ struct AccountFormView: View {
         fixedType == .income || fixedType == .expense
     }
 
-    private var formTitle: String {
-        let key: String
-        let fallback: String
+    private var formTitle: L10n.Entry {
         if account != nil {
-            key = isCategory ? "categories.edit" : "accounts.editAccount"
-            fallback = isCategory ? "Edit Category" : "Edit Account"
+            return isCategory
+                ? L10n.Entry("categories.edit", "Edit Category")
+                : .init("accounts.editAccount", "Edit Account")
         } else if parent != nil {
-            key = isCategory ? "categories.addSub" : "accounts.addSub"
-            fallback = isCategory ? "Add Sub-category" : "Add Sub-account"
-        } else {
-            key = isCategory ? "categories.new" : "accounts.newAccount"
-            fallback = isCategory ? "New Category" : "New Account"
+            return isCategory
+                ? L10n.Entry("categories.addSub", "Add Sub-category")
+                : .init("accounts.addSub", "Add Sub-account")
         }
-        return L10n.string(key, defaultValue: fallback)
+        return isCategory
+            ? L10n.Entry("categories.new", "New Category")
+            : .init("accounts.newAccount", "New Account")
     }
 
     /// Categories (income/expense) and accounts (asset/liability) each get
@@ -208,7 +207,7 @@ struct AccountFormView: View {
                 Text(L10n.string("accounts.metaFooter", defaultValue: "Custom info such as card numbers."))
             }
         }
-        .navigationTitle(Text(formTitle))
+        .navigationTitle(Text(L10n.string(formTitle)))
         .inlineNavigationBarTitle()
         .sheet(isPresented: $showIconPicker) {
             EmojiPickerSheet(selection: $icon)
