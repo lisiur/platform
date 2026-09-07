@@ -240,7 +240,7 @@ struct MembersView: View {
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { memberPendingTransfer = nil }
         } message: {
             if let member = memberPendingTransfer {
-                Text("Transfer ownership to \(member.displayName)? You become an editor.")
+                Text(L10n.string("ledgers.transferOwnershipConfirm", defaultValue: "Transfer ownership to %@? You become an editor.", member.displayName))
             }
         }
         .alert(
@@ -456,7 +456,7 @@ struct MembersView: View {
                 }
             }
         } footer: {
-            Text("Editors can post entries; viewers can only browse.")
+            Text(L10n.string("members.roleFooter", defaultValue: "Editors can post entries; viewers can only browse."))
         }
     }
 

@@ -219,7 +219,7 @@ struct LedgersView: View {
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { ledgerPendingDelete = nil }
         } message: {
             if let ledger = ledgerPendingDelete {
-                Text("Delete “\(ledger.name)”? Its accounts, entries, and members will be permanently removed.")
+                Text(L10n.string("ledgers.deleteConfirm", defaultValue: "Delete “%@”? Its accounts, entries, and members will be permanently removed.", ledger.name))
             }
         }
         .alert(
@@ -244,7 +244,7 @@ struct LedgersView: View {
             }
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { ledgerPendingLeave = nil }
         } message: {
-            Text("Leave this ledger? Rejoining requires a new share code.")
+            Text(L10n.string("ledgers.leaveConfirm", defaultValue: "Leave this ledger? Rejoining requires a new share code."))
         }
         .alert(
             L10n.string("projects.leave", defaultValue: "Leave Project"),
@@ -280,7 +280,7 @@ struct LedgersView: View {
             }
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { projectPendingLeave = nil }
         } message: {
-            Text("Leave this project? Rejoining requires a new share code.")
+            Text(L10n.string("projects.leaveConfirm", defaultValue: "Leave this project? Rejoining requires a new share code."))
         }
     }
 
@@ -542,7 +542,7 @@ struct LedgerFormView: View {
                 }
             } footer: {
                 if ledger == nil {
-                    Text("A starter chart of accounts is seeded automatically.")
+                    Text(L10n.string("ledgers.createFooter", defaultValue: "A starter chart of accounts is seeded automatically."))
                 }
             }
         }

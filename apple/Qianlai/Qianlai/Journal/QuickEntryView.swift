@@ -402,7 +402,7 @@ struct QuickEntryView: View {
             NavigationStack {
                 Form {
                     TextField(
-                        "e.g. weekly groceries",
+                        L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
                         text: $draft.memo,
                         axis: .vertical
                     )
@@ -512,7 +512,7 @@ struct QuickEntryView: View {
                 ContentUnavailableView(
                     L10n.string("quick.readOnlyLedger", defaultValue: "Read-only ledger"),
                     systemImage: "lock",
-                    description: Text("Editor access or higher is required to post entries.")
+                    description: Text(L10n.string("journal.editorRequired", defaultValue: "Editor access or higher is required to post entries."))
                 )
             }
         }
@@ -907,7 +907,7 @@ struct QuickEntryView: View {
             )
             if draft.isSameAccount {
                 Label(
-                    "The transfer's origin and destination can't be the same account.",
+                    L10n.string("quick.sameAccountError", defaultValue: "The transfer's origin and destination can't be the same account."),
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(.caption)
@@ -1058,7 +1058,7 @@ struct QuickEntryView: View {
             }
         case .memo:
             LabeledContent(L10n.string("quick.memo", defaultValue: "Memo")) {
-                TextField("e.g. weekly groceries", text: $draft.memo)
+                TextField(L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"), text: $draft.memo)
                     .multilineTextAlignment(.trailing)
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }

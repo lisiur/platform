@@ -83,7 +83,7 @@ struct OnboardingView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             Text(L10n.string("onboarding.welcomeName", defaultValue: "Welcome, %@!", auth.currentUser?.greetingName ?? ""))
                 .font(.title2.bold())
-            Text("A couple of quick steps to set up your workspace.")
+            Text(L10n.string("onboarding.subtitle", defaultValue: "A couple of quick steps to set up your workspace."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -266,7 +266,7 @@ struct OnboardingView: View {
                     // is optional and must read that way at a glance.
                     Badge(text: L10n.string("onboarding.optional", defaultValue: "Optional"), icon: "clock", color: .orange)
                 }
-                Text("Totally optional — create a ledger now, or do it anytime later.")
+                Text(L10n.string("onboarding.ledgerOptional", defaultValue: "Totally optional — create a ledger now, or do it anytime later."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -292,7 +292,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L10n.string("onboarding.createLedger", defaultValue: "Create a ledger"))
                 .font(.subheadline.weight(.semibold))
-            TextField("e.g. Family, Travel", text: $ledgerName)
+            TextField(L10n.string("onboarding.ledgerNamePlaceholder", defaultValue: "e.g. Family, Travel"), text: $ledgerName)
                 .textFieldStyle(.roundedBorder)
                 .submitLabel(.done)
         }

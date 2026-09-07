@@ -37,7 +37,7 @@ struct LoginView: View {
 
                 VStack(spacing: 16) {
                     FormField(title: L10n.string("login.email", defaultValue: "Email"), error: emailError) {
-                        TextField("you@example.com", text: $email)
+                        TextField(L10n.string("login.emailPlaceholder", defaultValue: "you@example.com"), text: $email)
                             .textFieldStyle(.plain)
                             .textContentType(.emailAddress)
                             #if os(iOS)
@@ -70,7 +70,7 @@ struct LoginView: View {
                     .alert(L10n.string("login.resetPassword", defaultValue: "Reset password"), isPresented: $isShowingResetAlert) {
                         Button(L10n.string("common.ok", defaultValue: "OK"), role: .cancel) {}
                     } message: {
-                        Text("Password reset is coming soon.")
+                        Text(L10n.string("login.resetComingSoon", defaultValue: "Password reset is coming soon."))
                     }
 
                     if let formError {
@@ -175,7 +175,7 @@ struct LoginView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             Text(L10n.string("app.name", defaultValue: "Qianlai"))
                 .font(.largeTitle.bold())
-            Text("Welcome back! Sign in to continue.")
+            Text(L10n.string("login.welcomeBack", defaultValue: "Welcome back! Sign in to continue."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -263,12 +263,12 @@ struct LoginView: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !LoginValidator.isValidEmail(trimmedEmail) {
-            emailError = "Please enter a valid email address."
+            emailError = L10n.string("login.invalidEmail", defaultValue: "Please enter a valid email address.")
             focusedField = .email
             return
         }
         if password.isEmpty {
-            passwordError = "Please enter your password."
+            passwordError = L10n.string("login.passwordRequired", defaultValue: "Please enter your password.")
             focusedField = .password
             return
         }
@@ -327,7 +327,7 @@ struct SignUpView: View {
                     }
 
                     FormField(title: L10n.string("login.email", defaultValue: "Email"), error: emailError) {
-                        TextField("you@example.com", text: $email)
+                        TextField(L10n.string("login.emailPlaceholder", defaultValue: "you@example.com"), text: $email)
                             .textFieldStyle(.plain)
                             .textContentType(.emailAddress)
                             #if os(iOS)
@@ -393,17 +393,17 @@ struct SignUpView: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedName.isEmpty {
-            nameError = "Please enter a nickname."
+            nameError = L10n.string("login.nicknameRequired", defaultValue: "Please enter a nickname.")
             focusedField = .name
             return
         }
         if !LoginValidator.isValidEmail(trimmedEmail) {
-            emailError = "Please enter a valid email address."
+            emailError = L10n.string("login.invalidEmail", defaultValue: "Please enter a valid email address.")
             focusedField = .email
             return
         }
         if password.count < 10 {
-            passwordError = "Password must be at least 10 characters."
+            passwordError = L10n.string("login.passwordTooShort", defaultValue: "Password must be at least 10 characters.")
             focusedField = .password
             return
         }

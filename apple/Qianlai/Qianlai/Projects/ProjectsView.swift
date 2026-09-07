@@ -209,9 +209,9 @@ struct ProjectDetailView: View {
         } message: {
             switch confirmation {
             case .delete:
-                Text("Its records are kept but become unassigned.")
+                Text(L10n.string("projects.removeFooter", defaultValue: "Its records are kept but become unassigned."))
             case .leave:
-                Text("You will no longer see or record in this project.")
+                Text(L10n.string("projects.leaveFooter", defaultValue: "You will no longer see or record in this project."))
             case .none:
                 Text("")
             }

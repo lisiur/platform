@@ -200,7 +200,7 @@ struct AccountsView: View {
                     L10n.string(
                         collapsible
                             ? "categories.editorRequired"
-                            : "Editor access or higher is required to manage accounts.",
+                            : "accounts.editorRequired",
                         defaultValue: collapsible
                             ? "Editor access or higher is required to manage categories."
                             : "Editor access or higher is required to manage accounts."
@@ -515,7 +515,7 @@ struct BalanceAdjustmentView: View {
         Form {
             Section {
                 FormField(title: L10n.string("accounts.newBalance", defaultValue: "New Balance"), error: nil) {
-                    TextField("0.00", text: $balanceText)
+                    TextField(L10n.string("accounts.balancePlaceholder", defaultValue: "0.00"), text: $balanceText)
                         #if os(iOS)
                         .keyboardType(.decimalPad)
                         #endif
@@ -524,17 +524,17 @@ struct BalanceAdjustmentView: View {
                 }
                 .listRowBackground(Color.clear)
                 DatePicker(L10n.string("accounts.asOf", defaultValue: "As of"), selection: $date, displayedComponents: .date)
-                TextField("Memo (e.g. cash count)", text: $memo)
+                TextField(L10n.string("accounts.balanceMemoPlaceholder", defaultValue: "Memo (e.g. cash count)"), text: $memo)
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }
             } footer: {
-                Text("A balanced entry against the system equity account is posted automatically. Entries after the as-of date are left untouched.")
+                Text(L10n.string("accounts.balanceFooter", defaultValue: "A balanced entry against the system equity account is posted automatically. Entries after the as-of date are left untouched."))
             }
 
             if account.type == .liability {
                 Section {
                     Label(
-                        "A liability balance is the amount you owe.",
+                        L10n.string("accounts.liabilityHint", defaultValue: "A liability balance is the amount you owe."),
                         systemImage: "info.circle"
                     )
                     .font(.caption)

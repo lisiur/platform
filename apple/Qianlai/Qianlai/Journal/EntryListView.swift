@@ -142,7 +142,7 @@ struct EntryListView: View {
             }
             if showsPostHint, !ledger.canPost {
                 Label(
-                    "Editor access or higher is required to post entries.",
+                    L10n.string("journal.editorRequired", defaultValue: "Editor access or higher is required to post entries."),
                     systemImage: "lock"
                 )
                 .font(.footnote)
@@ -166,7 +166,7 @@ struct EntryListView: View {
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { entryPendingDelete = nil }
         } message: {
             if let entry = entryPendingDelete {
-                Text("Delete entry #\(entry.entryNo)? Reports will be recalculated.")
+                Text(L10n.string("journal.deleteEntryConfirm", defaultValue: "Delete entry #%lld? Reports will be recalculated.", entry.entryNo))
             }
         }
         .fullScreenCover(item: $entryPendingEdit) { entry in

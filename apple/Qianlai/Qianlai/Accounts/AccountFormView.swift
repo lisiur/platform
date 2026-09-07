@@ -178,7 +178,7 @@ struct AccountFormView: View {
                 } header: {
                     Text(L10n.string("accounts.realAccount", defaultValue: "Real Account"))
                 } footer: {
-                    Text("Link this pocket to your real account to include it in your private net worth.")
+                    Text(L10n.string("accounts.linkFooter", defaultValue: "Link this pocket to your real account to include it in your private net worth."))
                 }
             }
 
@@ -205,7 +205,7 @@ struct AccountFormView: View {
             } header: {
                 Text(L10n.string("common.extraInfo", defaultValue: "Extra Info"))
             } footer: {
-                Text("Custom info such as card numbers.")
+                Text(L10n.string("accounts.metaFooter", defaultValue: "Custom info such as card numbers."))
             }
         }
         .navigationTitle(Text(formTitle))

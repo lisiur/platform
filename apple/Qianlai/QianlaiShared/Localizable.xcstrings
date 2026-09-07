@@ -1,7 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "0.00" : {
+    "accounts.balancePlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -17,7 +17,7 @@
         }
       }
     },
-    "10–256 characters with both letters and numbers." : {
+    "profile.passwordRule" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -34,7 +34,7 @@
         }
       }
     },
-    "A balanced entry against the system equity account is posted automatically. Entries after the as-of date are left untouched." : {
+    "accounts.balanceFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -51,7 +51,7 @@
         }
       }
     },
-    "A couple of quick steps to set up your workspace." : {
+    "onboarding.subtitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -67,24 +67,7 @@
         }
       }
     },
-    "A ledger is a book of accounts for tracking income and expenses. You can also create or join one later." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A ledger is a book of accounts for tracking income and expenses. You can also create or join one later."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账本是一套用于记录收支的科目账簿，之后也可以随时创建或加入。"
-          }
-        }
-      }
-    },
-    "A liability balance is the amount you owe." : {
+    "accounts.liabilityHint" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -101,7 +84,7 @@
         }
       }
     },
-    "A starter chart of accounts is seeded automatically." : {
+    "ledgers.createFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2217,7 +2200,7 @@
         }
       }
     },
-    "Custom info such as card numbers." : {
+    "accounts.metaFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2319,7 +2302,7 @@
         }
       }
     },
-    "Delete “%@”? Its accounts, entries, and members will be permanently removed." : {
+    "ledgers.deleteConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2353,7 +2336,7 @@
         }
       }
     },
-    "Delete entry #%lld? Reports will be recalculated." : {
+    "journal.deleteEntryConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2404,24 +2387,7 @@
         }
       }
     },
-    "e.g. A2B4C6D8E9F2" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "e.g. A2B4C6D8E9F2"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例如 A2B4C6D8E9F2"
-          }
-        }
-      }
-    },
-    "e.g. Family, Travel" : {
+    "onboarding.ledgerNamePlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2438,7 +2404,7 @@
         }
       }
     },
-    "e.g. weekly groceries" : {
+    "quick.memoPlaceholder" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2538,7 +2504,7 @@
         }
       }
     },
-    "Editor access or higher is required to manage accounts." : {
+    "accounts.editorRequired" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2555,7 +2521,7 @@
         }
       }
     },
-    "Editor access or higher is required to post entries." : {
+    "journal.editorRequired" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2572,7 +2538,7 @@
         }
       }
     },
-    "Editors can post entries; viewers can only browse." : {
+    "members.roleFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2606,7 +2572,7 @@
         }
       }
     },
-    "Emoji, e.g. 🏦" : {
+    "realAccounts.iconPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2619,23 +2585,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Emoji，如 🏦"
-          }
-        }
-      }
-    },
-    "Emoji, e.g. 💳" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emoji, e.g. 💳"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "表情符号，如 💳"
           }
         }
       }
@@ -3303,7 +3252,7 @@
         }
       }
     },
-    "Its records are kept but become unassigned." : {
+    "projects.removeFooter" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -3755,7 +3704,7 @@
         }
       }
     },
-    "Leave this ledger? Rejoining requires a new share code." : {
+    "ledgers.leaveConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3772,7 +3721,7 @@
         }
       }
     },
-    "Leave this project? Rejoining requires a new share code." : {
+    "projects.leaveConfirm" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4461,9 +4410,6 @@
         }
       }
     },
-    "Let others scan this QR to join the ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
-
-    },
     "realAccounts.liabilities" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4481,7 +4427,7 @@
         }
       }
     },
-    "Link this pocket to your real account to include it in your private net worth." : {
+    "accounts.linkFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4633,23 +4579,6 @@
         }
       }
     },
-    "Member turnover reports aggregate every entry a member is tagged on." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Member turnover reports aggregate every entry a member is tagged on."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "成员往来统计会汇总其被标记的全部流水。"
-          }
-        }
-      }
-    },
     "members.selectLedger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4684,7 +4613,7 @@
         }
       }
     },
-    "Memo (e.g. cash count)" : {
+    "accounts.balanceMemoPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4697,23 +4626,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备注（例如：现金盘点）"
-          }
-        }
-      }
-    },
-    "Memo (e.g. weekly groceries)" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Memo (e.g. weekly groceries)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "备注（如：每周生鲜）"
           }
         }
       }
@@ -4939,7 +4851,7 @@
         }
       }
     },
-    "No linked pockets — link one from a ledger's accounts page." : {
+    "realAccounts.noPockets" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5108,7 +5020,7 @@
         }
       }
     },
-    "Password must be at least 10 characters." : {
+    "login.passwordTooShort" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5125,7 +5037,7 @@
         }
       }
     },
-    "Password reset is coming soon." : {
+    "login.resetComingSoon" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5159,7 +5071,7 @@
         }
       }
     },
-    "Please enter a nickname." : {
+    "login.nicknameRequired" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5176,7 +5088,7 @@
         }
       }
     },
-    "Please enter a valid email address." : {
+    "login.invalidEmail" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5193,7 +5105,7 @@
         }
       }
     },
-    "Please enter your password." : {
+    "login.passwordRequired" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5210,7 +5122,7 @@
         }
       }
     },
-    "Private details such as card numbers." : {
+    "realAccounts.metaFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6753,7 +6665,7 @@
         }
       }
     },
-    "Real accounts track real-world wallets across ledgers. Link them to ledger accounts on the accounts page. Visible only to you." : {
+    "realAccounts.introFooter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7380,23 +7292,6 @@
         }
       }
     },
-    "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出示二维码即可让别人加入这个账本——二维码会自动刷新，每次有效期为 1 分钟。记账人可以记录流水；查看者只能浏览。"
-          }
-        }
-      }
-    },
     "login.signIn" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7583,24 +7478,7 @@
         }
       }
     },
-    "The token string is shown only once after creation." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The token string is shown only once after creation."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "令牌字符串仅显示一次。"
-          }
-        }
-      }
-    },
-    "The transfer's origin and destination can't be the same account." : {
+    "quick.sameAccountError" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7634,7 +7512,7 @@
         }
       }
     },
-    "Totally optional — create a ledger now, or do it anytime later." : {
+    "onboarding.ledgerOptional" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7667,7 +7545,7 @@
         }
       }
     },
-    "Transfer ownership to %@? You become an editor." : {
+    "ledgers.transferOwnershipConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7744,7 +7622,7 @@
         }
       }
     },
-    "Welcome back! Sign in to continue." : {
+    "login.welcomeBack" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7999,7 +7877,7 @@
         }
       }
     },
-    "You will no longer see or record in this project." : {
+    "projects.leaveFooter" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8009,7 +7887,7 @@
         }
       }
     },
-    "you@example.com" : {
+    "login.emailPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

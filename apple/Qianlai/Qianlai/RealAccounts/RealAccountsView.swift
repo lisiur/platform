@@ -69,7 +69,7 @@ struct RealAccountsView: View {
                 } header: {
                     Text(L10n.string("realAccounts.screenName", defaultValue: "Real Accounts"))
                 } footer: {
-                    Text("Real accounts track real-world wallets across ledgers. Link them to ledger accounts on the accounts page. Visible only to you.")
+                    Text(L10n.string("realAccounts.introFooter", defaultValue: "Real accounts track real-world wallets across ledgers. Link them to ledger accounts on the accounts page. Visible only to you."))
                 }
             }
         }
@@ -147,7 +147,7 @@ struct RealAccountsView: View {
                 }
             }
             if real.pockets.isEmpty {
-                Text("No linked pockets — link one from a ledger's accounts page.")
+                Text(L10n.string("realAccounts.noPockets", defaultValue: "No linked pockets — link one from a ledger's accounts page."))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -278,7 +278,7 @@ struct RealAccountFormView: View {
                 HStack {
                     Text(L10n.string("common.icon", defaultValue: "Icon"))
                     Spacer()
-                    TextField("Emoji, e.g. 🏦", text: $icon)
+                    TextField(L10n.string("realAccounts.iconPlaceholder", defaultValue: "Emoji, e.g. 🏦"), text: $icon)
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)
@@ -312,7 +312,7 @@ struct RealAccountFormView: View {
             } header: {
                 Text(L10n.string("common.extraInfo", defaultValue: "Extra Info"))
             } footer: {
-                Text("Private details such as card numbers.")
+                Text(L10n.string("realAccounts.metaFooter", defaultValue: "Private details such as card numbers."))
             }
         }
         .navigationTitle(Text(real != nil ? L10n.string("realAccounts.editTitle", defaultValue: "Edit Real Account") : L10n.string("realAccounts.newTitle", defaultValue: "New Real Account")))

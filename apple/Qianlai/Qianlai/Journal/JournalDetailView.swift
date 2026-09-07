@@ -71,7 +71,7 @@ struct JournalDetailView: View {
             }
             Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) {}
         } message: {
-            Text("Delete entry #\(resolved.entryNo)? Reports will be recalculated.")
+            Text(L10n.string("journal.deleteEntryConfirm", defaultValue: "Delete entry #%lld? Reports will be recalculated.", resolved.entryNo))
         }
     }
 

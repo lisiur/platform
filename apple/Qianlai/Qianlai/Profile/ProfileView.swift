@@ -362,7 +362,7 @@ struct ChangePasswordView: View {
                 }
                 .listRowBackground(Color.clear)
             } footer: {
-                Text("10–256 characters with both letters and numbers.")
+                Text(L10n.string("profile.passwordRule", defaultValue: "10–256 characters with both letters and numbers."))
             }
             if let error {
                 Section {
