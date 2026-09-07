@@ -289,10 +289,14 @@ struct JournalDetailView: View {
     /// leaves it locally, while the server sync runs in the background; the
     /// reports refresh once the sync settles. A failed sync restores the
     /// row in the list and its error arrives through the store's callback.
+    /// The removal is animated so the row below slides up when the pop
+    /// reveals the list.
     private func delete() {
         do {
-            let sync = try store.delete(resolved) { message in
-                toast.show(message)
+            let sync = try withAnimation {
+                try store.delete(resolved) { message in
+                    toast.show(message)
+                }
             }
             toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
             Task {

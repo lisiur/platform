@@ -181,11 +181,15 @@ struct EntryListView: View {
     /// toast fires at once; the server sync runs in the background and the
     /// reports only refresh once it settles (so they never read the
     /// pre-delete totals). A failed sync restores the row and its error
-    /// arrives through the store's callback.
+    /// arrives through the store's callback. The local removal runs inside
+    /// `withAnimation` so the row — or its whole day card, when the day
+    /// empties — slides closed instead of vanishing.
     private func delete(_ entry: JournalEntry) {
         do {
-            let sync = try store.delete(entry) { message in
-                toast.show(message)
+            let sync = try withAnimation {
+                try store.delete(entry) { message in
+                    toast.show(message)
+                }
             }
             toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
             Task {
