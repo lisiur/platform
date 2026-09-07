@@ -56,7 +56,7 @@ struct QuickTargetEntity: AppEntity {
     /// "folder" — the same marks the app uses for the two scopes. A guest's
     /// shared project gets the person-badged folder to set it apart.
     var image: DisplayRepresentation.Image {
-        if let projectName {
+        if projectName != nil {
             return .init(systemName: isGuestLedger ? "folder.badge.person.crop" : "folder")
         }
         return .init(systemName: "book")
@@ -106,6 +106,10 @@ struct QuickTargetQuery: EntityQuery {
     /// the mirrored active ledger when the fetch fails (offline
     /// configuration); empty sends the picker to "no options", the system's
     /// standard misconfiguration handling.
+    /// MainActor because the response/project models it decodes and filters
+    /// are MainActor-isolated; the query methods stay nonisolated and hop in
+    /// via `await`.
+    @MainActor
     private static func allTargets() async -> [QuickTargetEntity] {
         let ledgers: [QianlaiLedger]
         do {
@@ -129,6 +133,7 @@ struct QuickTargetQuery: EntityQuery {
         return targets
     }
 
+    @MainActor
     private static func fetchProjects(ledgerId: String) async throws -> [QianlaiProject] {
         let response: ProjectsResponse = try await APIClient.shared.request(
             "GET",
@@ -188,7 +193,8 @@ struct QuickCategoryEntity: AppEntity {
 /// picker records its resolved target here so the category picker (whose
 /// query receives no intent context) can scope its list to that ledger and
 /// label it with the project name instead of the raw ledger name.
-enum BoundConfigScratch {
+/// Nonisolated — plain UserDefaults reads/writes, safe from any query.
+nonisolated enum BoundConfigScratch {
     private static let targetLedgerKey = "widget.config.targetLedgerId"
     private static let targetProjectNameKey = "widget.config.targetProjectName"
 
@@ -212,6 +218,8 @@ struct QuickCategoryQuery: EntityQuery {
         await Self.allCategories()
     }
 
+    /// MainActor for the same reason as `QuickTargetQuery.allTargets`.
+    @MainActor
     private static func allCategories() async -> [QuickCategoryEntity] {
         let ledgers: [QianlaiLedger]
         do {
@@ -256,6 +264,7 @@ struct QuickCategoryQuery: EntityQuery {
         return categories
     }
 
+    @MainActor
     private static func fetchAccounts(ledgerId: String) async throws -> [BookAccount] {
         let response: AccountsResponse = try await APIClient.shared.request(
             "GET",

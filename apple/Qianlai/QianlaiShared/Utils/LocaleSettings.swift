@@ -13,14 +13,16 @@ import Observation
 final class LocaleSettings {
     static let shared = LocaleSettings()
 
-    static let systemIdentifier = "system"
-    static let supportedIdentifiers: [String] = [
+    // Immutable constants, readable from nonisolated contexts (the widget's
+    // `AppLanguage` resolution runs off the main actor).
+    nonisolated static let systemIdentifier = "system"
+    nonisolated static let supportedIdentifiers: [String] = [
         systemIdentifier,
         "en",
         "zh-Hans",
     ]
 
-    static let storageKey = "app.preferredLocale"
+    nonisolated static let storageKey = "app.preferredLocale"
 
     private(set) var identifier: String
 

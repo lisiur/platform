@@ -14,9 +14,14 @@ import Foundation
 /// `String(localized:)` does not — it follows the device language. Route
 /// programmatic lookups through `L10n.string` so both halves honor the
 /// in-app setting.
-enum AppLanguage {
+/// Nonisolated — every member is UserDefaults/bundle lookup only, safe from
+/// the widget's nonisolated query contexts; the one `LocaleSettings` touch
+/// stays MainActor.
+nonisolated enum AppLanguage {
     private static let lock = NSLock()
-    private static var bundleCache: [String: Bundle] = [:]
+    /// Plain static storage would fail Swift 6 concurrency checks; every
+    /// access is inside `overrideBundle`'s `lock` section.
+    nonisolated(unsafe) private static var bundleCache: [String: Bundle] = [:]
 
     /// The locale matching the stored override, `.autoupdatingCurrent` when
     /// following system. Formatters and calendars must use this instead of
@@ -69,7 +74,8 @@ enum AppLanguage {
 }
 
 /// Localized-string lookup that honors the in-app language override.
-enum L10n {
+/// Nonisolated — pure bundle resolution, callable from any isolation.
+nonisolated enum L10n {
     /// Resolve `key` through the override bundle; otherwise through
     /// `Bundle.main` (device language), falling back to `defaultValue`.
     /// Pass printf-style placeholders in `defaultValue` and the values as

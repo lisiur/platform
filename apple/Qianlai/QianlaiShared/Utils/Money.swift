@@ -82,7 +82,7 @@ enum Money {
 /// grouping, month windows, and filters all follow the viewer's LOCAL
 /// calendar, so an entry renders and searches under the same day it was
 /// entered, on any device.
-enum AppDates {
+nonisolated enum AppDates {
     /// The LOCAL year/month containing now — the dashboard's default month.
     static var currentYearMonth: YearMonth {
         let components = Calendar.current.dateComponents([.year, .month], from: Date())

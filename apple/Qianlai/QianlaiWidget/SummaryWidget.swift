@@ -275,7 +275,7 @@ nonisolated enum WidgetLinks {
 /// Shared refresh scheduling: the top of the next local hour. The app
 /// additionally reloads timelines after every posting, scope switch, and
 /// sign-out; the hourly walk is the self-healing backstop.
-enum WidgetRefresh {
+nonisolated enum WidgetRefresh {
     static func nextHour() -> Date {
         Calendar.current.nextDate(
             after: Date(),
