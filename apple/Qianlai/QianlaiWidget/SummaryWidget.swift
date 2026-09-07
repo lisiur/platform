@@ -61,7 +61,7 @@ nonisolated struct SummaryPresentation {
             totalExpense: snapshot.totalExpense,
             totalIncome: snapshot.totalIncome,
             net: snapshot.net,
-            headlineLabel: L10n.string("Net Worth", defaultValue: "Net Worth"),
+            headlineLabel: L10n.string("common.netWorth", defaultValue: "Net Worth"),
             headlineValue: snapshot.netWorth,
             recentEntries: snapshot.recentEntries,
             generatedAt: snapshot.generatedAt,
@@ -78,7 +78,7 @@ nonisolated struct SummaryPresentation {
             totalExpense: snapshot.totalExpense,
             totalIncome: snapshot.totalIncome,
             net: snapshot.net,
-            headlineLabel: L10n.string("Net", defaultValue: "Net"),
+            headlineLabel: L10n.string("common.net", defaultValue: "Net"),
             headlineValue: snapshot.net,
             recentEntries: snapshot.recentEntries,
             generatedAt: snapshot.generatedAt,
@@ -355,7 +355,7 @@ struct SummaryEntryView: View {
             }
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.string("Expense", defaultValue: "Expense"))
+                Text(L10n.string("account.type.expense", defaultValue: "Expense"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(Money.format(presentation.totalExpense, currency: presentation.currency))
@@ -387,12 +387,12 @@ struct SummaryEntryView: View {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     stat(
-                        label: L10n.string("Expense", defaultValue: "Expense"),
+                        label: L10n.string("account.type.expense", defaultValue: "Expense"),
                         value: Money.format(presentation.totalExpense, currency: presentation.currency),
                         color: .widgetExpense
                     )
                     stat(
-                        label: L10n.string("Income", defaultValue: "Income"),
+                        label: L10n.string("account.type.income", defaultValue: "Income"),
                         value: Money.format(presentation.totalIncome, currency: presentation.currency),
                         color: .widgetIncome
                     )
@@ -404,11 +404,11 @@ struct SummaryEntryView: View {
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.string("Recent Entries", defaultValue: "Recent Entries"))
+                    Text(L10n.string("widget.recentEntries", defaultValue: "Recent Entries"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if presentation.recentEntries.isEmpty {
-                        Text("—")
+                        Text(verbatim: "—")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     } else {
@@ -428,24 +428,24 @@ struct SummaryEntryView: View {
             header(presentation: presentation, offline: offline)
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 stat(
-                    label: L10n.string("Expense", defaultValue: "Expense"),
+                    label: L10n.string("account.type.expense", defaultValue: "Expense"),
                     value: Money.format(presentation.totalExpense, currency: presentation.currency),
                     color: .widgetExpense
                 )
                 stat(
-                    label: L10n.string("Income", defaultValue: "Income"),
+                    label: L10n.string("account.type.income", defaultValue: "Income"),
                     value: Money.format(presentation.totalIncome, currency: presentation.currency),
                     color: .widgetIncome
                 )
                 stat(
-                    label: L10n.string("Net", defaultValue: "Net"),
+                    label: L10n.string("common.net", defaultValue: "Net"),
                     value: Money.format(presentation.net, currency: presentation.currency),
                     color: .primary
                 )
                 Spacer(minLength: 0)
             }
             Divider()
-            Text(L10n.string("Recent Entries", defaultValue: "Recent Entries"))
+            Text(L10n.string("widget.recentEntries", defaultValue: "Recent Entries"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             // Stretches to the widget's full height: spare vertical space
@@ -454,7 +454,7 @@ struct SummaryEntryView: View {
             VStack(alignment: .leading, spacing: 0) {
                 let entries = Array(presentation.recentEntries.prefix(5))
                 if entries.isEmpty {
-                    Text("—")
+                    Text(verbatim: "—")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {

@@ -46,12 +46,12 @@ struct ProfileView: View {
                 Button(role: .destructive) {
                     Task { await auth.logout() }
                 } label: {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    Label(L10n.string("profile.signOut", defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
                         .foregroundStyle(.red)
                 }
             }
         }
-        .navigationTitle(Text("Me"))
+        .navigationTitle(Text(L10n.string("tab.profile", defaultValue: "Me")))
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
                 EditNameView(store: store)
@@ -81,7 +81,7 @@ struct ProfileView: View {
             HStack(spacing: 14) {
                 avatar
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(auth.currentUser?.name ?? "Unnamed user")
+                    Text(auth.currentUser?.name ?? L10n.string("profile.unnamedUser", defaultValue: "Unnamed user"))
                         .font(.body.weight(.semibold))
                     if let email = auth.currentUser?.email {
                         Text(email)
@@ -95,29 +95,29 @@ struct ProfileView: View {
             Button {
                 isShowingNameSheet = true
             } label: {
-                Label("Edit Name", systemImage: "pencil")
+                Label(L10n.string("profile.editName", defaultValue: "Edit Name"), systemImage: "pencil")
             }
             Button {
                 isShowingPasswordSheet = true
             } label: {
-                Label("Change Password", systemImage: "key")
+                Label(L10n.string("profile.changePassword", defaultValue: "Change Password"), systemImage: "key")
             }
         }
     }
 
     private var manageSection: some View {
-        Section("Manage") {
+        Section(L10n.string("profile.manage", defaultValue: "Manage")) {
             NavigationLink {
                 RealAccountsView()
             } label: {
-                Label("Assets", systemImage: "creditcard")
+                Label(L10n.string("realAccounts.title", defaultValue: "Assets"), systemImage: "creditcard")
             }
             NavigationLink {
                 // Expanded for guests: guest-ledger rows render as their
                 // projects, never as ledger names.
                 LedgersView(expandGuestLedgers: isGuest)
             } label: {
-                Label("Ledgers", systemImage: "book")
+                Label(L10n.string("ledgers.title", defaultValue: "Ledgers"), systemImage: "book")
             }
         }
     }
@@ -129,29 +129,29 @@ struct ProfileView: View {
             NavigationLink {
                 AccountsView()
             } label: {
-                Label("Accounts", systemImage: "chart.bar.doc.horizontal")
+                Label(L10n.string("accounts.title", defaultValue: "Accounts"), systemImage: "chart.bar.doc.horizontal")
             }
             NavigationLink {
                 CategoriesView()
             } label: {
-                Label("Categories", systemImage: "tag")
+                Label(L10n.string("accounts.categories", defaultValue: "Categories"), systemImage: "tag")
             }
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
                     MembersView(ledger: ledger, isModal: false)
                 } label: {
-                    Label("Members", systemImage: "person.2")
+                    Label(L10n.string("tab.members", defaultValue: "Members"), systemImage: "person.2")
                 }
             }
             NavigationLink {
                 ProjectsView()
             } label: {
-                Label("Projects", systemImage: "folder")
+                Label(L10n.string("projects.title", defaultValue: "Projects"), systemImage: "folder")
             }
             NavigationLink {
                 ReportsView()
             } label: {
-                Label("Reports", systemImage: "chart.pie")
+                Label(L10n.string("reports.title", defaultValue: "Reports"), systemImage: "chart.pie")
             }
         } header: {
             Text(ledgerStore.activeLedger?.name ?? L10n.string("ledger.none", defaultValue: "No ledger"))
@@ -159,20 +159,20 @@ struct ProfileView: View {
     }
 
     private var languageSection: some View {
-        Section("Settings") {
+        Section(L10n.string("profile.settings", defaultValue: "Settings")) {
             Picker(
                 selection: Binding(
                     get: { localeSettings.identifier },
                     set: { localeSettings.set(identifier: $0) }
                 )
             ) {
-                Text("Follow system").tag(LocaleSettings.systemIdentifier)
-                Text("English", comment: "Language name: English (native form)")
+                Text(L10n.string("profile.followSystem", defaultValue: "Follow system")).tag(LocaleSettings.systemIdentifier)
+                Text(verbatim: "English")
                     .tag("en")
-                Text("简体中文", comment: "Language name: Simplified Chinese (native form)")
+                Text(verbatim: "简体中文")
                     .tag("zh-Hans")
             } label: {
-                Label("Language", systemImage: "globe")
+                Label(L10n.string("profile.language", defaultValue: "Language"), systemImage: "globe")
             }
         }
     }
@@ -215,7 +215,7 @@ struct ProfileView: View {
                 Button {
                     isShowingImporter = true
                 } label: {
-                    Label("Choose Image…", systemImage: "photo")
+                    Label(L10n.string("profile.chooseImage", defaultValue: "Choose Image…"), systemImage: "photo")
                 }
             } label: {
                 Image(systemName: "camera.fill")
@@ -272,8 +272,8 @@ struct EditNameView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "Name", error: nil) {
-                    TextField("Your name", text: $name)
+                FormField(title: L10n.string("common.name", defaultValue: "Name"), error: nil) {
+                    TextField(L10n.string("common.yourName", defaultValue: "Your name"), text: $name)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)
                         .onSubmit { dismissKeyboard() }
@@ -288,15 +288,15 @@ struct EditNameView: View {
                 }
             }
         }
-        .navigationTitle(Text("Edit Name"))
+        .navigationTitle(Text(L10n.string("profile.editName", defaultValue: "Edit Name")))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Saving…" : "Save") {
+                Button(isSaving ? L10n.string("common.saving", defaultValue: "Saving…") : L10n.string("common.save", defaultValue: "Save")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)
@@ -340,22 +340,22 @@ struct ChangePasswordView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "Current Password", error: nil) {
-                    SecureField("Enter your current password", text: $currentPassword)
+                FormField(title: L10n.string("profile.currentPassword", defaultValue: "Current Password"), error: nil) {
+                    SecureField(L10n.string("profile.currentPasswordPlaceholder", defaultValue: "Enter your current password"), text: $currentPassword)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)
                         .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
-                FormField(title: "New Password", error: nil) {
-                    SecureField("At least 10 characters", text: $newPassword)
+                FormField(title: L10n.string("profile.newPassword", defaultValue: "New Password"), error: nil) {
+                    SecureField(L10n.string("common.passwordMin", defaultValue: "At least 10 characters"), text: $newPassword)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)
                         .onSubmit { dismissKeyboard() }
                 }
                 .listRowBackground(Color.clear)
-                FormField(title: "Confirm New Password", error: nil) {
-                    SecureField("Repeat the new password", text: $confirmPassword)
+                FormField(title: L10n.string("profile.confirmPassword", defaultValue: "Confirm New Password"), error: nil) {
+                    SecureField(L10n.string("profile.repeatPassword", defaultValue: "Repeat the new password"), text: $confirmPassword)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)
                         .onSubmit { dismissKeyboard() }
@@ -372,15 +372,15 @@ struct ChangePasswordView: View {
                 }
             }
         }
-        .navigationTitle(Text("Change Password"))
+        .navigationTitle(Text(L10n.string("profile.changePassword", defaultValue: "Change Password")))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Changing…" : "Change") {
+                Button(isSaving ? L10n.string("profile.changing", defaultValue: "Changing…") : L10n.string("profile.changePassword", defaultValue: "Change")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)

@@ -269,7 +269,7 @@ struct QuickEntryView: View {
                 // top margin for the first section that no public config
                 // removes, so the tabs live outside the form — flush under
                 // the title.
-                Picker("Account Type", selection: $draft.kind) {
+                Picker(L10n.string("quick.accountType", defaultValue: "Account Type"), selection: $draft.kind) {
                     ForEach(QuickEntryKind.allCases) { kind in
                         Text(kind.label).tag(kind)
                     }
@@ -348,7 +348,7 @@ struct QuickEntryView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
             }
             // The trailing slot is the ledger switcher, not a save button:
             // the entry's target ledger is picked here while the
@@ -410,11 +410,11 @@ struct QuickEntryView: View {
                     .onSubmit { isMemoFieldFocused = false }
                     .focused($isMemoFieldFocused)
                 }
-                .navigationTitle(Text(L10n.string("Memo", defaultValue: "Memo")))
+                .navigationTitle(Text(L10n.string("quick.memo", defaultValue: "Memo")))
                 .inlineNavigationBarTitle()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { isMemoPresented = false }
+                        Button(L10n.string("common.done", defaultValue: "Done")) { isMemoPresented = false }
                     }
                 }
                 .task { isMemoFieldFocused = true }
@@ -434,7 +434,7 @@ struct QuickEntryView: View {
                 .inlineNavigationBarTitle()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { isMoreFieldsPresented = false }
+                        Button(L10n.string("common.done", defaultValue: "Done")) { isMoreFieldsPresented = false }
                     }
                 }
             }
@@ -450,7 +450,7 @@ struct QuickEntryView: View {
                 CategoriesView()
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { isCategoryManagePresented = false }
+                            Button(L10n.string("common.done", defaultValue: "Done")) { isCategoryManagePresented = false }
                         }
                     }
             }
@@ -472,7 +472,7 @@ struct QuickEntryView: View {
             NavigationStack {
                 ScrollView {
                     DatePicker(
-                        L10n.string("Date", defaultValue: "Date"),
+                        L10n.string("common.date", defaultValue: "Date"),
                         selection: $draft.date,
                         displayedComponents: [.date, .hourAndMinute]
                     )
@@ -485,7 +485,7 @@ struct QuickEntryView: View {
                 .inlineNavigationBarTitle()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { isDateTimePresented = false }
+                        Button(L10n.string("common.done", defaultValue: "Done")) { isDateTimePresented = false }
                     }
                 }
             }
@@ -503,14 +503,14 @@ struct QuickEntryView: View {
                 set: { if !$0 { validationError = nil } }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.string("common.ok", defaultValue: "OK"), role: .cancel) {}
         } message: {
             Text(validationError ?? "")
         }
         .overlay {
             if !canPost {
                 ContentUnavailableView(
-                    "Read-only ledger",
+                    L10n.string("quick.readOnlyLedger", defaultValue: "Read-only ledger"),
                     systemImage: "lock",
                     description: Text("Editor access or higher is required to post entries.")
                 )
@@ -1057,7 +1057,7 @@ struct QuickEntryView: View {
                 }
             }
         case .memo:
-            LabeledContent(L10n.string("Memo", defaultValue: "Memo")) {
+            LabeledContent(L10n.string("quick.memo", defaultValue: "Memo")) {
                 TextField("e.g. weekly groceries", text: $draft.memo)
                     .multilineTextAlignment(.trailing)
                     .submitLabel(.done)
@@ -1076,7 +1076,7 @@ struct QuickEntryView: View {
                             .foregroundStyle(.tertiary)
                     }
                 } label: {
-                    Text(L10n.string("Date", defaultValue: "Date"))
+                    Text(L10n.string("common.date", defaultValue: "Date"))
                 }
                 .contentShape(Rectangle())
             }
@@ -1094,7 +1094,7 @@ struct QuickEntryView: View {
                             .foregroundStyle(.tertiary)
                     }
                 } label: {
-                    Text(L10n.string("Participants", defaultValue: "Participants"))
+                    Text(L10n.string("quick.participants", defaultValue: "Participants"))
                 }
                 .contentShape(Rectangle())
             }
@@ -1112,7 +1112,7 @@ struct QuickEntryView: View {
                             .foregroundStyle(.tertiary)
                     }
                 } label: {
-                    Text(L10n.string("Location", defaultValue: "Location"))
+                    Text(L10n.string("quick.location", defaultValue: "Location"))
                 }
                 .contentShape(Rectangle())
             }
@@ -1138,12 +1138,12 @@ struct QuickEntryView: View {
             if editedEntry == nil, let scopedProject {
                 // Project scope pins the entry: read-only row instead of
                 // the picker.
-                LabeledContent("Project") {
+                LabeledContent(L10n.string("quick.project", defaultValue: "Project")) {
                     Text(scopedProject.name)
                         .foregroundStyle(.secondary)
                 }
             } else if !isGuest, !ledgerProjects.isEmpty {
-                Picker("Project", selection: Binding(
+                Picker(L10n.string("quick.project", defaultValue: "Project"), selection: Binding(
                     get: { draft.projectId ?? "" },
                     set: { draft.projectId = $0.isEmpty ? nil : $0 }
                 )) {
@@ -1222,7 +1222,7 @@ struct QuickEntryView: View {
             }
             .foregroundStyle(.secondary)
         } else {
-            Text(L10n.string("Not selected", defaultValue: "Not selected"))
+            Text(L10n.string("common.notSelected", defaultValue: "Not selected"))
                 .foregroundStyle(.secondary)
         }
     }
@@ -1231,7 +1231,7 @@ struct QuickEntryView: View {
     /// sentinel — never a blank capsule.
     private var memoChipValue: String {
         draft.memo.isEmpty
-            ? L10n.string("Memo", defaultValue: "Memo")
+            ? L10n.string("quick.memo", defaultValue: "Memo")
             : draft.memo
     }
 
@@ -1367,7 +1367,7 @@ struct QuickEntryView: View {
     private var dateTimeLabel: String {
         isEntryToday
             ? L10n.string("quick.time", defaultValue: "Time")
-            : L10n.string("Date", defaultValue: "Date")
+            : L10n.string("common.date", defaultValue: "Date")
     }
 
     /// Trailing label of the location chip: POI name → address → formatted
@@ -1413,8 +1413,8 @@ struct QuickEntryView: View {
     // route through `L10n.string` (which honors the in-app language).
     private var navigationTitleText: String {
         editedEntry == nil
-            ? L10n.string("Add Entry", defaultValue: "Add Entry")
-            : L10n.string("Edit Entry", defaultValue: "Edit Entry")
+            ? L10n.string("quick.addEntry", defaultValue: "Add Entry")
+            : L10n.string("quick.editEntry", defaultValue: "Edit Entry")
     }
 
     // Debit side = where value goes (expense category / receiving pocket /
@@ -1646,7 +1646,7 @@ struct QuickEntryView: View {
                     defaultValue: "All project members"
                 )
             }
-            return L10n.string("Not selected", defaultValue: "Not selected")
+            return L10n.string("common.notSelected", defaultValue: "Not selected")
         }
         return names.joined(separator: ", ")
     }

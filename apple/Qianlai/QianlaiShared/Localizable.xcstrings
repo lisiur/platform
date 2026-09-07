@@ -1,142 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
-    "—" : {
-
-    },
-    "·" : {
-
-    },
-    "#%lld" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "#%lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "#%lld"
-          }
-        }
-      }
-    },
-    "%@" : {
-
-    },
-    "%@ %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "%@%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@%2$@"
-          }
-        }
-      }
-    },
-    "%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld"
-          }
-        }
-      }
-    },
-    "%lld selected" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld selected"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已选 %lld 项"
-          }
-        }
-      }
-    },
-    "%lld%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld%2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld%2$@"
-          }
-        }
-      }
-    },
-    "+%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "+%@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "+%@"
-          }
-        }
-      }
-    },
-    "−%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "−%@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "−%@"
-          }
-        }
-      }
-    },
     "0.00" : {
       "localizations" : {
         "en" : {
@@ -254,7 +118,24 @@
         }
       }
     },
-    "Account Type" : {
+    "quick.accountType" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account Type"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
+          }
+        }
+      }
+    },
+    "realAccounts.accountType" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -968,7 +849,7 @@
         }
       }
     },
-    "Accounts" : {
+    "accounts.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1376,24 +1257,7 @@
         }
       }
     },
-    "Active" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Active"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有效"
-          }
-        }
-      }
-    },
-    "Add Entry" : {
+    "quick.addEntry" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1410,7 +1274,7 @@
         }
       }
     },
-    "Add Field" : {
+    "common.addField" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1427,7 +1291,7 @@
         }
       }
     },
-    "Add Sub-account" : {
+    "accounts.addSub" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1444,7 +1308,7 @@
         }
       }
     },
-    "Adjust Balance" : {
+    "accounts.adjustBalance" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1461,7 +1325,7 @@
         }
       }
     },
-    "Adjusting…" : {
+    "accounts.adjusting" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1478,24 +1342,7 @@
         }
       }
     },
-    "All" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部"
-          }
-        }
-      }
-    },
-    "All Members" : {
+    "journal.filterAllMembers" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1512,7 +1359,7 @@
         }
       }
     },
-    "All Projects" : {
+    "journal.filterAllProjects" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1525,23 +1372,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部项目"
-          }
-        }
-      }
-    },
-    "Amount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amount"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "金额"
           }
         }
       }
@@ -1682,41 +1512,7 @@
         }
       }
     },
-    "Archive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archive"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归档"
-          }
-        }
-      }
-    },
-    "Archived" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archived"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已归档"
-          }
-        }
-      }
-    },
-    "Are you sure?" : {
+    "common.areYouSure" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1726,7 +1522,7 @@
         }
       }
     },
-    "As of" : {
+    "accounts.asOf" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1743,24 +1539,7 @@
         }
       }
     },
-    "Asset" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Asset"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "资产"
-          }
-        }
-      }
-    },
-    "Assets" : {
+    "realAccounts.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1777,7 +1556,7 @@
         }
       }
     },
-    "At least 10 characters" : {
+    "common.passwordMin" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1845,7 +1624,7 @@
         }
       }
     },
-    "Backspace" : {
+    "calculator.backspace" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1913,23 +1692,6 @@
         }
       }
     },
-    "Calculator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calculator"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "计算器"
-          }
-        }
-      }
-    },
     "calculator.error" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1947,7 +1709,7 @@
         }
       }
     },
-    "Cancel" : {
+    "common.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1964,7 +1726,7 @@
         }
       }
     },
-    "Categories" : {
+    "accounts.categories" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2236,23 +1998,7 @@
         }
       }
     },
-    "Change" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更改"
-          }
-        }
-      }
-    },
-    "Change Password" : {
+    "profile.changePassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2269,7 +2015,7 @@
         }
       }
     },
-    "Changing…" : {
+    "profile.changing" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2286,7 +2032,7 @@
         }
       }
     },
-    "Choose Image…" : {
+    "profile.chooseImage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2303,7 +2049,7 @@
         }
       }
     },
-    "Clear" : {
+    "filters.clear" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2316,23 +2062,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除筛选"
-          }
-        }
-      }
-    },
-    "Close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭"
           }
         }
       }
@@ -2371,7 +2100,7 @@
         }
       }
     },
-    "Confirm New Password" : {
+    "profile.confirmPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2388,58 +2117,7 @@
         }
       }
     },
-    "Copy" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制"
-          }
-        }
-      }
-    },
-    "Cr %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cr %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "贷 %@"
-          }
-        }
-      }
-    },
-    "Create" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "创建"
-          }
-        }
-      }
-    },
-    "Create & Use" : {
+    "onboarding.createAndUse" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2455,7 +2133,7 @@
         }
       }
     },
-    "Create a ledger" : {
+    "onboarding.createLedger" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2471,7 +2149,7 @@
         }
       }
     },
-    "Create account" : {
+    "login.createAccount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2488,7 +2166,7 @@
         }
       }
     },
-    "Creating…" : {
+    "login.creating" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2505,7 +2183,7 @@
         }
       }
     },
-    "Currency" : {
+    "ledgers.currency" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2522,7 +2200,7 @@
         }
       }
     },
-    "Current Password" : {
+    "profile.currentPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2552,23 +2230,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可记录银行卡号等自定义信息。"
-          }
-        }
-      }
-    },
-    "Dashboard" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dashboard"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仪表盘"
           }
         }
       }
@@ -2624,7 +2285,7 @@
         }
       }
     },
-    "Date" : {
+    "common.date" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2641,7 +2302,7 @@
         }
       }
     },
-    "Delete" : {
+    "common.delete" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2675,7 +2336,7 @@
         }
       }
     },
-    "Delete account “%@”?" : {
+    "accounts.deleteAccountConfirm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2709,35 +2370,7 @@
         }
       }
     },
-    "Delete real account “%@”?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete real account “%@”?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除真实账户「%@」？"
-          }
-        }
-      }
-    },
-    "Description" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "描述"
-          }
-        }
-      }
-    },
-    "Description (optional)" : {
+    "ledgers.descriptionPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2754,24 +2387,7 @@
         }
       }
     },
-    "Disable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disable"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "禁用"
-          }
-        }
-      }
-    },
-    "Done" : {
+    "common.done" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2784,23 +2400,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成"
-          }
-        }
-      }
-    },
-    "Dr %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dr %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "借 %@"
           }
         }
       }
@@ -2855,7 +2454,7 @@
         }
       }
     },
-    "Edit" : {
+    "common.edit" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2872,7 +2471,7 @@
         }
       }
     },
-    "Edit Account" : {
+    "accounts.editAccount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2889,7 +2488,7 @@
         }
       }
     },
-    "Edit Entry" : {
+    "quick.editEntry" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2905,7 +2504,7 @@
         }
       }
     },
-    "Edit Name" : {
+    "profile.editName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2922,7 +2521,7 @@
         }
       }
     },
-    "Edit Real Account" : {
+    "realAccounts.editTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2935,23 +2534,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑真实账户"
-          }
-        }
-      }
-    },
-    "Editor" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editor"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "记账人"
           }
         }
       }
@@ -3007,7 +2589,7 @@
         }
       }
     },
-    "Email" : {
+    "login.email" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3058,27 +2640,7 @@
         }
       }
     },
-    "Enable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "启用"
-          }
-        }
-      }
-    },
-    "English" : {
-      "comment" : "Language name: English (native form)"
-    },
-    "Enter your current password" : {
+    "profile.currentPasswordPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3095,7 +2657,7 @@
         }
       }
     },
-    "Enter your password" : {
+    "login.passwordPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3112,58 +2674,7 @@
         }
       }
     },
-    "Equity" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Equity"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "权益"
-          }
-        }
-      }
-    },
-    "Expense" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expense"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "支出"
-          }
-        }
-      }
-    },
-    "Expires %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expires %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@后过期"
-          }
-        }
-      }
-    },
-    "Extra Info" : {
+    "common.extraInfo" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3180,24 +2691,7 @@
         }
       }
     },
-    "Filter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filter"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "筛选"
-          }
-        }
-      }
-    },
-    "Filters" : {
+    "filters.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3367,7 +2861,7 @@
         }
       }
     },
-    "Follow system" : {
+    "profile.followSystem" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3384,7 +2878,7 @@
         }
       }
     },
-    "Forgot password?" : {
+    "login.forgotPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3401,7 +2895,7 @@
         }
       }
     },
-    "From" : {
+    "filters.from" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3418,7 +2912,7 @@
         }
       }
     },
-    "Icon" : {
+    "common.icon" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3724,40 +3218,6 @@
         }
       }
     },
-    "Income" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Income"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "收入"
-          }
-        }
-      }
-    },
-    "Invite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invite"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "邀请成员"
-          }
-        }
-      }
-    },
     "invite.cameraUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3853,41 +3313,7 @@
         }
       }
     },
-    "Join" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Join"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫码加入"
-          }
-        }
-      }
-    },
-    "Join a Ledger" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Join a Ledger"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通过共享码加入账本"
-          }
-        }
-      }
-    },
-    "Join via qrcode" : {
+    "dashboard.joinViaQrcode" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3904,7 +3330,7 @@
         }
       }
     },
-    "Joined" : {
+    "ledgerSwitcher.joined" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3917,40 +3343,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已加入"
-          }
-        }
-      }
-    },
-    "Joining…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Joining…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入中…"
-          }
-        }
-      }
-    },
-    "Journal" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Journal"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "流水"
           }
         }
       }
@@ -4329,7 +3721,7 @@
         }
       }
     },
-    "Label" : {
+    "common.fieldLabel" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4346,7 +3738,7 @@
         }
       }
     },
-    "Language" : {
+    "profile.language" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4359,23 +3751,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "语言"
-          }
-        }
-      }
-    },
-    "Leave" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "退出"
           }
         }
       }
@@ -4424,7 +3799,7 @@
         }
       }
     },
-    "Ledgers" : {
+    "ledgers.title" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5089,30 +4464,13 @@
     "Let others scan this QR to join the ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
 
     },
-    "Liabilities" : {
+    "realAccounts.liabilities" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Liabilities"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "负债"
-          }
-        }
-      }
-    },
-    "Liability" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liability"
           }
         },
         "zh-Hans" : {
@@ -5140,7 +4498,7 @@
         }
       }
     },
-    "Linked Pockets" : {
+    "realAccounts.linkedPockets" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5157,7 +4515,7 @@
         }
       }
     },
-    "Location" : {
+    "quick.location" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5242,7 +4600,7 @@
         }
       }
     },
-    "Manage" : {
+    "profile.manage" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5258,7 +4616,7 @@
         }
       }
     },
-    "Manage Ledgers" : {
+    "ledgerSwitcher.manage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5271,39 +4629,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "管理账本"
-          }
-        }
-      }
-    },
-    "Me" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Me"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我的"
-          }
-        }
-      }
-    },
-    "Member Turnover" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Member Turnover"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "成员往来"
           }
         }
       }
@@ -5325,23 +4650,6 @@
         }
       }
     },
-    "Members" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Members"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "成员"
-          }
-        }
-      }
-    },
     "members.selectLedger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5359,7 +4667,7 @@
         }
       }
     },
-    "Memo" : {
+    "quick.memo" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5410,7 +4718,7 @@
         }
       }
     },
-    "My Ledgers" : {
+    "ledgerSwitcher.myLedgers" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5427,7 +4735,7 @@
         }
       }
     },
-    "My Projects" : {
+    "ledgerSwitcher.myProjects" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5444,7 +4752,7 @@
         }
       }
     },
-    "Name" : {
+    "common.name" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5461,7 +4769,7 @@
         }
       }
     },
-    "Net" : {
+    "common.net" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5478,7 +4786,7 @@
         }
       }
     },
-    "Net Worth" : {
+    "common.netWorth" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5495,7 +4803,7 @@
         }
       }
     },
-    "New Account" : {
+    "accounts.newAccount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5512,7 +4820,7 @@
         }
       }
     },
-    "New Balance" : {
+    "accounts.newBalance" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5529,7 +4837,7 @@
         }
       }
     },
-    "New Password" : {
+    "profile.newPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5546,7 +4854,7 @@
         }
       }
     },
-    "New Real Account" : {
+    "realAccounts.newTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5563,7 +4871,7 @@
         }
       }
     },
-    "Nickname" : {
+    "login.nickname" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5580,7 +4888,7 @@
         }
       }
     },
-    "No account yet?" : {
+    "login.noAccountYet" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5597,7 +4905,7 @@
         }
       }
     },
-    "No accounts" : {
+    "accounts.empty" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5614,7 +4922,7 @@
         }
       }
     },
-    "No entries yet" : {
+    "journal.empty" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5627,40 +4935,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无流水"
-          }
-        }
-      }
-    },
-    "No ledger" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No ledger"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无账本"
-          }
-        }
-      }
-    },
-    "No ledgers" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No ledgers"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无账本"
           }
         }
       }
@@ -5682,7 +4956,7 @@
         }
       }
     },
-    "No other members" : {
+    "members.noOthers" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5699,7 +4973,7 @@
         }
       }
     },
-    "Not linked" : {
+    "accounts.notLinked" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5716,7 +4990,7 @@
         }
       }
     },
-    "Not selected" : {
+    "common.notSelected" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5733,7 +5007,7 @@
         }
       }
     },
-    "OK" : {
+    "common.ok" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5767,7 +5041,7 @@
         }
       }
     },
-    "Optional" : {
+    "onboarding.optional" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5783,24 +5057,7 @@
         }
       }
     },
-    "Owner" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Owner"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "所有者"
-          }
-        }
-      }
-    },
-    "Parent" : {
+    "accounts.parent" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5817,24 +5074,7 @@
         }
       }
     },
-    "Participant" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Participant"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "参与人"
-          }
-        }
-      }
-    },
-    "Participants" : {
+    "quick.participants" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5851,7 +5091,7 @@
         }
       }
     },
-    "Password" : {
+    "login.password" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5902,24 +5142,7 @@
         }
       }
     },
-    "Paste" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "粘贴"
-          }
-        }
-      }
-    },
-    "Period" : {
+    "filters.period" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -5983,23 +5206,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请输入密码。"
-          }
-        }
-      }
-    },
-    "Posting…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Posting…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "登记中…"
           }
         }
       }
@@ -6174,7 +5380,7 @@
         }
       }
     },
-    "Project" : {
+    "quick.project" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6190,7 +5396,23 @@
         }
       }
     },
-    "Projects" : {
+    "journal.filterProject" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "项目"
+          }
+        }
+      }
+    },
+    "projects.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6870,7 +6092,7 @@
         }
       }
     },
-    "Qianlai" : {
+    "app.name" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7481,7 +6703,7 @@
         }
       }
     },
-    "Read-only ledger" : {
+    "quick.readOnlyLedger" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7497,7 +6719,7 @@
         }
       }
     },
-    "Real Account" : {
+    "accounts.realAccount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7514,7 +6736,7 @@
         }
       }
     },
-    "Real Accounts" : {
+    "realAccounts.screenName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7769,7 +6991,7 @@
         }
       }
     },
-    "Recent Entries" : {
+    "widget.recentEntries" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7786,58 +7008,7 @@
         }
       }
     },
-    "Recommended" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recommended"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "推荐"
-          }
-        }
-      }
-    },
-    "Remove" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移除"
-          }
-        }
-      }
-    },
-    "Remove %@ from this ledger?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove %@ from this ledger?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "确定将 %@ 移出该账本？"
-          }
-        }
-      }
-    },
-    "Reorder" : {
+    "accounts.reorder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7854,7 +7025,7 @@
         }
       }
     },
-    "Repeat the new password" : {
+    "profile.repeatPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7871,7 +7042,7 @@
         }
       }
     },
-    "Report" : {
+    "reports.type" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -7888,7 +7059,7 @@
         }
       }
     },
-    "Reports" : {
+    "reports.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8007,7 +7178,7 @@
         }
       }
     },
-    "Reset password" : {
+    "login.resetPassword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8024,7 +7195,7 @@
         }
       }
     },
-    "Retry" : {
+    "common.retry" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8041,41 +7212,7 @@
         }
       }
     },
-    "Revoke" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoke"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "吊销"
-          }
-        }
-      }
-    },
-    "Revoke “%@”?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoke “%@”?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "确定要吊销「%@」？"
-          }
-        }
-      }
-    },
-    "Role" : {
+    "members.role" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8160,7 +7297,7 @@
         }
       }
     },
-    "Save" : {
+    "common.save" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8177,7 +7314,7 @@
         }
       }
     },
-    "Save & Continue" : {
+    "onboarding.saveAndContinue" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8193,7 +7330,7 @@
         }
       }
     },
-    "Saving…" : {
+    "common.saving" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8210,92 +7347,7 @@
         }
       }
     },
-    "Scopes" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scopes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "权限范围"
-          }
-        }
-      }
-    },
-    "Select a ledger to get started" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a ledger to get started"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请先选择一个账本"
-          }
-        }
-      }
-    },
-    "Set as Default" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set as Default"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设为默认"
-          }
-        }
-      }
-    },
-    "Set Balance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Balance"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置余额"
-          }
-        }
-      }
-    },
-    "Set Balance — %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Balance — %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置余额 — %@"
-          }
-        }
-      }
-    },
-    "Settings" : {
+    "profile.settings" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8311,24 +7363,7 @@
         }
       }
     },
-    "Share Code" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share Code"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共享码"
-          }
-        }
-      }
-    },
-    "Show" : {
+    "journal.filterShow" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8362,7 +7397,7 @@
         }
       }
     },
-    "Sign in" : {
+    "login.signIn" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8379,24 +7414,7 @@
         }
       }
     },
-    "Sign in as %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in as %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以 %@ 登录"
-          }
-        }
-      }
-    },
-    "Sign Out" : {
+    "profile.signOut" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8413,7 +7431,7 @@
         }
       }
     },
-    "Sign up" : {
+    "login.signUp" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8430,7 +7448,7 @@
         }
       }
     },
-    "Signing in…" : {
+    "login.signingIn" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8447,7 +7465,7 @@
         }
       }
     },
-    "Skip" : {
+    "onboarding.skip" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8459,34 +7477,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跳过"
-          }
-        }
-      }
-    },
-    "Skip for now" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂时跳过"
-          }
-        }
-      }
-    },
-    "Status" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "状态"
           }
         }
       }
@@ -8627,24 +7617,7 @@
         }
       }
     },
-    "This Month" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This Month"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月"
-          }
-        }
-      }
-    },
-    "To" : {
+    "filters.to" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8677,7 +7650,7 @@
         }
       }
     },
-    "Totals" : {
+    "reports.totals" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8690,26 +7663,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "合计"
-          }
-        }
-      }
-    },
-    "Transfer" : {
-
-    },
-    "Transfer Ownership" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transfer Ownership"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转让所有权"
           }
         }
       }
@@ -8731,23 +7684,7 @@
         }
       }
     },
-    "Trial Balance" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trial Balance"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户余额表"
-          }
-        }
-      }
-    },
-    "Type" : {
+    "accounts.type" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8763,24 +7700,7 @@
         }
       }
     },
-    "Unarchive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unarchive"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消归档"
-          }
-        }
-      }
-    },
-    "Unnamed user" : {
+    "profile.unnamedUser" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8797,58 +7717,7 @@
         }
       }
     },
-    "Update" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新"
-          }
-        }
-      }
-    },
-    "Use Amount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use Amount"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用金额"
-          }
-        }
-      }
-    },
-    "Used %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Used %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用%@"
-          }
-        }
-      }
-    },
-    "Value" : {
+    "common.fieldValue" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -8865,24 +7734,7 @@
         }
       }
     },
-    "Viewer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Viewer"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "查看者"
-          }
-        }
-      }
-    },
-    "Welcome" : {
+    "onboarding.welcome" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -8905,16 +7757,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "欢迎回来！登录以继续。"
-          }
-        }
-      }
-    },
-    "Welcome, %@!" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "欢迎，%@！"
           }
         }
       }
@@ -9184,7 +8026,7 @@
         }
       }
     },
-    "Your first ledger" : {
+    "onboarding.firstLedger" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -9194,7 +8036,7 @@
         }
       }
     },
-    "Your name" : {
+    "common.yourName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9211,7 +8053,7 @@
         }
       }
     },
-    "Your nickname" : {
+    "login.nicknamePlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -9228,7 +8070,7 @@
         }
       }
     },
-    "Your profile" : {
+    "onboarding.yourProfile" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -9238,8 +8080,158 @@
         }
       }
     },
-    "简体中文" : {
-      "comment" : "Language name: Simplified Chinese (native form)"
+    "login.usedBiometry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用%@"
+          }
+        }
+      }
+    },
+    "login.signInAs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in as %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以 %@ 登录"
+          }
+        }
+      }
+    },
+    "realAccounts.deleteConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete real account “%@”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除真实账户「%@」？"
+          }
+        }
+      }
+    },
+    "ledgers.removeMemberConfirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@ from this ledger?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定将 %@ 移出该账本？"
+          }
+        }
+      }
+    },
+    "onboarding.welcomeName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome, %@!"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎，%@！"
+          }
+        }
+      }
+    },
+    "accounts.setBalanceTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Balance — %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置余额 — %@"
+          }
+        }
+      }
+    },
+    "reports.debit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dr %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "借 %@"
+          }
+        }
+      }
+    },
+    "reports.credit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cr %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "贷 %@"
+          }
+        }
+      }
+    },
+    "journal.filterParticipant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参与人"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

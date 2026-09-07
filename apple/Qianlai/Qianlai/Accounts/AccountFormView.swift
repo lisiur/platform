@@ -91,13 +91,13 @@ struct AccountFormView: View {
         let key: String
         let fallback: String
         if account != nil {
-            key = isCategory ? "categories.edit" : "Edit Account"
+            key = isCategory ? "categories.edit" : "accounts.editAccount"
             fallback = isCategory ? "Edit Category" : "Edit Account"
         } else if parent != nil {
-            key = isCategory ? "categories.addSub" : "Add Sub-account"
+            key = isCategory ? "categories.addSub" : "accounts.addSub"
             fallback = isCategory ? "Add Sub-category" : "Add Sub-account"
         } else {
-            key = isCategory ? "categories.new" : "New Account"
+            key = isCategory ? "categories.new" : "accounts.newAccount"
             fallback = isCategory ? "New Category" : "New Account"
         }
         return L10n.string(key, defaultValue: fallback)
@@ -123,7 +123,7 @@ struct AccountFormView: View {
         Form {
             Section {
                 HStack {
-                    Text("Name")
+                    Text(L10n.string("common.name", defaultValue: "Name"))
                     Spacer()
                     TextField(
                         account?.code != nil
@@ -145,7 +145,7 @@ struct AccountFormView: View {
                     showIconPicker = true
                 } label: {
                     HStack {
-                        Text("Icon")
+                        Text(L10n.string("common.icon", defaultValue: "Icon"))
                         Spacer()
                         Text(icon)
                     }
@@ -155,7 +155,7 @@ struct AccountFormView: View {
                 if let parent {
                     HStack {
                         Text(L10n.string(
-                            isCategory ? "categories.parent" : "Parent",
+                            isCategory ? "categories.parent" : "accounts.parent",
                             defaultValue: "Parent"
                         ))
                         Spacer()
@@ -167,8 +167,8 @@ struct AccountFormView: View {
 
             if isAssetLike, !realAccountStore.realAccounts.isEmpty {
                 Section {
-                    Picker("Real Account", selection: $realAccountId) {
-                        Text("Not linked").tag(noRealAccount)
+                    Picker(L10n.string("accounts.realAccount", defaultValue: "Real Account"), selection: $realAccountId) {
+                        Text(L10n.string("accounts.notLinked", defaultValue: "Not linked")).tag(noRealAccount)
                         ForEach(
                             realAccountStore.realAccounts.filter { $0.type == fixedType }
                         ) { real in
@@ -176,7 +176,7 @@ struct AccountFormView: View {
                         }
                     }
                 } header: {
-                    Text("Real Account")
+                    Text(L10n.string("accounts.realAccount", defaultValue: "Real Account"))
                 } footer: {
                     Text("Link this pocket to your real account to include it in your private net worth.")
                 }
@@ -185,11 +185,11 @@ struct AccountFormView: View {
             Section {
                 ForEach($metaEntries) { $entry in
                     VStack(alignment: .leading, spacing: 6) {
-                        TextField("Label", text: $entry.key)
+                        TextField(L10n.string("common.fieldLabel", defaultValue: "Label"), text: $entry.key)
                             .font(.subheadline)
                             .submitLabel(.done)
                             .onSubmit { dismissKeyboard() }
-                        TextField("Value", text: $entry.value)
+                        TextField(L10n.string("common.fieldValue", defaultValue: "Value"), text: $entry.value)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .submitLabel(.done)
@@ -200,10 +200,10 @@ struct AccountFormView: View {
                 Button {
                     metaEntries.append(MetaEntryRow())
                 } label: {
-                    Label("Add Field", systemImage: "plus")
+                    Label(L10n.string("common.addField", defaultValue: "Add Field"), systemImage: "plus")
                 }
             } header: {
-                Text("Extra Info")
+                Text(L10n.string("common.extraInfo", defaultValue: "Extra Info"))
             } footer: {
                 Text("Custom info such as card numbers.")
             }
@@ -215,11 +215,11 @@ struct AccountFormView: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Saving…" : "Save") {
+                Button(isSaving ? L10n.string("common.saving", defaultValue: "Saving…") : L10n.string("common.save", defaultValue: "Save")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)

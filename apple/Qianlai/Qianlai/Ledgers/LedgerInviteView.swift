@@ -30,7 +30,7 @@ struct LedgerInviteView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(L10n.string("Done", defaultValue: "Done")) { dismiss() }
+                Button(L10n.string("common.done", defaultValue: "Done")) { dismiss() }
             }
         }
         .task {
@@ -42,7 +42,7 @@ struct LedgerInviteView: View {
     private var inviteSection: some View {
         Section {
             if store.isOwner {
-                Picker("Role", selection: $inviteRole) {
+                Picker(L10n.string("members.role", defaultValue: "Role"), selection: $inviteRole) {
                     Text(LedgerRole.editor.label).tag(LedgerRole.editor)
                     Text(LedgerRole.viewer.label).tag(LedgerRole.viewer)
                 }

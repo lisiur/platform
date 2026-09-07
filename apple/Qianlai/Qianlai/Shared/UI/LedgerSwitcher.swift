@@ -99,21 +99,21 @@ struct LedgerSwitcherMenu: View {
     private var switcher: some View {
         Menu {
             if !ownLedgers.isEmpty {
-                Section("My Ledgers") {
+                Section(L10n.string("ledgerSwitcher.myLedgers", defaultValue: "My Ledgers")) {
                     ForEach(ownLedgers) { ledger in
                         ledgerButton(for: ledger)
                     }
                 }
             }
             if !ownProjects.isEmpty {
-                Section("My Projects") {
+                Section(L10n.string("ledgerSwitcher.myProjects", defaultValue: "My Projects")) {
                     ForEach(ownProjects) { entry in
                         projectButton(for: entry.project, in: entry.ledger)
                     }
                 }
             }
             if !joinedLedgers.isEmpty {
-                Section("Joined") {
+                Section(L10n.string("ledgerSwitcher.joined", defaultValue: "Joined")) {
                     ForEach(joinedLedgers) { ledger in
                         ledgerButton(for: ledger)
                     }
@@ -127,7 +127,7 @@ struct LedgerSwitcherMenu: View {
                         isPresentingManageInternally = true
                     }
                 } label: {
-                    Label("Manage Ledgers", systemImage: "gearshape")
+                    Label(L10n.string("ledgerSwitcher.manage", defaultValue: "Manage Ledgers"), systemImage: "gearshape")
                 }
             }
         } label: {

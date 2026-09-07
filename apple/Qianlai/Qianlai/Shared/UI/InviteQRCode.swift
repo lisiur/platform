@@ -340,7 +340,7 @@ struct QRScanScreen: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .foregroundStyle(.white)
             }
         }

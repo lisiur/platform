@@ -371,7 +371,7 @@ struct CalculatorView: View {
                 key(
                     systemImage: "delete.left",
                     role: .function,
-                    accessibilityLabel: "Backspace"
+                    accessibilityLabel: L10n.string("calculator.backspace", defaultValue: "Backspace")
                 ) { performKeyAction { engine.inputBackspace() } }
             }
             padColumn {
@@ -416,7 +416,7 @@ struct CalculatorView: View {
         .buttonStyle(KeyPressStyle())
         .disabled(isCommitDisabled)
         .opacity(isCommitDisabled ? 0.4 : 1)
-        .accessibilityLabel(Text("Save"))
+        .accessibilityLabel(Text(L10n.string("common.save", defaultValue: "Save")))
     }
 
     private func key(
@@ -450,7 +450,7 @@ struct CalculatorView: View {
         systemImage: String,
         role: KeyRole,
         height: CGFloat = 48,
-        accessibilityLabel: LocalizedStringKey,
+        accessibilityLabel: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {

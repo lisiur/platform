@@ -140,7 +140,7 @@ struct AccountSelectionView: View {
     // MARK: - Rows
 
     private var clearRow: some View {
-        rowTemplate(depth: 0, icon: nil, name: "Not selected", id: nil, hasSubtree: false)
+        rowTemplate(depth: 0, icon: nil, name: L10n.string("common.notSelected", defaultValue: "Not selected"), id: nil, hasSubtree: false)
     }
 
     private func row(for entry: AccountTreeEntry) -> some View {

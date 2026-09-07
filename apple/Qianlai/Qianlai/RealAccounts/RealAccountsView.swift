@@ -34,15 +34,15 @@ struct RealAccountsView: View {
             } else {
                 Section {
                     HStack(spacing: 10) {
-                        StatCard(icon: "wallet.pass", label: "Assets", value: store.totals?.assets)
-                        StatCard(icon: "banknote", label: "Liabilities", value: store.totals?.liabilities)
+                        StatCard(icon: "wallet.pass", label: L10n.string("realAccounts.title", defaultValue: "Assets"), value: store.totals?.assets)
+                        StatCard(icon: "banknote", label: L10n.string("realAccounts.liabilities", defaultValue: "Liabilities"), value: store.totals?.liabilities)
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                     StatCard(
                         icon: "building.columns",
-                        label: "Net Worth",
+                        label: L10n.string("common.netWorth", defaultValue: "Net Worth"),
                         value: store.totals?.netWorth,
                         tone: (store.totals?.netWorth ?? 0) < 0 ? .negative : .default
                     )
@@ -67,13 +67,13 @@ struct RealAccountsView: View {
                         .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                     }
                 } header: {
-                    Text("Real Accounts")
+                    Text(L10n.string("realAccounts.screenName", defaultValue: "Real Accounts"))
                 } footer: {
                     Text("Real accounts track real-world wallets across ledgers. Link them to ledger accounts on the accounts page. Visible only to you.")
                 }
             }
         }
-        .navigationTitle(Text("Assets"))
+        .navigationTitle(Text(L10n.string("realAccounts.title", defaultValue: "Assets")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -81,7 +81,7 @@ struct RealAccountsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel(Text("New Real Account"))
+                .accessibilityLabel(Text(L10n.string("realAccounts.newTitle", defaultValue: "New Real Account")))
             }
         }
         .task {
@@ -104,7 +104,7 @@ struct RealAccountsView: View {
                 set: { if !$0 { pendingDelete = nil } }
             )
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete", defaultValue: "Delete"), role: .destructive) {
                 if let real = pendingDelete {
                     Task {
                         do {
@@ -117,10 +117,10 @@ struct RealAccountsView: View {
                 }
                 pendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { pendingDelete = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { pendingDelete = nil }
         } message: {
             if let real = pendingDelete {
-                Text("Delete real account “\(real.name)”?")
+                Text(L10n.string("realAccounts.deleteConfirm", defaultValue: "Delete real account “%@”?", real.name))
             }
         }
     }
@@ -152,7 +152,7 @@ struct RealAccountsView: View {
                     .foregroundStyle(.tertiary)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Linked Pockets")
+                    Text(L10n.string("realAccounts.linkedPockets", defaultValue: "Linked Pockets"))
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                     ForEach(real.pockets) { pocket in
@@ -253,13 +253,13 @@ struct RealAccountFormView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Account Type", selection: $type) {
+                Picker(L10n.string("realAccounts.accountType", defaultValue: "Account Type"), selection: $type) {
                     Text(AccountType.asset.label).tag(AccountType.asset)
                     Text(AccountType.liability.label).tag(AccountType.liability)
                 }
                 .pickerStyle(.segmented)
                 HStack {
-                    Text("Name")
+                    Text(L10n.string("common.name", defaultValue: "Name"))
                     Spacer()
                     TextField(
                         L10n.string("realAccounts.namePlaceholder", defaultValue: "e.g. Chase Debit Card"),
@@ -276,7 +276,7 @@ struct RealAccountFormView: View {
                         .foregroundStyle(.red)
                 }
                 HStack {
-                    Text("Icon")
+                    Text(L10n.string("common.icon", defaultValue: "Icon"))
                     Spacer()
                     TextField("Emoji, e.g. 🏦", text: $icon)
                         .multilineTextAlignment(.trailing)
@@ -292,11 +292,11 @@ struct RealAccountFormView: View {
             Section {
                 ForEach($metaEntries) { $entry in
                     VStack(alignment: .leading, spacing: 6) {
-                        TextField("Label", text: $entry.key)
+                        TextField(L10n.string("common.fieldLabel", defaultValue: "Label"), text: $entry.key)
                             .font(.subheadline)
                             .submitLabel(.done)
                             .onSubmit { dismissKeyboard() }
-                        TextField("Value", text: $entry.value)
+                        TextField(L10n.string("common.fieldValue", defaultValue: "Value"), text: $entry.value)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .submitLabel(.done)
@@ -307,23 +307,23 @@ struct RealAccountFormView: View {
                 Button {
                     metaEntries.append(MetaEntryRow())
                 } label: {
-                    Label("Add Field", systemImage: "plus")
+                    Label(L10n.string("common.addField", defaultValue: "Add Field"), systemImage: "plus")
                 }
             } header: {
-                Text("Extra Info")
+                Text(L10n.string("common.extraInfo", defaultValue: "Extra Info"))
             } footer: {
                 Text("Private details such as card numbers.")
             }
         }
-        .navigationTitle(Text(real != nil ? "Edit Real Account" : "New Real Account"))
+        .navigationTitle(Text(real != nil ? L10n.string("realAccounts.editTitle", defaultValue: "Edit Real Account") : L10n.string("realAccounts.newTitle", defaultValue: "New Real Account")))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Saving…" : "Save") {
+                Button(isSaving ? L10n.string("common.saving", defaultValue: "Saving…") : L10n.string("common.save", defaultValue: "Save")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)

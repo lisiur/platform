@@ -71,12 +71,12 @@ struct RowMoreMenu<Items: View>: View {
 /// Label + boxed input + inline validation error, shared by the auth and
 /// bookkeeping forms.
 struct FormField<Content: View>: View {
-    let title: LocalizedStringKey
+    let title: String
     let error: String?
     private let content: () -> Content
 
     init(
-        title: LocalizedStringKey,
+        title: String,
         error: String? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -144,7 +144,7 @@ extension Color {
 /// leave it nil on surfaces without a single currency (cross-ledger totals).
 struct StatCard: View {
     var icon: String?
-    let label: LocalizedStringKey
+    let label: String
     let value: Double?
     var currency: String?
     var tone: Tone = .default
@@ -229,7 +229,7 @@ struct ErrorRetryView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Retry", action: retry)
+            Button(L10n.string("common.retry", defaultValue: "Retry"), action: retry)
                 .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, minHeight: 160)
@@ -438,7 +438,7 @@ struct FilterSheetButton<FilterFields: View>: View {
             NavigationStack {
                 Form {
                     Section {
-                        Picker("Period", selection: $mode) {
+                        Picker(L10n.string("filters.period", defaultValue: "Period"), selection: $mode) {
                             ForEach(
                                 [PresetMode.date, .month, .year, .range],
                                 id: \.self
@@ -452,7 +452,7 @@ struct FilterSheetButton<FilterFields: View>: View {
                     optionsSection
                     filterFields
                 }
-                .navigationTitle(Text("Filters"))
+                .navigationTitle(Text(L10n.string("filters.title", defaultValue: "Filters")))
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
@@ -468,12 +468,12 @@ struct FilterSheetButton<FilterFields: View>: View {
                                 }
                                 isPresented = false
                             } label: {
-                                Text("Clear")
+                                Text(L10n.string("filters.clear", defaultValue: "Clear"))
                             }
                         }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
+                        Button(L10n.string("common.done", defaultValue: "Done")) {
                             commit()
                             isPresented = false
                         }
@@ -550,12 +550,12 @@ struct FilterSheetButton<FilterFields: View>: View {
         case .range:
             Section {
                 rangeRow(
-                    titleKey: "From",
+                    titleKey: L10n.string("filters.from", defaultValue: "From"),
                     value: $draftFrom,
                     fallbackTo: draftTo ?? Date.now
                 )
                 rangeRow(
-                    titleKey: "To",
+                    titleKey: L10n.string("filters.to", defaultValue: "To"),
                     value: $draftTo,
                     fallbackTo: draftFrom ?? Date.now
                 )
@@ -569,7 +569,7 @@ struct FilterSheetButton<FilterFields: View>: View {
     /// Displays the sibling draft (or today) until touched, so opening the
     /// sheet and hitting Done applies nothing new.
     private func rangeRow(
-        titleKey: LocalizedStringKey,
+        titleKey: String,
         value: Binding<Date?>,
         fallbackTo fallback: Date
     ) -> some View {

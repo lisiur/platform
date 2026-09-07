@@ -14,7 +14,7 @@ struct CategoriesView: View {
     var body: some View {
         AccountsView(
             managing: [.expense, .income],
-            title: "Categories",
+            title: L10n.string("accounts.categories", defaultValue: "Categories"),
             collapsible: true
         )
     }

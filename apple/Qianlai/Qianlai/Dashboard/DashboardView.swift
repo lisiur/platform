@@ -132,7 +132,7 @@ struct DashboardView: View {
                         Button {
                             isShowingJoin = true
                         } label: {
-                            Label("Join via qrcode", systemImage: "qrcode")
+                            Label(L10n.string("dashboard.joinViaQrcode", defaultValue: "Join via qrcode"), systemImage: "qrcode")
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
@@ -270,7 +270,7 @@ struct DashboardView: View {
             Button {
                 isShowingJoin = true
             } label: {
-                Label("Join via qrcode", systemImage: "qrcode")
+                Label(L10n.string("dashboard.joinViaQrcode", defaultValue: "Join via qrcode"), systemImage: "qrcode")
             }
         } label: {
             Image(systemName: "plus")
@@ -317,19 +317,19 @@ struct DashboardView: View {
             .padding(.horizontal, 6)
             StatCard(
                 icon: "wallet.bifold",
-                label: "Expense",
+                label: L10n.string("account.type.expense", defaultValue: "Expense"),
                 value: store.dashboard?.month.totalExpense,
                 currency: ledgerStore.activeLedger?.currency,
                 tone: .negative
             )
             HStack(spacing: 16) {
                 monthHint(
-                    "Income",
+                    L10n.string("account.type.income", defaultValue: "Income"),
                     value: store.dashboard?.month.totalIncome,
                     tone: .positive
                 )
                 monthHint(
-                    "Net",
+                    L10n.string("common.net", defaultValue: "Net"),
                     value: store.dashboard?.month.net,
                     // Finance convention: negative net green (绿跌),
                     // non-negative red (红涨).
@@ -346,7 +346,7 @@ struct DashboardView: View {
     /// Secondary income/net figure: plain label + tone-colored amount,
     /// no card chrome — the expense card is the hero figure.
     private func monthHint(
-        _ label: LocalizedStringKey,
+        _ label: String,
         value: Double?,
         tone: StatCard.Tone
     ) -> some View {

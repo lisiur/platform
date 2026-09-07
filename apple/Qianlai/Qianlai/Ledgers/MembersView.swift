@@ -46,7 +46,7 @@ struct MembersView: View {
         List {
             membersSection
         }
-        .navigationTitle(Text("Members"))
+        .navigationTitle(Text(L10n.string("tab.members", defaultValue: "Members")))
         .inlineNavigationBarTitle()
         .toolbar {
             // Everything the caller can do to grow the current scope,
@@ -110,7 +110,7 @@ struct MembersView: View {
             }
             if isModal {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(L10n.string("common.done", defaultValue: "Done")) { dismiss() }
                 }
             }
         }
@@ -141,7 +141,7 @@ struct MembersView: View {
                 }
                 projectMemberPendingRemove = nil
             }
-            Button("Cancel", role: .cancel) { projectMemberPendingRemove = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { projectMemberPendingRemove = nil }
         } message: {
             if let member = projectMemberPendingRemove {
                 Text(L10n.string(
@@ -210,10 +210,10 @@ struct MembersView: View {
                 }
                 memberPendingRemove = nil
             }
-            Button("Cancel", role: .cancel) { memberPendingRemove = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { memberPendingRemove = nil }
         } message: {
             if let member = memberPendingRemove {
-                Text("Remove \(member.displayName) from this ledger?")
+                Text(L10n.string("ledgers.removeMemberConfirm", defaultValue: "Remove %@ from this ledger?", member.displayName))
             }
         }
         .alert(
@@ -237,7 +237,7 @@ struct MembersView: View {
                 }
                 memberPendingTransfer = nil
             }
-            Button("Cancel", role: .cancel) { memberPendingTransfer = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { memberPendingTransfer = nil }
         } message: {
             if let member = memberPendingTransfer {
                 Text("Transfer ownership to \(member.displayName)? You become an editor.")
@@ -260,7 +260,7 @@ struct MembersView: View {
             Button(L10n.string("ledgers.add", defaultValue: "Add")) {
                 addVirtualMember()
             }
-            Button("Cancel", role: .cancel) { newVirtualMemberName = "" }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { newVirtualMemberName = "" }
         } message: {
             Text(
                 L10n.string(
@@ -290,8 +290,8 @@ struct MembersView: View {
                 ),
                 text: $renameMemberName
             )
-            Button("Save") { renameVirtualMember() }
-            Button("Cancel", role: .cancel) {
+            Button(L10n.string("common.save", defaultValue: "Save")) { renameVirtualMember() }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) {
                 memberPendingRename = nil
                 projectMemberPendingRename = nil
                 renameMemberName = ""
@@ -448,7 +448,7 @@ struct MembersView: View {
                 }
                 .listRowSeparator(.hidden)
             } else if store.members.isEmpty {
-                Text("No other members")
+                Text(L10n.string("members.noOthers", defaultValue: "No other members"))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(store.members) { member in
@@ -468,7 +468,7 @@ struct MembersView: View {
     private func projectMembersSection(_ project: QianlaiProject) -> some View {
         Section {
             if project.members.isEmpty {
-                Text("No other members")
+                Text(L10n.string("members.noOthers", defaultValue: "No other members"))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(project.members) { member in
@@ -640,9 +640,9 @@ struct MembersView: View {
                         }
                     } label: {
                         if member.role == .editor {
-                            Label("Editor", systemImage: "checkmark")
+                            Label(L10n.string("role.editor", defaultValue: "Editor"), systemImage: "checkmark")
                         } else {
-                            Text("Editor")
+                            Text(L10n.string("role.editor", defaultValue: "Editor"))
                         }
                     }
                     Button {
@@ -656,9 +656,9 @@ struct MembersView: View {
                         }
                     } label: {
                         if member.role == .viewer {
-                            Label("Viewer", systemImage: "checkmark")
+                            Label(L10n.string("role.viewer", defaultValue: "Viewer"), systemImage: "checkmark")
                         } else {
-                            Text("Viewer")
+                            Text(L10n.string("role.viewer", defaultValue: "Viewer"))
                         }
                     }
                 } label: {

@@ -79,7 +79,7 @@ struct EmojiPickerSheet: View {
             .inlineNavigationBarTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                 }
             }
             #if os(iOS)

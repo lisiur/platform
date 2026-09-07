@@ -42,7 +42,7 @@ struct OnboardingView: View {
                     case .profile:
                         profileSection
                         stepActions(
-                            primary: "Save & Continue",
+                            primary: L10n.string("onboarding.saveAndContinue", defaultValue: "Save & Continue"),
                             primaryIcon: "arrow.right",
                             isBusy: isSavingName
                         ) {
@@ -51,7 +51,7 @@ struct OnboardingView: View {
                     case .ledger:
                         ledgerSection
                         stepActions(
-                            primary: hasTypedLedgerName ? "Create & Use" : "Skip",
+                            primary: hasTypedLedgerName ? L10n.string("onboarding.createAndUse", defaultValue: "Create & Use") : L10n.string("onboarding.skip", defaultValue: "Skip"),
                             primaryIcon: hasTypedLedgerName ? "checkmark" : "arrow.right",
                             isBusy: isFinishing
                         ) {
@@ -66,7 +66,7 @@ struct OnboardingView: View {
             #if os(iOS)
             .scrollDismissesKeyboard(.interactively)
             #endif
-            .navigationTitle(Text("Welcome"))
+            .navigationTitle(Text(L10n.string("onboarding.welcome", defaultValue: "Welcome")))
             .navigationBarTitleDisplayMode(.inline)
             .animation(.smooth, value: step)
         }
@@ -81,7 +81,7 @@ struct OnboardingView: View {
                 .scaledToFit()
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            Text("Welcome, \(auth.currentUser?.greetingName ?? "")!")
+            Text(L10n.string("onboarding.welcomeName", defaultValue: "Welcome, %@!", auth.currentUser?.greetingName ?? ""))
                 .font(.title2.bold())
             Text("A couple of quick steps to set up your workspace.")
                 .font(.subheadline)
@@ -95,7 +95,7 @@ struct OnboardingView: View {
     /// `isBusy` runs the spinner and disables the button — saving the
     /// profile on step 1, completing onboarding on step 2.
     private func stepActions(
-        primary: LocalizedStringKey,
+        primary: String,
         primaryIcon: String,
         isBusy: Bool,
         onPrimary: @escaping () -> Void
@@ -128,7 +128,7 @@ struct OnboardingView: View {
     private var profileSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Your profile")
+                Text(L10n.string("onboarding.yourProfile", defaultValue: "Your profile"))
                     .font(.headline)
 
                 HStack(spacing: 16) {
@@ -136,7 +136,7 @@ struct OnboardingView: View {
                     // A plain bordered field — FormField's filled style
                     // reads as disabled inside the GroupBox.
                     VStack(alignment: .leading, spacing: 6) {
-                        TextField("Your name", text: $name)
+                        TextField(L10n.string("common.yourName", defaultValue: "Your name"), text: $name)
                             .textFieldStyle(.roundedBorder)
                             .textContentType(.name)
                             .submitLabel(.done)
@@ -260,11 +260,11 @@ struct OnboardingView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
-                    Text("Your first ledger")
+                    Text(L10n.string("onboarding.firstLedger", defaultValue: "Your first ledger"))
                         .font(.headline)
                     // Conspicuous "this can wait" marker — the whole step
                     // is optional and must read that way at a glance.
-                    Badge(text: "Optional", icon: "clock", color: .orange)
+                    Badge(text: L10n.string("onboarding.optional", defaultValue: "Optional"), icon: "clock", color: .orange)
                 }
                 Text("Totally optional — create a ledger now, or do it anytime later.")
                     .font(.caption)
@@ -290,7 +290,7 @@ struct OnboardingView: View {
 
     private var createLedgerForm: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Create a ledger")
+            Text(L10n.string("onboarding.createLedger", defaultValue: "Create a ledger"))
                 .font(.subheadline.weight(.semibold))
             TextField("e.g. Family, Travel", text: $ledgerName)
                 .textFieldStyle(.roundedBorder)
@@ -326,7 +326,7 @@ struct OnboardingView: View {
 
 /// Small tinted capsule used for the "Optional" marker.
 private struct Badge: View {
-    let text: LocalizedStringKey
+    let text: String
     let icon: String
     let color: Color
 

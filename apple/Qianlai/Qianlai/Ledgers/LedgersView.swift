@@ -125,14 +125,14 @@ struct LedgersView: View {
                 .listRowBackground(Color.clear)
             } else {
                 if !ownActiveLedgers.isEmpty {
-                    Section("My Ledgers") {
+                    Section(L10n.string("ledgerSwitcher.myLedgers", defaultValue: "My Ledgers")) {
                         ForEach(ownActiveLedgers) { ledger in
                             row(ledger)
                         }
                     }
                 }
                 if !joinedActiveEntries.isEmpty {
-                    Section("Joined") {
+                    Section(L10n.string("ledgerSwitcher.joined", defaultValue: "Joined")) {
                         ForEach(joinedActiveEntries) { entry in
                             switch entry {
                             case .ledger(let ledger):
@@ -144,7 +144,7 @@ struct LedgersView: View {
                     }
                 }
                 if !archivedEntries.isEmpty {
-                    Section("Archived") {
+                    Section(L10n.string("status.archived", defaultValue: "Archived")) {
                         ForEach(archivedEntries) { entry in
                             switch entry {
                             case .ledger(let ledger):
@@ -157,7 +157,7 @@ struct LedgersView: View {
                 }
             }
         }
-        .navigationTitle(Text("Ledgers"))
+        .navigationTitle(Text(L10n.string("ledgers.title", defaultValue: "Ledgers")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -203,7 +203,7 @@ struct LedgersView: View {
                 set: { if !$0 { ledgerPendingDelete = nil } }
             )
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete", defaultValue: "Delete"), role: .destructive) {
                 if let ledger = ledgerPendingDelete {
                     Task {
                         do {
@@ -216,7 +216,7 @@ struct LedgersView: View {
                 }
                 ledgerPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { ledgerPendingDelete = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { ledgerPendingDelete = nil }
         } message: {
             if let ledger = ledgerPendingDelete {
                 Text("Delete “\(ledger.name)”? Its accounts, entries, and members will be permanently removed.")
@@ -242,7 +242,7 @@ struct LedgersView: View {
                 }
                 ledgerPendingLeave = nil
             }
-            Button("Cancel", role: .cancel) { ledgerPendingLeave = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { ledgerPendingLeave = nil }
         } message: {
             Text("Leave this ledger? Rejoining requires a new share code.")
         }
@@ -278,7 +278,7 @@ struct LedgersView: View {
                 }
                 projectPendingLeave = nil
             }
-            Button("Cancel", role: .cancel) { projectPendingLeave = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { projectPendingLeave = nil }
         } message: {
             Text("Leave this project? Rejoining requires a new share code.")
         }
@@ -526,7 +526,7 @@ struct LedgerFormView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Name", text: $name)
+                TextField(L10n.string("common.name", defaultValue: "Name"), text: $name)
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }
                 if let nameError {
@@ -534,8 +534,8 @@ struct LedgerFormView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
-                TextField("Description (optional)", text: $description, axis: .vertical)
-                Picker("Currency", selection: $currency) {
+                TextField(L10n.string("ledgers.descriptionPlaceholder", defaultValue: "Description (optional)"), text: $description, axis: .vertical)
+                Picker(L10n.string("ledgers.currency", defaultValue: "Currency"), selection: $currency) {
                     ForEach(currencies, id: \.self) { code in
                         Text(code).tag(code)
                     }
@@ -550,11 +550,11 @@ struct LedgerFormView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Saving…" : "Save") {
+                Button(isSaving ? L10n.string("common.saving", defaultValue: "Saving…") : L10n.string("common.save", defaultValue: "Save")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)

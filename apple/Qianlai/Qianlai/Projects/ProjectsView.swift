@@ -26,7 +26,7 @@ struct ProjectsView: View {
                 )
             }
         }
-        .navigationTitle(Text("Projects"))
+        .navigationTitle(Text(L10n.string("projects.title", defaultValue: "Projects")))
         .sheet(isPresented: $isShowingNewProject) {
             if ledgerStore.activeLedger != nil {
                 NavigationStack {
@@ -187,7 +187,7 @@ struct ProjectDetailView: View {
             }
         }
         .alert(
-            Text("Are you sure?"),
+            Text(L10n.string("common.areYouSure", defaultValue: "Are you sure?")),
             isPresented: Binding(
                 get: { confirmation != nil },
                 set: { if !$0 { confirmation = nil } }
@@ -205,7 +205,7 @@ struct ProjectDetailView: View {
                     }
                 }
             }
-            Button(L10n.string("Cancel", defaultValue: "Cancel"), role: .cancel) {}
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) {}
         } message: {
             switch confirmation {
             case .delete:
@@ -566,7 +566,7 @@ struct ProjectFormView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(L10n.string("Cancel", defaultValue: "Cancel")) { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
@@ -575,7 +575,7 @@ struct ProjectFormView: View {
                     if isSaving {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text(L10n.string("Save", defaultValue: "Save"))
+                        Text(L10n.string("common.save", defaultValue: "Save"))
                     }
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
@@ -655,7 +655,7 @@ struct ProjectInviteView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(L10n.string("Done", defaultValue: "Done")) { dismiss() }
+                Button(L10n.string("common.done", defaultValue: "Done")) { dismiss() }
             }
         }
     }

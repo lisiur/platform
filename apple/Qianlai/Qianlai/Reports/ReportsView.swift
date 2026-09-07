@@ -44,7 +44,7 @@ struct ReportsView: View {
                 )
             }
         }
-        .navigationTitle(Text("Reports"))
+        .navigationTitle(Text(L10n.string("reports.title", defaultValue: "Reports")))
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 dateFilterButton
@@ -74,7 +74,7 @@ struct ReportsView: View {
     private var content: some View {
         List {
             Section {
-                Picker("Report", selection: $tab) {
+                Picker(L10n.string("reports.type", defaultValue: "Report"), selection: $tab) {
                     ForEach(ReportTab.allCases) { tab in
                         Text(tab.label).tag(tab)
                     }
@@ -106,10 +106,10 @@ struct ReportsView: View {
                         Text(row.displayName)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text("Dr \(Money.format(row.totalDebit))")
+                            Text(L10n.string("reports.debit", defaultValue: "Dr %@", Money.format(row.totalDebit)))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
-                            Text("Cr \(Money.format(row.totalCredit))")
+                            Text(L10n.string("reports.credit", defaultValue: "Cr %@", Money.format(row.totalCredit)))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
@@ -119,19 +119,19 @@ struct ReportsView: View {
                     }
                 }
                 HStack {
-                    Text("Totals")
+                    Text(L10n.string("reports.totals", defaultValue: "Totals"))
                         .font(.body.weight(.semibold))
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("Dr \(Money.format(trial.totals.debit))")
+                        Text(L10n.string("reports.debit", defaultValue: "Dr %@", Money.format(trial.totals.debit)))
                             .font(.caption.monospacedDigit())
-                        Text("Cr \(Money.format(trial.totals.credit))")
+                        Text(L10n.string("reports.credit", defaultValue: "Cr %@", Money.format(trial.totals.credit)))
                             .font(.caption.monospacedDigit())
                     }
                 }
                 .foregroundStyle(.secondary)
             } header: {
-                Text("Trial Balance")
+                Text(L10n.string("reports.trialBalance", defaultValue: "Trial Balance"))
             }
         } else {
             emptyRow(L10n.string("reports.empty", defaultValue: "No data for this period"))
@@ -144,7 +144,7 @@ struct ReportsView: View {
             loadingRow
         } else if let statement = store.incomeStatement,
                   !statement.income.isEmpty || !statement.expense.isEmpty {
-            Section("Income") {
+            Section(L10n.string("account.type.income", defaultValue: "Income")) {
                 ForEach(statement.income) { row in
                     statementRow(row)
                 }
@@ -153,7 +153,7 @@ struct ReportsView: View {
                     value: statement.totalIncome
                 )
             }
-            Section("Expense") {
+            Section(L10n.string("account.type.expense", defaultValue: "Expense")) {
                 ForEach(statement.expense) { row in
                     statementRow(row)
                 }
@@ -164,7 +164,7 @@ struct ReportsView: View {
             }
             Section {
                 HStack {
-                    Text("Net")
+                    Text(L10n.string("common.net", defaultValue: "Net"))
                         .font(.body.weight(.semibold))
                     Spacer()
                     Text(Money.format(statement.net))
@@ -198,7 +198,7 @@ struct ReportsView: View {
                     }
                 }
                 HStack {
-                    Text("Totals")
+                    Text(L10n.string("reports.totals", defaultValue: "Totals"))
                         .font(.body.weight(.semibold))
                     Spacer()
                     Text("\(turnover.totals.entries)")
@@ -210,7 +210,7 @@ struct ReportsView: View {
                 }
                 .foregroundStyle(.secondary)
             } header: {
-                Text("Member Turnover")
+                Text(L10n.string("reports.memberTurnover", defaultValue: "Member Turnover"))
             }
         } else {
             emptyRow(L10n.string("reports.empty", defaultValue: "No data for this period"))

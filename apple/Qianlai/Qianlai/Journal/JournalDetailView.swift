@@ -66,10 +66,10 @@ struct JournalDetailView: View {
             L10n.string("journal.delete", defaultValue: "Delete"),
             isPresented: $isDeletePending
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete", defaultValue: "Delete"), role: .destructive) {
                 delete()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) {}
         } message: {
             Text("Delete entry #\(resolved.entryNo)? Reports will be recalculated.")
         }
@@ -273,12 +273,12 @@ struct JournalDetailView: View {
             Button {
                 isEditPresented = true
             } label: {
-                Label("Edit", systemImage: "pencil")
+                Label(L10n.string("common.edit", defaultValue: "Edit"), systemImage: "pencil")
             }
             Button(role: .destructive) {
                 isDeletePending = true
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(L10n.string("common.delete", defaultValue: "Delete"), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")

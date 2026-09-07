@@ -149,7 +149,7 @@ struct ContentView: View {
                 set: { if !$0 { quickAddDeniedReason = nil } }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button(L10n.string("common.ok", defaultValue: "OK"), role: .cancel) {}
         } message: {
             Text(quickAddDeniedReason ?? "")
         }

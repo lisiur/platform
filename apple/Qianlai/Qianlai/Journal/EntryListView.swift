@@ -111,13 +111,13 @@ struct EntryListView: View {
                                         Button {
                                             entryPendingDelete = entry
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label(L10n.string("common.delete", defaultValue: "Delete"), systemImage: "trash")
                                         }
                                         .tint(.red)
                                         Button {
                                             entryPendingEdit = entry
                                         } label: {
-                                            Label("Edit", systemImage: "pencil")
+                                            Label(L10n.string("common.edit", defaultValue: "Edit"), systemImage: "pencil")
                                         }
                                     }
                                 }
@@ -157,13 +157,13 @@ struct EntryListView: View {
                 set: { if !$0 { entryPendingDelete = nil } }
             )
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete", defaultValue: "Delete"), role: .destructive) {
                 if let entry = entryPendingDelete {
                     delete(entry)
                 }
                 entryPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { entryPendingDelete = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { entryPendingDelete = nil }
         } message: {
             if let entry = entryPendingDelete {
                 Text("Delete entry #\(entry.entryNo)? Reports will be recalculated.")
@@ -254,13 +254,13 @@ struct EntryRow: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(AppDates.formatEntryTime(entry.date))
                         if let payerCaption {
-                            Text("·")
+                            Text(verbatim: "·")
                             Text(payerCaption)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                         }
                         if let payAccount = payAccountNames {
-                            Text("·")
+                            Text(verbatim: "·")
                             Text(payAccount)
                                 .lineLimit(1)
                                 .truncationMode(.tail)

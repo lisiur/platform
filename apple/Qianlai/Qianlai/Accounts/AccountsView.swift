@@ -31,12 +31,12 @@ struct AccountsView: View {
 
     /// Types shown in the tabs; equity is system-managed.
     private let managedTypes: [AccountType]
-    private let navigationTitle: LocalizedStringKey
+    private let navigationTitle: String
     private let collapsible: Bool
 
     init(
         managing types: [AccountType] = [.asset, .liability],
-        title: LocalizedStringKey = "Accounts",
+        title: String = L10n.string("accounts.title", defaultValue: "Accounts"),
         collapsible: Bool = false
     ) {
         managedTypes = types
@@ -71,7 +71,7 @@ struct AccountsView: View {
                     Button {
                         isReordering.toggle()
                     } label: {
-                        Label("Reorder", systemImage: "arrow.up.arrow.down")
+                        Label(L10n.string("accounts.reorder", defaultValue: "Reorder"), systemImage: "arrow.up.arrow.down")
                     }
                 }
             }
@@ -84,7 +84,7 @@ struct AccountsView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel(Text(L10n.string(
-                        collapsible ? "categories.new" : "New Account",
+                        collapsible ? "categories.new" : "accounts.newAccount",
                         defaultValue: collapsible ? "New Category" : "New Account"
                     )))
                 }
@@ -131,17 +131,17 @@ struct AccountsView: View {
                 set: { if !$0 { accountPendingDelete = nil } }
             )
         ) {
-            Button("Delete", role: .destructive) {
+            Button(L10n.string("common.delete", defaultValue: "Delete"), role: .destructive) {
                 if let account = accountPendingDelete {
                     Task { await delete(account) }
                 }
                 accountPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { accountPendingDelete = nil }
+            Button(L10n.string("common.cancel", defaultValue: "Cancel"), role: .cancel) { accountPendingDelete = nil }
         } message: {
             if let account = accountPendingDelete {
                 Text(L10n.string(
-                    collapsible ? "categories.deleteConfirm" : "Delete account “%@”?",
+                    collapsible ? "categories.deleteConfirm" : "accounts.deleteAccountConfirm",
                     defaultValue: collapsible ? "Delete category “%@”?" : "Delete account “%@”?",
                     account.displayName
                 ))
@@ -153,7 +153,7 @@ struct AccountsView: View {
     private func list(_ ledger: QianlaiLedger) -> some View {
         List {
             Section {
-                Picker("Type", selection: $selectedType) {
+                Picker(L10n.string("accounts.type", defaultValue: "Type"), selection: $selectedType) {
                     ForEach(managedTypes, id: \.self) { type in
                         Text(type.label).tag(type)
                     }
@@ -170,7 +170,7 @@ struct AccountsView: View {
             if entries.isEmpty {
                 EmptyStateView(
                     message: L10n.string(
-                        collapsible ? "categories.empty" : "No accounts",
+                        collapsible ? "categories.empty" : "accounts.empty",
                         defaultValue: collapsible ? "No categories" : "No accounts"
                     ),
                     systemImage: "chart.bar.doc.horizontal"
@@ -514,7 +514,7 @@ struct BalanceAdjustmentView: View {
     var body: some View {
         Form {
             Section {
-                FormField(title: "New Balance", error: nil) {
+                FormField(title: L10n.string("accounts.newBalance", defaultValue: "New Balance"), error: nil) {
                     TextField("0.00", text: $balanceText)
                         #if os(iOS)
                         .keyboardType(.decimalPad)
@@ -523,7 +523,7 @@ struct BalanceAdjustmentView: View {
                         .font(.body.monospacedDigit())
                 }
                 .listRowBackground(Color.clear)
-                DatePicker("As of", selection: $date, displayedComponents: .date)
+                DatePicker(L10n.string("accounts.asOf", defaultValue: "As of"), selection: $date, displayedComponents: .date)
                 TextField("Memo (e.g. cash count)", text: $memo)
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }
@@ -550,15 +550,15 @@ struct BalanceAdjustmentView: View {
                 }
             }
         }
-        .navigationTitle(Text("Set Balance — \(account.displayName)"))
+        .navigationTitle(Text(L10n.string("accounts.setBalanceTitle", defaultValue: "Set Balance — %@", account.displayName)))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isSaving ? "Adjusting…" : "Adjust Balance") {
+                Button(isSaving ? L10n.string("accounts.adjusting", defaultValue: "Adjusting…") : L10n.string("accounts.adjustBalance", defaultValue: "Adjust Balance")) {
                     Task { await save() }
                 }
                 .disabled(isSaving)

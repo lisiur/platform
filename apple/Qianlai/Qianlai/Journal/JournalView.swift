@@ -34,7 +34,7 @@ struct JournalView: View {
             } else if let ledger = ledgerStore.activeLedger {
                 EntryListView(
                     ledger: ledger,
-                    emptyMessage: L10n.string("No entries yet", defaultValue: "No entries yet"),
+                    emptyMessage: L10n.string("journal.empty", defaultValue: "No entries yet"),
                     showsViewerShare: true
                 )
             } else {
@@ -45,7 +45,7 @@ struct JournalView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle(Text("Journal"))
+        .navigationTitle(Text(L10n.string("tab.journal", defaultValue: "Journal")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 filterButton
@@ -127,13 +127,13 @@ struct JournalView: View {
             if !ledgerProjects.isEmpty {
                 Section {
                     Picker(
-                        "Project",
+                        L10n.string("journal.filterProject", defaultValue: "Project"),
                         selection: Binding(
                             get: { store.projectFilterId ?? "" },
                             set: { store.projectFilterId = $0.isEmpty ? nil : $0 }
                         )
                     ) {
-                        Text("All Projects").tag("")
+                        Text(L10n.string("journal.filterAllProjects", defaultValue: "All Projects")).tag("")
                         ForEach(ledgerProjects) { project in
                             Text(project.name).tag(project.id)
                         }
@@ -156,7 +156,7 @@ struct JournalView: View {
             if store.projectFilterId == nil {
                 Section {
                     Picker(
-                        "Show",
+                        L10n.string("journal.filterShow", defaultValue: "Show"),
                         selection: Binding(
                             get: { store.includeExcluded ? "all" : "counted" },
                             set: { store.includeExcluded = $0 == "all" }
@@ -170,13 +170,13 @@ struct JournalView: View {
             if !participantCandidates.isEmpty {
                 Section {
                     Picker(
-                        "Participant",
+                        L10n.string("journal.filterParticipant", defaultValue: "Participant"),
                         selection: Binding(
                             get: { store.participantMemberId ?? "" },
                             set: { store.participantMemberId = $0.isEmpty ? nil : $0 }
                         )
                     ) {
-                        Text("All Members").tag("")
+                        Text(L10n.string("journal.filterAllMembers", defaultValue: "All Members")).tag("")
                         ForEach(participantCandidates) { member in
                             Text(member.displayName).tag(member.id)
                         }

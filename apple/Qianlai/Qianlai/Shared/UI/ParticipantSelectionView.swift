@@ -31,11 +31,11 @@ struct ParticipantSelectionView: View {
             List(members) { member in
                 row(for: member)
             }
-            .navigationTitle(Text("Participants"))
+            .navigationTitle(Text(L10n.string("quick.participants", defaultValue: "Participants")))
             .inlineNavigationBarTitle()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(L10n.string("common.done", defaultValue: "Done")) {
                         selection = pending
                         dismiss()
                     }
