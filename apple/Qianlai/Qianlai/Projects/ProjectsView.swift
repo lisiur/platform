@@ -515,7 +515,7 @@ struct ProjectFormView: View {
         Form {
             Section {
                 TextField(
-                    L10n.string("projects.namePlaceholder", defaultValue: "e.g. Kyoto Trip"),
+                    L10n.string("projects.namePlaceholder", defaultValue: "e.g. Hawaii Trip"),
                     text: $name
                 )
                 TextField(

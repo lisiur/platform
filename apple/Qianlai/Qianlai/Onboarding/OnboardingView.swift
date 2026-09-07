@@ -292,7 +292,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Create a ledger")
                 .font(.subheadline.weight(.semibold))
-            TextField("e.g. Family, Travel 2026", text: $ledgerName)
+            TextField("e.g. Family, Travel", text: $ledgerName)
                 .textFieldStyle(.roundedBorder)
                 .submitLabel(.done)
         }

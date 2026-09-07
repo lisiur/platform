@@ -103,6 +103,22 @@ struct AccountFormView: View {
         return L10n.string(key, defaultValue: fallback)
     }
 
+    /// Categories (income/expense) and accounts (asset/liability) each get
+    /// their own example. Equity is system-managed and never opens this
+    /// form; it rides with asset.
+    private var namePlaceholder: String {
+        switch fixedType {
+        case .expense:
+            L10n.string("accounts.expenseNamePlaceholder", defaultValue: "e.g. Dining")
+        case .income:
+            L10n.string("accounts.incomeNamePlaceholder", defaultValue: "e.g. Salary")
+        case .asset, .equity:
+            L10n.string("accounts.assetNamePlaceholder", defaultValue: "e.g. Chase Debit Card")
+        case .liability:
+            L10n.string("accounts.liabilityNamePlaceholder", defaultValue: "e.g. Chase Credit Card")
+        }
+    }
+
     var body: some View {
         Form {
             Section {
@@ -112,7 +128,7 @@ struct AccountFormView: View {
                     TextField(
                         account?.code != nil
                             ? L10n.string("accounts.nameOptional", defaultValue: "Leave empty to keep the default label")
-                            : L10n.string("accounts.namePlaceholder", defaultValue: "e.g. USD Cash"),
+                            : namePlaceholder,
                         text: $name
                     )
                     .multilineTextAlignment(.trailing)

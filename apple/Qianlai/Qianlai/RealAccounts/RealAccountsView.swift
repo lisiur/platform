@@ -261,7 +261,10 @@ struct RealAccountFormView: View {
                 HStack {
                     Text("Name")
                     Spacer()
-                    TextField("e.g. CMB Savings Card", text: $name)
+                    TextField(
+                        L10n.string("realAccounts.namePlaceholder", defaultValue: "e.g. Chase Debit Card"),
+                        text: $name
+                    )
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.plain)
                         .submitLabel(.done)

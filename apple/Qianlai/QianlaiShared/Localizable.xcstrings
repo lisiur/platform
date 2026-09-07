@@ -1189,19 +1189,70 @@
         }
       }
     },
-    "accounts.namePlaceholder" : {
+    "accounts.assetNamePlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "e.g. USD Cash"
+            "value" : "e.g. Chase Debit Card"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例如：美元现金"
+            "value" : "例如：中行储蓄卡"
+          }
+        }
+      }
+    },
+    "accounts.expenseNamePlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Dining"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：餐饮"
+          }
+        }
+      }
+    },
+    "accounts.incomeNamePlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Salary"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：工资"
+          }
+        }
+      }
+    },
+    "accounts.liabilityNamePlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Chase Credit Card"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：中行信用卡"
           }
         }
       }
@@ -2771,36 +2822,19 @@
         }
       }
     },
-    "e.g. CMB Savings Card" : {
+    "e.g. Family, Travel" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "e.g. CMB Savings Card"
+            "value" : "e.g. Family, Travel"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例如：招行储蓄卡"
-          }
-        }
-      }
-    },
-    "e.g. Family, Travel 2026" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "e.g. Family, Travel 2026"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "例如：家庭、2026 旅行"
+            "value" : "例如：家庭、旅行"
           }
         }
       }
@@ -6519,13 +6553,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "e.g. Kyoto Trip"
+            "value" : "e.g. Hawaii Trip"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例如：京都之旅"
+            "value" : "例如：北京之旅"
           }
         }
       }
@@ -7646,6 +7680,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先解除关联的账本账户。"
+          }
+        }
+      }
+    },
+    "realAccounts.namePlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Chase Debit Card"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：中行储蓄卡"
           }
         }
       }
