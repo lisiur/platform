@@ -37,6 +37,7 @@ node_modules
 /.codegraph/
 /.opencode/
 /.understand-anything/
+/.zcode/
 
 # git worktrees
 /worktrees/
