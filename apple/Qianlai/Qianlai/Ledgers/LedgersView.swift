@@ -299,6 +299,9 @@ struct LedgersView: View {
                     BadgeView(text: L10n.string("ledgers.shared", defaultValue: "Shared"), outlined: true)
                 }
                 Spacer()
+                RowMoreMenu {
+                    ledgerRowMenuItems(ledger)
+                }
             }
             HStack(spacing: 8) {
                 Text(ledger.currency)
@@ -329,14 +332,7 @@ struct LedgersView: View {
             }
         }
         .contextMenu {
-            membersAction(ledger)
-            if isOwner {
-                editAction(ledger)
-                archiveAction(ledger)
-                deleteAction(ledger)
-            } else {
-                leaveAction(ledger)
-            }
+            ledgerRowMenuItems(ledger)
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             editAction(ledger)
@@ -365,6 +361,9 @@ struct LedgersView: View {
                 Text(project.name)
                     .font(.body.weight(.medium))
                 Spacer()
+                RowMoreMenu {
+                    projectRowMenuItems(project, in: ledger)
+                }
             }
             HStack(spacing: 8) {
                 Text(ledger.currency)
@@ -390,12 +389,7 @@ struct LedgersView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .contextMenu {
-            membersAction(ledger)
-            Button(role: .destructive) {
-                projectPendingLeave = project
-            } label: {
-                Label(L10n.string("projects.leave", defaultValue: "Leave Project"), systemImage: "rectangle.portrait.and.arrow.right")
-            }
+            projectRowMenuItems(project, in: ledger)
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             membersAction(ledger)
@@ -414,7 +408,10 @@ struct LedgersView: View {
         Button {
             membersLedger = ledger
         } label: {
-            Label("Members", systemImage: "person.2")
+            Label(
+                L10n.string("ledgers.members", defaultValue: "Members"),
+                systemImage: "person.2"
+            )
         }
     }
 
@@ -422,7 +419,10 @@ struct LedgersView: View {
         Button {
             editingLedger = ledger
         } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(
+                L10n.string("ledgers.edit", defaultValue: "Edit"),
+                systemImage: "pencil"
+            )
         }
         .tint(.indigo)
     }
@@ -432,7 +432,10 @@ struct LedgersView: View {
             Task { await toggleArchive(ledger) }
         } label: {
             Label(
-                ledger.isActive ? "Archive" : "Unarchive",
+                L10n.string(
+                    ledger.isActive ? "ledgers.archive" : "ledgers.unarchive",
+                    defaultValue: ledger.isActive ? "Archive" : "Unarchive"
+                ),
                 systemImage: ledger.isActive ? "archivebox" : "archivebox.fill"
             )
         }
@@ -443,7 +446,10 @@ struct LedgersView: View {
         Button(role: .destructive) {
             ledgerPendingDelete = ledger
         } label: {
-            Label("Delete", systemImage: "trash")
+            Label(
+                L10n.string("ledgers.delete", defaultValue: "Delete"),
+                systemImage: "trash"
+            )
         }
     }
 
@@ -451,7 +457,39 @@ struct LedgersView: View {
         Button(role: .destructive) {
             ledgerPendingLeave = ledger
         } label: {
-            Label("Leave", systemImage: "rectangle.portrait.and.arrow.right")
+            Label(
+                L10n.string("ledgers.leave", defaultValue: "Leave"),
+                systemImage: "rectangle.portrait.and.arrow.right"
+            )
+        }
+    }
+
+    /// Menu items for a ledger row, shared by the long-press context menu
+    /// and the trailing more button — never empty, Members is always offered.
+    @ViewBuilder
+    private func ledgerRowMenuItems(_ ledger: QianlaiLedger) -> some View {
+        membersAction(ledger)
+        if LedgerPolicy.isOwner(ledger.myRole) {
+            editAction(ledger)
+            archiveAction(ledger)
+            deleteAction(ledger)
+        } else {
+            leaveAction(ledger)
+        }
+    }
+
+    /// Menu items for an exploded guest project row — only the actions a
+    /// guest actually has (members, leave), so also never empty.
+    @ViewBuilder
+    private func projectRowMenuItems(_ project: QianlaiProject, in ledger: QianlaiLedger) -> some View {
+        membersAction(ledger)
+        Button(role: .destructive) {
+            projectPendingLeave = project
+        } label: {
+            Label(
+                L10n.string("projects.leave", defaultValue: "Leave Project"),
+                systemImage: "rectangle.portrait.and.arrow.right"
+            )
         }
     }
 

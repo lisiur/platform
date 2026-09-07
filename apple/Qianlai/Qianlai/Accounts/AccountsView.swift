@@ -289,17 +289,10 @@ struct AccountsView: View {
                     BadgeView(text: L10n.string("status.archived", defaultValue: "Archived"), color: .orange)
                 }
                 Spacer()
-                if collapsible, canManage {
-                    Menu {
+                if canManage {
+                    RowMoreMenu {
                         rowMenuItems(account)
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
                     }
-                    .accessibilityLabel(Text(L10n.string("categories.more", defaultValue: "More")))
                 }
             }
         }
@@ -332,13 +325,19 @@ struct AccountsView: View {
         Button {
             editingAccount = account
         } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(
+                L10n.string("accounts.edit", defaultValue: "Edit"),
+                systemImage: "pencil"
+            )
         }
         if account.isAssetLike {
             Button {
                 balanceAccount = account
             } label: {
-                Label("Set Balance", systemImage: "scalemass")
+                Label(
+                    L10n.string("accounts.setBalance", defaultValue: "Set Balance"),
+                    systemImage: "scalemass"
+                )
             }
         }
         if account.parentId == nil, !account.isBuiltin {
@@ -347,7 +346,7 @@ struct AccountsView: View {
             } label: {
                 Label(
                     L10n.string(
-                        collapsible ? "categories.addSub" : "Add Sub-account",
+                        collapsible ? "categories.addSub" : "accounts.addSub",
                         defaultValue: collapsible ? "Add Sub-category" : "Add Sub-account"
                     ),
                     systemImage: "arrow.turn.down.right"
@@ -359,14 +358,20 @@ struct AccountsView: View {
                 Task { await archiveToggle(account) }
             } label: {
                 Label(
-                    account.isArchived ? "Unarchive" : "Archive",
+                    L10n.string(
+                        account.isArchived ? "accounts.unarchive" : "accounts.archive",
+                        defaultValue: account.isArchived ? "Unarchive" : "Archive"
+                    ),
                     systemImage: account.isArchived ? "archivebox.fill" : "archivebox"
                 )
             }
             Button(role: .destructive) {
                 accountPendingDelete = account
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(
+                    L10n.string("accounts.delete", defaultValue: "Delete"),
+                    systemImage: "trash"
+                )
             }
         }
     }

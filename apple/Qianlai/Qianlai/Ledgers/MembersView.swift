@@ -493,62 +493,68 @@ struct MembersView: View {
                             }
                         }
                         Spacer()
-                    }
-                    .contextMenu {
-                        // Mirror the ledger roster's rename entry point:
-                        // editor+ on the ledger can rename a virtual member
-                        // from any scope they manage.
-                        if member.user?.isVirtual == true, canManageVirtualMembers {
-                            Button {
-                                renameMemberName = member.displayName
-                                projectMemberPendingRename = member
-                            } label: {
-                                Label(
-                                    L10n.string(
-                                        "ledgers.renameMember",
-                                        defaultValue: "Rename"
-                                    ),
-                                    systemImage: "pencil"
-                                )
+                        if (member.user?.isVirtual == true && canManageVirtualMembers)
+                            || (canManageProjectMembers && member.userId != myUserId) {
+                            RowMoreMenu {
+                                projectMemberMenuItems(member)
                             }
                         }
                     }
+                    .contextMenu {
+                        projectMemberMenuItems(member)
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         if member.user?.isVirtual == true, canManageVirtualMembers {
-                            Button {
-                                renameMemberName = member.displayName
-                                projectMemberPendingRename = member
-                            } label: {
-                                Label(
-                                    L10n.string(
-                                        "ledgers.renameMember",
-                                        defaultValue: "Rename"
-                                    ),
-                                    systemImage: "pencil"
-                                )
-                            }
-                            .tint(.blue)
+                            projectRenameAction(member)
+                                .tint(.blue)
                         }
                         // Mirror the ledger roster's swipe-to-remove: red,
                         // destructive role, never offered for self (the
                         // owner shouldn't see a control that would remove
                         // their own access).
                         if canManageProjectMembers, member.userId != myUserId {
-                            Button(role: .destructive) {
-                                projectMemberPendingRemove = member
-                            } label: {
-                                Label(
-                                    L10n.string(
-                                        "projects.removeMember",
-                                        defaultValue: "Remove"
-                                    ),
-                                    systemImage: "person.badge.minus"
-                                )
-                            }
+                            projectRemoveAction(member)
                         }
                     }
                 }
             }
+        }
+    }
+
+    /// Project-roster row actions shared by the long-press context menu,
+    /// the swipe actions, and the trailing more button.
+    @ViewBuilder
+    private func projectMemberMenuItems(_ member: ProjectMemberRow) -> some View {
+        // Mirror the ledger roster's rename entry point: editor+ on the
+        // ledger can rename a virtual member from any scope they manage.
+        if member.user?.isVirtual == true, canManageVirtualMembers {
+            projectRenameAction(member)
+        }
+        if canManageProjectMembers, member.userId != myUserId {
+            projectRemoveAction(member)
+        }
+    }
+
+    private func projectRenameAction(_ member: ProjectMemberRow) -> some View {
+        Button {
+            renameMemberName = member.displayName
+            projectMemberPendingRename = member
+        } label: {
+            Label(
+                L10n.string("ledgers.renameMember", defaultValue: "Rename"),
+                systemImage: "pencil"
+            )
+        }
+    }
+
+    private func projectRemoveAction(_ member: ProjectMemberRow) -> some View {
+        Button(role: .destructive) {
+            projectMemberPendingRemove = member
+        } label: {
+            Label(
+                L10n.string("projects.removeMember", defaultValue: "Remove"),
+                systemImage: "person.badge.minus"
+            )
         }
     }
 
@@ -665,68 +671,77 @@ struct MembersView: View {
             } else {
                 BadgeView(text: member.role.label, outlined: true)
             }
+            if (member.isVirtual && canManageVirtualMembers)
+                || (store.isOwner && member.userId != myUserId) {
+                RowMoreMenu {
+                    ledgerMemberMenuItems(member)
+                }
+            }
         }
         .contextMenu {
-            if member.isVirtual, canManageVirtualMembers {
-                Button {
-                    renameMemberName = member.displayName
-                    memberPendingRename = member
-                } label: {
-                    Label(
-                        L10n.string(
-                            "ledgers.renameMember",
-                            defaultValue: "Rename"
-                        ),
-                        systemImage: "pencil"
-                    )
-                }
-            }
-            if store.isOwner, member.userId != myUserId, !member.isVirtual {
-                Button {
-                    memberPendingTransfer = member
-                } label: {
-                    Label("Transfer Ownership", systemImage: "crown")
-                }
-            }
-            if store.isOwner, member.userId != myUserId {
-                Button(role: .destructive) {
-                    memberPendingRemove = member
-                } label: {
-                    Label("Remove", systemImage: "person.badge.minus")
-                }
-            }
+            ledgerMemberMenuItems(member)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if store.isOwner, member.userId != myUserId {
-                Button(role: .destructive) {
-                    memberPendingRemove = member
-                } label: {
-                    Label("Remove", systemImage: "person.badge.minus")
-                }
+                ledgerRemoveAction(member)
                 if !member.isVirtual {
-                    Button {
-                        memberPendingTransfer = member
-                    } label: {
-                        Label("Transfer", systemImage: "crown")
-                    }
-                    .tint(.orange)
+                    ledgerTransferAction(member)
+                        .tint(.orange)
                 }
             }
             if member.isVirtual, canManageVirtualMembers {
-                Button {
-                    renameMemberName = member.displayName
-                    memberPendingRename = member
-                } label: {
-                    Label(
-                        L10n.string(
-                            "ledgers.renameMember",
-                            defaultValue: "Rename"
-                        ),
-                        systemImage: "pencil"
-                    )
-                }
-                .tint(.blue)
+                ledgerRenameAction(member)
+                    .tint(.blue)
             }
+        }
+    }
+
+    /// Ledger-roster row actions shared by the long-press context menu,
+    /// the swipe actions, and the trailing more button.
+    @ViewBuilder
+    private func ledgerMemberMenuItems(_ member: LedgerMember) -> some View {
+        if member.isVirtual, canManageVirtualMembers {
+            ledgerRenameAction(member)
+        }
+        if store.isOwner, member.userId != myUserId, !member.isVirtual {
+            ledgerTransferAction(member)
+        }
+        if store.isOwner, member.userId != myUserId {
+            ledgerRemoveAction(member)
+        }
+    }
+
+    private func ledgerRenameAction(_ member: LedgerMember) -> some View {
+        Button {
+            renameMemberName = member.displayName
+            memberPendingRename = member
+        } label: {
+            Label(
+                L10n.string("ledgers.renameMember", defaultValue: "Rename"),
+                systemImage: "pencil"
+            )
+        }
+    }
+
+    private func ledgerTransferAction(_ member: LedgerMember) -> some View {
+        Button {
+            memberPendingTransfer = member
+        } label: {
+            Label(
+                L10n.string("ledgers.transferOwnership", defaultValue: "Transfer Ownership"),
+                systemImage: "crown"
+            )
+        }
+    }
+
+    private func ledgerRemoveAction(_ member: LedgerMember) -> some View {
+        Button(role: .destructive) {
+            memberPendingRemove = member
+        } label: {
+            Label(
+                L10n.string("ledgers.removeMember", defaultValue: "Remove"),
+                systemImage: "person.badge.minus"
+            )
         }
     }
 

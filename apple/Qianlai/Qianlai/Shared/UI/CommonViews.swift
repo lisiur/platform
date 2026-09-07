@@ -47,6 +47,27 @@ struct BadgeView: View {
     }
 }
 
+/// Trailing "more" (ellipsis) menu that mirrors a row's long-press context
+/// menu, so every action stays reachable with a single tap. Render only when
+/// the caller's `items` produce at least one entry — an empty menu presents
+/// nothing. Callers gate on the same conditions as their menu items.
+struct RowMoreMenu<Items: View>: View {
+    @ViewBuilder let items: () -> Items
+
+    var body: some View {
+        Menu {
+            items()
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(Text(L10n.string("common.more", defaultValue: "More")))
+    }
+}
+
 /// Label + boxed input + inline validation error, shared by the auth and
 /// bookkeeping forms.
 struct FormField<Content: View>: View {

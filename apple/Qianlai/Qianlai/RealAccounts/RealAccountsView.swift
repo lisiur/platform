@@ -142,6 +142,9 @@ struct RealAccountsView: View {
                 Text(Money.format(real.balance))
                     .font(.body.weight(.semibold).monospacedDigit())
                     .foregroundStyle(real.isArchived ? .secondary : Color.primary)
+                RowMoreMenu {
+                    realMenuItems(real)
+                }
             }
             if real.pockets.isEmpty {
                 Text("No linked pockets — link one from a ledger's accounts page.")
@@ -175,35 +178,51 @@ struct RealAccountsView: View {
         .contentShape(Rectangle())
         .onTapGesture { editing = real }
         .contextMenu {
-            Button {
-                editing = real
-            } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            Button {
-                Task {
-                    do {
-                        try await store.archiveToggle(real)
-                        toast.show(
-                            real.isArchived
-                                ? L10n.string("realAccounts.unarchiveSuccess", defaultValue: "Real account unarchived")
-                                : L10n.string("realAccounts.archiveSuccess", defaultValue: "Real account archived")
-                        )
-                    } catch {
-                        toast.show(error.localizedDescription)
-                    }
+            realMenuItems(real)
+        }
+    }
+
+    /// Card actions shared by the long-press context menu and the trailing
+    /// ellipsis menu.
+    @ViewBuilder
+    private func realMenuItems(_ real: RealAccount) -> some View {
+        Button {
+            editing = real
+        } label: {
+            Label(
+                L10n.string("realAccounts.edit", defaultValue: "Edit"),
+                systemImage: "pencil"
+            )
+        }
+        Button {
+            Task {
+                do {
+                    try await store.archiveToggle(real)
+                    toast.show(
+                        real.isArchived
+                            ? L10n.string("realAccounts.unarchiveSuccess", defaultValue: "Real account unarchived")
+                            : L10n.string("realAccounts.archiveSuccess", defaultValue: "Real account archived")
+                    )
+                } catch {
+                    toast.show(error.localizedDescription)
                 }
-            } label: {
-                Label(
-                    real.isArchived ? "Unarchive" : "Archive",
-                    systemImage: real.isArchived ? "archivebox.fill" : "archivebox"
-                )
             }
-            Button(role: .destructive) {
-                pendingDelete = real
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        } label: {
+            Label(
+                L10n.string(
+                    real.isArchived ? "realAccounts.unarchive" : "realAccounts.archive",
+                    defaultValue: real.isArchived ? "Unarchive" : "Archive"
+                ),
+                systemImage: real.isArchived ? "archivebox.fill" : "archivebox"
+            )
+        }
+        Button(role: .destructive) {
+            pendingDelete = real
+        } label: {
+            Label(
+                L10n.string("realAccounts.delete", defaultValue: "Delete"),
+                systemImage: "trash"
+            )
         }
     }
 
