@@ -6,12 +6,13 @@
 import SwiftUI
 
 /// Modal emoji picker for the account form's icon field: grouped grid with
-/// a keyword search, tap writes the pick back and dismisses, and an
-/// existing icon can be cleared with the destructive action.
+/// a keyword search; a tap writes the pick back and dismisses. Icons are
+/// mandatory, so there is no clear action.
 struct EmojiPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    /// Empty string = no icon.
+    /// The current icon, always a non-empty emoji: icons are mandatory, the
+    /// sheet only writes picks back, and Cancel leaves it untouched.
     @Binding var selection: String
 
     @State private var query = ""
@@ -79,17 +80,6 @@ struct EmojiPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-                if !selection.isEmpty {
-                    ToolbarItem(placement: .destructiveAction) {
-                        Button(
-                            L10n.string("icon.picker.clear", defaultValue: "Remove Icon"),
-                            role: .destructive
-                        ) {
-                            selection = ""
-                            dismiss()
-                        }
-                    }
                 }
             }
             #if os(iOS)

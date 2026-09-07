@@ -52,6 +52,18 @@ enum AccountType: String, Codable, Hashable, CaseIterable {
         case .expense: L10n.string("account.type.expense", defaultValue: "Expense")
         }
     }
+
+    /// Default icon for this type (icons are mandatory). Equity is
+    /// system-managed and never user-created, but the switch must be total.
+    var defaultIcon: String {
+        switch self {
+        case .asset: "🏦"
+        case .liability: "💳"
+        case .income: "💰"
+        case .expense: "💸"
+        case .equity: "🧮"
+        }
+    }
 }
 
 // MARK: - Ledger
@@ -841,12 +853,12 @@ struct CreateAccountBody: Encodable {
     }
 }
 
-/// Manual encoding: `icon` must be able to travel as JSON null (to clear)
-/// versus being omitted (untouched — `archiveToggle` relies on omission).
+/// Manual encoding: `icon` is omitted when nil (untouched — `archiveToggle`
+/// relies on omission); the account form always sends it explicitly since
+/// icons are mandatory in the UI.
 struct UpdateAccountBody: Encodable {
     var name: String?
     var icon: String?
-    var clearIcon: Bool
     var meta: [String: JSONValue]?
     var status: String?
     var realAccountId: String?
@@ -855,11 +867,7 @@ struct UpdateAccountBody: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
-        if clearIcon {
-            try container.encodeNil(forKey: .icon)
-        } else {
-            try container.encodeIfPresent(icon, forKey: .icon)
-        }
+        try container.encodeIfPresent(icon, forKey: .icon)
         try container.encodeIfPresent(meta, forKey: .meta)
         try container.encodeIfPresent(status, forKey: .status)
         if linkRealAccount {

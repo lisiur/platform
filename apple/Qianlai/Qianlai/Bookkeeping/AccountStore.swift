@@ -104,13 +104,12 @@ final class AccountStore {
 
     /// `linkRealAccount` is only sent when the user actually changed the link,
     /// so an untouched save never unlinks a master another member linked.
-    /// `clearIcon` sends an explicit null so a picker-cleared icon actually
-    /// persists — an omitted key would leave the server value untouched.
+    /// The form always sends an icon (mandatory in the UI), so `icon` is
+    /// non-nil on every edit save.
     func update(
         _ account: BookAccount,
         name: String?,
         icon: String?,
-        clearIcon: Bool,
         meta: [String: JSONValue]?,
         realAccountId: String?,
         linkRealAccount: Bool
@@ -121,7 +120,6 @@ final class AccountStore {
             body: UpdateAccountBody(
                 name: name,
                 icon: icon,
-                clearIcon: clearIcon,
                 meta: meta,
                 status: nil,
                 realAccountId: realAccountId,
@@ -139,7 +137,6 @@ final class AccountStore {
             body: UpdateAccountBody(
                 name: nil,
                 icon: nil,
-                clearIcon: false,
                 meta: nil,
                 status: status,
                 realAccountId: nil,

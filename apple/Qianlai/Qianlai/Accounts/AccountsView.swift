@@ -408,9 +408,6 @@ struct AccountsView: View {
                 account,
                 name: result.name,
                 icon: result.icon,
-                // The form round-trips the current icon, so a nil here can
-                // only mean the user cleared it in the picker.
-                clearIcon: result.icon == nil,
                 meta: result.meta,
                 realAccountId: result.realAccountId,
                 linkRealAccount: result.linkChanged

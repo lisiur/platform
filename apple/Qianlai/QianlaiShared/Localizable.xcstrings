@@ -3537,40 +3537,6 @@
         }
       }
     },
-    "icon.picker.clear" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove Icon"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除图标"
-          }
-        }
-      }
-    },
-    "icon.picker.none" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "None"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未设置"
-          }
-        }
-      }
-    },
     "icon.picker.title" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -70,7 +70,9 @@ struct AccountFormView: View {
         self.onSave = onSave
         self.fixedType = account?.type ?? parent?.type ?? .asset
         _name = State(initialValue: account?.name ?? "")
-        _icon = State(initialValue: account?.icon ?? "")
+        // Icons are mandatory: new forms start on the type's default, and
+        // legacy icon-less accounts pick it up on their next edit.
+        _icon = State(initialValue: account?.icon ?? fixedType.defaultIcon)
         _metaEntries = State(initialValue: account?.metaFormRows ?? [])
         _realAccountId = State(initialValue: seededLink)
     }
@@ -129,12 +131,7 @@ struct AccountFormView: View {
                     HStack {
                         Text("Icon")
                         Spacer()
-                        if icon.isEmpty {
-                            Text(L10n.string("icon.picker.none", defaultValue: "None"))
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text(icon)
-                        }
+                        Text(icon)
                     }
                     .contentShape(Rectangle())
                 }
@@ -236,11 +233,10 @@ struct AccountFormView: View {
         }
 
         let link = (realAccountId == noRealAccount) ? nil : realAccountId
+        let trimmedIcon = icon.trimmingCharacters(in: .whitespacesAndNewlines)
         let result = AccountFormResult(
             name: trimmedName.isEmpty ? nil : trimmedName,
-            icon: icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? nil
-                : icon.trimmingCharacters(in: .whitespacesAndNewlines),
+            icon: trimmedIcon.isEmpty ? fixedType.defaultIcon : trimmedIcon,
             meta: meta.isEmpty ? nil : meta,
             realAccountId: link,
             linkChanged: link != seededLink
