@@ -51,7 +51,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .navigationTitle(Text(L10n.string("tab.profile", defaultValue: "Me")))
+        .navigationTitle(Text(L10n.string("profile.title", defaultValue: "Me")))
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
                 EditNameView(store: store)
@@ -110,7 +110,7 @@ struct ProfileView: View {
             NavigationLink {
                 RealAccountsView()
             } label: {
-                Label(L10n.string("realAccounts.title", defaultValue: "Assets"), systemImage: "creditcard")
+                Label(L10n.string("realAccounts.entryLabel", defaultValue: "Assets"), systemImage: "creditcard")
             }
             NavigationLink {
                 // Expanded for guests: guest-ledger rows render as their
@@ -132,15 +132,15 @@ struct ProfileView: View {
                 Label(L10n.string("accounts.title", defaultValue: "Accounts"), systemImage: "chart.bar.doc.horizontal")
             }
             NavigationLink {
-                CategoriesView()
+                CategoriesManageView()
             } label: {
-                Label(L10n.string("accounts.categories", defaultValue: "Categories"), systemImage: "tag")
+                Label(L10n.string("categories.title", defaultValue: "Categories"), systemImage: "tag")
             }
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
                     MembersView(ledger: ledger, isModal: false)
                 } label: {
-                    Label(L10n.string("tab.members", defaultValue: "Members"), systemImage: "person.2")
+                    Label(L10n.string("members.title", defaultValue: "Members"), systemImage: "person.2")
                 }
             }
             NavigationLink {

@@ -46,7 +46,7 @@ struct MembersView: View {
         List {
             membersSection
         }
-        .navigationTitle(Text(L10n.string("tab.members", defaultValue: "Members")))
+        .navigationTitle(Text(L10n.string("members.title", defaultValue: "Members")))
         .inlineNavigationBarTitle()
         .toolbar {
             // Everything the caller can do to grow the current scope,

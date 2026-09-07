@@ -136,7 +136,7 @@ struct QuickEntryView: View {
     /// every field the layout keeps out of the chip row.
     @State private var isMoreFieldsPresented = false
     /// Categories manage sheet behind the grid's trailing gear chip —
-    /// the shared collapsible CategoriesView.
+    /// the shared collapsible CategoriesManageView.
     @State private var isCategoryManagePresented = false
     /// Expanded inline date-and-time picker under the collapsed row.
     @State private var isDateTimePresented = false
@@ -443,11 +443,11 @@ struct QuickEntryView: View {
             #endif
         }
         // Categories manage sheet behind the grid's gear chip: the shared
-        // collapsible CategoriesView (expense/income tabs, tree list) in a
-        // modal stack — Done dismisses back to the grid.
+        // collapsible CategoriesManageView (expense/income tabs, tree list)
+        // in a modal stack — Done dismisses back to the grid.
         .sheet(isPresented: $isCategoryManagePresented) {
             NavigationStack {
-                CategoriesView()
+                CategoriesManageView()
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button(L10n.string("common.done", defaultValue: "Done")) { isCategoryManagePresented = false }

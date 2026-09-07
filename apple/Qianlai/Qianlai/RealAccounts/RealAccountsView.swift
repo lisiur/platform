@@ -34,7 +34,7 @@ struct RealAccountsView: View {
             } else {
                 Section {
                     HStack(spacing: 10) {
-                        StatCard(icon: "wallet.pass", label: L10n.string("realAccounts.title", defaultValue: "Assets"), value: store.totals?.assets)
+                        StatCard(icon: "wallet.pass", label: L10n.string("realAccounts.assetsLabel", defaultValue: "Assets"), value: store.totals?.assets)
                         StatCard(icon: "banknote", label: L10n.string("realAccounts.liabilities", defaultValue: "Liabilities"), value: store.totals?.liabilities)
                     }
                     .listRowSeparator(.hidden)

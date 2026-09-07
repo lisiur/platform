@@ -45,7 +45,7 @@ struct JournalView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle(Text(L10n.string("tab.journal", defaultValue: "Journal")))
+        .navigationTitle(Text(L10n.string("journal.title", defaultValue: "Journal")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 filterButton
