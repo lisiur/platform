@@ -127,12 +127,13 @@ export const journalEntrySchema = z
       })
       .nullable(),
     // False = excluded from ledger-wide surfaces (still fully visible in
-    // its project and in balances). Forced false for guest-created entries;
-    // editors may opt out per entry (e.g. credit-card repayments).
+    // its project and in balances). Pure user intent — anyone, guests
+    // included, may opt out per entry (e.g. credit-card repayments).
     countsInLedger: z.boolean().openapi({ example: true }),
     // System rule, set once at posting: true when the creator was a guest.
-    // The client-immutable second dimension of the same ledger-wide
-    // exclusion — guest posts settle in their project's books.
+    // Client-immutable; it keeps guest posts in the ledger-wide journal
+    // regardless of `countsInLedger` — their participant shares feed the
+    // share-based statement.
     guestCreated: z.boolean().openapi({ example: false }),
     // null = recorded without a location.
     location: entryLocationSchema.nullable().openapi({ example: null }),
@@ -216,9 +217,10 @@ export const createEntryBodySchema = z
     // and are restricted to expense categories.
     projectId: z.string().min(1).nullable().optional(),
     // Whether the entry counts in ledger-wide journal/statements. Defaults
-    // to true; forced false for guests (their entries live in the project
-    // books and settlement — the system-set guestCreated flag excludes them
-    // ledger-wide regardless). On update, omitted = keep the current flag.
+    // to true; false opts out (e.g. a credit-card repayment already
+    // expensed at purchase). Guests may set it too — the system-set
+    // `guestCreated` flag is the guest dimension, not this one. On update,
+    // omitted = keep the current flag.
     countsInLedger: z.boolean().optional(),
     // Optional place of the entry. On create, omitted = no location. On
     // update, omitted = keep the current location and null = clear it (so

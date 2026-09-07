@@ -308,9 +308,10 @@ export async function createEntry(
       // Pure user intent — passes through exactly as the client set it.
       // The guest rule lives in `guestCreated` below, not here.
       countsInLedger: data.countsInLedger,
-      // System snapshot: true when the creator was a guest. The second,
-      // client-immutable dimension of the same ledger-wide exclusion — a
-      // later role change never rewrites history.
+      // System snapshot: true when the creator was a guest. Client-immutable
+      // — a later role change never rewrites history. It keeps guest posts
+      // in the ledger-wide journal regardless of `countsInLedger`, and
+      // their participant shares feed the share-based statement.
       guestCreated: access.membership.role === "guest",
       rawLines: data.lines,
       ledgerAccounts,
@@ -497,10 +498,9 @@ async function withAutoParticipants(
  * transaction-consistent account list and the archived guard is
  * re-evaluated under the lock. entryNo and the original creator are kept —
  * editing corrects values, it does not re-post the entry. `countsInLedger`
- * keeps-on-omit and stays guest-pinned (see below); the payer keeps-on-omit
- * too, with null resetting to the original creator (see below); the system
- * guest rule (`guestCreated`) is set once at posting and never editable
- * here.
+ * keeps-on-omit (see below); the payer keeps-on-omit too, with null
+ * resetting to the original creator (see below); the system guest rule
+ * (`guestCreated`) is set once at posting and never editable here.
  *
  * Guests may only edit entries they created, and only within (and keeping
  * them in) one of their projects.

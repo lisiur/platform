@@ -360,8 +360,9 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     /// at purchase time.
     var countsInLedger: Bool
     /// System rule, set once at posting: true when the creator was a guest.
-    /// Guest posts stay out of ledger-wide surfaces regardless of
-    /// `countsInLedger` — they settle inside their project's books.
+    /// Guest posts stay in ledger-wide surfaces (the journal and the
+    /// share-based statement) regardless of `countsInLedger` — their
+    /// participant shares are real consumption.
     var guestCreated: Bool
     var createdById: String?
     var createdBy: EntryUserRef?
@@ -927,8 +928,8 @@ struct CreateEntryBody: Encodable {
     /// Project assignment; guests must target one of their projects.
     var projectId: String?
     /// nil counts in the ledger (server default); false opts out. Pure user
-    /// intent — guest posts are excluded by the server's guestCreated rule,
-    /// not by this flag.
+    /// intent — unrelated to `guestCreated`, which only records that the
+    /// creator was a guest and never excludes anything.
     var countsInLedger: Bool?
     /// nil omits the field: no location on create, keep-on-edit.
     var location: EntryLocationPayload? = nil

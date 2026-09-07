@@ -3853,23 +3853,6 @@
         }
       }
     },
-    "journal.show.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entries opted out of income & expense (e.g. credit-card repayments) don't count toward the ledger's totals; choose All Entries to see them."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不计入收支的记录（如信用卡还款）不会出现在账本的收支统计中，切换到「全部记录」可查看。"
-          }
-        }
-      }
-    },
     "journal.totalAmount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7802,7 +7785,21 @@
       }
     },
     "Show" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示"
+          }
+        }
+      }
     },
     "Show the QR to let others join this ledger — it refreshes automatically and each code works for one minute. Editors can post entries; viewers can only browse." : {
       "extractionState" : "manual",

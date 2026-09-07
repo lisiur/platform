@@ -44,10 +44,12 @@ final class JournalStore {
     /// or paid for by them, tagged with them, or untagged (split across all
     /// members).
     var memberUserId: String? { didSet { scheduleReload() } }
-    /// Ledger-wide escape hatch: also list entries flagged out of the
-    /// ledger's books (guest posts, opted-out repayments). Irrelevant while
-    /// a project filter is active — a project always shows all its entries.
-    var includeExcluded = false { didSet { scheduleReload() } }
+    /// Entry scope of the ledger-wide list: true (default) lists every
+    /// activity entry — member kept-in, guest posts, and entries the
+    /// creator opted out of the ledger's books (e.g. repayments); false
+    /// hides those opted-out entries. Irrelevant while a project filter is
+    /// active — a project always shows all its entries.
+    var includeExcluded = true { didSet { scheduleReload() } }
     /// Project the page is hard-scoped to (the Journal follows the ledger
     /// switcher's scope). Not a user filter: the filter sheet can't change
     /// it, `clearFilters` restores it instead of lifting it, and
@@ -189,13 +191,57 @@ final class JournalStore {
         await reload()
     }
 
-    func delete(_ entry: JournalEntry) async throws {
+    /// Optimistic delete: the entry leaves the local list the moment this
+    /// runs — the row animates away with no network wait, `total` drops
+    /// with it — and the server sync continues in the background task this
+    /// returns. A failed sync puts the entry back at its original index
+    /// (only while the same ledger is still loaded) and hands the error to
+    /// `onSyncFailure` for the caller's toast. Deleting the bottom-most
+    /// loaded row backfills the next page once the server has confirmed —
+    /// that row's `onAppear` already fired, so nothing else would trigger
+    /// `loadMore`. Throws only when no ledger is loaded.
+    func delete(
+        _ entry: JournalEntry,
+        onSyncFailure: @escaping @MainActor (String) -> Void
+    ) throws -> Task<Void, Never> {
         guard let ledgerId else { throw APIError.noActiveLedger }
-        _ = try await client.send(
-            "DELETE",
-            "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)"
-        )
-        await reload()
+        let index = entries.firstIndex { $0.id == entry.id }
+        let wasLastLoaded = index == entries.count - 1
+        if let index {
+            entries.remove(at: index)
+            if total > 0 { total -= 1 }
+        }
+        return Task {
+            do {
+                _ = try await client.send(
+                    "DELETE",
+                    "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)"
+                )
+                // A concurrent refetch (pull-to-refresh, filter change) can
+                // resurrect the row while the delete is in flight — drop it
+                // again now that the server has confirmed.
+                if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+                    entries.remove(at: index)
+                    if total > 0 { total -= 1 }
+                }
+                // Backfill only after the server processed the delete: the
+                // offset must line up with the post-delete ordering, or the
+                // page would repeat a row the list still holds.
+                if wasLastLoaded, hasMore {
+                    await loadMore()
+                }
+            } catch {
+                // Only a same-ledger list may take the row back; a ledger
+                // switch owns different content now.
+                guard self.ledgerId == ledgerId else { return }
+                if let index, index <= entries.count,
+                   !entries.contains(where: { $0.id == entry.id }) {
+                    entries.insert(entry, at: index)
+                    total += 1
+                }
+                onSyncFailure(error.localizedDescription)
+            }
+        }
     }
 
     /// Replaces an entry's date, memo, lines, and participants from the
@@ -226,7 +272,7 @@ final class JournalStore {
         if accountId != nil { accountId = nil }
         if accountType != nil { accountType = nil }
         if memberUserId != nil { memberUserId = nil }
-        if includeExcluded { includeExcluded = false }
+        if !includeExcluded { includeExcluded = true }
         suppressReload = false
         scheduleReload()
     }
@@ -242,7 +288,7 @@ final class JournalStore {
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || includeExcluded
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || !includeExcluded
     }
 
     private static func query(

@@ -100,11 +100,20 @@ struct EntryListView: View {
                             }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if ledger.canPost {
-                                        Button(role: .destructive) {
+                                        // Plain tinted button, not
+                                        // `role: .destructive`: UIKit plays
+                                        // the row-removal animation for a
+                                        // destructive swipe action on tap,
+                                        // so the row vanished and snapped
+                                        // back before the confirmation.
+                                        // Red tint keeps the look; the row
+                                        // only leaves after confirmation.
+                                        Button {
                                             entryPendingDelete = entry
                                         } label: {
                                             Label("Delete", systemImage: "trash")
                                         }
+                                        .tint(.red)
                                         Button {
                                             entryPendingEdit = entry
                                         } label: {
@@ -150,7 +159,7 @@ struct EntryListView: View {
         ) {
             Button("Delete", role: .destructive) {
                 if let entry = entryPendingDelete {
-                    Task { await delete(entry) }
+                    delete(entry)
                 }
                 entryPendingDelete = nil
             }
@@ -168,11 +177,21 @@ struct EntryListView: View {
         }
     }
 
-    private func delete(_ entry: JournalEntry) async {
+    /// Optimistic: the row leaves the list immediately and the success
+    /// toast fires at once; the server sync runs in the background and the
+    /// reports only refresh once it settles (so they never read the
+    /// pre-delete totals). A failed sync restores the row and its error
+    /// arrives through the store's callback.
+    private func delete(_ entry: JournalEntry) {
         do {
-            try await store.delete(entry)
+            let sync = try store.delete(entry) { message in
+                toast.show(message)
+            }
             toast.show(L10n.string("journal.deleteSuccess", defaultValue: "Entry deleted"))
-            Task { await reportStore.refreshAfterPosting() }
+            Task {
+                await sync.value
+                await reportStore.refreshAfterPosting()
+            }
         } catch {
             toast.show(error.localizedDescription)
         }
