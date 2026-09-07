@@ -841,9 +841,12 @@ struct CreateAccountBody: Encodable {
     }
 }
 
+/// Manual encoding: `icon` must be able to travel as JSON null (to clear)
+/// versus being omitted (untouched — `archiveToggle` relies on omission).
 struct UpdateAccountBody: Encodable {
     var name: String?
     var icon: String?
+    var clearIcon: Bool
     var meta: [String: JSONValue]?
     var status: String?
     var realAccountId: String?
@@ -852,7 +855,11 @@ struct UpdateAccountBody: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
-        try container.encodeIfPresent(icon, forKey: .icon)
+        if clearIcon {
+            try container.encodeNil(forKey: .icon)
+        } else {
+            try container.encodeIfPresent(icon, forKey: .icon)
+        }
         try container.encodeIfPresent(meta, forKey: .meta)
         try container.encodeIfPresent(status, forKey: .status)
         if linkRealAccount {

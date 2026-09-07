@@ -328,7 +328,7 @@ final class QianlaiModelsTests: XCTestCase {
     func testUpdateAccountBodyEncodesLinkSemantics() throws {
         // Untouched link (not sent) — key omitted.
         let untouched = UpdateAccountBody(
-            name: "Wallet", icon: nil, meta: nil, status: nil,
+            name: "Wallet", icon: nil, clearIcon: false, meta: nil, status: nil,
             realAccountId: nil, linkRealAccount: false
         )
         let json = try String(data: JSONEncoder().encode(untouched), encoding: .utf8)!
@@ -336,12 +336,42 @@ final class QianlaiModelsTests: XCTestCase {
 
         // Explicit unlink — key present with null.
         let unlink = UpdateAccountBody(
-            name: nil, icon: nil, meta: nil, status: nil,
+            name: nil, icon: nil, clearIcon: false, meta: nil, status: nil,
             realAccountId: nil, linkRealAccount: true
         )
         let unlinkJSON = try JSONEncoder().encode(unlink)
         let unlinkObject = try JSONSerialization.jsonObject(with: unlinkJSON) as! [String: Any]
         XCTAssertTrue(unlinkObject["realAccountId"] is NSNull)
+    }
+
+    func testUpdateAccountBodyEncodesIconClear() throws {
+        // Cleared icon — explicit null so the server clears the column.
+        let cleared = UpdateAccountBody(
+            name: nil, icon: nil, clearIcon: true, meta: nil, status: nil,
+            realAccountId: nil, linkRealAccount: false
+        )
+        let object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(cleared)
+        ) as! [String: Any]
+        XCTAssertTrue(object["icon"] is NSNull)
+
+        // Untouched icon — key omitted (archiveToggle path).
+        let untouched = UpdateAccountBody(
+            name: nil, icon: nil, clearIcon: false, meta: nil, status: nil,
+            realAccountId: nil, linkRealAccount: false
+        )
+        let json = try String(data: JSONEncoder().encode(untouched), encoding: .utf8)!
+        XCTAssertFalse(json.contains("icon"))
+
+        // Kept icon — round-trips as-is.
+        let kept = UpdateAccountBody(
+            name: nil, icon: "💳", clearIcon: false, meta: nil, status: nil,
+            realAccountId: nil, linkRealAccount: false
+        )
+        let keptObject = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(kept)
+        ) as! [String: Any]
+        XCTAssertEqual(keptObject["icon"] as? String, "💳")
     }
 
     func testUpdateLedgerBodyEncodesDescriptionClear() throws {

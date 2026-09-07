@@ -54,6 +54,7 @@ struct AccountFormView: View {
     @State private var realAccountId: String
     @State private var nameError: String?
     @State private var isSaving = false
+    @State private var showIconPicker = false
 
     private let fixedType: AccountType
 
@@ -122,18 +123,22 @@ struct AccountFormView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
-                HStack {
-                    Text("Icon")
-                    Spacer()
-                    TextField("Emoji, e.g. 💳", text: $icon)
-                        .multilineTextAlignment(.trailing)
-                        .textFieldStyle(.plain)
-                        .submitLabel(.done)
-                        .onSubmit { dismissKeyboard() }
-                        #if os(iOS)
-                        .frame(width: 160)
-                        #endif
+                Button {
+                    showIconPicker = true
+                } label: {
+                    HStack {
+                        Text("Icon")
+                        Spacer()
+                        if icon.isEmpty {
+                            Text(L10n.string("icon.picker.none", defaultValue: "None"))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(icon)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 if let parent {
                     HStack {
                         Text(L10n.string(
@@ -192,6 +197,9 @@ struct AccountFormView: View {
         }
         .navigationTitle(Text(formTitle))
         .inlineNavigationBarTitle()
+        .sheet(isPresented: $showIconPicker) {
+            EmojiPickerSheet(selection: $icon)
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
