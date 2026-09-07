@@ -83,7 +83,7 @@ struct CategoriesManageView: View {
         }
         .sheet(isPresented: $isShowingCreate) {
             NavigationStack {
-                AccountFormView(account: nil, parent: nil, onSave: createSave)
+                AccountFormView(account: nil, parent: nil, type: selectedType, onSave: createSave)
             }
         }
         .sheet(item: $editingAccount) { account in

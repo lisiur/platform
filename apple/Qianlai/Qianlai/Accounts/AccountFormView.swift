@@ -61,6 +61,9 @@ struct AccountFormView: View {
     init(
         account: BookAccount?,
         parent: BookAccount?,
+        /// Only consulted for a brand-new top-level account, where neither
+        /// `account` nor `parent` carries a type (the caller's selected tab).
+        type: AccountType? = nil,
         seededLink: String = noRealAccount,
         onSave: @escaping (AccountFormResult) async -> Bool
     ) {
@@ -68,7 +71,7 @@ struct AccountFormView: View {
         self.parent = parent
         self.seededLink = seededLink
         self.onSave = onSave
-        self.fixedType = account?.type ?? parent?.type ?? .asset
+        self.fixedType = account?.type ?? parent?.type ?? type ?? .asset
         _name = State(initialValue: account?.name ?? "")
         // Icons are mandatory: new forms start on the type's default, and
         // legacy icon-less accounts pick it up on their next edit.
