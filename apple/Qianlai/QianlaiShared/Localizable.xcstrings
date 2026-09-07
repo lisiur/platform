@@ -1497,6 +1497,12 @@
     },
     "common.areYouSure" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure?"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2049,23 +2055,6 @@
         }
       }
     },
-    "common.copied" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已复制"
-          }
-        }
-      }
-    },
     "common.more" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2230,23 +2219,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本月还没有记录"
-          }
-        }
-      }
-    },
-    "dashboard.noRecentEntries" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No entries yet. Post your first entry in the journal."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没有流水，去记下第一笔吧。"
           }
         }
       }
@@ -3184,23 +3156,6 @@
         }
       }
     },
-    "invite.scan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan QR Code"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫码加入"
-          }
-        }
-      }
-    },
     "invite.scanHint" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3235,25 +3190,14 @@
         }
       }
     },
-    "invite.showQR" : {
-      "extractionState" : "manual",
+    "projects.removeFooter" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show QR Code"
+            "value" : "Its records are kept but become unassigned."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示二维码"
-          }
-        }
-      }
-    },
-    "projects.removeFooter" : {
-      "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3432,23 +3376,6 @@
         }
       }
     },
-    "journal.detail.myShare" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My Share"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我的分摊"
-          }
-        }
-      }
-    },
     "journal.detail.paidBy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3462,23 +3389,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "付款人"
-          }
-        }
-      }
-    },
-    "journal.detail.participants" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Participants"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "参与人"
           }
         }
       }
@@ -3723,6 +3633,12 @@
     },
     "projects.leaveConfirm" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave this project? Rejoining requires a new share code."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3985,40 +3901,6 @@
         }
       }
     },
-    "ledgers.inviteToJoin" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invite to %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "邀请加入%@"
-          }
-        }
-      }
-    },
-    "ledgers.joinFooter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scan the invite QR code, or paste a share code to join as an editor or viewer."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫描邀请二维码，或粘贴邀请码，以记账人或查看者身份加入。"
-          }
-        }
-      }
-    },
     "ledgers.joinSuccess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4202,23 +4084,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成员已重命名"
-          }
-        }
-      }
-    },
-    "ledgers.revoked" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoked"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已吊销"
           }
         }
       }
@@ -5660,23 +5525,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已移除成员"
-          }
-        }
-      }
-    },
-    "projects.members" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Members"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "成员"
           }
         }
       }
@@ -7614,6 +7462,12 @@
     },
     "onboarding.welcome" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7879,6 +7733,12 @@
     },
     "projects.leaveFooter" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will no longer see or record in this project."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7906,6 +7766,12 @@
     },
     "onboarding.firstLedger" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first ledger"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7950,6 +7816,12 @@
     },
     "onboarding.yourProfile" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your profile"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
