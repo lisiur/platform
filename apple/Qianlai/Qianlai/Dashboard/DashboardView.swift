@@ -7,10 +7,12 @@
 
 import SwiftUI
 
-/// Overview of the active ledger: month header above an expense summary
-/// card (income/net shown as text hints) and the month's entries — the
-/// same shared entry list the Journal uses, limited to a month window
-/// instead of exposing every filter.
+/// Overview of the active ledger: a pull-down system search field (the
+/// category picker's drawer search, querying the displayed month only), a
+/// scrolling month summary — month header, expense card, income/net hints
+/// — that travels with the month's entries on the same shared entry list
+/// the Journal uses, limited to a month window instead of exposing every
+/// filter.
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard
@@ -32,6 +34,12 @@ struct DashboardView: View {
     /// Month-window entry store; a local instance (injected below) so its
     /// filter window never clashes with the Journal tab's root store.
     @State private var entryStore = JournalStore()
+    /// System search field (pull-down drawer, like the category picker's):
+    /// hidden until pulled down, expands over the title when focused.
+    /// Writes go straight to the month store, whose reload task already
+    /// coalesces keystrokes — and whose request keeps the month window,
+    /// so it only ever searches the displayed month.
+    @State private var searchField = ""
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -103,14 +111,24 @@ struct DashboardView: View {
                             "dashboard.noEntriesThisMonth",
                             defaultValue: "No entries this month yet"
                         ),
-                        showsViewerShare: true
+                        showsViewerShare: true,
+                        topContent: AnyView(monthSummary)
                     )
-                    // Pinned above the list like the Journal's search
-                    // bar: takes the page's top padding instead of
-                    // scrolling away as a list row.
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        monthSummary
-                    }
+                    #if os(iOS)
+                    // Pull-down drawer search like the category picker's:
+                    // hidden until the list is pulled down, and it takes
+                    // over the page top (title included) while focused.
+                    .searchable(
+                        text: $searchField,
+                        placement: .navigationBarDrawer(displayMode: .automatic),
+                        prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
+                    )
+                    #else
+                    .searchable(
+                        text: $searchField,
+                        prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
+                    )
+                    #endif
                 }
             } else {
                 VStack(spacing: 28) {
@@ -141,6 +159,10 @@ struct DashboardView: View {
             }
         }
         .environment(entryStore)
+        // Large title like the assets page's, not the tab-chrome inline
+        // style. In project scope ProjectDetailView's own (hidden) title
+        // takes precedence.
+        .navigationTitle(Text(L10n.string("dashboard.title", defaultValue: "Dashboard")))
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
@@ -192,6 +214,9 @@ struct DashboardView: View {
             let window = AppDates.monthWindow(containing: month.start)
             entryStore.fromDate = window.from
             entryStore.toDate = window.to
+        }
+        .onChange(of: searchField) { _, newValue in
+            entryStore.searchQuery = newValue
         }
         .refreshable {
             if showsProjectDetail {
@@ -285,6 +310,9 @@ struct DashboardView: View {
         return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
+    /// The month header + expense card, mounted as the entry list's first
+    /// scrolling row (row background/insets cleared by EntryListView) so
+    /// it travels with the records instead of staying pinned.
     private var monthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -338,8 +366,9 @@ struct DashboardView: View {
             }
             .padding(.horizontal, 6)
         }
-        // Same outer spacing as the Journal's pinned search bar.
-        .padding(.horizontal, 16)
+        // Horizontal margins come from the inset-grouped list itself, so
+        // the summary lines up with the day cards below; vertical padding
+        // spaces it off the pinned search bar and the first card.
         .padding(.vertical, 8)
     }
 

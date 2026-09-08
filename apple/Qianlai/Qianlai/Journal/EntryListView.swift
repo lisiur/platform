@@ -24,6 +24,11 @@ struct EntryListView: View {
     /// Whether the "posting requires editor access" footnote renders.
     /// Statement drill-downs pass false — that page is read-only analysis.
     var showsPostHint = true
+    /// Optional content rendered as the list's first row (the dashboard's
+    /// month summary) so it scrolls away with the records instead of
+    /// staying pinned above them. Shown in every list state — loading,
+    /// error, empty — like pinned chrome would be.
+    var topContent: AnyView?
     /// Optional custom right-hand amount column for each row (settlement
     /// drill-downs: the member's share, the entry total, their paid line).
     /// Nil renders the standard headline.
@@ -46,7 +51,8 @@ struct EntryListView: View {
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
         showsViewerShare: Bool = false,
-        alwaysShowsPayer: Bool = false
+        alwaysShowsPayer: Bool = false,
+        topContent: AnyView? = nil
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
@@ -54,10 +60,20 @@ struct EntryListView: View {
         self.amountSection = amountSection
         self.showsViewerShare = showsViewerShare
         self.alwaysShowsPayer = alwaysShowsPayer
+        self.topContent = topContent
     }
 
     var body: some View {
         List {
+            // Scrolling header row (dashboard's month summary): chrome-free
+            // row so it scrolls away with the records; rendered in every
+            // state below, like pinned chrome was.
+            if let topContent {
+                topContent
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
             // Blocking spinner only before anything has ever loaded; later
             // refetches keep the current content (rows or empty state) until
             // the response replaces it atomically.

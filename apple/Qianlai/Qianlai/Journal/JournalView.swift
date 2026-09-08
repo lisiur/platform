@@ -17,14 +17,6 @@ struct JournalView: View {
     /// here used to refetch the same list the switcher had just loaded.
     @Environment(ProjectStore.self) private var appProjectStore
     @State private var memberStore = MemberStore()
-    /// Always-visible search field pinned above the list. Deliberately not
-    /// `.searchable`: the system search bar is glass chrome that re-lays-out
-    /// at the pull-to-refresh boundary on iOS 26 and visibly flashes, and it
-    /// offers no "always visible" behavior to pin it down. A plain field has
-    /// no chrome to animate.
-    @State private var searchField = ""
-
-    private let debouncer = Debouncer()
 
     var body: some View {
         Group {
@@ -63,51 +55,31 @@ struct JournalView: View {
         .onChange(of: scopedProject?.id) {
             syncScopeFilter()
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            searchBar
-        }
-        .onChange(of: searchField) { _, newValue in
-            debouncer.run {
-                store.searchQuery = newValue
-            }
-        }
-        // Keep the local field in step when the store resets it (Clear).
-        .onChange(of: store.searchQuery) { _, newValue in
-            if newValue != searchField {
-                // Cancel any pending debounced write or it would commit the
-                // pre-clear text right after this sync.
-                debouncer.cancel()
-                searchField = newValue
-            }
-        }
+        // Auto-collapsing drawer search (the dashboard's): hidden until the
+        // list is pulled down, expands over the title while focused. Bound
+        // straight to the store — its 200ms coalescing reload is the
+        // debounce, and the filter sheet's Clear updates the field for free.
+        #if os(iOS)
+        .searchable(
+            text: Binding(
+                get: { store.searchQuery },
+                set: { store.searchQuery = $0 }
+            ),
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
+        )
+        #else
+        .searchable(
+            text: Binding(
+                get: { store.searchQuery },
+                set: { store.searchQuery = $0 }
+            ),
+            prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
+        )
+        #endif
         .refreshable {
             await store.reload()
         }
-    }
-
-    /// The always-visible search field. Liquid Glass like the system search
-    /// bar it replaces, but pinned as page content — no search chrome, so
-    /// nothing re-lays-out or flashes at the pull-to-refresh boundary.
-    private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField(L10n.string("journal.search.placeholder", defaultValue: "Search…"), text: $searchField)
-            if !searchField.isEmpty {
-                Button {
-                    searchField = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .glassEffect(in: .capsule)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
     }
 
     private var filterButton: some View {
@@ -227,26 +199,5 @@ struct JournalView: View {
         if store.projectFilterId != scopedId {
             store.projectFilterId = scopedId
         }
-    }
-}
-
-/// Debounces search input so each keystroke doesn't fire a request.
-final class Debouncer: @unchecked Sendable {
-    private var task: Task<Void, Never>?
-
-    func run(delay: Duration = .milliseconds(350), action: @escaping @MainActor () -> Void) {
-        task?.cancel()
-        task = Task {
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                action()
-            }
-        }
-    }
-
-    func cancel() {
-        task?.cancel()
-        task = nil
     }
 }
