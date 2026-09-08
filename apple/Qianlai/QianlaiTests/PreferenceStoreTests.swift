@@ -11,10 +11,16 @@ import XCTest
 @MainActor
 final class PreferenceStoreTests: XCTestCase {
     private var store: PreferenceStore!
+    private var defaults: UserDefaults!
 
     override func setUp() async throws {
         try await super.setUp()
-        store = PreferenceStore()
+        // A throwaway suite per test: the store seeds from persisted tabs,
+        // so tests must not see each other's (or the host's) cache.
+        let suite = "PreferenceStoreTests"
+        UserDefaults.standard.removePersistentDomain(forName: suite)
+        defaults = UserDefaults(suiteName: suite)
+        store = PreferenceStore(defaults: defaults)
     }
 
     // MARK: - Tabs
@@ -134,6 +140,62 @@ final class PreferenceStoreTests: XCTestCase {
         store.configuredTabs = [.assets]
         store.apply(UserPreferencesResponse(user: nil, ledgers: [:], projects: [:]))
         XCTAssertNil(store.configuredTabs)
+    }
+
+    // MARK: - Tab cache (launch without flicker)
+
+    func testSeedsArrangementFromCache() {
+        defaults.set(["reports", "journal"], forKey: "qianlai.preferences.user.tabs")
+        let launched = PreferenceStore(defaults: defaults)
+        XCTAssertEqual(launched.configuredTabs, [.reports, .journal])
+        XCTAssertEqual(
+            launched.visibleTabs(isGuest: false, isProjectScoped: false),
+            [.dashboard, .reports, .journal, .profile]
+        )
+    }
+
+    func testCachedArrangementRunsThroughTheSameValidation() {
+        // Unknown values dropped + count clamped — a cache written by a
+        // newer client resolves exactly like a server payload would.
+        defaults.set(
+            ["kindle", "reports", "journal", "members"],
+            forKey: "qianlai.preferences.user.tabs"
+        )
+        XCTAssertEqual(
+            PreferenceStore(defaults: defaults).configuredTabs,
+            [.reports, .journal]
+        )
+        // A single survivor misses the 1–2 rule: fall back to defaults.
+        defaults.set(["members"], forKey: "qianlai.preferences.user.tabs")
+        XCTAssertNil(PreferenceStore(defaults: defaults).configuredTabs)
+    }
+
+    func testApplyMirrorsIntoCache() {
+        store.apply(UserPreferencesResponse(
+            user: TabsPreference(tabs: ["reports", "assets"]),
+            ledgers: [:],
+            projects: [:]
+        ))
+        XCTAssertEqual(
+            defaults.stringArray(forKey: "qianlai.preferences.user.tabs"),
+            ["reports", "assets"]
+        )
+        // A cleared config must not resurrect on the next launch.
+        store.apply(UserPreferencesResponse(user: nil, ledgers: [:], projects: [:]))
+        XCTAssertNil(defaults.stringArray(forKey: "qianlai.preferences.user.tabs"))
+    }
+
+    func testEveryMutationMirrorsIntoCache() {
+        // The optimistic local write (setTabs assigns before its request;
+        // a rollback re-assigns the previous value) flows through the same
+        // didSet, so the cache can be exercised without network.
+        store.configuredTabs = [.projects, .journal]
+        XCTAssertEqual(
+            defaults.stringArray(forKey: "qianlai.preferences.user.tabs"),
+            ["projects", "journal"]
+        )
+        store.configuredTabs = nil
+        XCTAssertNil(defaults.stringArray(forKey: "qianlai.preferences.user.tabs"))
     }
 
     func testApplyChipFieldsDropsUnknownFields() {

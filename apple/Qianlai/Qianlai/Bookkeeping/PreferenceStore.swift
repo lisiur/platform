@@ -12,11 +12,28 @@ import Observation
 /// and the quick-entry chip layout per ledger / project. Rows live under
 /// `bookkeeping/preferences`; a missing scope means "client default", so
 /// every read resolves through a fallback chain and a failed load silently
-/// keeps the defaults.
+/// keeps the defaults. The tab arrangement is also mirrored into
+/// UserDefaults: the bar renders before any fetch could land, so without
+/// the mirror every launch showed the shipped arrangement and swapped it
+/// when the response arrived — a visible flicker. With it, launch renders
+/// the last-known arrangement and the fetch only corrects it when the
+/// config actually changed elsewhere.
 @MainActor
 @Observable
 final class PreferenceStore {
     let client = APIClient.shared
+
+    private static let cachedTabsKey = "qianlai.preferences.user.tabs"
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        // Seed before the first render; didSet doesn't fire in init, so
+        // seeding never rewrites what was just read.
+        self.configuredTabs = defaults.stringArray(forKey: Self.cachedTabsKey)
+            .flatMap(Self.resolveTabs)
+    }
 
     /// Simultaneously visible configurable tabs — the bar holds dashboard
     /// plus these plus profile (the add pill is the tab bar's own). Capped
@@ -42,9 +59,31 @@ final class PreferenceStore {
     private(set) var isLoading = false
 
     /// User-scope tab arrangement (the configurable middle only); nil means
-    /// no config — `visibleTabs` falls back to `defaultTabs`. Internal so
-    /// tests can seed state without network.
-    var configuredTabs: [AppTab]?
+    /// no config — `visibleTabs` falls back to `defaultTabs`. Every mutation
+    /// (server apply, optimistic write, rollback) mirrors straight into
+    /// UserDefaults so the next launch starts from this exact state.
+    /// Internal setter so tests can seed state without network.
+    var configuredTabs: [AppTab]? {
+        didSet { Self.persist(configuredTabs, in: defaults) }
+    }
+
+    private static func persist(_ tabs: [AppTab]?, in defaults: UserDefaults) {
+        if let tabs {
+            defaults.set(tabs.map(\.rawValue), forKey: cachedTabsKey)
+        } else {
+            defaults.removeObject(forKey: cachedTabsKey)
+        }
+    }
+
+    /// Maps raw tab strings onto a valid arrangement — unknown values (a
+    /// newer client's config) are dropped rather than failing, and whatever
+    /// survives is clamped to the current rules. Shared by the server
+    /// payload and the local cache so both enter the UI identically
+    /// validated; nil means "client default".
+    private static func resolveTabs(_ raw: [String]) -> [AppTab]? {
+        let tabs = raw.compactMap(AppTab.init(rawValue:)).filter(\.isConfigurable)
+        return tabLimits.contains(tabs.count) ? tabs : nil
+    }
 
     /// Ledger/project-scope quick-entry chip arrangements. Presence IS the
     /// config — an empty array is meaningful (every field lives in the more
@@ -97,17 +136,13 @@ final class PreferenceStore {
         apply(response)
     }
 
-    /// Maps the payload onto state. Unknown tab/field raw values (a newer
+    /// Maps the payload onto state (the tab side lands in UserDefaults via
+    /// `configuredTabs`' didSet). Unknown tab/field raw values (a newer
     /// client's config read here) are dropped rather than failing the whole
     /// decode; what survives is clamped to the current rules. Internal so
     /// tests exercise those rules without network.
     func apply(_ response: UserPreferencesResponse) {
-        if let user = response.user {
-            let tabs = user.tabs.compactMap(AppTab.init(rawValue:)).filter(\.isConfigurable)
-            configuredTabs = Self.tabLimits.contains(tabs.count) ? tabs : nil
-        } else {
-            configuredTabs = nil
-        }
+        configuredTabs = response.user.flatMap { Self.resolveTabs($0.tabs) }
         ledgerChipFields = response.ledgers.mapValues {
             $0.quickEntry.chipFields.compactMap(QuickEntryField.init(rawValue:))
         }

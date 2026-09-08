@@ -70,8 +70,9 @@ struct QianlaiApp: App {
             }
             .task(id: authManager.isLoggedIn) {
                 // Ledgers load once per login; the switcher and views refresh
-                // from there. Preferences load alongside — the tab bar reads
-                // them and silently keeps defaults until the fetch lands.
+                // from there. Preferences load alongside — the tab bar
+                // renders the cached arrangement instantly and the fetch
+                // only corrects it when the config changed elsewhere.
                 if authManager.isLoggedIn {
                     await ledgerStore.load()
                     await preferenceStore.load()
