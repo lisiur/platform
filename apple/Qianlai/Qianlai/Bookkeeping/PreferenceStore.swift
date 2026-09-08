@@ -19,8 +19,10 @@ final class PreferenceStore {
     let client = APIClient.shared
 
     /// Simultaneously visible configurable tabs — the bar holds dashboard
-    /// plus these plus profile (the add pill is the tab bar's own).
-    static let tabLimits = 1...3
+    /// plus these plus profile (the add pill is the tab bar's own). Capped
+    /// at two so the bar never exceeds the system's five-item capacity and
+    /// never collapses into the system "More" page.
+    static let tabLimits = 1...2
 
     /// The shipped middle arrangement; also the fallback for invalid or
     /// empty payloads.

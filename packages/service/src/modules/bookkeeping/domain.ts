@@ -33,8 +33,8 @@ export const CONFIGURABLE_TABS = [
 ] as const;
 export type ConfigurableTab = (typeof CONFIGURABLE_TABS)[number];
 
-/** Simultaneously visible configurable tabs: the bar holds dashboard + 1..3 + profile (+ the fixed add pill). */
-export const TAB_LIMITS = { min: 1, max: 3 } as const;
+/** Simultaneously visible configurable tabs: the bar holds dashboard + 1..2 + profile (+ the fixed add pill) — capped so the system tab bar never collapses into its "More" page. */
+export const TAB_LIMITS = { min: 1, max: 2 } as const;
 
 /**
  * Quick-entry fields that can appear as calculator chips. Only chip-capable

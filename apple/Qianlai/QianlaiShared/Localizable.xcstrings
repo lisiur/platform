@@ -5154,13 +5154,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show 1–3 tabs; drag to reorder."
+            "value" : "Show 1–2 tabs; drag to reorder."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示 1–3 个,拖动调整顺序。"
+            "value" : "显示 1–2 个,拖动调整顺序。"
           }
         }
       }

@@ -39,7 +39,7 @@ struct TabCustomizationView: View {
             } footer: {
                 Text(L10n.string(
                     "preferences.tabs.footer",
-                    defaultValue: "Show 1–3 tabs; drag to reorder."
+                    defaultValue: "Show 1–2 tabs; drag to reorder."
                 ))
             }
         }
@@ -78,7 +78,7 @@ struct TabCustomizationView: View {
             }
             .opacity(isShown ? 1 : 0.45)
         }
-        // 1–3 visible: at three nothing may switch on, at one nothing may
+        // 1–2 visible: at two nothing may switch on, at one nothing may
         // switch off — disabled state makes the constraint visible instead
         // of silently snapping the switch back.
         .disabled(toggleIsDisabled(tab, isShown: isShown))

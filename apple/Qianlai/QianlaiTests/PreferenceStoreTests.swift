@@ -58,11 +58,11 @@ final class PreferenceStoreTests: XCTestCase {
         )
     }
 
-    func testOversizedConfigIsClampedToThree() {
+    func testOversizedConfigIsClampedToTwo() {
         store.configuredTabs = [.journal, .members, .assets, .projects, .reports]
         XCTAssertEqual(
             store.visibleTabs(isGuest: false, isProjectScoped: false),
-            [.dashboard, .journal, .members, .assets, .profile]
+            [.dashboard, .journal, .members, .profile]
         )
     }
 
@@ -107,14 +107,14 @@ final class PreferenceStoreTests: XCTestCase {
     // MARK: - Payload mapping
 
     func testApplyKeepsValidTabsAndDropsUnknownValues() {
-        // "kindle" is a future client's tab — dropped; the surviving three
-        // fit the 1–3 rule and land in the stored order.
+        // "kindle" is a future client's tab — dropped; the surviving two
+        // fit the 1–2 rule and land in the stored order.
         store.apply(UserPreferencesResponse(
-            user: TabsPreference(tabs: ["kindle", "reports", "journal", "members"]),
+            user: TabsPreference(tabs: ["kindle", "reports", "journal"]),
             ledgers: [:],
             projects: [:]
         ))
-        XCTAssertEqual(store.configuredTabs, [.reports, .journal, .members])
+        XCTAssertEqual(store.configuredTabs, [.reports, .journal])
     }
 
     func testApplyInvalidTabCountFallsBackToDefaults() {
