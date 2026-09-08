@@ -20,6 +20,37 @@ export const LEDGER_STATUSES = ["active", "archived"] as const;
 export type LedgerStatus = (typeof LEDGER_STATUSES)[number];
 
 /**
+ * Bottom-tab slots the user may show/hide and reorder. Dashboard is pinned
+ * first and Profile pinned last — they are deliberately NOT in this set, so
+ * the tab payload can never move or hide them.
+ */
+export const CONFIGURABLE_TABS = [
+  "journal",
+  "members",
+  "assets",
+  "projects",
+  "reports",
+] as const;
+export type ConfigurableTab = (typeof CONFIGURABLE_TABS)[number];
+
+/** Simultaneously visible configurable tabs: the bar holds dashboard + 1..3 + profile (+ the fixed add pill). */
+export const TAB_LIMITS = { min: 1, max: 3 } as const;
+
+/**
+ * Quick-entry fields that can appear as calculator chips. Only chip-capable
+ * fields qualify — paidBy/project/countsInLedger have no chip builders and
+ * always live in the more-fields form.
+ */
+export const QUICK_ENTRY_CHIP_FIELDS = [
+  "account",
+  "memo",
+  "time",
+  "participants",
+  "location",
+] as const;
+export type QuickEntryChipField = (typeof QUICK_ENTRY_CHIP_FIELDS)[number];
+
+/**
  * Journal line amounts are stored as DECIMAL(12, 2): the max single-line
  * value is 9,999,999,999.99 (999,999,999,999 cents). Anything larger must be
  * rejected with a 400 before it reaches the database as a numeric overflow.

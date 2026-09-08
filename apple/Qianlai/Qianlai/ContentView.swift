@@ -7,14 +7,26 @@
 
 import SwiftUI
 
-enum AppTab: Hashable {
+enum AppTab: String, Hashable, Codable {
     case dashboard
     case journal
     case members
+    case assets
+    case projects
+    case reports
     case profile
     /// Never an actual selection — identifies the add pill, whose tap is
     /// intercepted to present the quick-entry sheet instead of navigating.
     case quickAdd
+
+    /// The tab slots the user may show/hide and reorder. Dashboard is
+    /// pinned first and profile pinned last, so they are deliberately
+    /// absent — a stored arrangement can never move or hide them.
+    static let configurableCases: [AppTab] = [.journal, .members, .assets, .projects, .reports]
+
+    var isConfigurable: Bool {
+        Self.configurableCases.contains(self)
+    }
 
     var label: LocalizedStringResource {
         switch self {
@@ -36,6 +48,24 @@ enum AppTab: Hashable {
                 defaultValue: "Members",
                 comment: "Bottom tab: active ledger members (Chinese 成员)"
             )
+        case .assets:
+            LocalizedStringResource(
+                "tab.assets",
+                defaultValue: "Assets",
+                comment: "Bottom tab: real accounts and net worth (Chinese 资产)"
+            )
+        case .projects:
+            LocalizedStringResource(
+                "tab.projects",
+                defaultValue: "Projects",
+                comment: "Bottom tab: projects of the active ledger (Chinese 项目)"
+            )
+        case .reports:
+            LocalizedStringResource(
+                "tab.reports",
+                defaultValue: "Reports",
+                comment: "Bottom tab: ledger reports (Chinese 报表)"
+            )
         case .profile:
             LocalizedStringResource(
                 "tab.profile",
@@ -56,6 +86,9 @@ enum AppTab: Hashable {
         case .dashboard: "square.grid.2x2"
         case .journal: "list.bullet.rectangle"
         case .members: "person.2"
+        case .assets: "creditcard"
+        case .projects: "folder"
+        case .reports: "chart.pie"
         case .profile: "person.crop.circle"
         case .quickAdd: "plus"
         }
@@ -64,6 +97,26 @@ enum AppTab: Hashable {
 
 struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(ProjectStore.self) private var projectStore
+    @Environment(PreferenceStore.self) private var preferenceStore
+
+    /// The project currently claiming scope on the active ledger, if any.
+    private var scopedProject: QianlaiProject? {
+        guard let ledger = ledgerStore.activeLedger else { return nil }
+        return projectStore.scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest)
+    }
+
+    /// The rendered tab list: dashboard pinned first, profile pinned last,
+    /// the configurable middle from the user's saved arrangement. Guest
+    /// ledgers and project scopes render the fixed four instead — the
+    /// arrangement never applies there. The add pill is appended by each
+    /// platform's tab bar.
+    private var visibleTabs: [AppTab] {
+        preferenceStore.visibleTabs(
+            isGuest: ledgerStore.activeLedger?.isGuest ?? false,
+            isProjectScoped: scopedProject != nil
+        )
+    }
 
     var body: some View {
         Group {
@@ -72,34 +125,16 @@ struct ContentView: View {
                 Divider()
                 currentTab
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                AppTabBar(selection: tabSelection)
+                AppTabBar(selection: tabSelection, tabs: visibleTabs + [.quickAdd])
             }
             #else
             TabView(selection: tabSelection) {
-                Tab(AppTab.dashboard.label, systemImage: AppTab.dashboard.icon, value: AppTab.dashboard) {
-                    NavigationStack {
-                        tabPage(.dashboard)
-                    }
-                }
-                Tab(AppTab.journal.label, systemImage: AppTab.journal.icon, value: AppTab.journal) {
-                    NavigationStack {
-                        tabPage(.journal)
-                            .navigationTitle(Text(AppTab.journal.label))
-                            .inlineNavigationBarTitle()
-                    }
-                }
-                Tab(AppTab.members.label, systemImage: AppTab.members.icon, value: AppTab.members) {
-                    NavigationStack {
-                        tabPage(.members)
-                            .navigationTitle(Text(AppTab.members.label))
-                            .inlineNavigationBarTitle()
-                    }
-                }
-                Tab(AppTab.profile.label, systemImage: AppTab.profile.icon, value: AppTab.profile) {
-                    NavigationStack {
-                        tabPage(.profile)
-                            .navigationTitle(Text(AppTab.profile.label))
-                            .inlineNavigationBarTitle()
+                ForEach(visibleTabs, id: \.self) { tab in
+                    Tab(tab.label, systemImage: tab.icon, value: tab) {
+                        NavigationStack {
+                            tabPage(tab)
+                                .modifier(AppTabTitleChrome(tab: tab))
+                        }
                     }
                 }
                 // Apple Music-style trailing search pill: renders as a
@@ -168,9 +203,11 @@ struct ContentView: View {
     /// Rejects `.quickAdd` as a selection — tapping the pill presents the
     /// quick-entry sheet while the visible tab stays unchanged. Requires an
     /// editable active ledger, matching the floating button it replaced.
+    /// The getter also re-seats a selection that a preference load has just
+    /// hidden (e.g. synced config from another device) back to dashboard.
     private var tabSelection: Binding<AppTab> {
         Binding(
-            get: { tab },
+            get: { visibleTabs.contains(tab) ? tab : .dashboard },
             set: { newValue in
                 guard newValue != .quickAdd else {
                     tryPresentQuickAdd()
@@ -237,6 +274,9 @@ struct ContentView: View {
         case .dashboard: DashboardView()
         case .journal: JournalView()
         case .members: MembersTabPageView()
+        case .assets: RealAccountsView()
+        case .projects: ProjectsView()
+        case .reports: ReportsView()
         case .profile: ProfileView()
         case .quickAdd: Color.clear
         }
@@ -261,13 +301,33 @@ struct ContentView: View {
     }
 }
 
+/// Tab-embedded title chrome: journal/members/profile render bare pages
+/// whose titles live on the tab's navigation bar, while dashboard has its
+/// custom header and the assets/projects/reports pages set their own
+/// titles internally — those get no extra chrome.
+private struct AppTabTitleChrome: ViewModifier {
+    let tab: AppTab
+
+    func body(content: Content) -> some View {
+        switch tab {
+        case .journal, .members, .profile:
+            content
+                .navigationTitle(Text(tab.label))
+                .inlineNavigationBarTitle()
+        case .dashboard, .assets, .projects, .reports, .quickAdd:
+            content
+        }
+    }
+}
+
 #if os(macOS)
 /// WeChat-style bottom tab bar (macOS `TabView` only renders as a top
 /// toolbar).
 struct AppTabBar: View {
     @Binding var selection: AppTab
-
-    private let tabs = [AppTab.dashboard, .journal, .members, .profile, .quickAdd]
+    /// The rendered tabs, already preference-ordered; the add pill is
+    /// appended by the caller.
+    let tabs: [AppTab]
 
     var body: some View {
         HStack(spacing: 0) {

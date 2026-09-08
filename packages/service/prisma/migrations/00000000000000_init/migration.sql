@@ -952,6 +952,19 @@ CREATE TABLE "qianlai_journal_entry_participant" (
     CONSTRAINT "qianlai_journal_entry_participant_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "qianlai_user_preference" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "scopeType" TEXT NOT NULL,
+    "scopeId" TEXT NOT NULL DEFAULT '',
+    "data" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "qianlai_user_preference_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -1372,6 +1385,12 @@ CREATE INDEX "qianlai_journal_entry_participant_userId_idx" ON "qianlai_journal_
 -- CreateIndex
 CREATE UNIQUE INDEX "qianlai_journal_entry_participant_entryId_userId_key" ON "qianlai_journal_entry_participant"("entryId", "userId");
 
+-- CreateIndex
+CREATE INDEX "qianlai_user_preference_userId_idx" ON "qianlai_user_preference"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "qianlai_user_preference_userId_scopeType_scopeId_key" ON "qianlai_user_preference"("userId", "scopeType", "scopeId");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -1584,4 +1603,7 @@ ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_
 
 -- AddForeignKey
 ALTER TABLE "qianlai_journal_entry_participant" ADD CONSTRAINT "qianlai_journal_entry_participant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "qianlai_user_preference" ADD CONSTRAINT "qianlai_user_preference_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

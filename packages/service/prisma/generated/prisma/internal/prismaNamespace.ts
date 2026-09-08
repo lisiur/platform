@@ -457,7 +457,8 @@ export const ModelName = {
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
   JournalLine: 'JournalLine',
-  JournalEntryParticipant: 'JournalEntryParticipant'
+  JournalEntryParticipant: 'JournalEntryParticipant',
+  QianlaiUserPreference: 'QianlaiUserPreference'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -473,7 +474,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "project" | "projectMember" | "ledgerMember" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "project" | "projectMember" | "ledgerMember" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant" | "qianlaiUserPreference"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4991,6 +4992,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    QianlaiUserPreference: {
+      payload: Prisma.$QianlaiUserPreferencePayload<ExtArgs>
+      fields: Prisma.QianlaiUserPreferenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.QianlaiUserPreferenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.QianlaiUserPreferenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        findFirst: {
+          args: Prisma.QianlaiUserPreferenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.QianlaiUserPreferenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        findMany: {
+          args: Prisma.QianlaiUserPreferenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>[]
+        }
+        create: {
+          args: Prisma.QianlaiUserPreferenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        createMany: {
+          args: Prisma.QianlaiUserPreferenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.QianlaiUserPreferenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>[]
+        }
+        delete: {
+          args: Prisma.QianlaiUserPreferenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        update: {
+          args: Prisma.QianlaiUserPreferenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        deleteMany: {
+          args: Prisma.QianlaiUserPreferenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.QianlaiUserPreferenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.QianlaiUserPreferenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>[]
+        }
+        upsert: {
+          args: Prisma.QianlaiUserPreferenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QianlaiUserPreferencePayload>
+        }
+        aggregate: {
+          args: Prisma.QianlaiUserPreferenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateQianlaiUserPreference>
+        }
+        groupBy: {
+          args: Prisma.QianlaiUserPreferenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QianlaiUserPreferenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.QianlaiUserPreferenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QianlaiUserPreferenceCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5963,6 +6038,19 @@ export const JournalEntryParticipantScalarFieldEnum = {
 export type JournalEntryParticipantScalarFieldEnum = (typeof JournalEntryParticipantScalarFieldEnum)[keyof typeof JournalEntryParticipantScalarFieldEnum]
 
 
+export const QianlaiUserPreferenceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  scopeType: 'scopeType',
+  scopeId: 'scopeId',
+  data: 'data',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QianlaiUserPreferenceScalarFieldEnum = (typeof QianlaiUserPreferenceScalarFieldEnum)[keyof typeof QianlaiUserPreferenceScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -6403,6 +6491,7 @@ export type GlobalOmitConfig = {
   journalEntry?: Prisma.JournalEntryOmit
   journalLine?: Prisma.JournalLineOmit
   journalEntryParticipant?: Prisma.JournalEntryParticipantOmit
+  qianlaiUserPreference?: Prisma.QianlaiUserPreferenceOmit
 }
 
 /* Types for Logging */

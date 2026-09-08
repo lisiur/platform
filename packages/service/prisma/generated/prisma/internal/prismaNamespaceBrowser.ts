@@ -111,7 +111,8 @@ export const ModelName = {
   BookAccount: 'BookAccount',
   JournalEntry: 'JournalEntry',
   JournalLine: 'JournalLine',
-  JournalEntryParticipant: 'JournalEntryParticipant'
+  JournalEntryParticipant: 'JournalEntryParticipant',
+  QianlaiUserPreference: 'QianlaiUserPreference'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1061,6 +1062,19 @@ export const JournalEntryParticipantScalarFieldEnum = {
 } as const
 
 export type JournalEntryParticipantScalarFieldEnum = (typeof JournalEntryParticipantScalarFieldEnum)[keyof typeof JournalEntryParticipantScalarFieldEnum]
+
+
+export const QianlaiUserPreferenceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  scopeType: 'scopeType',
+  scopeId: 'scopeId',
+  data: 'data',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QianlaiUserPreferenceScalarFieldEnum = (typeof QianlaiUserPreferenceScalarFieldEnum)[keyof typeof QianlaiUserPreferenceScalarFieldEnum]
 
 
 export const SortOrder = {

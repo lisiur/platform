@@ -991,6 +991,78 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
     case countsInLedger
 
     var id: String { rawValue }
+
+    /// Display name for the chip customization UI — reuses each field's
+    /// existing copy key so the arrangement screen matches the form's
+    /// wording (only the account needs its own neutral label; the form
+    /// always names it by its expense/income side).
+    var label: LocalizedStringResource {
+        switch self {
+        case .account:
+            LocalizedStringResource(
+                "quick.field.account",
+                defaultValue: "Account",
+                comment: "Quick-entry field: the book account involved (Chinese 账户)"
+            )
+        case .memo:
+            LocalizedStringResource(
+                "quick.memo",
+                defaultValue: "Memo",
+                comment: "Quick-entry field: free-text note (Chinese 备注)"
+            )
+        case .time:
+            LocalizedStringResource(
+                "quick.time",
+                defaultValue: "Time",
+                comment: "Quick-entry field: entry date and time (Chinese 时间)"
+            )
+        case .participants:
+            LocalizedStringResource(
+                "quick.participants",
+                defaultValue: "Participants",
+                comment: "Quick-entry field: members the entry is shared with (Chinese 相关成员)"
+            )
+        case .location:
+            LocalizedStringResource(
+                "quick.location",
+                defaultValue: "Location",
+                comment: "Quick-entry field: place of the entry (Chinese 地点)"
+            )
+        case .paidBy:
+            LocalizedStringResource(
+                "quick.paidBy",
+                defaultValue: "Paid By",
+                comment: "Quick-entry field: who fronted the money (Chinese 付款人)"
+            )
+        case .project:
+            LocalizedStringResource(
+                "quick.project",
+                defaultValue: "Project",
+                comment: "Quick-entry field: project assignment (Chinese 项目)"
+            )
+        case .countsInLedger:
+            LocalizedStringResource(
+                "quick.countsInLedger",
+                defaultValue: "Count in Income & Expense",
+                comment: "Quick-entry toggle: include the entry in the ledger-wide totals (Chinese 计入收支)"
+            )
+        }
+    }
+
+    /// SF Symbol for the customization rows; the chips themselves build
+    /// their own richer capsules.
+    var icon: String {
+        switch self {
+        case .account: "banknote"
+        case .memo: "square.and.pencil"
+        case .time: "clock"
+        case .participants: "person.2"
+        case .location: "mappin"
+        case .paidBy: "person.crop.circle.badge.dollar"
+        case .project: "folder"
+        case .countsInLedger: "book"
+        }
+    }
 }
 
 /// Which quick-entry fields render as chips in the pinned bar and which

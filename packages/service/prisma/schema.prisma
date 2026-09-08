@@ -42,6 +42,7 @@ model User {
   qianlaiPaidJournalEntries JournalEntry[] @relation("QianlaiJournalEntryPayer")
   qianlaiProjectMemberships ProjectMember[] @relation("QianlaiProjectMember")
   qianlaiEntryParticipations JournalEntryParticipant[]
+  qianlaiPreferences  QianlaiUserPreference[] @relation("QianlaiUserPreference")
 
   @@unique([email])
   @@map("user")
@@ -1321,4 +1322,25 @@ model JournalEntryParticipant {
   @@unique([entryId, userId])
   @@index([userId])
   @@map("qianlai_journal_entry_participant")
+}
+
+// Per-user personalization preferences, one row per scope. `scopeType` is
+// "user" (app-level, scopeId ""), "ledger" or "project" (scopeId = the
+// ledger/project id) — preferences are PRIVATE to the user, so every ledger
+// member including guests can write their own. `data` holds the scope's
+// validated payload (user: { tabs }; ledger/project: { quickEntry }) — new
+// config namespaces extend the shape, never the table.
+model QianlaiUserPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("QianlaiUserPreference", fields: [userId], references: [id], onDelete: Cascade)
+  scopeType String
+  scopeId   String   @default("")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, scopeType, scopeId])
+  @@index([userId])
+  @@map("qianlai_user_preference")
 }

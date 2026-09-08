@@ -15,6 +15,7 @@ struct QianlaiApp: App {
     @State private var journalStore = JournalStore()
     @State private var reportStore = ReportStore()
     @State private var projectStore = ProjectStore()
+    @State private var preferenceStore = PreferenceStore()
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -52,6 +53,7 @@ struct QianlaiApp: App {
             .environment(journalStore)
             .environment(reportStore)
             .environment(projectStore)
+            .environment(preferenceStore)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
@@ -68,9 +70,11 @@ struct QianlaiApp: App {
             }
             .task(id: authManager.isLoggedIn) {
                 // Ledgers load once per login; the switcher and views refresh
-                // from there.
+                // from there. Preferences load alongside — the tab bar reads
+                // them and silently keeps defaults until the fetch lands.
                 if authManager.isLoggedIn {
                     await ledgerStore.load()
+                    await preferenceStore.load()
                 }
             }
         }

@@ -135,6 +135,9 @@ struct QuickEntryView: View {
     /// More-fields sheet behind the quick bar's trailing button: hosts
     /// every field the layout keeps out of the chip row.
     @State private var isMoreFieldsPresented = false
+    /// Chip-arrangement sheet, presented from the more-fields sheet's
+    /// leading toolbar button.
+    @State private var isChipCustomizationPresented = false
     /// Categories manage sheet behind the grid's trailing gear chip —
     /// the shared collapsible CategoriesManageView.
     @State private var isCategoryManagePresented = false
@@ -179,6 +182,8 @@ struct QuickEntryView: View {
     /// pins new entries to itself. (A local fetching instance here used to
     /// refetch the same list the switcher had just loaded.)
     @Environment(ProjectStore.self) private var appProjectStore
+    /// Source of the per-scope chip arrangement (`applyPreferenceLayout`).
+    @Environment(PreferenceStore.self) private var preferenceStore
 
     /// Whether the viewer is a guest on this ledger — restricts to expense
     /// entries inside their projects (kind picker and pay-side account row
@@ -424,7 +429,9 @@ struct QuickEntryView: View {
             #endif
         }
         // More-fields sheet behind the quick bar's trailing button: the
-        // layout's non-chip fields as one form.
+        // layout's non-chip fields as one form. The chip arrangement edit
+        // lives behind the leading toolbar button, presented as its own
+        // sheet on top.
         .sheet(isPresented: $isMoreFieldsPresented) {
             NavigationStack {
                 Form {
@@ -433,14 +440,47 @@ struct QuickEntryView: View {
                 .navigationTitle(Text(L10n.string("quick.more.title", defaultValue: "More")))
                 .inlineNavigationBarTitle()
                 .toolbar {
+                    if ledger != nil {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button {
+                                isChipCustomizationPresented = true
+                            } label: {
+                                Image(systemName: "slider.horizontal.3")
+                            }
+                            .accessibilityLabel(Text(L10n.string(
+                                "preferences.chips.title",
+                                defaultValue: "Customize Chips"
+                            )))
+                        }
+                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button(L10n.string("common.done", defaultValue: "Done")) { isMoreFieldsPresented = false }
+                    }
+                }
+                .sheet(isPresented: $isChipCustomizationPresented) {
+                    if let ledger {
+                        NavigationStack {
+                            ChipCustomizationView(
+                                ledgerId: ledger.id,
+                                projectId: binding?.projectId ?? scopedProject?.id
+                            )
+                        }
+                        #if os(iOS)
+                        .presentationDetents([.medium])
+                        #endif
                     }
                 }
             }
             #if os(iOS)
             .presentationDetents([.medium, .large])
             #endif
+        }
+        // Closing the more-fields sheet — the chip customization sheet
+        // included: re-read the stored arrangement so the bar behind
+        // reflects reorder/hide immediately.
+        .onChange(of: isMoreFieldsPresented) {
+            guard !isMoreFieldsPresented else { return }
+            applyPreferenceLayout()
         }
         // Categories manage sheet behind the grid's gear chip: the shared
         // collapsible CategoriesManageView (expense/income tabs, tree list)
@@ -568,13 +608,26 @@ struct QuickEntryView: View {
             applyGuestProjectDefault()
             applyScopedProjectDefault()
             applyBinding()
+            applyPreferenceLayout()
         }
         // The switcher inside this sheet can change the scope mid-edit:
         // follow it so a pinned entry never outlives its scope, and an
         // unscoped sheet picks the scope up as soon as one is claimed.
         .onChange(of: scopedProject?.id) {
             applyScopedProjectDefault()
+            applyPreferenceLayout()
         }
+    }
+
+    /// Re-reads the stored chip arrangement for the current quick-entry
+    /// scope — the bound project for widget sheets, else the scoped
+    /// project, else the ledger. Runs on ledger loads, scope switches, and
+    /// when the more sheet (hosting the chip customization sheet) closes.
+    private func applyPreferenceLayout() {
+        layout = preferenceStore.quickEntryLayout(
+            ledgerId: ledger?.id,
+            projectId: binding?.projectId ?? scopedProject?.id
+        )
     }
 
     /// The kind's category side as an icon grid — the common path for

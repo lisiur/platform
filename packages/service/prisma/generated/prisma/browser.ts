@@ -322,3 +322,8 @@ export type JournalLine = Prisma.JournalLineModel
  * 
  */
 export type JournalEntryParticipant = Prisma.JournalEntryParticipantModel
+/**
+ * Model QianlaiUserPreference
+ * 
+ */
+export type QianlaiUserPreference = Prisma.QianlaiUserPreferenceModel

@@ -20,6 +20,7 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(ProjectStore.self) private var projectStore
     @Environment(LocaleSettings.self) private var localeSettings
     @Environment(ToastCenter.self) private var toast
     @State private var store = ProfileStore()
@@ -32,6 +33,16 @@ struct ProfileView: View {
     /// they shouldn't see ledger-management chrome anywhere on this tab.
     private var isGuest: Bool {
         ledgerStore.activeLedger?.isGuest ?? false
+    }
+
+    /// The tab arrangement only applies to a plain ledger scope — guests
+    /// and project scopes render the fixed bar (same rule as the tab bar
+    /// itself), so the customization entry hides there.
+    private var isTabCustomizationAvailable: Bool {
+        guard let ledger = ledgerStore.activeLedger else { return true }
+        let isProjectScoped = projectStore
+            .scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) != nil
+        return !PreferenceStore.isTabBarFixed(isGuest: isGuest, isProjectScoped: isProjectScoped)
     }
 
     var body: some View {
@@ -160,6 +171,16 @@ struct ProfileView: View {
 
     private var languageSection: some View {
         Section(L10n.string("profile.settings", defaultValue: "Settings")) {
+            if isTabCustomizationAvailable {
+                NavigationLink {
+                    TabCustomizationView()
+                } label: {
+                    Label(
+                        L10n.string("preferences.tabs.title", defaultValue: "Customize Tabs"),
+                        systemImage: "slider.horizontal.3"
+                    )
+                }
+            }
             Picker(
                 selection: Binding(
                     get: { localeSettings.identifier },
