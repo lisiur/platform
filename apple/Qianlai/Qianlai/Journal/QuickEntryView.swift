@@ -475,11 +475,15 @@ struct QuickEntryView: View {
             .presentationDetents([.medium, .large])
             #endif
         }
-        // Closing the more-fields sheet — the chip customization sheet
-        // included: re-read the stored arrangement so the bar behind
-        // reflects reorder/hide immediately.
+        // Closing the more-fields sheet, or its nested chip-customization
+        // sheet: re-read the stored arrangement so the bar behind AND the
+        // more sheet's own rows reflect reorder/hide immediately.
         .onChange(of: isMoreFieldsPresented) {
             guard !isMoreFieldsPresented else { return }
+            applyPreferenceLayout()
+        }
+        .onChange(of: isChipCustomizationPresented) {
+            guard !isChipCustomizationPresented else { return }
             applyPreferenceLayout()
         }
         // Categories manage sheet behind the grid's gear chip: the shared
@@ -1288,9 +1292,10 @@ struct QuickEntryView: View {
             : draft.memo
     }
 
-    /// Account chip: the side's title while nothing is picked ("收款账户"),
-    /// the account's emoji + display name once picked — mirroring the
-    /// picker rows the chip opens.
+    /// Account chip: a placeholder banknote icon + the side's title while
+    /// nothing is picked ("支付账户") — matching the icon+text look of the
+    /// other quick chips — and the account's emoji + display name once
+    /// picked, mirroring the picker rows the chip opens.
     private func accountChip(
         title: String,
         side: AccountSide,
@@ -1311,9 +1316,14 @@ struct QuickEntryView: View {
                             .lineLimit(1)
                     }
                 } else {
-                    Text(title)
-                        .font(.footnote)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Image(systemName: "banknote")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(title)
+                            .font(.footnote)
+                            .lineLimit(1)
+                    }
                 }
             }
             .padding(.horizontal, 10)
