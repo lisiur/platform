@@ -47,7 +47,6 @@ struct MembersView: View {
             membersSection
         }
         .navigationTitle(Text(L10n.string("members.title", defaultValue: "Members")))
-        .inlineNavigationBarTitle()
         .toolbar {
             // Everything the caller can do to grow the current scope,
             // behind one plus menu: invite (project manage / ledger owner),

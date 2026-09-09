@@ -402,10 +402,10 @@ struct ContentView: View {
 }
 
 
-/// Tab-embedded title chrome: members renders a bare page whose title
-/// lives on the tab's navigation bar inline, while the dashboard, journal,
-/// profile, and the assets/projects/reports pages set their own large
-/// titles internally — those get no extra chrome.
+/// Tab-embedded title chrome: members renders a bare page whose title is
+/// supplied here (the tab's empty state mounts no view that sets one),
+/// while the dashboard, journal, profile, and the assets/projects/reports
+/// pages set their own large titles internally — those get no extra chrome.
 private struct AppTabTitleChrome: ViewModifier {
     let tab: AppTab
 
@@ -414,7 +414,6 @@ private struct AppTabTitleChrome: ViewModifier {
         case .members:
             content
                 .navigationTitle(Text(tab.label))
-                .inlineNavigationBarTitle()
         case .dashboard, .journal, .assets, .projects, .reports, .profile, .quickAdd:
             content
         }

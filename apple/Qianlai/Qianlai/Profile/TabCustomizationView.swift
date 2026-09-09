@@ -51,7 +51,6 @@ struct TabCustomizationView: View {
             }
         }
         .navigationTitle(Text(L10n.string("preferences.tabs.title", defaultValue: "Customize Tabs")))
-        .inlineNavigationBarTitle()
         .task { syncFromStore() }
     }
 
