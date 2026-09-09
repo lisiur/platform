@@ -525,7 +525,10 @@ struct EntryRow: View {
     /// The headline amount carries the entry's money flow: an expense
     /// category line makes it negative, an income line positive; transfers
     /// (no category line) stay unsigned. Zero shares render plain so a
-    /// non-participant never sees "−¥0.00".
+    /// non-participant never sees "−¥0.00". The sign is prepended to the
+    /// bare magnitude — `Money.format` emits its own leading minus for
+    /// negatives, and viewer shares are signed (an income entry shares
+    /// negative), so feeding them in verbatim renders "+-¥12.00".
     private var headlineAmount: (text: String, color: Color) {
         let value = displayAmount
         if value == 0 {
@@ -533,9 +536,9 @@ struct EntryRow: View {
         }
         switch categoryLine?.account.type {
         case .expense:
-            return ("−\(Money.format(value, currency: currency))", .expense)
+            return ("−\(Money.format(abs(value), currency: currency))", .expense)
         case .income:
-            return ("+\(Money.format(value, currency: currency))", .income)
+            return ("+\(Money.format(abs(value), currency: currency))", .income)
         default:
             return (Money.format(value, currency: currency), .primary)
         }
