@@ -315,7 +315,7 @@ struct DashboardView: View {
     /// EntryListView.
     private var sortMenu: some View {
         Menu {
-            sortMenuItem(.date, title: L10n.string("dashboard.sortByDate", defaultValue: "By date"))
+            sortMenuItem(.date, title: L10n.string("dashboard.sortDefault", defaultValue: "Default"))
             sortMenuItem(
                 .amountDescending,
                 title: L10n.string("dashboard.sortAmountDesc", defaultValue: "Amount: high to low")
@@ -326,19 +326,77 @@ struct DashboardView: View {
             )
         } label: {
             Image(systemName: "arrow.up.arrow.down")
+                // Tint mirrors the filter chip: black at the default order,
+                // accent while a non-default sort is in effect.
+                .foregroundStyle(
+                    entryStore.sort == .date
+                        ? AnyShapeStyle(Color.primary)
+                        : AnyShapeStyle(Color.accentColor)
+                )
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(Color.primary.opacity(0.06)))
         }
         .accessibilityLabel(L10n.string("dashboard.sort", defaultValue: "Sort"))
     }
 
-    /// One ordering option; the active one carries the checkmark (the
-    /// menu-selection pattern the members page uses).
+    /// One ordering option. The default `.date` never carries the
+    /// checkmark — it's the list's natural state, so only a deviation from
+    /// it (an amount order) gets marked.
     private func sortMenuItem(_ sort: JournalStore.EntrySort, title: String) -> some View {
         Button {
             entryStore.sort = sort
         } label: {
-            if entryStore.sort == sort {
+            if entryStore.sort == sort, sort != .date {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
+        }
+    }
+
+    /// Month-list kind filter menu, left of the sort menu on the month
+    /// header's trailing edge. Writes go to the month store whose kind
+    /// change schedules the reload; the active kind carries the checkmark
+    /// like the sort menu's selection pattern.
+    private var filterMenu: some View {
+        Menu {
+            filterMenuItem(
+                nil,
+                title: L10n.string("dashboard.filterAll", defaultValue: "All")
+            )
+            filterMenuItem(
+                .expense,
+                title: L10n.string("quick.kind.expense", defaultValue: "Expense")
+            )
+            filterMenuItem(
+                .income,
+                title: L10n.string("quick.kind.income", defaultValue: "Income")
+            )
+            filterMenuItem(
+                .transfer,
+                title: L10n.string("quick.kind.transfer", defaultValue: "Transfer")
+            )
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+                // Activity is conveyed by tint alone, never a swapped
+                // symbol (the Journal's filter button).
+                .foregroundStyle(
+                    entryStore.kind == nil
+                        ? AnyShapeStyle(Color.primary)
+                        : AnyShapeStyle(Color.accentColor)
+                )
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Color.primary.opacity(0.06)))
+        }
+        .accessibilityLabel(L10n.string("dashboard.filter", defaultValue: "Filter"))
+    }
+
+    /// One kind option; nil is the unfiltered list.
+    private func filterMenuItem(_ kind: QuickEntryKind?, title: String) -> some View {
+        Button {
+            entryStore.kind = kind
+        } label: {
+            if entryStore.kind == kind {
                 Label(title, systemImage: "checkmark")
             } else {
                 Text(title)
@@ -359,8 +417,8 @@ struct DashboardView: View {
     /// it travels with the records instead of staying pinned.
     private var monthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Arrows hug the title as one leading group; the sort menu
-            // occupies the trailing space.
+            // Arrows hug the title as one leading group; the filter and
+            // sort menus occupy the trailing space.
             HStack(spacing: 8) {
                 Button {
                     selectedMonth = selectedMonth.previous
@@ -384,6 +442,8 @@ struct DashboardView: View {
                 .buttonStyle(.borderless)
                 .disabled(selectedMonth >= YearMonth.current)
                 Spacer()
+                filterMenu
+                    .buttonStyle(.borderless)
                 sortMenu
                     .buttonStyle(.borderless)
             }

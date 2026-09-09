@@ -1,6 +1,10 @@
 import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
-import { type AccountType, accountCodesMatchingLabel } from "./domain";
+import {
+  type AccountType,
+  accountCodesMatchingLabel,
+  type EntryKind,
+} from "./domain";
 
 export type EntryWindow = {
   from?: Date;
@@ -13,6 +17,11 @@ export type EntryWindow = {
   accountId?: string;
   /** Restrict to entries with a line against an account of this type (statement flow drill-down). */
   accountType?: AccountType;
+  /**
+   * Restrict to one entry kind, classified the way clients render entries
+   * (the dashboard's expense/income/transfer filter).
+   */
+  kind?: EntryKind;
   /**
    * Restrict to entries that involve this user in settlement terms: created
    * by them, tagged with them as a participant, or untagged — untagged
@@ -61,6 +70,32 @@ const participantInclude = {
   },
 } as const satisfies Prisma.JournalEntryParticipantInclude;
 
+/**
+ * The lines clause implementing one entry kind. Classification mirrors the
+ * clients' rendering (an expense line wins over an income line): "income"
+ * excludes entries that also carry an expense line, and "transfer" means
+ * neither an expense nor an income line — only pocket-to-pocket movement.
+ */
+export function entryKindLines(kind: EntryKind): Prisma.JournalEntryWhereInput {
+  switch (kind) {
+    case "expense":
+      return { lines: { some: { account: { type: "expense" } } } };
+    case "income":
+      return {
+        lines: {
+          some: { account: { type: "income" } },
+          none: { account: { type: "expense" } },
+        },
+      };
+    case "transfer":
+      return {
+        lines: {
+          none: { account: { type: { in: ["expense", "income"] as const } } },
+        },
+      };
+  }
+}
+
 const entryInclude = {
   lines: { include: { account: true } },
   participants: { include: participantInclude },
@@ -80,6 +115,36 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   // code text. Translate a query that hits a localized label into those
   // codes to restore category search for both languages.
   const labelMatchedCodes = window.q ? accountCodesMatchingLabel(window.q) : [];
+  // AND-wrapped predicates, collected so several can coexist (memberUserId
+  // and the kind filter are independent).
+  const andFilters: Prisma.JournalEntryWhereInput[] = [];
+  if (window.memberUserId) {
+    // The untagged branch requires current project membership: untagged
+    // splits run across current members, so entries a departed member's
+    // settlement math never touched must not appear in their drill-down.
+    // An entry the member paid for but didn't create (or vice versa) is
+    // settlement-relevant to them either way, hence the two actor branches.
+    andFilters.push({
+      OR: [
+        { createdById: window.memberUserId },
+        { paidById: window.memberUserId },
+        {
+          participants: {
+            some: { userId: window.memberUserId },
+          },
+        },
+        {
+          participants: { none: {} },
+          project: {
+            members: { some: { userId: window.memberUserId } },
+          },
+        },
+      ],
+    });
+  }
+  if (window.kind) {
+    andFilters.push(entryKindLines(window.kind));
+  }
   return {
     ledgerId,
     // The ledger-activity predicate scopes LEDGER-WIDE surfaces only
@@ -111,35 +176,8 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
           },
         }
       : {}),
-    // AND-wrapped so the OR never collides with `q`'s own top-level OR.
-    // The untagged branch requires current project membership: untagged
-    // splits run across current members, so entries a departed member's
-    // settlement math never touched must not appear in their drill-down.
-    // An entry the member paid for but didn't create (or vice versa) is
-    // settlement-relevant to them either way, hence the two actor branches.
-    ...(window.memberUserId
-      ? {
-          AND: [
-            {
-              OR: [
-                { createdById: window.memberUserId },
-                { paidById: window.memberUserId },
-                {
-                  participants: {
-                    some: { userId: window.memberUserId },
-                  },
-                },
-                {
-                  participants: { none: {} },
-                  project: {
-                    members: { some: { userId: window.memberUserId } },
-                  },
-                },
-              ],
-            },
-          ],
-        }
-      : {}),
+    // AND-wrapped so the ORs never collide with `q`'s own top-level OR.
+    ...(andFilters.length ? { AND: andFilters } : {}),
     ...(window.scopeProjectIds
       ? { projectId: { in: window.scopeProjectIds } }
       : {}),

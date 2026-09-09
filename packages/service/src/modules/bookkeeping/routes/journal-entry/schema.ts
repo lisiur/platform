@@ -4,7 +4,7 @@ import {
   errorSchema,
   paginationQuerySchema,
 } from "#lib/openapi";
-import { ACCOUNT_TYPES, MAX_LINE_AMOUNT } from "../../domain";
+import { ACCOUNT_TYPES, ENTRY_KINDS, MAX_LINE_AMOUNT } from "../../domain";
 
 export { deleteSuccessSchema, errorSchema };
 
@@ -157,6 +157,10 @@ export const listEntriesQuerySchema = paginationQuerySchema
     accountType: z.enum(ACCOUNT_TYPES).optional().openapi({
       description:
         "Only entries with a line against an account of this type (statement flow drill-down: expense vs income totals).",
+    }),
+    kind: z.enum(ENTRY_KINDS).optional().openapi({
+      description:
+        "Filters entries by kind, classified the way clients render them: an expense line makes an entry an expense, otherwise an income line makes it income, and an entry with neither is a transfer. Absent lists every kind.",
     }),
     memberUserId: z.string().optional().openapi({
       description:

@@ -54,6 +54,11 @@ final class JournalStore {
     /// or paid for by them, tagged with them, or untagged (split across all
     /// members).
     var memberUserId: String? { didSet { scheduleReload() } }
+    /// Entry-kind filter (the dashboard's month-header menu): classified
+    /// the way rows render them — an expense line makes the entry an
+    /// expense, otherwise an income line makes it income, otherwise it is
+    /// a transfer. nil lists every kind.
+    var kind: QuickEntryKind? { didSet { scheduleReload() } }
     /// Entry scope of the ledger-wide list: true (default) lists every
     /// activity entry — member kept-in, guest posts, and entries the
     /// creator opted out of the ledger's books (e.g. repayments); false
@@ -140,6 +145,7 @@ final class JournalStore {
                     account: accountId,
                     accountType: accountType,
                     member: memberUserId,
+                    kind: kind,
                     includeExcluded: includeExcluded,
                     sort: sort
                 )
@@ -184,6 +190,7 @@ final class JournalStore {
                     account: accountId,
                     accountType: accountType,
                     member: memberUserId,
+                    kind: kind,
                     includeExcluded: includeExcluded,
                     sort: sort
                 )
@@ -288,6 +295,7 @@ final class JournalStore {
         if accountId != nil { accountId = nil }
         if accountType != nil { accountType = nil }
         if memberUserId != nil { memberUserId = nil }
+        if kind != nil { kind = nil }
         if !includeExcluded { includeExcluded = true }
         suppressReload = false
         scheduleReload()
@@ -304,7 +312,7 @@ final class JournalStore {
     }
 
     var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || !includeExcluded
+        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || kind != nil || !includeExcluded
     }
 
     private static func query(
@@ -318,6 +326,7 @@ final class JournalStore {
         account: String?,
         accountType: String?,
         member: String?,
+        kind: QuickEntryKind?,
         includeExcluded: Bool,
         sort: EntrySort
     ) -> String {
@@ -332,6 +341,7 @@ final class JournalStore {
             ("accountId", account),
             ("accountType", accountType),
             ("memberUserId", member),
+            ("kind", kind?.rawValue),
             ("includeExcluded", includeExcluded ? "true" : nil),
             ("sort", sort == .date ? nil : "amount"),
             ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : nil),

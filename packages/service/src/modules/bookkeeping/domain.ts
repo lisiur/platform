@@ -9,6 +9,14 @@ export const ACCOUNT_TYPES = [
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 /**
+ * Entry-kind filter for the journal list, classified the way clients render
+ * entries: an expense line makes the entry an expense, otherwise an income
+ * line makes it income, otherwise it is a transfer (pocket-to-pocket only).
+ */
+export const ENTRY_KINDS = ["expense", "income", "transfer"] as const;
+export type EntryKind = (typeof ENTRY_KINDS)[number];
+
+/**
  * Account types a RealAccount (owner-private master of a real-world
  * asset/liability) can represent — and whose BookAccount pockets may link to
  * one. Income/expense/equity are ledger-local by design.

@@ -61,6 +61,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
         projectId,
         accountId: query.accountId,
         accountType: query.accountType,
+        kind: query.kind,
         memberUserId: query.memberUserId,
         scopeProjectIds,
         includeExcluded: query.includeExcluded === "true" || undefined,

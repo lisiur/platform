@@ -5,7 +5,7 @@ vi.mock("#lib/db", () => ({
   prisma: {},
 }));
 
-import { orderByAmount } from "../journal.repository";
+import { entryKindLines, orderByAmount } from "../journal.repository";
 
 function row(
   entryId: string,
@@ -112,5 +112,30 @@ describe("orderByAmount", () => {
     ];
     orderByAmount(rows, "desc");
     expect(rows.map((r) => r.entryId)).toEqual(["a", "b"]);
+  });
+});
+
+describe("entryKindLines", () => {
+  it("matches any expense line for kind=expense", () => {
+    expect(entryKindLines("expense")).toEqual({
+      lines: { some: { account: { type: "expense" } } },
+    });
+  });
+
+  it("kind=income excludes entries that also carry an expense line", () => {
+    expect(entryKindLines("income")).toEqual({
+      lines: {
+        some: { account: { type: "income" } },
+        none: { account: { type: "expense" } },
+      },
+    });
+  });
+
+  it("kind=transfer requires neither an expense nor an income line", () => {
+    expect(entryKindLines("transfer")).toEqual({
+      lines: {
+        none: { account: { type: { in: ["expense", "income"] } } },
+      },
+    });
   });
 });
