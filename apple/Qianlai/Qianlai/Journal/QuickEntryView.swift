@@ -294,7 +294,7 @@ struct QuickEntryView: View {
                     draft.debitAccountId = nil
                     draft.creditAccountId = nil
                     validationError = nil
-                    applyExpenseCategoryDefault()
+                    applyCategoryDefault()
                 }
             }
 
@@ -614,7 +614,7 @@ struct QuickEntryView: View {
                 await appProjectStore.prefetch(ledgerId: ledger.id)
             }
             await postingJournal.load(ledgerId: ledger.id)
-            applyExpenseCategoryDefault()
+            applyCategoryDefault()
             applyGuestProjectDefault()
             applyScopedProjectDefault()
             applyBinding()
@@ -1640,26 +1640,49 @@ struct QuickEntryView: View {
         RecentCategoryStore.record(id, ledgerId: ledger.id, kind: draft.kind)
     }
 
-    /// The expense category to prefill: the one on the most recent expense
-    /// entry in the journal — repeated spending is the common case — falling
-    /// back to the first category in picker order for a fresh ledger.
-    private var defaultExpenseCategoryId: String? {
-        let categories = AccountTreeEntry.build(accountStore.pickable.filter { $0.type == .expense })
-        let categoryIds = Set(categories.map(\.account.id))
-        // Entries are newest-first; the debit line of an expense is its category.
-        for entry in postingJournal.entries {
-            if let line = entry.lines.first(where: { $0.debit > 0 && categoryIds.contains($0.accountId) }) {
-                return line.accountId
+    /// The kind's category to prefill: the one on the most recent entry of
+    /// the same kind in the journal — repeated spending/earning is the
+    /// common case — falling back to the first leaf category in picker
+    /// order for a fresh ledger. Only leaves are pickable in the grid, so
+    /// parents never prefill: a posted category that has since gained subs
+    /// is skipped in the scan the same way.
+    private var defaultCategoryId: String? {
+        let parentIds = Set(categoryTree.compactMap(\.account.parentId))
+        let leafIds = Set(categoryTree.map(\.account.id)).subtracting(parentIds)
+        // Entries are newest-first; the kind's category line is the debit
+        // side for expenses, the credit side for incomes.
+        switch draft.kind {
+        case .expense:
+            for entry in postingJournal.entries {
+                if let line = entry.lines.first(where: { $0.debit > 0 && leafIds.contains($0.accountId) }) {
+                    return line.accountId
+                }
             }
+        case .income:
+            for entry in postingJournal.entries {
+                if let line = entry.lines.first(where: { $0.credit > 0 && leafIds.contains($0.accountId) }) {
+                    return line.accountId
+                }
+            }
+        case .transfer:
+            break
         }
-        return categories.first?.account.id
+        return categoryTree.first(where: { leafIds.contains($0.account.id) })?.account.id
     }
 
-    /// Seeds the expense category once accounts are in; an explicit pick is
-    /// never overwritten, and no-op for the other scenarios.
-    private func applyExpenseCategoryDefault() {
-        guard draft.kind == .expense, draft.debitAccountId == nil else { return }
-        draft.debitAccountId = defaultExpenseCategoryId
+    /// Seeds the kind's category once accounts are in; an explicit pick is
+    /// never overwritten, and no-op for transfer.
+    private func applyCategoryDefault() {
+        switch draft.kind {
+        case .expense:
+            guard draft.debitAccountId == nil else { return }
+            draft.debitAccountId = defaultCategoryId
+        case .income:
+            guard draft.creditAccountId == nil else { return }
+            draft.creditAccountId = defaultCategoryId
+        case .transfer:
+            break
+        }
     }
 
     /// A guest's only project pre-fills the assignment so they only have to
