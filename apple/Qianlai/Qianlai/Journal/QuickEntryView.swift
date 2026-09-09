@@ -281,7 +281,10 @@ struct QuickEntryView: View {
                 }
                 .pickerStyle(.segmented)
                 .controlSize(.regular)
-                .padding(.horizontal, 16)
+                // Hug the segment titles instead of stretching edge to
+                // edge; the infinite frame centers the hugged control.
+                .fixedSize()
+                .frame(maxWidth: .infinity)
                 // Breathing gap to the form below (the VStack spacing is
                 // zero so the form meets the calculator flush).
                 .padding(.bottom, 8)
@@ -668,7 +671,7 @@ struct QuickEntryView: View {
 
                 LazyVGrid(
                     // Five tight columns: more categories per row without
-                    // crowding the 44pt icon circles.
+                    // crowding the 48pt icon circles.
                     columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5),
                     spacing: 10
                 ) {
@@ -684,10 +687,23 @@ struct QuickEntryView: View {
                         categoryManageChip
                     }
                 }
+                // Zero horizontal insets let the grid span the grouped
+                // card edge to edge — the card's own screen margin then
+                // matches the pinned calculator's 16pt outer padding,
+                // instead of the default row insets pushing the icons
+                // another step in. Vertical keeps the system's ~19pt row
+                // rhythm so the recents separator keeps its breathing
+                // room on both sides.
+                .listRowInsets(EdgeInsets(top: 19, leading: 0, bottom: 19, trailing: 0))
                 .listRowBackground(Color.clear)
             }
         }
     }
+
+    /// Main-grid icon circle diameter — a step above the sub-picker
+    /// bubble's 44pt default so the always-visible grid reads a touch
+    /// bigger; the more/manage chips match.
+    private static let gridIconDiameter: CGFloat = 48
 
     /// Icon-over-name grid cell: a tinted circle carries the category's
     /// emoji (or a fallback glyph when it has none); the picked category's
@@ -716,10 +732,16 @@ struct QuickEntryView: View {
                     hasSubs: !subs.isEmpty,
                     icon: leaf.account.icon,
                     name: ([entry.account.displayName] + subPath.map(\.account.displayName))
-                        .joined(separator: "-")
+                        .joined(separator: "-"),
+                    diameter: Self.gridIconDiameter
                 )
             } else {
-                categoryCellLabel(entry, isSelected: isSelected, hasSubs: !subs.isEmpty)
+                categoryCellLabel(
+                    entry,
+                    isSelected: isSelected,
+                    hasSubs: !subs.isEmpty,
+                    diameter: Self.gridIconDiameter
+                )
             }
         }
         .buttonStyle(.plain)
@@ -747,12 +769,13 @@ struct QuickEntryView: View {
         isSelected: Bool,
         hasSubs: Bool,
         icon: String? = nil,
-        name: String? = nil
+        name: String? = nil,
+        diameter: CGFloat = 44
     ) -> some View {
         let displayIcon = icon ?? entry.account.icon
         let displayName = name ?? entry.account.displayName
         return VStack(spacing: 6) {
-            categoryIcon(displayIcon, diameter: 44, isSelected: isSelected)
+            categoryIcon(displayIcon, diameter: diameter, isSelected: isSelected)
                 .overlay(alignment: .bottomTrailing) {
                     if hasSubs {
                         subIndicatorBadge
@@ -887,8 +910,8 @@ struct QuickEntryView: View {
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 22))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 24))
+                    .frame(width: 48, height: 48)
                     .background(Circle().fill(Color.primary.opacity(0.06)))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.more", defaultValue: "More"))
@@ -910,8 +933,8 @@ struct QuickEntryView: View {
         } label: {
             VStack(spacing: 6) {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 22))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 24))
+                    .frame(width: 48, height: 48)
                     .background(Circle().fill(Color.primary.opacity(0.06)))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.manage", defaultValue: "Manage"))

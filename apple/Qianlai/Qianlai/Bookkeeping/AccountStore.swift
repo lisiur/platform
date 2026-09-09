@@ -23,6 +23,16 @@ final class AccountStore {
     /// switch racing a late response.
     private(set) var ledgerId: String?
 
+    init() {
+        #if DEBUG
+        // Screenshot harness: pre-seed the sample chart so the quick-entry
+        // grid renders offline (the matching ledger id also skips `load`).
+        if ProcessInfo.processInfo.arguments.contains("--ui-demo-quick-entry") {
+            seedForDemo(Self.demoAccounts)
+        }
+        #endif
+    }
+
     func load(ledgerId: String, force: Bool = false) async {
         guard force || self.ledgerId != ledgerId || items.isEmpty else { return }
         self.ledgerId = ledgerId
@@ -46,6 +56,43 @@ final class AccountStore {
         guard let ledgerId else { return }
         await load(ledgerId: ledgerId, force: true)
     }
+
+    #if DEBUG
+    /// Screenshot-harness seeding (`--ui-demo-quick-entry`): fills the tree
+    /// with sample accounts so the quick-entry grid renders without a
+    /// backend; the demo ledger id keeps `load` from ever hitting the API.
+    func seedForDemo(_ accounts: [BookAccount]) {
+        ledgerId = accounts.first?.ledgerId
+        items = accounts
+    }
+
+    /// Sample expense chart + money pockets for `seedForDemo`.
+    static let demoAccounts: [BookAccount] = [
+        ("demo-food", "吃饭", "🍜"),
+        ("demo-groceries", "生鲜果蔬", "🛒"),
+        ("demo-transport", "交通", "🚇"),
+        ("demo-housing", "居家", "🏠"),
+        ("demo-shopping", "购物", "🛍️"),
+        ("demo-fun", "娱乐", "🎬"),
+        ("demo-health", "医疗", "🏥"),
+        ("demo-learn", "学习", "📚"),
+    ].map { id, name, icon in
+        BookAccount(
+            id: id,
+            ledgerId: "demo-ledger",
+            name: name,
+            code: nil,
+            type: .expense,
+            sortOrder: 0,
+            parentId: nil,
+            status: "active",
+            icon: icon,
+            flags: nil,
+            meta: nil,
+            createdAt: .now
+        )
+    }
+    #endif
 
     // MARK: - Derived lists
 

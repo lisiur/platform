@@ -34,6 +34,8 @@ struct QianlaiApp: App {
                     LocationPickerSheet(initialLocation: nil) { _ in }
                 } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-category-picker") {
                     CategoryPickerDemo()
+                } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-quick-entry") {
+                    QuickEntryDemoScreen()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -85,6 +87,40 @@ struct QianlaiApp: App {
         .windowResizability(.contentMinSize)
         #endif
     }
+}
+
+/// Screenshot harness for the quick-entry sheet itself (`AccountStore` seeds
+/// its sample chart when this launch argument is set): renders the real
+/// `QuickEntryView` in bound mode — owner role, no ledger switcher — so the
+/// kind tabs, category grid, chip bar, and calculator lay out without a
+/// login or backend. Launch with `--ui-demo-quick-entry`.
+private struct QuickEntryDemoScreen: View {
+    var body: some View {
+        NavigationStack {
+            QuickEntryView(binding: QuickEntryBinding(ledger: Self.demoLedger))
+        }
+    }
+
+    static let demoLedger: QianlaiLedger = {
+        // Two recent categories so the recents row renders above the grid.
+        for id in ["demo-learn", "demo-food"] {
+            RecentCategoryStore.record(id, ledgerId: "demo-ledger", kind: .expense)
+        }
+        return QianlaiLedger(
+        id: "demo-ledger",
+        ownerId: "demo-owner",
+        name: "演示账本",
+        description: nil,
+        currency: "CNY",
+        status: "active",
+        isDefault: true,
+        createdAt: .now,
+        updatedAt: .now,
+        myRole: .owner,
+        membersCount: 1,
+        shared: false
+        )
+    }()
 }
 
 /// Screenshot harness for the quick-entry category picker sheet: mirrors the
