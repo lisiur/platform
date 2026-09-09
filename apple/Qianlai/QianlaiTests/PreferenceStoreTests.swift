@@ -155,19 +155,22 @@ final class PreferenceStoreTests: XCTestCase {
     }
 
     func testCachedArrangementRunsThroughTheSameValidation() {
-        // Unknown values dropped + count clamped — a cache written by a
-        // newer client resolves exactly like a server payload would.
+        // Unknown values dropped, and a survivor count outside the 1–2 rule
+        // is discarded wholesale — the same resolution a server payload
+        // gets, so a cache written by another client can never surface an
+        // arrangement the current rules reject.
         defaults.set(
             ["kindle", "reports", "journal", "members"],
             forKey: "qianlai.preferences.user.tabs"
         )
+        XCTAssertNil(PreferenceStore(defaults: defaults).configuredTabs)
+
+        // A single surviving tab still fits the 1–2 rule and is honored.
+        defaults.set(["members"], forKey: "qianlai.preferences.user.tabs")
         XCTAssertEqual(
             PreferenceStore(defaults: defaults).configuredTabs,
-            [.reports, .journal]
+            [.members]
         )
-        // A single survivor misses the 1–2 rule: fall back to defaults.
-        defaults.set(["members"], forKey: "qianlai.preferences.user.tabs")
-        XCTAssertNil(PreferenceStore(defaults: defaults).configuredTabs)
     }
 
     func testApplyMirrorsIntoCache() {
