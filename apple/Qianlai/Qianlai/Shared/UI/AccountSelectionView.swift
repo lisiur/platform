@@ -116,6 +116,9 @@ struct AccountSelectionView: View {
         .inlineNavigationBarTitle()
     }
 
+    /// Grouped-card list mirroring `CategoriesManageView` — same default
+    /// list style, same depth insets, same row anatomy — so picking reads
+    /// like managing, minus the manage actions.
     private var list: some View {
         List {
             if allowsEmpty {
@@ -123,12 +126,9 @@ struct AccountSelectionView: View {
             }
             ForEach(visibleEntries) { entry in
                 row(for: entry)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 12 + CGFloat(entry.depth) * 18, bottom: 6, trailing: 12))
             }
         }
-        // Plain rows hug the pinned search bar and scroll under it — the
-        // grouped style's card insets leave a dead band below the field
-        // (matches LocationPickerSheet).
-        .listStyle(.plain)
         .overlay {
             if visibleEntries.isEmpty, !allowsEmpty {
                 ContentUnavailableView.search(text: query)
@@ -153,9 +153,10 @@ struct AccountSelectionView: View {
         )
     }
 
-    /// Select button spanning the row plus, for parents, a leading fold
-    /// toggle; the checkmark trails the name so the chevron owns the
-    /// opposite edge.
+    /// Row anatomy mirrors `AccountTreeRow` — leading fold chevron, emoji
+    /// icon, name weighted by depth — with the manage screen's trailing
+    /// menu swapped for the picker's checkmark. Unselectable parents fold
+    /// on tap; everything else commits the selection.
     private func rowTemplate(
         depth: Int,
         icon: String?,
@@ -163,73 +164,40 @@ struct AccountSelectionView: View {
         id: String?,
         hasSubtree: Bool
     ) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             if showsTree {
-                Group {
-                    if hasSubtree, let id {
-                        Button {
-                            withAnimation(.default) {
-                                if collapsed.contains(id) {
-                                    collapsed.remove(id)
-                                } else {
-                                    collapsed.insert(id)
-                                }
-                            }
-                        } label: {
-                            Image(
-                                systemName: collapsed.contains(id)
-                                    ? "chevron.right"
-                                    : "chevron.down"
-                            )
-                            .foregroundStyle(.secondary)
-                            .frame(width: 30, height: 30)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.borderless)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(hasSubtree && !collapsed.contains(id ?? "") ? 90 : 0))
+                    .opacity(hasSubtree ? 1 : 0)
+            }
+            if let icon, !icon.isEmpty {
+                Text(icon)
+            }
+            Text(name)
+                .font(.body.weight(depth == 0 ? .medium : .regular))
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            if selection == id {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !parentSelectable, hasSubtree, let id {
+                withAnimation(.snappy) {
+                    if collapsed.contains(id) {
+                        collapsed.remove(id)
                     } else {
-                        // Invisible slot keeps leaf names aligned with the
-                        // parents' leading chevrons.
-                        Color.clear.frame(width: 30, height: 30)
+                        collapsed.insert(id)
                     }
                 }
-                .padding(.leading, 16 * CGFloat(depth))
+            } else {
+                selection = id
+                dismiss()
             }
-            Button {
-                if !parentSelectable, hasSubtree, let id {
-                    // Unselectable parent: tapping commits nothing — it
-                    // folds or unfolds the subtree instead.
-                    withAnimation(.default) {
-                        if collapsed.contains(id) {
-                            collapsed.remove(id)
-                        } else {
-                            collapsed.insert(id)
-                        }
-                    }
-                } else {
-                    selection = id
-                    dismiss()
-                }
-            } label: {
-                HStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                        if let icon, !icon.isEmpty {
-                            Text(icon)
-                        }
-                        Text(name)
-                            .fontWeight(depth == 0 ? .semibold : .regular)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 8)
-                    if selection == id {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(Color.accentColor)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
         }
     }
 }

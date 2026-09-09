@@ -384,8 +384,11 @@ struct QuickEntryView: View {
                         : $draft.creditAccountId
                 )
             }
+            // Large only: at the medium detent the pinned search field melts
+            // into the sheet's glass, and restyling the field can't beat the
+            // system materials — full height sidesteps it.
             #if os(iOS)
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
             #endif
         }
         .sheet(isPresented: $isParticipantsPresented) {
