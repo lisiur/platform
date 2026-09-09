@@ -64,6 +64,8 @@ export const listEntriesRoute = defineOpenAPIRoute({
         memberUserId: query.memberUserId,
         scopeProjectIds,
         includeExcluded: query.includeExcluded === "true" || undefined,
+        sort: query.sort,
+        order: query.order,
       },
       access.membership.role,
     );

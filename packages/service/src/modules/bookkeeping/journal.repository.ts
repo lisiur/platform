@@ -1,4 +1,4 @@
-import type { Prisma } from "#generated/prisma/client";
+import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { type AccountType, accountCodesMatchingLabel } from "./domain";
 
@@ -30,6 +30,17 @@ export type EntryWindow = {
    * entries.
    */
   includeExcluded?: boolean;
+};
+
+/**
+ * List ordering. "date" (default) is the newest-first date/entryNo order;
+ * "amount" orders by the entry's gross amount — the sum of its lines'
+ * debits, the same figure clients render as the entry total. "order" only
+ * applies to "amount" ("desc" default); date always stays descending.
+ */
+export type EntryOrdering = {
+  sort?: "date" | "amount";
+  order?: "asc" | "desc";
 };
 
 /**
@@ -199,12 +210,101 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   };
 }
 
+/**
+ * One entry's amount plus the fallback keys that make the order total:
+ * amount ties fall back to the date listing's own order (date/entryNo
+ * descending), so equal-amount entries hold one deterministic position on
+ * every page fetch.
+ */
+type EntryAmountRow = {
+  entryId: string;
+  sum: Prisma.Decimal | null;
+  date: Date;
+  entryNo: number;
+};
+
+/**
+ * Pure amount ordering. Primary key is the entry's gross amount (the sum
+ * of its lines' debits); ties keep the default list's date-desc/entryNo-desc
+ * order regardless of the amount direction, so ascending and descending
+ * agree on where ties sit. Array.sort's stability is the last resort only —
+ * entryNo is unique per ledger, so real rows never reach it.
+ */
+export function orderByAmount(
+  rows: EntryAmountRow[],
+  order: "asc" | "desc",
+): EntryAmountRow[] {
+  return [...rows].sort((a, b) => {
+    const compared = (a.sum ?? zero).comparedTo(b.sum ?? zero);
+    if (compared !== 0) return order === "asc" ? compared : -compared;
+    return b.date.getTime() - a.date.getTime() || b.entryNo - a.entryNo;
+  });
+}
+
+const zero = new Prisma.Decimal(0);
+
+/**
+ * Amount-ordered listing: lines are grouped per entry with the debit sum
+ * aggregated in SQL, a light fetch supplies each entry's date/entryNo for
+ * the tiebreak, the full match set is ordered deterministically
+ * (see `orderByAmount`), then one page's ids are fetched with the standard
+ * include and re-ordered to match. Pagination stays offset-consistent
+ * because every page re-sorts the same complete set; the extra work is
+ * bounded by the caller's window (the dashboard's month).
+ */
+async function listEntriesByAmount(
+  ledgerId: string,
+  opts: { limit?: number; offset?: number } & EntryWindow & EntryOrdering,
+  tx: Prisma.TransactionClient,
+) {
+  const where = entryFilterWhere(ledgerId, opts);
+  const [groups, keys] = await Promise.all([
+    tx.journalLine.groupBy({
+      by: ["entryId"],
+      where: { entry: where },
+      _sum: { debit: true },
+    }),
+    tx.journalEntry.findMany({
+      where,
+      select: { id: true, date: true, entryNo: true },
+    }),
+  ]);
+  const keysById = new Map(keys.map((key) => [key.id, key]));
+  const rows: EntryAmountRow[] = [];
+  for (const group of groups) {
+    const key = keysById.get(group.entryId);
+    if (key) {
+      rows.push({
+        entryId: group.entryId,
+        sum: group._sum.debit,
+        date: key.date,
+        entryNo: key.entryNo,
+      });
+    }
+  }
+  const offset = opts.offset ?? 0;
+  const end = opts.limit === undefined ? undefined : offset + opts.limit;
+  const pageIds = orderByAmount(rows, opts.order === "asc" ? "asc" : "desc")
+    .slice(offset, end)
+    .map((row) => row.entryId);
+  if (pageIds.length === 0) return [];
+  const rowsById = await tx.journalEntry.findMany({
+    where: { id: { in: pageIds } },
+    include: entryInclude,
+  });
+  const byId = new Map(rowsById.map((row) => [row.id, row]));
+  return pageIds.map((id) => byId.get(id)).filter((row) => row !== undefined);
+}
+
 export const journalRepository = {
   listEntries(
     ledgerId: string,
-    opts: { limit?: number; offset?: number } & EntryWindow,
+    opts: { limit?: number; offset?: number } & EntryWindow & EntryOrdering,
     tx: Prisma.TransactionClient = prisma,
   ) {
+    if (opts.sort === "amount") {
+      return listEntriesByAmount(ledgerId, opts, tx);
+    }
     return tx.journalEntry.findMany({
       where: entryFilterWhere(ledgerId, opts),
       include: entryInclude,

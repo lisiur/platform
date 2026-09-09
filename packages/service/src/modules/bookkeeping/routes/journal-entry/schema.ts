@@ -166,6 +166,14 @@ export const listEntriesQuerySchema = paginationQuerySchema
       description:
         "Also return entries the creator opted out of the ledger's surfaces (countsInLedger=false). Ignored when projectId is set — a project's books always show all of its entries.",
     }),
+    sort: z.enum(["date", "amount"]).optional().openapi({
+      description:
+        "List ordering. Defaults to date (newest first). amount orders by each entry's gross total — the sum of its lines' debits, the figure clients render as the entry amount.",
+    }),
+    order: z.enum(["asc", "desc"]).optional().openapi({
+      description:
+        "Direction for sort=amount: desc (default) is high to low, asc low to high. Ignored for sort=date, which is always newest first.",
+    }),
   })
   .openapi("QianlaiListEntriesQuery");
 

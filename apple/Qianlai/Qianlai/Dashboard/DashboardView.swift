@@ -302,6 +302,43 @@ struct DashboardView: View {
         }
     }
 
+    /// Month-list ordering menu, pinned to the month header's trailing
+    /// edge. Writes go to the month store whose sort change schedules the
+    /// reload; the flat/grouped row rendering follows the same state inside
+    /// EntryListView.
+    private var sortMenu: some View {
+        Menu {
+            sortMenuItem(.date, title: L10n.string("dashboard.sortByDate", defaultValue: "By date"))
+            sortMenuItem(
+                .amountDescending,
+                title: L10n.string("dashboard.sortAmountDesc", defaultValue: "Amount: high to low")
+            )
+            sortMenuItem(
+                .amountAscending,
+                title: L10n.string("dashboard.sortAmountAsc", defaultValue: "Amount: low to high")
+            )
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Color.primary.opacity(0.06)))
+        }
+        .accessibilityLabel(L10n.string("dashboard.sort", defaultValue: "Sort"))
+    }
+
+    /// One ordering option; the active one carries the checkmark (the
+    /// menu-selection pattern the members page uses).
+    private func sortMenuItem(_ sort: JournalStore.EntrySort, title: String) -> some View {
+        Button {
+            entryStore.sort = sort
+        } label: {
+            if entryStore.sort == sort {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
+        }
+    }
+
     /// Mirrors the projects list's create gate exactly: the project form
     /// posts into the active ledger, so it needs one, active, with the
     /// caller at editor or above.
@@ -315,7 +352,9 @@ struct DashboardView: View {
     /// it travels with the records instead of staying pinned.
     private var monthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            // Arrows hug the title as one leading group; the sort menu
+            // occupies the trailing space.
+            HStack(spacing: 8) {
                 Button {
                     selectedMonth = selectedMonth.previous
                 } label: {
@@ -326,10 +365,8 @@ struct DashboardView: View {
                 // Borderless: with the default style a tap on the List row
                 // fires BOTH chevrons, canceling each other out.
                 .buttonStyle(.borderless)
-                Spacer()
                 Text(AppDates.formatMonthTitle(selectedMonth, locale: locale))
                     .font(.headline)
-                Spacer()
                 Button {
                     selectedMonth = selectedMonth.next
                 } label: {
@@ -339,6 +376,9 @@ struct DashboardView: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(selectedMonth >= YearMonth.current)
+                Spacer()
+                sortMenu
+                    .buttonStyle(.borderless)
             }
             // The expense card spans the summary's width; the chrome-less
             // rows above and below it are inset a little instead.

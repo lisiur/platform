@@ -15,6 +15,16 @@ import Observation
 final class JournalStore {
     static let pageSize = 20
 
+    /// List ordering. `.date` (default) is the server's newest-first order;
+    /// the amount modes ask the server to order entries by their gross total
+    /// (the sum of line debits) so offset pagination stays consistent —
+    /// sorting client-side would only reorder the loaded pages.
+    enum EntrySort: Hashable {
+        case date
+        case amountDescending
+        case amountAscending
+    }
+
     let client = APIClient.shared
 
     private(set) var entries: [JournalEntry] = []
@@ -55,6 +65,10 @@ final class JournalStore {
     /// it, `clearFilters` restores it instead of lifting it, and
     /// `hasActiveFilters` ignores it. nil = ledger-wide page.
     var scopeProjectId: String?
+    /// Row ordering, driven by the dashboard's month header (every other
+    /// surface stays on `.date`). Not part of `hasActiveFilters`/`clearFilters`:
+    /// it's presentation intent, not a filter-sheet filter.
+    var sort: EntrySort = .date { didSet { guard !suppressReload, oldValue != sort else { return }; scheduleReload() } }
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
     /// a single delayed reload so the list doesn't thrash mid-transition.
@@ -126,7 +140,8 @@ final class JournalStore {
                     account: accountId,
                     accountType: accountType,
                     member: memberUserId,
-                    includeExcluded: includeExcluded
+                    includeExcluded: includeExcluded,
+                    sort: sort
                 )
             )
             guard self.ledgerId == ledgerId else { return }
@@ -169,7 +184,8 @@ final class JournalStore {
                     account: accountId,
                     accountType: accountType,
                     member: memberUserId,
-                    includeExcluded: includeExcluded
+                    includeExcluded: includeExcluded,
+                    sort: sort
                 )
             )
             entries += response.entries
@@ -302,7 +318,8 @@ final class JournalStore {
         account: String?,
         accountType: String?,
         member: String?,
-        includeExcluded: Bool
+        includeExcluded: Bool,
+        sort: EntrySort
     ) -> String {
         ApiQuery.build([
             ("limit", String(limit)),
@@ -316,6 +333,8 @@ final class JournalStore {
             ("accountType", accountType),
             ("memberUserId", member),
             ("includeExcluded", includeExcluded ? "true" : nil),
+            ("sort", sort == .date ? nil : "amount"),
+            ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : nil),
         ])
     }
 }

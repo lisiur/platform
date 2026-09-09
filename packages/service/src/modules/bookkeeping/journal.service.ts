@@ -15,7 +15,11 @@ import {
   type LedgerRole,
   MAX_LINE_CENTS,
 } from "./domain";
-import { type EntryWindow, journalRepository } from "./journal.repository";
+import {
+  type EntryOrdering,
+  type EntryWindow,
+  journalRepository,
+} from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
@@ -219,7 +223,7 @@ function redactEntryCreatorEmail<
 
 export async function listEntries(
   ledgerId: string,
-  opts: { limit?: number; offset?: number } & EntryWindow,
+  opts: { limit?: number; offset?: number } & EntryWindow & EntryOrdering,
   viewerRole: LedgerRole,
 ) {
   const [entries, total] = await Promise.all([

@@ -95,68 +95,28 @@ struct EntryListView: View {
                 EmptyStateView(message: emptyMessage, systemImage: "doc.text")
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-            } else {
+            } else if store.sort == .date {
                 ForEach(store.entries.groupedByDay, id: \.day) { group in
                     // Default grouped style renders each Section as one
                     // rounded card with the date above it — same UI as the
                     // Me page.
                     Section {
                         ForEach(group.entries) { entry in
-                            // The row content stands alone — no disclosure
-                            // chevron; navigation hides an EmptyView-labeled
-                            // NavigationLink in the background (opacity-0
-                            // views still receive taps, and the card has no
-                            // interactive controls to swallow them).
-                            EntryRow(
-                                entry: entry,
-                                currency: ledger.currency,
-                                amountSection: amountSection?(entry),
-                                viewerUserId: auth.currentUser?.id,
-                                showsViewerShare: showsViewerShare,
-                                alwaysShowsPayer: alwaysShowsPayer
-                            )
-                                .background {
-                                    NavigationLink {
-                                        JournalDetailView(entry: entry)
-                                    } label: {
-                                        EmptyView()
-                                    }
-                                    .opacity(0)
-                                    .accessibilityLabel(
-                                        L10n.string("journal.openEntry", defaultValue: "View entry details")
-                                    )
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    if ledger.canPost {
-                                        // Plain tinted button, not
-                                        // `role: .destructive`: UIKit plays
-                                        // the row-removal animation for a
-                                        // destructive swipe action on tap,
-                                        // so the row vanished and snapped
-                                        // back before the confirmation.
-                                        // Red tint keeps the look; the row
-                                        // only leaves after confirmation.
-                                        Button {
-                                            entryPendingDelete = entry
-                                        } label: {
-                                            Label(L10n.string("common.delete", defaultValue: "Delete"), systemImage: "trash")
-                                        }
-                                        .tint(.red)
-                                        Button {
-                                            entryPendingEdit = entry
-                                        } label: {
-                                            Label(L10n.string("common.edit", defaultValue: "Edit"), systemImage: "pencil")
-                                        }
-                                    }
-                                }
-                                .onAppear {
-                                    if entry == store.entries.last {
-                                        Task { await store.loadMore() }
-                                    }
-                                }
+                            entryRow(entry)
                         }
                     } header: {
                         Text(AppDates.formatEntryDay(group.day, locale: locale))
+                    }
+                }
+            } else {
+                // Amount order crosses day boundaries, so the day cards are
+                // dropped: one flat section renders the rows in sorted order.
+                // The Section must be explicit — a bare ForEach merges with
+                // the free-floating topContent row above, whose cleared
+                // background swallows the card's top rounding.
+                Section {
+                    ForEach(store.entries) { entry in
+                        entryRow(entry)
                     }
                 }
             }
@@ -203,6 +163,63 @@ struct EntryListView: View {
             }
             .interactiveDismissDisabled()
         }
+    }
+
+    /// One list row in both renderings (day-grouped and flat): the entry
+    /// card, the hidden background NavigationLink for tap-to-detail, the
+    /// swipe actions, and the last-row pagination trigger.
+    private func entryRow(_ entry: JournalEntry) -> some View {
+        // The row content stands alone — no disclosure chevron; navigation
+        // hides an EmptyView-labeled NavigationLink in the background
+        // (opacity-0 views still receive taps, and the card has no
+        // interactive controls to swallow them).
+        EntryRow(
+            entry: entry,
+            currency: ledger.currency,
+            amountSection: amountSection?(entry),
+            viewerUserId: auth.currentUser?.id,
+            showsViewerShare: showsViewerShare,
+            alwaysShowsPayer: alwaysShowsPayer
+        )
+            .background {
+                NavigationLink {
+                    JournalDetailView(entry: entry)
+                } label: {
+                    EmptyView()
+                }
+                .opacity(0)
+                .accessibilityLabel(
+                    L10n.string("journal.openEntry", defaultValue: "View entry details")
+                )
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if ledger.canPost {
+                    // Plain tinted button, not
+                    // `role: .destructive`: UIKit plays
+                    // the row-removal animation for a
+                    // destructive swipe action on tap,
+                    // so the row vanished and snapped
+                    // back before the confirmation.
+                    // Red tint keeps the look; the row
+                    // only leaves after confirmation.
+                    Button {
+                        entryPendingDelete = entry
+                    } label: {
+                        Label(L10n.string("common.delete", defaultValue: "Delete"), systemImage: "trash")
+                    }
+                    .tint(.red)
+                    Button {
+                        entryPendingEdit = entry
+                    } label: {
+                        Label(L10n.string("common.edit", defaultValue: "Edit"), systemImage: "pencil")
+                    }
+                }
+            }
+            .onAppear {
+                if entry == store.entries.last {
+                    Task { await store.loadMore() }
+                }
+            }
     }
 
     /// Optimistic: the row leaves the list immediately and the success
