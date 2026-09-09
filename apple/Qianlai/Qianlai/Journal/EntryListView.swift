@@ -102,18 +102,30 @@ struct EntryListView: View {
                     // Me page.
                     Section {
                         ForEach(group.entries) { entry in
-                            NavigationLink {
-                                JournalDetailView(entry: entry)
-                            } label: {
-                                EntryRow(
-                                    entry: entry,
-                                    currency: ledger.currency,
-                                    amountSection: amountSection?(entry),
-                                    viewerUserId: auth.currentUser?.id,
-                                    showsViewerShare: showsViewerShare,
-                                    alwaysShowsPayer: alwaysShowsPayer
-                                )
-                            }
+                            // The row content stands alone — no disclosure
+                            // chevron; navigation hides an EmptyView-labeled
+                            // NavigationLink in the background (opacity-0
+                            // views still receive taps, and the card has no
+                            // interactive controls to swallow them).
+                            EntryRow(
+                                entry: entry,
+                                currency: ledger.currency,
+                                amountSection: amountSection?(entry),
+                                viewerUserId: auth.currentUser?.id,
+                                showsViewerShare: showsViewerShare,
+                                alwaysShowsPayer: alwaysShowsPayer
+                            )
+                                .background {
+                                    NavigationLink {
+                                        JournalDetailView(entry: entry)
+                                    } label: {
+                                        EmptyView()
+                                    }
+                                    .opacity(0)
+                                    .accessibilityLabel(
+                                        L10n.string("journal.openEntry", defaultValue: "View entry details")
+                                    )
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if ledger.canPost {
                                         // Plain tinted button, not
@@ -232,9 +244,11 @@ struct EntryAmountSection: Hashable {
     }
 }
 
-/// One journal entry card: category icon + title, HH:mm + creator (the
-/// enclosing day group header carries the date), memo, other account names,
-/// participants, signed amount. Shared by the dashboard and journal list.
+/// One journal entry card: category icon + title with the memo trailing
+/// inline ("服饰 · 外套"), HH:mm + creator (the enclosing day group header
+/// carries the date), other account names, participants, location, and a
+/// right-hand signed-amount column that also carries the not-counted flag.
+/// Shared by the dashboard and journal list.
 /// Lines posting against the seeded default pocket are hidden, and the
 /// amount follows the money flow: expenses negative, income positive, each
 /// prefixed with the ledger currency's symbol.
@@ -259,14 +273,33 @@ struct EntryRow: View {
     /// when they recorded the entry themselves.
     var alwaysShowsPayer = false
 
+    /// Fixed icon column for the meta rows (project, location,
+    /// participants, not-counted): the symbols' natural widths differ, so
+    /// without it the labels after them don't line up.
+    @ScaledMetric(relativeTo: .caption2)
+    private var metaIconWidth: CGFloat = 16
+
     var body: some View {
         HStack(spacing: 10) {
             categoryBadge
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                        if let memo = entry.memo, !memo.isEmpty {
+                            Text(verbatim: "·")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(memo)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(AppDates.formatEntryTime(entry.date))
                         if let payerCaption {
@@ -284,33 +317,15 @@ struct EntryRow: View {
                     }
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    if let memo = entry.memo, !memo.isEmpty {
-                        Text(memo)
-                            .font(.caption)
-                            .lineLimit(2)
-                    }
-                    if entry.project != nil || entry.location != nil {
-                        HStack(spacing: 8) {
-                            if let project = entry.project {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "folder")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                    Text(project.name)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            if let location = entry.location,
-                               let label = location.displayName ?? coordinateLabel(location) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "mappin.and.ellipse")
-                                        .font(.caption2)
-                                    Text(label)
-                                        .font(.caption2)
-                                }
+                    if let project = entry.project {
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder")
+                                .font(.caption2)
                                 .foregroundStyle(.tertiary)
-                            }
+                                .frame(width: metaIconWidth, alignment: .leading)
+                            Text(project.name)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
                         .lineLimit(1)
                     }
@@ -319,6 +334,7 @@ struct EntryRow: View {
                             Image(systemName: "person.2")
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
+                                .frame(width: metaIconWidth, alignment: .leading)
                             Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
                                 .font(.caption2.weight(.medium))
                                 .foregroundStyle(.secondary)
@@ -326,14 +342,17 @@ struct EntryRow: View {
                                 .truncationMode(.tail)
                         }
                     }
-                    if !entry.countsInLedger {
+                    if let location = entry.location,
+                       let label = location.displayName ?? coordinateLabel(location) {
                         HStack(spacing: 4) {
-                            Image(systemName: "minus.circle")
+                            Image(systemName: "location")
                                 .font(.caption2)
-                            Text(L10n.string("journal.notCounted", defaultValue: "Not counted in income & expense"))
+                                .frame(width: metaIconWidth, alignment: .leading)
+                            Text(label)
                                 .font(.caption2)
                         }
                         .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                     }
                 }
                 Spacer(minLength: 8)
@@ -358,6 +377,16 @@ struct EntryRow: View {
                                 .font(.caption2.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    if !entry.countsInLedger {
+                        HStack(spacing: 3) {
+                            Image(systemName: "minus.circle")
+                                .font(.caption2)
+                            Text(L10n.string("journal.notCounted", defaultValue: "Not counted"))
+                                .font(.caption2)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.tertiary)
                     }
                 }
             }

@@ -122,7 +122,7 @@ struct JournalDetailView: View {
             }
             if !resolved.countsInLedger {
                 row(
-                    L10n.string("journal.notCounted", defaultValue: "Not counted in income & expense"),
+                    L10n.string("journal.detail.notCounted", defaultValue: "Not counted in income & expense"),
                     value: ""
                 )
             }

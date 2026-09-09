@@ -3222,6 +3222,23 @@
         }
       }
     },
+    "journal.detail.notCounted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not counted in income & expense"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不计入收支"
+          }
+        }
+      }
+    },
     "journal.detail.paidBy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3414,13 +3431,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not counted in income & expense"
+            "value" : "Not counted"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入收支"
+            "value" : "不计入"
+          }
+        }
+      }
+    },
+    "journal.openEntry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View entry details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看明细"
           }
         }
       }
