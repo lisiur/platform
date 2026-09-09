@@ -125,10 +125,11 @@ struct ProjectDetailView: View {
 
     let projectId: String
 
-    /// When true, suppresses the navigation title — the Dashboard uses
-    /// this so the leading LedgerSwitcher remains the only header on the
-    /// tab, while the Projects tab (where this view is also reachable)
-    /// still gets the project name in the title.
+    /// When true, sets no title of its own — not even an empty inline
+    /// one, which would override the enclosing page. The Dashboard uses
+    /// this so its large title (the active scope's name) covers project
+    /// scope too, while the Projects tab (where this view is also
+    /// reachable) still gets the project name in the title.
     var hidesNavigationTitle: Bool = false
 
     @State private var isEditPresented = false
@@ -160,6 +161,19 @@ struct ProjectDetailView: View {
     }
 
     var body: some View {
+        // The hidden-title variant must skip both the title and the
+        // inline display mode so the enclosing Dashboard's large
+        // scope-name title applies instead.
+        if hidesNavigationTitle {
+            detail
+        } else {
+            detail
+                .navigationTitle(Text(project?.name ?? ""))
+                .inlineNavigationBarTitle()
+        }
+    }
+
+    private var detail: some View {
         Group {
             if let project, let ledger {
                 content(project, ledger)
@@ -170,8 +184,6 @@ struct ProjectDetailView: View {
                 )
             }
         }
-        .navigationTitle(hidesNavigationTitle ? Text("") : Text(project?.name ?? ""))
-        .inlineNavigationBarTitle()
         .toolbar {
             if let project {
                 ToolbarItem(placement: .primaryAction) {

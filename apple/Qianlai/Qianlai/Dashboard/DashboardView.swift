@@ -160,20 +160,27 @@ struct DashboardView: View {
         }
         .environment(entryStore)
         // Large title like the assets page's, not the tab-chrome inline
-        // style. In project scope ProjectDetailView's own (hidden) title
-        // takes precedence.
-        .navigationTitle(Text(L10n.string("dashboard.title", defaultValue: "Dashboard")))
+        // style. Names the active scope: the project in project scope
+        // (ProjectDetailView sets no title of its own, so this shows
+        // through), otherwise the ledger; the generic title only covers
+        // the no-ledger empty state.
+        .navigationTitle(
+            Text(
+                activeProject?.name ?? ledgerStore.activeLedger?.name
+                    ?? L10n.string("dashboard.title", defaultValue: "Dashboard")
+            )
+        )
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarLeading) {
-                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager)
+                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 collaborationMenu
             }
             #else
             ToolbarItem(placement: .navigation) {
-                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager)
+                LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
             }
             ToolbarItem(placement: .primaryAction) {
                 collaborationMenu
@@ -366,7 +373,7 @@ struct DashboardView: View {
                 // fires BOTH chevrons, canceling each other out.
                 .buttonStyle(.borderless)
                 Text(AppDates.formatMonthTitle(selectedMonth, locale: locale))
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                 Button {
                     selectedMonth = selectedMonth.next
                 } label: {

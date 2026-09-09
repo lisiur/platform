@@ -24,6 +24,12 @@ struct LedgerSwitcherMenu: View {
     /// instantly — so the toolbar owner presents it from its stable surface
     /// instead. nil keeps the sheet here for toolbar-less contexts.
     var isShowingManage: Binding<Bool>? = nil
+    /// Bare `arrow.left.arrow.right` icon label for surfaces that already
+    /// name the active scope elsewhere — the dashboard's large title shows
+    /// the ledger/project name, so a text label would repeat it. The
+    /// default keeps the text label, which is the only scope indicator on
+    /// other mounts (the quick-entry sheet picks its posting target here).
+    var iconOnly: Bool = false
     @State private var isPresentingManageInternally = false
 
     private var isGuestActive: Bool {
@@ -131,15 +137,22 @@ struct LedgerSwitcherMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: isGuestActive ? "folder.badge.person.crop" : (isProjectScoped ? "folder" : "book"))
-                Text(switcherLabel)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.semibold))
+            if iconOnly {
+                Image(systemName: "arrow.left.arrow.right")
+                    .accessibilityLabel(
+                        L10n.string("ledgerSwitcher.title", defaultValue: "Switch Ledger or Project")
+                    )
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: isGuestActive ? "folder.badge.person.crop" : (isProjectScoped ? "folder" : "book"))
+                    Text(switcherLabel)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
         }
         .task(id: ledgerStore.activeLedger?.id) {
             // Make sure the active ledger's projects are loaded so the
