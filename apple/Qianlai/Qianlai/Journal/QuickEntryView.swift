@@ -129,7 +129,6 @@ struct QuickEntryView: View {
     /// Memo editor sheet behind the quick bar's memo chip; binds the draft
     /// live so Done just dismisses.
     @State private var isMemoPresented = false
-    @FocusState private var isMemoFieldFocused: Bool
     /// The chip bar / more-sheet arrangement for the row fields. Ships
     /// `.standard`; the later customization UI replaces this in place.
     @State private var layout: QuickEntryLayout = .standard
@@ -416,25 +415,8 @@ struct QuickEntryView: View {
         // draft live, Done just dismisses — the same pattern as the
         // date-time sheet.
         .sheet(isPresented: $isMemoPresented) {
-            NavigationStack {
-                Form {
-                    TextField(
-                        L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
-                        text: $draft.memo,
-                        axis: .vertical
-                    )
-                    .submitLabel(.done)
-                    .onSubmit { isMemoFieldFocused = false }
-                    .focused($isMemoFieldFocused)
-                }
-                .navigationTitle(Text(L10n.string("quick.memo", defaultValue: "Memo")))
-                .inlineNavigationBarTitle()
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(L10n.string("common.done", defaultValue: "Done")) { isMemoPresented = false }
-                    }
-                }
-                .task { isMemoFieldFocused = true }
+            QuickEntryMemoSheet(memo: $draft.memo) {
+                isMemoPresented = false
             }
             #if os(iOS)
             .presentationDetents([.medium])
@@ -1814,6 +1796,43 @@ struct QuickEntryView: View {
             }
         } catch {
             validationError = error.localizedDescription
+        }
+    }
+}
+
+/// The memo editor's sheet content, as its own view so the `@FocusState`
+/// lives in the same view that renders the TextField — one declared on the
+/// presenter sits outside the sheet's focus namespace, and its updates are
+/// dropped, so tapping the memo chip opened the sheet with an unfocused
+/// field. Focus lands in `onAppear` with a main-queue hop to let the
+/// presentation animation settle first.
+private struct QuickEntryMemoSheet: View {
+    @Binding var memo: String
+    let onDone: () -> Void
+    @FocusState private var isFieldFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField(
+                    L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
+                    text: $memo,
+                    axis: .vertical
+                )
+                .submitLabel(.done)
+                .onSubmit { isFieldFocused = false }
+                .focused($isFieldFocused)
+            }
+            .navigationTitle(Text(L10n.string("quick.memo", defaultValue: "Memo")))
+            .inlineNavigationBarTitle()
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.string("common.done", defaultValue: "Done")) { onDone() }
+                }
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.async { isFieldFocused = true }
         }
     }
 }
