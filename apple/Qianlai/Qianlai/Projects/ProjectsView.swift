@@ -481,8 +481,14 @@ struct SettlementSummaryLabel: View {
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 12) {
-                    Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(abs(row.paid), currency: ledger.currency))")
-                    Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(abs(row.share), currency: ledger.currency))")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.string("projects.paid", defaultValue: "Paid"))
+                        Text(Money.format(abs(row.paid), currency: ledger.currency))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.string("projects.share", defaultValue: "Share"))
+                        Text(Money.format(abs(row.share), currency: ledger.currency))
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

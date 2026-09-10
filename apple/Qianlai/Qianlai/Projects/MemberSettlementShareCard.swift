@@ -78,8 +78,14 @@ struct MemberSettlementShareCard: View {
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 12) {
-                    Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(member.paid, currency: ledger.currency))")
-                    Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(member.share, currency: ledger.currency))")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.string("projects.paid", defaultValue: "Paid"))
+                        Text(Money.format(member.paid, currency: ledger.currency))
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L10n.string("projects.share", defaultValue: "Share"))
+                        Text(Money.format(member.share, currency: ledger.currency))
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
