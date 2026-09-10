@@ -219,6 +219,52 @@ final class JournalStore {
         }
     }
 
+    /// Fetches every page under the current filters without touching the
+    /// visible list — the settlement share card renders a member's full
+    /// detail, not only the pages the list happens to have loaded. Returns
+    /// nil on any fetch failure. The hard page cap is well above the share
+    /// card's render cap (200) so a desynchronized `total` cannot spin
+    /// this forever; once we've satisfied `total` we stop early.
+    func fetchAllEntries() async -> [JournalEntry]? {
+        guard let ledgerId else { return nil }
+        var all: [JournalEntry] = []
+        var pages = 0
+        let maxPages = 100
+        while pages < maxPages {
+            pages += 1
+            do {
+                let response: EntriesResponse = try await client.request(
+                    "GET",
+                    "bookkeeping/ledgers/\(ledgerId)/entries" + Self.query(
+                        limit: Self.pageSize,
+                        offset: all.count,
+                        q: searchQuery,
+                        from: fromDate,
+                        to: toDate,
+                        participant: participantMemberId,
+                        project: projectFilterId,
+                        account: accountId,
+                        accountType: accountType,
+                        member: memberUserId,
+                        kind: kind,
+                        includeExcluded: includeExcluded,
+                        sort: .date
+                    )
+                )
+                all += response.entries
+                // Total exhaustion always wins: empty pages after we've
+                // matched `total` are the expected tail, not a failure.
+                if all.count >= response.total { return all }
+                // An empty page before we've matched `total` is a real
+                // signal of a desynced server.
+                if response.entries.isEmpty { return nil }
+            } catch {
+                return nil
+            }
+        }
+        return nil
+    }
+
     func post(_ draft: QuickEntryDraft) async throws {
         // Throw, never silently return: save() shows success the moment this
         // doesn't throw, so a nil-ledger no-op would fake a successful post.

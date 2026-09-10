@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// What a project's entry drill-down shows.
 enum ProjectEntryScope: Hashable {
@@ -34,6 +35,8 @@ struct ProjectEntriesDetailView: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(BackgroundSettings.self) private var backgroundSettings
+    @Environment(AuthManager.self) private var auth
+    @Environment(ToastCenter.self) private var toast
 
     let ledger: QianlaiLedger
     let scope: ProjectEntryScope
@@ -42,6 +45,14 @@ struct ProjectEntriesDetailView: View {
     /// sheet's QuickEntryView act on this page's filtered list without
     /// clashing with the Journal tab's root store.
     @State private var entryStore = JournalStore()
+    @State private var shareCard: ShareCardRequest?
+    @State private var isPreparingShare = false
+
+    /// Hard cap on the share image. Anything longer than this gets
+    /// truncated in the card and noted in the footer — ImageRenderer
+    /// caps the pixel dimension a Core Animation layer can produce, and a
+    /// full ledger can otherwise push the layer past that limit.
+    private static let shareEntriesCap = 200
 
     private var title: String {
         switch scope {
@@ -86,8 +97,17 @@ struct ProjectEntriesDetailView: View {
             topContent: settlementSummary
         )
         .environment(entryStore)
+        .toolbar { settlementToolbar }
         .navigationTitle(Text(title))
         .inlineNavigationBarTitle()
+        .sheet(item: $shareCard) { request in
+            ShareSheet(items: [request.image])
+        }
+        .overlay {
+            if isPreparingShare {
+                sharePreparingOverlay
+            }
+        }
         .task {
             // Filters must be in place before `load` so the first fetch is
             // already scoped; their didSets are no-ops while the store has
@@ -116,9 +136,141 @@ struct ProjectEntriesDetailView: View {
         }
     }
 
-    private func refreshReport() async {
-        await projectStore.load(ledgerId: ledger.id, force: true)
-        await projectStore.loadReport(ledgerId: ledger.id, projectId: scope.projectId)
+    /// Toolbar items: a share button on settlement scopes only, the bare
+    /// `square.and.arrow.up` system glyph. Statement drill-downs (totals /
+    /// category rows) have no shareable surface, so the toolbar stays empty
+    /// there.
+    @ToolbarContentBuilder
+    private var settlementToolbar: some ToolbarContent {
+        if case .settlement = scope {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: prepareShare) {
+                    if isPreparingShare {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isPreparingShare)
+                .accessibilityLabel(L10n.string(
+                    "projects.shareSettlement",
+                    defaultValue: "Share settlement"
+                ))
+            }
+        }
+    }
+
+    /// Fetches every entry for this scope, renders the share card off
+    /// screen, and presents the system share sheet with the resulting PNG.
+    /// Failures (no row yet, fetch failure, render failure) toast a single
+    /// shared message and stay on the page — there is no retry affordance,
+    /// the user just taps the button again.
+    /// Page-wide overlay shown while the share is preparing. The toolbar's
+    /// inline spinner is too easy to miss when the user is looking at the
+    /// list mid-scroll — full-scrim ProgressView is unambiguous. The system
+    /// activity sheet dismisses the overlay automatically when it appears;
+    /// we also flip `isPreparingShare` off in `prepareShare` before the
+    /// sheet, so the overlay never races ahead of the result.
+    private var sharePreparingOverlay: some View {
+        ZStack {
+            Color.groupedCanvas.opacity(0.7)
+            VStack(spacing: 12) {
+                ProgressView()
+                Text(L10n.string(
+                    "projects.shareCard.preparing",
+                    defaultValue: "Preparing share image…"
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.cardSurface)
+            )
+        }
+        .transition(.opacity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.string(
+            "projects.shareCard.preparing",
+            defaultValue: "Preparing share image…"
+        ))
+    }
+
+    private func prepareShare() {
+        guard !isPreparingShare else { return }
+        isPreparingShare = true
+        Task {
+            let rendered = await renderShareImage()
+            isPreparingShare = false
+            guard let rendered else {
+                toast.show(L10n.string(
+                    "projects.shareCard.failed",
+                    defaultValue: "Couldn't generate the share image"
+                ))
+                return
+            }
+            shareCard = ShareCardRequest(image: rendered)
+        }
+    }
+
+    private func renderShareImage() async -> UIImage? {
+        guard case .settlement(let projectId, let userId, _) = scope,
+              let summaryRow = projectStore.report?.settlement
+                .first(where: { $0.userId == userId }),
+              let allEntries = await entryStore.fetchAllEntries()
+        else { return nil }
+        let truncated = Array(allEntries.prefix(Self.shareEntriesCap))
+        let projectName = projectStore.projects(for: ledger.id)
+            .first(where: { $0.id == projectId })?.name ?? ""
+        let avatarImage = await loadAvatar(for: summaryRow.avatar)
+        let content = MemberSettlementShareCard(
+            projectName: projectName,
+            member: summaryRow,
+            ledger: ledger,
+            entries: truncated,
+            memberUserIds: currentMemberUserIds,
+            avatarImage: avatarImage,
+            totalEntries: allEntries.count,
+            generatedAt: Date()
+        )
+        .tint(AppAccent.stored().color)
+        .environment(\.colorScheme, .light)
+        .environment(\.locale, AppLanguage.resolvedLocale)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = shareRendererScale(entryCount: truncated.count)
+        return renderer.uiImage
+    }
+
+    /// ImageRenderer snapshots synchronously — AsyncImage never lands. The
+    /// member's avatar is fetched ahead of time so the rendered circle is
+    /// either the bitmap or the initial-letter fallback, never blank.
+    private func loadAvatar(for path: String?) async -> UIImage? {
+        guard let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL)
+        else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let image = UIImage(data: data)
+        else { return nil }
+        return image
+    }
+
+    private var currentMemberUserIds: [String]? {
+        projectStore.projects(for: ledger.id)
+            .first { $0.id == scope.projectId }?
+            .members
+            .map(\.userId)
+    }
+
+    private func makeAmountSection(for entry: JournalEntry, userId: String) -> EntryAmountSection {
+        SettlementAmountColumn.make(
+            for: entry,
+            userId: userId,
+            memberUserIds: currentMemberUserIds,
+            currency: ledger.currency
+        )
     }
 
     private var settlementUserId: String? {
@@ -157,13 +309,30 @@ struct ProjectEntriesDetailView: View {
         return { [self] entry in makeAmountSection(for: entry, userId: userId) }
     }
 
-    private func makeAmountSection(for entry: JournalEntry, userId: String) -> EntryAmountSection {
+    private func refreshReport() async {
+        await projectStore.load(ledgerId: ledger.id, force: true)
+        await projectStore.loadReport(ledgerId: ledger.id, projectId: scope.projectId)
+    }
+}
+
+/// The settlement row's right-hand amount column: the entry's gross
+/// actual spend as the headline, then the member's share and their
+/// 应收/应付 line — paid − share for this entry — so each row reconciles
+/// with the settlement table's share and balance columns. Shared by the
+/// settlement page's rows and the member share card so the two never
+/// drift apart.
+enum SettlementAmountColumn {
+    static func make(
+        for entry: JournalEntry,
+        userId: String,
+        memberUserIds: [String]?,
+        currency: String?
+    ) -> EntryAmountSection {
         let (paid, share) = SettlementSplit.entryContribution(
             entry: entry,
             userId: userId,
-            memberUserIds: currentMemberUserIds
+            memberUserIds: memberUserIds
         )
-        let currency = ledger.currency
         let shareValue = Double(share) / 100
         let balance = (Double(paid) - Double(share)) / 100
         // The gross headline carries the entry's money flow like every
@@ -190,7 +359,7 @@ struct ProjectEntriesDetailView: View {
         } else {
             shareCaption = EntryAmountSection.Caption(
                 text: "\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(shareValue, currency: currency))",
-                color: captionTone(for: shareValue)
+                color: tone(for: shareValue)
             )
         }
         let balanceCaption: EntryAmountSection.Caption?
@@ -213,7 +382,7 @@ struct ProjectEntriesDetailView: View {
 
     /// The entry's category type (expense wins over income); nil for
     /// pocket-to-pocket transfers. Mirrors EntryRow's private helper.
-    private func categoryType(of entry: JournalEntry) -> AccountType? {
+    static func categoryType(of entry: JournalEntry) -> AccountType? {
         entry.lines.first { $0.account.type == .expense }?.account.type
             ?? entry.lines.first { $0.account.type == .income }?.account.type
     }
@@ -221,17 +390,10 @@ struct ProjectEntriesDetailView: View {
     /// Semantic tint by money flow: an inflow (negative — an income share)
     /// tints income red, an outflow (positive — an owed expense share)
     /// tints expense green, zero stays the row's secondary.
-    private func captionTone(for value: Double) -> Color? {
+    private static func tone(for value: Double) -> Color? {
         if value < 0 { return .income }
         if value > 0 { return .expense }
         return nil
-    }
-
-    private var currentMemberUserIds: [String]? {
-        projectStore.projects(for: ledger.id)
-            .first { $0.id == scope.projectId }?
-            .members
-            .map(\.userId)
     }
 }
 
@@ -242,8 +404,9 @@ struct ProjectEntriesDetailView: View {
 /// new entries always carry one), else current members (legacy untagged
 /// entries only) — owes equal shares with the remainder going to the
 /// earliest sorted user ids. Kept in exact step so each row's Paid/Share
-/// sums reconcile with the settlement table's totals.
-private enum SettlementSplit {
+/// sums reconcile with the settlement table's totals. Shared with the
+/// member settlement share card, which renders the same per-entry figures.
+enum SettlementSplit {
     static func entryContribution(
         entry: JournalEntry,
         userId: String,
@@ -283,3 +446,23 @@ private enum SettlementSplit {
         JournalEntry.floorDiv(a, b)
     }
 }
+
+/// One rendered share image. `Identifiable` so `.sheet(item:)` knows when
+/// to dismiss and present. The image is created off-screen by ImageRenderer
+/// and handed straight to the share sheet.
+private struct ShareCardRequest: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+/// Drops ImageRenderer's pixel scale with the entry count: a 20-row card
+/// fits comfortably at 3x, but a 200-row card approaches the Core
+/// Animation layer's pixel ceiling at 3x and needs to scale down so the
+/// final `uiImage` isn't truncated. ImageRendererScale is `typealias
+/// ImageRendererScale = CGFloat`.
+private func shareRendererScale(entryCount: Int) -> CGFloat {
+    if entryCount <= 60 { return 3 }
+    if entryCount <= 120 { return 2 }
+    return 1.5
+}
+
