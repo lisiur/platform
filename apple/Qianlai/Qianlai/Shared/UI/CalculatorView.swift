@@ -255,8 +255,18 @@ struct CalculatorEngine {
 /// runs.
 struct CalculatorView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
+    @Environment(AccentSettings.self) private var accentSettings
     @Binding var engine: CalculatorEngine
     @State private var keyPressCount = 0
+
+    /// The concrete accent, not `Color.accentColor`: inside the presented
+    /// quick-entry cover the environment-bridged accentColor flips across
+    /// renders (observed: correct on open, wrong accent about a second
+    /// later, right again after any sheet cycles the presentation) — the
+    /// store color never re-resolves.
+    private var accent: Color {
+        accentSettings.accent.color
+    }
 
     /// ISO currency code whose symbol leads the amount ("¥24"); nil or
     /// empty renders the bare number, matching `Money.format`'s rule for
@@ -314,7 +324,7 @@ struct CalculatorView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             amountLine
-                .foregroundStyle(errorText == nil ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.red))
+                .foregroundStyle(errorText == nil ? AnyShapeStyle(accent) : AnyShapeStyle(.red))
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
                 .layoutPriority(1)
@@ -406,10 +416,10 @@ struct CalculatorView: View {
                         .font(.title3.weight(.medium))
                 }
             }
-            .foregroundStyle(KeyRole.commit.foreground)
+            .foregroundStyle(KeyRole.commit.foreground(accent: accent))
             .frame(maxWidth: .infinity, minHeight: 48 * 2 + 8)
             .background(
-                KeyRole.commit.background(backgroundSettings),
+                KeyRole.commit.background(backgroundSettings, accent: accent),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
             .contentShape(Rectangle())
@@ -436,10 +446,10 @@ struct CalculatorView: View {
         Button(action: action) {
             Text(label)
                 .font(.system(.title2, design: .rounded, weight: .semibold))
-                .foregroundStyle(role.foreground)
+                .foregroundStyle(role.foreground(accent: accent))
                 .frame(maxWidth: .infinity, minHeight: height)
                 .background(
-                    role.background(backgroundSettings),
+                    role.background(backgroundSettings, accent: accent),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
@@ -457,10 +467,10 @@ struct CalculatorView: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.title3.weight(.medium))
-                .foregroundStyle(role.foreground)
+                .foregroundStyle(role.foreground(accent: accent))
                 .frame(maxWidth: .infinity, minHeight: height)
                 .background(
-                    role.background(backgroundSettings),
+                    role.background(backgroundSettings, accent: accent),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
@@ -472,20 +482,20 @@ struct CalculatorView: View {
     private enum KeyRole {
         case function, digit, operation, commit
 
-        var foreground: Color {
+        func foreground(accent: Color) -> Color {
             switch self {
             case .commit: .white
-            case .operation: .accentColor
+            case .operation: accent
             case .function, .digit: .primary
             }
         }
 
         /// The base weights read on the plain canvas; over the global
         /// background image they step up so keys stay distinct.
-        func background(_ settings: BackgroundSettings) -> Color {
+        func background(_ settings: BackgroundSettings, accent: Color) -> Color {
             switch self {
-            case .commit: .accentColor
-            case .operation: .accentColor.opacity(settings.isActive ? 0.22 : 0.14)
+            case .commit: accent
+            case .operation: accent.opacity(settings.isActive ? 0.22 : 0.14)
             // Digits and functions join the cards at the user's card
             // opacity; without the background they keep their whisper of
             // primary.

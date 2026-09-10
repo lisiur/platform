@@ -6,13 +6,14 @@
 import PhotosUI
 import SwiftUI
 
-/// Theme settings: in-app appearance override plus the per-device
-/// background image (pick, adjust, dim, card opacity). Every change takes
-/// effect immediately — persistence lives in the stores, so there is no
-/// save step to fail.
+/// Theme settings: the accent color, the in-app appearance override, and
+/// the per-device background image (pick, adjust, dim, card opacity).
+/// Every change takes effect immediately — persistence lives in the
+/// stores, so there is no save step to fail.
 struct BackgroundSettingsView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
     @Environment(AppearanceSettings.self) private var appearanceSettings
+    @Environment(AccentSettings.self) private var accentSettings
 
     @State private var photoItem: PhotosPickerItem?
     @State private var adjustTarget: AdjustTarget?
@@ -36,7 +37,20 @@ struct BackgroundSettingsView: View {
                         systemImage: "circle.lefthalf.filled"
                     )
                 }
+                // The system-rendered picker value reads the env-bridged
+                // accentColor, which goes stale on accent change; a concrete
+                // local tint plus an identity rebuild keeps the value live.
+                .tint(accentSettings.accent.color)
+                .id(accentSettings.accent)
                 .appCardRow()
+            }
+            Section {
+                accentSwatches
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            } header: {
+                Text(L10n.string("profile.theme.accent", defaultValue: "Accent Color"))
             }
             Section {
                 presetsRow
@@ -164,6 +178,46 @@ struct BackgroundSettingsView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(preset.name))
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+        }
+    }
+
+    /// Horizontal row of the preset system colors; the applied one carries
+    /// a checkmark and a same-color ring, mirroring the presets row's
+    /// accent-border selection signal.
+    private var accentSwatches: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(AppAccent.allCases, id: \.self) { accent in
+                    Button {
+                        accentSettings.set(accent)
+                    } label: {
+                        Circle()
+                            .fill(accent.color)
+                            .frame(width: 36, height: 36)
+                            .overlay {
+                                if accentSettings.accent == accent {
+                                    Image(systemName: "checkmark")
+                                        .font(.footnote.weight(.bold))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .padding(3)
+                            .overlay {
+                                Circle().strokeBorder(
+                                    accentSettings.accent == accent ? accent.color : .clear,
+                                    lineWidth: 2
+                                )
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(accent.label))
+                    .accessibilityAddTraits(
+                        accentSettings.accent == accent ? [.isSelected] : []
+                    )
                 }
             }
             .padding(.horizontal, 6)

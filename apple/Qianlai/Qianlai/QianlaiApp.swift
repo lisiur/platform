@@ -18,6 +18,7 @@ struct QianlaiApp: App {
     @State private var preferenceStore = PreferenceStore()
     @State private var backgroundSettings = BackgroundSettings()
     @State private var appearanceSettings = AppearanceSettings()
+    @State private var accentSettings = AccentSettings()
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -62,11 +63,20 @@ struct QianlaiApp: App {
             .environment(preferenceStore)
             .environment(backgroundSettings)
             .environment(appearanceSettings)
+            .environment(accentSettings)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
             // Theme page's appearance override: nil follows the system.
             .preferredColorScheme(appearanceSettings.appearance.colorScheme)
+            // Theme page's accent override; every Color.accentColor in the
+            // hierarchy resolves through this environment.
+            .tint(accentSettings.accent.color)
+            // The widget renders with the mirrored accent on its next
+            // refresh; nudge it so the switch shows up promptly.
+            .onChange(of: accentSettings.accent) {
+                WidgetSync.reloadTimelines()
+            }
             // The widget renders with the mirrored language override on its
             // next refresh; nudge it so the switch shows up promptly.
             .onChange(of: localeSettings.identifier) {

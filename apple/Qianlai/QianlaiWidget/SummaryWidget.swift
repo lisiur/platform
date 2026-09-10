@@ -291,24 +291,29 @@ struct SummaryEntryView: View {
     let entry: SummaryEntry
 
     var body: some View {
-        switch entry.content {
-        case let .data(presentation):
-            content(presentation: presentation, offline: nil)
-        case let .offline(presentation):
-            content(presentation: presentation, offline: presentation.generatedAt)
-        case .signedOut:
-            placeholder(
-                icon: "person.crop.circle",
-                title: L10n.string("widget.signedOutTitle", defaultValue: "Not Signed In"),
-                message: L10n.string("widget.signedOutMessage", defaultValue: "Open Qianlai to see your balances.")
-            )
-        case .unavailable:
-            placeholder(
-                icon: "arrow.clockwise",
-                title: L10n.string("widget.unavailableTitle", defaultValue: "Can't Refresh"),
-                message: L10n.string("widget.unavailableMessage", defaultValue: "Open Qianlai and try again.")
-            )
+        Group {
+            switch entry.content {
+            case let .data(presentation):
+                content(presentation: presentation, offline: nil)
+            case let .offline(presentation):
+                content(presentation: presentation, offline: presentation.generatedAt)
+            case .signedOut:
+                placeholder(
+                    icon: "person.crop.circle",
+                    title: L10n.string("widget.signedOutTitle", defaultValue: "Not Signed In"),
+                    message: L10n.string("widget.signedOutMessage", defaultValue: "Open Qianlai to see your balances.")
+                )
+            case .unavailable:
+                placeholder(
+                    icon: "arrow.clockwise",
+                    title: L10n.string("widget.unavailableTitle", defaultValue: "Can't Refresh"),
+                    message: L10n.string("widget.unavailableMessage", defaultValue: "Open Qianlai and try again.")
+                )
+            }
         }
+        // The widget renders in its own process; read the app's mirrored
+        // accent choice so Color.accentColor resolves the same as in-app.
+        .tint(AppAccent.stored().color)
     }
 
     private func content(presentation: SummaryPresentation, offline: Date?) -> some View {

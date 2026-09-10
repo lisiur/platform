@@ -22,6 +22,7 @@ struct ProfileView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
     @Environment(LocaleSettings.self) private var localeSettings
+    @Environment(AccentSettings.self) private var accentSettings
     @Environment(ToastCenter.self) private var toast
     @State private var store = ProfileStore()
     @State private var isShowingNameSheet = false
@@ -220,6 +221,11 @@ struct ProfileView: View {
             } label: {
                 Label(L10n.string("profile.language", defaultValue: "Language"), systemImage: "globe")
             }
+            // The system-rendered picker value reads the env-bridged
+            // accentColor, which goes stale on accent change; a concrete
+            // local tint plus an identity rebuild keeps the value live.
+            .tint(accentSettings.accent.color)
+            .id(accentSettings.accent)
             .appCardRow()
         }
     }

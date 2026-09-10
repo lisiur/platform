@@ -90,6 +90,7 @@ struct QuickAddEntryView: View {
             Color(.systemBackground)
         }
         .widgetURL(WidgetLinks.quickEntry)
+        .tint(AppAccent.stored().color)
     }
 
     /// Top-left scope header, styled like the summary widget's ledger name

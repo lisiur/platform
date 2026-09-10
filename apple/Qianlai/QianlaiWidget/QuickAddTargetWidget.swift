@@ -401,6 +401,7 @@ struct BoundQuickAddEntryView: View {
             Color(.systemBackground)
         }
         .widgetURL(entry.linkURL)
+        .tint(AppAccent.stored().color)
     }
 
     @ViewBuilder
