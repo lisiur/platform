@@ -1,7 +1,7 @@
 import type { Prisma } from "#generated/prisma/client";
 import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
-import { journalRepository } from "./journal.repository";
+import { journalRepository, type SumLinesWindow } from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 
 type AccountSums = Map<string, { debit: number; credit: number }>;
@@ -34,12 +34,7 @@ function redactEntryCreatorEmail<
 
 async function sumsByAccount(
   ledgerId: string,
-  window: {
-    from?: Date;
-    to?: Date;
-    countsInLedger?: boolean;
-    guestCreated?: boolean;
-  } = {},
+  window: SumLinesWindow = {},
 ): Promise<AccountSums> {
   const grouped = await journalRepository.sumLinesByAccount(ledgerId, window);
   const map: AccountSums = new Map();
@@ -309,7 +304,6 @@ export async function memberTurnover(
 }
 
 export async function dashboard(
-  userId: string,
   ledgerId: string,
   viewerRole: LedgerRole = "viewer",
   now = new Date(),
@@ -330,17 +324,20 @@ export async function dashboard(
     );
 
   const accounts = await accountRepository.listByLedger(ledgerId);
-  const [allTimeSums, monthEntries] = await Promise.all([
+  const [allTimeSums, monthSums, recentEntries] = await Promise.all([
     // Net worth stays accounting-true — the money really moved.
     sumsByAccount(ledgerId),
-    // Behavioral month statement: the viewer's actual spending — their
-    // share of every entry they participate in (guest posts included), not
-    // what they fronted. The personal books don't expense group spending
-    // beyond the share that is genuinely theirs.
-    journalRepository.listShareEntries(ledgerId, userId, {
+    // Behavioral month statement: every member's actual share — the
+    // participants' shares sum to each entry's full value, so the ledger's
+    // income/expense totals count every entry in full. Visibility mirrors
+    // the journal list: guest posts stay counted even when opted out;
+    // only non-guest opt-outs drop.
+    sumsByAccount(ledgerId, {
       from: monthStart,
       to: monthEnd,
+      activityVisibility: true,
     }),
+    journalRepository.listRecent(ledgerId, 5),
   ]);
 
   const netWorthAccounts = accounts.filter(
@@ -357,18 +354,11 @@ export async function dashboard(
     }
   }
 
-  const statement = buildStatementRows(
-    accounts,
-    shareSumsByAccount(monthEntries, userId),
-  );
+  const statement = buildStatementRows(accounts, monthSums);
 
   // Recent entries mirror the journal activity: member entries the creator
-  // kept in plus every guest post (entries that feed the share-based
-  // statement stay visible at the top of the dashboard too).
-  const recentEntries = (await journalRepository.listRecent(ledgerId, 5)).map(
-    (e) => redactEntryCreatorEmail(e, viewerRole),
-  );
-
+  // kept in plus every guest post (every entry feeding the statement stays
+  // visible at the top of the dashboard too).
   return {
     assets: round(assets),
     liabilities: round(liabilities),
@@ -378,7 +368,9 @@ export async function dashboard(
       month: monthStart.getUTCMonth() + 1,
       ...statement,
     },
-    recentEntries,
+    recentEntries: recentEntries.map((e) =>
+      redactEntryCreatorEmail(e, viewerRole),
+    ),
   };
 }
 

@@ -197,11 +197,11 @@ struct StatCard: View {
 }
 
 /// The expense hero card plus the income and net hints beneath it — the
-/// dashboard's month summary block, reused wherever a window's share-based
+/// dashboard's month summary block, reused wherever a window's ledger-wide
 /// totals render (the journal's stat card). The card spans the block's
 /// width; the hint row is inset a little.
 struct StatSummaryBlock: View {
-    /// The window's share-based totals; nil renders placeholders.
+    /// The window's ledger-wide totals; nil renders placeholders.
     let month: DashboardMonth?
     var currency: String?
 

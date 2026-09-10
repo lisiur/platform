@@ -233,71 +233,76 @@ describe("incomeStatement (share-based)", () => {
 });
 
 describe("dashboard", () => {
+  /** The month-statement call: the one carrying a from/to window. */
+  function monthWindowCall(): { from?: Date; to?: Date } | undefined {
+    return mockJournalRepo.sumLinesByAccount.mock.calls
+      .map((call) => call[1] as { from?: Date; to?: Date })
+      .find((window) => window.from);
+  }
+
   it("defaults to the month containing now", async () => {
     const before = new Date();
 
-    const result = await dashboard("user-a", "led-1");
-    const window = mockJournalRepo.listShareEntries.mock.calls[0]?.[2] as {
-      from: Date;
-    };
+    const result = await dashboard("led-1");
 
-    expect(window.from.getUTCMonth()).toBe(before.getUTCMonth());
-    expect(window.from.getUTCFullYear()).toBe(before.getUTCFullYear());
-    expect(window.from.getUTCDate()).toBe(1);
+    // Net worth stays the all-time sum; the month statement gets the window.
+    expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
+    const window = monthWindowCall();
+    expect(window?.from?.getUTCMonth()).toBe(before.getUTCMonth());
+    expect(window?.from?.getUTCFullYear()).toBe(before.getUTCFullYear());
+    expect(window?.from?.getUTCDate()).toBe(1);
     expect(result.month.year).toBe(before.getUTCFullYear());
     expect(result.month.month).toBe(before.getUTCMonth() + 1);
   });
 
-  it("summarizes the caller-provided window when from/to are given", async () => {
-    mockJournalRepo.listShareEntries.mockResolvedValue([
-      shareEntry({
-        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
-        participants: ["user-a", "user-b"],
-      }),
+  it("summarizes the caller-provided window with the journal's visibility rule", async () => {
+    mockJournalRepo.sumLinesByAccount.mockResolvedValue([
+      { accountId: "acc-food", _sum: { debit: 100, credit: 0 } },
     ]);
 
     const from = new Date(Date.UTC(2025, 11, 1));
     const to = new Date(Date.UTC(2025, 12, 0, 23, 59, 59, 999));
-    const result = await dashboard("user-a", "led-1", "viewer", new Date(), {
+    const result = await dashboard("led-1", "viewer", new Date(), {
       from,
       to,
     });
-    const window = mockJournalRepo.listShareEntries.mock.calls[0]?.[2] as {
-      from: Date;
-      to: Date;
-    };
 
-    expect(window.from).toEqual(from);
-    expect(window.to).toEqual(to);
+    // Not flag equality: `activityVisibility` keeps opted-out guest posts
+    // counted — the same rule the journal list shows them by.
+    expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {
+      from,
+      to,
+      activityVisibility: true,
+    });
     expect(result.month.year).toBe(2025);
     expect(result.month.month).toBe(12);
-    expect(result.month.totalExpense).toBe(50);
+    expect(result.month.totalExpense).toBe(100);
     expect(result.month.totalIncome).toBe(0);
-    expect(result.month.net).toBe(-50);
+    expect(result.month.net).toBe(-100);
   });
 
-  it("keeps net worth accounting-true while the month statement is share-based", async () => {
-    mockJournalRepo.sumLinesByAccount.mockResolvedValue([
-      // The viewer fronted 100 out of the pocket in total.
-      { accountId: "acc-pocket", _sum: { debit: 0, credit: 100 } },
-    ]);
-    mockJournalRepo.listShareEntries.mockResolvedValue([
-      shareEntry({
-        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
-        participants: ["user-a", "user-b"],
-      }),
-    ]);
+  it("counts every entry in full (all members' shares) while net worth stays all-time", async () => {
+    mockJournalRepo.sumLinesByAccount.mockImplementation(
+      async (_ledgerId: string, window?: { activityVisibility?: boolean }) =>
+        // No visibility flag = the all-time net-worth sum; flagged = the
+        // month statement. A shared 100 expense counts in full even though
+        // the caller is only one of the two participants.
+        window?.activityVisibility
+          ? [{ accountId: "acc-food", _sum: { debit: 100, credit: 0 } }]
+          : [{ accountId: "acc-pocket", _sum: { debit: 0, credit: 100 } }],
+    );
 
-    const result = await dashboard("user-a", "led-1");
+    const result = await dashboard("led-1");
 
     // Net worth: unfiltered gross (accounting truth — the money moved).
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
     expect(result.assets).toBe(-100);
-    // Month statement: the viewer's share of the shared expense.
-    expect(result.month.totalExpense).toBe(50);
+    // Month statement: the entry's full value, not the caller's share.
+    expect(monthWindowCall()).toMatchObject({ activityVisibility: true });
+    expect(result.month.totalExpense).toBe(100);
     // Recent entries mirror the journal activity: member entries the creator
-    // kept in plus every guest post (entries that feed the share-based
-    // statement stay visible at the top of the dashboard too).
+    // kept in plus every guest post (every entry feeding the statement stays
+    // visible at the top of the dashboard too).
     expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5);
   });
 });

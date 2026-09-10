@@ -63,6 +63,23 @@ export const ledgerActivityWhere = {
   OR: [{ guestCreated: true }, { countsInLedger: true }],
 } as const satisfies Prisma.JournalEntryWhereInput;
 
+/**
+ * Window + visibility options for `sumLinesByAccount`, shared with its
+ * callers so the shapes can't drift.
+ */
+export interface SumLinesWindow {
+  from?: Date;
+  to?: Date;
+  countsInLedger?: boolean;
+  guestCreated?: boolean;
+  /**
+   * Journal-list visibility (`ledgerActivityWhere`) instead of flag
+   * equality: guest posts stay in even when opted out; only non-guest
+   * opt-outs drop.
+   */
+  activityVisibility?: boolean;
+}
+
 /** Participant rows with the user's profile, as returned on entries. */
 const participantInclude = {
   user: {
@@ -506,21 +523,18 @@ export const journalRepository = {
    * entries dated within [from, to]. Grouped on JournalLine with the entry
    * relation filtered, so each account's totals reflect only this ledger.
    *
-   * Accounting truth by default: every current caller (trial balance, net
-   * worth, balance-as-of) passes no flags, so every posted entry is summed
-   * — opted-out and guest entries included. The `countsInLedger` /
-   * `guestCreated` filters stay opt-in for a future caller that needs a
-   * narrower sum; the behavioral income/expense statements are computed
-   * elsewhere, share-based, via `listShareEntries`.
+   * Accounting truth by default: trial balance, net worth, and
+   * balance-as-of pass no flags, so every posted entry is summed —
+   * opted-out and guest entries included. `activityVisibility` switches to
+   * the journal list's visibility rule so the behavioral statements that
+   * need narrower sums can't drift from what the journal shows. The
+   * `countsInLedger` / `guestCreated` flag-equality filters stay opt-in
+   * for a future caller; the per-viewer share-based income statement is
+   * computed elsewhere, via `listShareEntries`.
    */
   sumLinesByAccount(
     ledgerId: string,
-    window: {
-      from?: Date;
-      to?: Date;
-      countsInLedger?: boolean;
-      guestCreated?: boolean;
-    } = {},
+    window: SumLinesWindow = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalLine.groupBy({
@@ -528,12 +542,16 @@ export const journalRepository = {
       where: {
         account: { ledgerId },
         entry: {
-          ...(window.countsInLedger !== undefined
-            ? { countsInLedger: window.countsInLedger }
-            : {}),
-          ...(window.guestCreated !== undefined
-            ? { guestCreated: window.guestCreated }
-            : {}),
+          ...(window.activityVisibility
+            ? ledgerActivityWhere
+            : {
+                ...(window.countsInLedger !== undefined
+                  ? { countsInLedger: window.countsInLedger }
+                  : {}),
+                ...(window.guestCreated !== undefined
+                  ? { guestCreated: window.guestCreated }
+                  : {}),
+              }),
           date: {
             ...(window.from ? { gte: window.from } : {}),
             ...(window.to ? { lte: window.to } : {}),

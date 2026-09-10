@@ -23,7 +23,7 @@ export const dashboardRoute = defineOpenAPIRoute({
     tags: ["QianlaiReport"],
     summary: "Dashboard summary of the ledger",
     description:
-      "Net worth (assets − liabilities, accounting-true), the selected month's (defaults to current) income vs expense share-based for the viewer (each entry counts at the viewer's participant share), and the 5 most recent ledger-activity entries (member + guest posts).",
+      "Net worth (assets − liabilities, accounting-true), the selected month's (defaults to current) income vs expense for all members (each member's actual share — every entry counts in full with the journal's visibility rule: guest posts stay counted even when opted out, only non-guest opt-outs drop), and the 5 most recent ledger-activity entries (member + guest posts).",
     request: {
       params: ledgerIdParamSchema,
       query: dashboardQuerySchema,
@@ -42,7 +42,6 @@ export const dashboardRoute = defineOpenAPIRoute({
     const { from, to } = c.req.valid("query");
     const access = await requireLedgerAccess(userId, ledgerId, "viewer");
     const result = await dashboard(
-      userId,
       ledgerId,
       access.membership.role,
       new Date(),
