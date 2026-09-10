@@ -13,6 +13,7 @@ struct ReportsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ReportStore.self) private var store
     @State private var tab: ReportTab = .trialBalance
+    @State private var isDateFilterPresented = false
 
     enum ReportTab: String, CaseIterable, Identifiable {
         case trialBalance
@@ -56,19 +57,32 @@ struct ReportsView: View {
         }
     }
 
+    /// The trigger always renders the SAME symbol — activity is conveyed by
+    /// tint alone. Swapping `systemName` conditions tears down the toolbar
+    /// item on iOS 26, visibly flashing the chrome around it.
     private var dateFilterButton: some View {
-        FilterSheetButton(
-            fromDate: Binding(
-                get: { store.fromDate },
-                set: { store.fromDate = $0 }
-            ),
-            toDate: Binding(
-                get: { store.toDate },
-                set: { store.toDate = $0 }
-            ),
-            isActive: store.fromDate != nil || store.toDate != nil,
-            icon: "calendar"
-        ) {}
+        Button {
+            isDateFilterPresented = true
+        } label: {
+            Image(systemName: "calendar")
+                .foregroundStyle(
+                    store.fromDate != nil || store.toDate != nil
+                        ? AnyShapeStyle(Color.accentColor)
+                        : AnyShapeStyle(Color.primary)
+                )
+        }
+        .sheet(isPresented: $isDateFilterPresented) {
+            DateRangeSheet(
+                fromDate: Binding(
+                    get: { store.fromDate },
+                    set: { store.fromDate = $0 }
+                ),
+                toDate: Binding(
+                    get: { store.toDate },
+                    set: { store.toDate = $0 }
+                )
+            )
+        }
     }
 
     private var content: some View {

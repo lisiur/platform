@@ -8,6 +8,13 @@
 import Foundation
 import Observation
 
+/// The ledger's entry date extent under the current filters — the All
+/// tab's from/to display.
+struct EntryDateBounds: Equatable {
+    let earliest: Date
+    let latest: Date
+}
+
 /// Journal entries for the active ledger: paginated list with search, date
 /// range, and participant filters, plus quick-entry posting and deletion.
 @MainActor
@@ -40,6 +47,12 @@ final class JournalStore {
     /// cancelled first load leaves this false so the retry announces itself.
     private(set) var hasLoadedOnce = false
 
+    /// Earliest/latest entry dates under the current filters (the All tab's
+    /// from/to display) — refreshed beside every reload, never awaited by
+    /// the list.
+    private(set) var entryBounds: EntryDateBounds?
+    private var boundsTask: Task<Void, Never>?
+
     var searchQuery = "" { didSet { guard !suppressReload, oldValue != searchQuery else { return }; scheduleReload() } }
     var fromDate: Date? { didSet { scheduleReload() } }
     var toDate: Date? { didSet { scheduleReload() } }
@@ -67,12 +80,12 @@ final class JournalStore {
     var includeExcluded = true { didSet { scheduleReload() } }
     /// Project the page is hard-scoped to (the Journal follows the ledger
     /// switcher's scope). Not a user filter: the filter sheet can't change
-    /// it, `clearFilters` restores it instead of lifting it, and
-    /// `hasActiveFilters` ignores it. nil = ledger-wide page.
+    /// it, `clearFilters` restores it instead of lifting it. nil =
+    /// ledger-wide page.
     var scopeProjectId: String?
     /// Row ordering, driven by the dashboard's month header (every other
-    /// surface stays on `.date`). Not part of `hasActiveFilters`/`clearFilters`:
-    /// it's presentation intent, not a filter-sheet filter.
+    /// surface stays on `.date`). Not part of `clearFilters`: it's
+    /// presentation intent, not a filter.
     var sort: EntrySort = .date { didSet { guard !suppressReload, oldValue != sort else { return }; scheduleReload() } }
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
@@ -100,6 +113,9 @@ final class JournalStore {
         entries = []
         total = 0
         loadError = nil
+        // The All tab's fields show the extent — drop the old ledger's
+        // until the new one's first reload refreshes it.
+        entryBounds = nil
         // New ledger is a genuine first load again.
         hasLoadedOnce = false
         await reload()
@@ -155,6 +171,7 @@ final class JournalStore {
             if total != response.total { total = response.total }
             if loadError != nil { loadError = nil }
             if !hasLoadedOnce { hasLoadedOnce = true }
+            refreshBounds()
         } catch {
             guard self.ledgerId == ledgerId else { return }
             // A cancelled fetch is a superseded one — a newer reload owns
@@ -311,8 +328,67 @@ final class JournalStore {
         suppressReload = false
     }
 
-    var hasActiveFilters: Bool {
-        !searchQuery.isEmpty || fromDate != nil || toDate != nil || participantMemberId != nil || projectFilterId != scopeProjectId || accountId != nil || accountType != nil || memberUserId != nil || kind != nil || !includeExcluded
+    /// Refreshes the entry date extent: one entry fetched oldest-first and
+    /// one newest-first, mirroring the list's filters minus the date window
+    /// and the text query (the extent is about what the ledger contains,
+    /// not the transient search). Runs beside every reload and after
+    /// postings elsewhere; the list rendering never awaits it.
+    func refreshBounds() {
+        guard let ledgerId else { return }
+        boundsTask?.cancel()
+        boundsTask = Task {
+            let oldestQuery = Self.query(
+                limit: 1,
+                offset: 0,
+                q: "",
+                from: nil,
+                to: nil,
+                participant: participantMemberId,
+                project: projectFilterId,
+                account: accountId,
+                accountType: accountType,
+                member: memberUserId,
+                kind: kind,
+                includeExcluded: includeExcluded,
+                sort: .date,
+                dateAscending: true
+            )
+            let newestQuery = Self.query(
+                limit: 1,
+                offset: 0,
+                q: "",
+                from: nil,
+                to: nil,
+                participant: participantMemberId,
+                project: projectFilterId,
+                account: accountId,
+                accountType: accountType,
+                member: memberUserId,
+                kind: kind,
+                includeExcluded: includeExcluded,
+                sort: .date
+            )
+            do {
+                // Sequential awaits, not `async let`: the response decode
+                // runs under the store's MainActor isolation.
+                let oldest: EntriesResponse = try await client.request(
+                    "GET",
+                    "bookkeeping/ledgers/\(ledgerId)/entries\(oldestQuery)"
+                )
+                let newest: EntriesResponse = try await client.request(
+                    "GET",
+                    "bookkeeping/ledgers/\(ledgerId)/entries\(newestQuery)"
+                )
+                guard self.ledgerId == ledgerId, !Task.isCancelled else { return }
+                if let earliest = oldest.entries.first?.date,
+                   let latest = newest.entries.first?.date,
+                   entryBounds != EntryDateBounds(earliest: earliest, latest: latest) {
+                    entryBounds = EntryDateBounds(earliest: earliest, latest: latest)
+                }
+            } catch {
+                // Keep the previous extent; the next reload retries.
+            }
+        }
     }
 
     private static func query(
@@ -328,7 +404,8 @@ final class JournalStore {
         member: String?,
         kind: QuickEntryKind?,
         includeExcluded: Bool,
-        sort: EntrySort
+        sort: EntrySort,
+        dateAscending: Bool = false
     ) -> String {
         ApiQuery.build([
             ("limit", String(limit)),
@@ -344,7 +421,7 @@ final class JournalStore {
             ("kind", kind?.rawValue),
             ("includeExcluded", includeExcluded ? "true" : nil),
             ("sort", sort == .date ? nil : "amount"),
-            ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : nil),
+            ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : dateAscending ? "asc" : nil),
         ])
     }
 }

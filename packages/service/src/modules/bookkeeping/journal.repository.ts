@@ -343,12 +343,17 @@ export const journalRepository = {
     if (opts.sort === "amount") {
       return listEntriesByAmount(ledgerId, opts, tx);
     }
+    // order applies to the date listing too: asc = oldest first (the
+    // journal's window display walks the ledger's extent with limit=1),
+    // desc (default) stays newest first. entryNo flips with the date so
+    // the tiebreak keeps the listing deterministic in both directions.
+    const direction = opts.order === "asc" ? "asc" : "desc";
     return tx.journalEntry.findMany({
       where: entryFilterWhere(ledgerId, opts),
       include: entryInclude,
       take: opts.limit,
       skip: opts.offset,
-      orderBy: [{ date: "desc" }, { entryNo: "desc" }],
+      orderBy: [{ date: direction }, { entryNo: direction }],
     });
   },
 

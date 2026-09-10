@@ -132,6 +132,23 @@ nonisolated enum AppDates {
         return formatter.string(from: month.start)
     }
 
+    /// Journal week-stepper title for one locale-defined week: both ends as
+    /// month-day ("9月7日 – 9月13日", "Sep 7 – Sep 13"), with the year added
+    /// only when the week spans a year boundary.
+    static func formatWeekTitle(start: Date, end: Date, locale: Locale) -> String {
+        func formatter(_ template: String) -> DateFormatter {
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.locale = locale
+            formatter.setLocalizedDateFormatFromTemplate(template)
+            return formatter
+        }
+        let gregorian = Calendar(identifier: .gregorian)
+        let sameYear = gregorian.component(.year, from: start) == gregorian.component(.year, from: end)
+        let dayFormatter = formatter(sameYear ? "Md" : "yMd")
+        return "\(dayFormatter.string(from: start)) – \(dayFormatter.string(from: end))"
+    }
+
     /// First-to-last day of the LOCAL month containing `date`, for
     /// month-wide entry windows (the dashboard).
     static func monthWindow(containing date: Date = Date()) -> (from: Date, to: Date) {

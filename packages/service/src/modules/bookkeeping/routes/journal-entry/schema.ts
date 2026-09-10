@@ -176,7 +176,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     }),
     order: z.enum(["asc", "desc"]).optional().openapi({
       description:
-        "Direction for sort=amount: desc (default) is high to low, asc low to high. Ignored for sort=date, which is always newest first.",
+        "Direction for the listing: desc (default) is newest first for sort=date and high to low for sort=amount; asc flips both — oldest first for sort=date, low to high for sort=amount.",
     }),
   })
   .openapi("QianlaiListEntriesQuery");

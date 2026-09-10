@@ -325,16 +325,12 @@ struct DashboardView: View {
                 title: L10n.string("dashboard.sortAmountAsc", defaultValue: "Amount: low to high")
             )
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                // Tint mirrors the filter chip: black at the default order,
-                // accent while a non-default sort is in effect.
-                .foregroundStyle(
-                    entryStore.sort == .date
-                        ? AnyShapeStyle(Color.primary)
-                        : AnyShapeStyle(Color.accentColor)
-                )
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.primary.opacity(0.06)))
+            // Tint mirrors the filter chip: black at the default order,
+            // accent while a non-default sort is in effect.
+            CircleIcon(
+                systemName: "arrow.up.arrow.down",
+                isActive: entryStore.sort != .date
+            )
         }
         .accessibilityLabel(L10n.string("dashboard.sort", defaultValue: "Sort"))
     }
@@ -377,16 +373,12 @@ struct DashboardView: View {
                 title: L10n.string("quick.kind.transfer", defaultValue: "Transfer")
             )
         } label: {
-            Image(systemName: "line.3.horizontal.decrease")
-                // Activity is conveyed by tint alone, never a swapped
-                // symbol (the Journal's filter button).
-                .foregroundStyle(
-                    entryStore.kind == nil
-                        ? AnyShapeStyle(Color.primary)
-                        : AnyShapeStyle(Color.accentColor)
-                )
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.primary.opacity(0.06)))
+            // Activity is conveyed by tint alone, never a swapped
+            // symbol (the Journal's filter button).
+            CircleIcon(
+                systemName: "line.3.horizontal.decrease",
+                isActive: entryStore.kind != nil
+            )
         }
         .accessibilityLabel(L10n.string("dashboard.filter", defaultValue: "Filter"))
     }
@@ -423,9 +415,7 @@ struct DashboardView: View {
                 Button {
                     selectedMonth = selectedMonth.previous
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.primary.opacity(0.06)))
+                    CircleIcon(systemName: "chevron.left")
                 }
                 // Borderless: with the default style a tap on the List row
                 // fires BOTH chevrons, canceling each other out.
@@ -435,9 +425,7 @@ struct DashboardView: View {
                 Button {
                     selectedMonth = selectedMonth.next
                 } label: {
-                    Image(systemName: "chevron.right")
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.primary.opacity(0.06)))
+                    CircleIcon(systemName: "chevron.right")
                 }
                 .buttonStyle(.borderless)
                 .disabled(selectedMonth >= YearMonth.current)
@@ -450,51 +438,14 @@ struct DashboardView: View {
             // The expense card spans the summary's width; the chrome-less
             // rows above and below it are inset a little instead.
             .padding(.horizontal, 6)
-            StatCard(
-                icon: "wallet.bifold",
-                label: L10n.string("account.type.expense", defaultValue: "Expense"),
-                value: store.dashboard?.month.totalExpense,
-                currency: ledgerStore.activeLedger?.currency,
-                tone: .negative
+            StatSummaryBlock(
+                month: store.dashboard?.month,
+                currency: ledgerStore.activeLedger?.currency
             )
-            HStack(spacing: 16) {
-                monthHint(
-                    L10n.string("account.type.income", defaultValue: "Income"),
-                    value: store.dashboard?.month.totalIncome,
-                    tone: .positive
-                )
-                monthHint(
-                    L10n.string("common.net", defaultValue: "Net"),
-                    value: store.dashboard?.month.net,
-                    // Finance convention: negative net green (绿跌),
-                    // non-negative red (红涨).
-                    tone: (store.dashboard?.month.net ?? 0) < 0 ? .negative : .positive
-                )
-            }
-            .padding(.horizontal, 6)
         }
         // Horizontal margins come from the inset-grouped list itself, so
         // the summary lines up with the day cards below; vertical padding
         // spaces it off the pinned search bar and the first card.
         .padding(.vertical, 8)
-    }
-
-    /// Secondary income/net figure: plain label + tone-colored amount,
-    /// no card chrome — the expense card is the hero figure.
-    private func monthHint(
-        _ label: String,
-        value: Double?,
-        tone: StatCard.Tone
-    ) -> some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value.map { Money.format($0, currency: ledgerStore.activeLedger?.currency) } ?? "—")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(tone.color ?? Color.primary)
-                .lineLimit(1)
-        }
     }
 }

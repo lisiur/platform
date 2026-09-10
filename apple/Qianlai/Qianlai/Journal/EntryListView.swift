@@ -25,9 +25,9 @@ struct EntryListView: View {
     /// Statement drill-downs pass false — that page is read-only analysis.
     var showsPostHint = true
     /// Optional content rendered as the list's first row (the dashboard's
-    /// month summary) so it scrolls away with the records instead of
-    /// staying pinned above them. Shown in every list state — loading,
-    /// error, empty — like pinned chrome would be.
+    /// month summary, the journal's range header) so it scrolls away with
+    /// the records instead of staying pinned above them. Shown in every
+    /// list state — loading, error, empty — like pinned chrome would be.
     var topContent: AnyView?
     /// Optional custom right-hand amount column for each row (settlement
     /// drill-downs: the member's share, the entry total, their paid line).
