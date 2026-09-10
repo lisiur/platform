@@ -702,7 +702,7 @@ struct ProjectInviteView: View {
             } footer: {
                 Text(L10n.string(
                     "projects.inviteFooter",
-                    defaultValue: "Anyone who scans the QR joins this project as a guest — they can only see and record expenses of this project. The QR refreshes automatically; each code works for one minute."
+                    defaultValue: "Anyone who scans the QR joins this project — they can only see and record expenses of this project, without becoming a ledger member. The QR refreshes automatically; each code works for one minute."
                 ))
             }
         }

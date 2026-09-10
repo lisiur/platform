@@ -33,7 +33,9 @@ export const projectMemberRepository = {
     });
   },
 
-  /** Projects of `userId` within a ledger — the guest's visibility scope. */
+  /**
+   * Projects of `userId` within a ledger — the guest's visibility scope.
+   */
   listProjectIdsForUser(
     ledgerId: string,
     userId: string,
@@ -42,6 +44,36 @@ export const projectMemberRepository = {
     return tx.projectMember.findMany({
       where: { userId, project: { ledgerId } },
       select: { projectId: true },
+    });
+  },
+
+  /**
+   * Bare userIds of a project's members — the participant-roster extension
+   * that lets project outsiders (no LedgerMember row) be tagged or pay.
+   * Rows, not bare strings: callers merge them into the roster shape.
+   */
+  listUserIdsByProject(
+    projectId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.projectMember.findMany({
+      where: { projectId },
+      select: { userId: true },
+    });
+  },
+
+  /**
+   * Distinct project-participant users inside a ledger — the name/avatar
+   * fallback for outsider rows the ledger roster doesn't know.
+   */
+  listUsersInLedger(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.projectMember.findMany({
+      where: { project: { ledgerId } },
+      select: {
+        userId: true,
+        user: { select: { name: true, avatar: true } },
+      },
+      distinct: ["userId"],
     });
   },
 
@@ -89,16 +121,6 @@ export const projectMemberRepository = {
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.projectMember.deleteMany({
-      where: { userId, project: { ledgerId } },
-    });
-  },
-
-  countForUser(
-    ledgerId: string,
-    userId: string,
-    tx: Prisma.TransactionClient = prisma,
-  ) {
-    return tx.projectMember.count({
       where: { userId, project: { ledgerId } },
     });
   },

@@ -22,10 +22,11 @@ import { projectMemberRepository } from "./project-member.repository";
  * concurrent archive or ownership transfer between the check and the mint
  * must not hand out an invite for an archived or ex-owned ledger.
  *
- * With `projectId` the invite is project-scoped: redeeming grants a `guest`
- * ledger membership scoped to that project (the `role` claim is "guest").
- * Ledger-wide invites keep the owner-only rule; project invites may be
- * minted by editors and above.
+ * With `projectId` the invite is project-scoped (the `role` claim is
+ * "guest"): redeeming only creates a ProjectMember row — outsiders join the
+ * project WITHOUT becoming ledger members (their project row derives the
+ * guest role at access time). Ledger-wide invites keep the owner-only rule;
+ * project invites may be minted by editors and above.
  *
  * The returned "share code" IS the signed JWT — no row is stored anywhere.
  * It expires after INVITE_TTL_SECONDS and cannot be listed or revoked.
@@ -110,9 +111,12 @@ export async function createShareCode(
  * ledger row lock.
  *
  * Ledger-wide invites add the redeemer as an editor/viewer member (existing
- * member → 400; owner redeeming own ledger → 400). Project invites grant the
- * `guest` ledger role plus a ProjectMember row: an existing member of any
- * role just gains the project; an outsider becomes a guest first.
+ * member → 400; owner redeeming own ledger → 400). Project invites only
+ * create a ProjectMember row — an existing member of any role just gains
+ * the project, and an outsider stays OUT of the ledger roster entirely:
+ * their project row IS the membership, derived as the `guest` role at
+ * access time, so they can participate in (and leave) this one project
+ * without ever becoming a ledger member.
  *
  * Only the ledger row lock remains from the stored-code flow — codes need no
  * row locking or usage counting, and ledger deletion serializes through the
@@ -158,12 +162,6 @@ export async function redeemShareCode(userId: string, codeStr: string) {
         });
       }
       try {
-        if (!existing) {
-          await ledgerMemberRepository.create(
-            { ledgerId: claims.ledgerId, userId, role: "guest" },
-            tx,
-          );
-        }
         await projectMemberRepository.create(
           { projectId: claims.projectId, userId },
           tx,

@@ -20,7 +20,7 @@ export const removeProjectMemberRoute = defineOpenAPIRoute({
     tags: ["QianlaiProject"],
     summary: "Remove a member from the project (editor+)",
     description:
-      "A guest left with no other projects in the ledger is removed from the ledger too (their ledger scope would be empty).",
+      "Removes the member's project row. Ledger members keep their ledger membership; project outsiders (no ledger row) simply lose access to this project.",
     request: {
       params: projectMemberParamSchema,
     },

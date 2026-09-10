@@ -184,12 +184,13 @@ describe("redeemShareCode", () => {
     );
   });
 
-  it("project token: creates a guest membership plus the project member", async () => {
+  it("project token: creates only the project member — no ledger row for outsiders", async () => {
     mockProjectRepo.findById.mockResolvedValue({
       id: "proj-1",
       ledgerId: "led-1",
       status: "active",
     });
+    mockMemberRepo.findMembership.mockResolvedValue(null);
     mockProjectMemberRepo.findMembership.mockResolvedValue(null);
     mockProjectMemberRepo.create.mockResolvedValue({});
     const result = await redeemShareCode(
@@ -201,10 +202,9 @@ describe("redeemShareCode", () => {
       projectId: "proj-1",
       role: "guest",
     });
-    expect(mockMemberRepo.create).toHaveBeenCalledWith(
-      { ledgerId: "led-1", userId: "user-b", role: "guest" },
-      expect.anything(),
-    );
+    // Outsiders never enter the ledger roster — the project row IS their
+    // membership, derived as the guest role at access time.
+    expect(mockMemberRepo.create).not.toHaveBeenCalled();
     expect(mockProjectMemberRepo.create).toHaveBeenCalledWith(
       { projectId: "proj-1", userId: "user-b" },
       expect.anything(),

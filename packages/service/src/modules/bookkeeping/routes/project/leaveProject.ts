@@ -19,7 +19,7 @@ export const leaveProjectRoute = defineOpenAPIRoute({
     tags: ["QianlaiProject"],
     summary: "Leave a project",
     description:
-      "Leaves the project. A guest left with no other projects in the ledger leaves the ledger too.",
+      "Leaves the project. Ledger members keep their ledger membership; project outsiders (no ledger row) simply lose access to this project.",
     request: {
       params: projectIdParamSchema,
     },

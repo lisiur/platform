@@ -40,13 +40,22 @@ export const ledgerRepository = {
     return tx.ledger.findUnique({ where: { id } });
   },
 
-  /** Ledgers the user owns or is a member of, with their membership role. */
+  /**
+   * Ledgers the user owns or is a member of — plus ledgers they only
+   * participate in through a project (project outsiders hold no member
+   * row; ledger.service derives their guest role from the empty roster).
+   */
   listForUser(userId: string, tx: Prisma.TransactionClient = prisma) {
     // Ordered by createdAt only: isDefault is owner-scoped state and must not
     // steer the sort of members who don't own the ledger — listLedgers
     // applies the owner's own default-first ordering in memory.
     return tx.ledger.findMany({
-      where: { members: { some: { userId } } },
+      where: {
+        OR: [
+          { members: { some: { userId } } },
+          { projects: { some: { members: { some: { userId } } } } },
+        ],
+      },
       include: {
         members: {
           where: { userId },

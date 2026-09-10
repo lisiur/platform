@@ -44,10 +44,13 @@ function serializeLedger(
     isDefault: row.ownerId === userId && row.isDefault,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    // Project outsiders (no member row — they only hold a project row in
+    // this ledger) surface as guests; listForUser only includes this ledger
+    // for them because of that project membership.
     myRole:
       row.ownerId === userId
         ? "owner"
-        : ((row.members[0]?.role ?? "viewer") as LedgerRole),
+        : ((row.members[0]?.role ?? "guest") as LedgerRole),
     membersCount: row._count.members,
     shared: row.ownerId !== userId,
   };

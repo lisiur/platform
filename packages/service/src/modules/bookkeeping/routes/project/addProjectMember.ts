@@ -24,7 +24,7 @@ export const addProjectMemberRoute = defineOpenAPIRoute({
     tags: ["QianlaiProject"],
     summary: "Add a ledger member to the project (editor+)",
     description:
-      "Adds an existing member of the ledger to the project. Outsiders join via a project share code (guest role).",
+      "Adds an existing member of the ledger to the project. Outsiders join via a project share code, which gives them this project only (no ledger membership).",
     request: {
       params: projectIdParamSchema,
       body: {

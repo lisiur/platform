@@ -6971,13 +6971,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anyone who scans the QR joins this project as a guest — they can only see and record expenses of this project. The QR refreshes automatically; each code works for one minute."
+            "value" : "Anyone who scans the QR joins this project — they can only see and record expenses of this project, without becoming a ledger member. The QR refreshes automatically; each code works for one minute."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "扫描二维码的人会以访客身份加入该项目——只能查看和记录该项目的支出。二维码会自动刷新，每次有效期为 1 分钟。"
+            "value" : "扫描二维码的人会加入该项目——只能查看和记录该项目的支出，不会成为账本成员。二维码会自动刷新，每次有效期为 1 分钟。"
           }
         }
       }

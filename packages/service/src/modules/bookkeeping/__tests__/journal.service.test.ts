@@ -47,6 +47,7 @@ vi.mock("../project.repository", () => ({
 vi.mock("../project-member.repository", () => ({
   projectMemberRepository: {
     findMembership: vi.fn(),
+    listUserIdsByProject: vi.fn(),
   },
 }));
 
@@ -379,6 +380,7 @@ const mockProjectRepo = projectRepository as unknown as {
 };
 const mockProjectMemberRepo = projectMemberRepository as unknown as {
   findMembership: ReturnType<typeof vi.fn>;
+  listUserIdsByProject: ReturnType<typeof vi.fn>;
 };
 
 describe("createEntry", () => {
@@ -391,6 +393,7 @@ describe("createEntry", () => {
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
     ]);
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([]);
   });
 
   it("rejects a ledger archived after the route's check (race, 400)", async () => {
@@ -553,8 +556,19 @@ describe("createEntry", () => {
     });
     mockProjectRepo.findByIdWithMembers.mockResolvedValue({
       id: "proj-1",
-      members: [{ userId: "user-b" }, { userId: "user-a" }],
+      // "user-out" is a project outsider (no ledger row) — their share of
+      // the entry is real consumption, tagged like anyone else.
+      members: [
+        { userId: "user-b" },
+        { userId: "user-a" },
+        { userId: "user-out" },
+      ],
     });
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([
+      { userId: "user-a" },
+      { userId: "user-b" },
+      { userId: "user-out" },
+    ]);
     mockJournalRepo.createEntry.mockResolvedValue({ id: "e-6" });
     await createEntry(
       "user-a",
@@ -563,9 +577,12 @@ describe("createEntry", () => {
       editorAccess,
     );
     // Sorted userIds, one per project member — the split set is frozen
-    // by userId (not ledgerMemberId), so it survives membership changes.
+    // by userId (not ledgerMemberId), so it survives membership changes
+    // and includes project outsiders.
     expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ participantUserIds: ["user-a", "user-b"] }),
+      expect.objectContaining({
+        participantUserIds: ["user-a", "user-b", "user-out"],
+      }),
       expect.anything(),
     );
   });
@@ -650,6 +667,7 @@ describe("updateEntry", () => {
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
     ]);
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([]);
   });
 
   it("returns 404 when the entry belongs to another ledger", async () => {
@@ -847,6 +865,7 @@ describe("createEntry as guest", () => {
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
     ]);
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([]);
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
       status: "active",
@@ -1213,6 +1232,7 @@ describe("updateEntry as guest", () => {
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
     ]);
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([]);
     mockLedgerRepo.findById.mockResolvedValue({
       id: "led-1",
       status: "active",

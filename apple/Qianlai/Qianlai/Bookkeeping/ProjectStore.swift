@@ -328,18 +328,18 @@ final class ProjectStore {
     /// point for every leave action (project detail page, manage sheet), so
     /// the follow-up can't drift between call sites.
     ///
-    /// The server deletes a guest's ledger membership together with their
-    /// last project membership in the ledger, so the ledger list is
-    /// refreshed before the follow-up: the left ledger may no longer exist
-    /// for this user at all. When it survives, its project list refreshes
-    /// too — a mirror-syncing `load` when it's the active ledger (guests
-    /// auto-scope to the first remaining project, full roles fall back to
-    /// the ledger-wide view via the cleared selection), a cache-only
-    /// `refresh` for a background one. When it's gone, its cached projects
-    /// are dropped and a formerly-active pointer is cleared — `activeLedger`
-    /// falls through to the default / first remaining ledger on its own,
-    /// and an emptied ledger list lands the dashboard on its create/empty
-    /// state page.
+    /// A project outsider dropping their last project row in this ledger
+    /// loses the ledger entirely (it only surfaced through that project
+    /// membership), so the ledger list is refreshed before the follow-up:
+    /// the left ledger may no longer exist for this user at all. When it
+    /// survives, its project list refreshes too — a mirror-syncing `load`
+    /// when it's the active ledger (guests auto-scope to the first
+    /// remaining project, full roles fall back to the ledger-wide view via
+    /// the cleared selection), a cache-only `refresh` for a background one.
+    /// When it's gone, its cached projects are dropped and a
+    /// formerly-active pointer is cleared — `activeLedger` falls through to
+    /// the default / first remaining ledger on its own, and an emptied
+    /// ledger list lands the dashboard on its create/empty state page.
     func leaveAndReselect(
         ledgerId: String,
         projectId: String,

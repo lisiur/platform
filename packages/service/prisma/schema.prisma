@@ -1103,10 +1103,11 @@ model Ledger {
 }
 
 // A sub-scope of a ledger that both tags entries (JournalEntry.projectId)
-// and scopes guest access: a `guest` LedgerMember only sees entries whose
+// and scopes guest access: guests — full guest-role members, or project
+// outsiders who only hold a ProjectMember row — only see entries whose
 // project they belong to. Full roles (owner/editor/viewer) see every
-// project; explicit ProjectMember rows still define the participant set
-// for settlement reports (the creator is added automatically on create).
+// project; ProjectMember rows define the participant set for settlement
+// reports (the creator is added automatically on create).
 model Project {
   id          String         @id @default(cuid())
   ledgerId    String
@@ -1127,8 +1128,10 @@ model Project {
 }
 
 // Explicit project membership — who the project "concerns" (settlement
-// splits across these people). Distinct from LedgerMember: full ledger
-// roles gain nothing from a row here except being counted as participants.
+// splits across these people). For full ledger roles a row only adds them
+// to the participant set; for project OUTSIDERS it is their sole
+// membership — access and the derived guest role come from this row, and
+// they never appear in the ledger roster.
 model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
@@ -1259,12 +1262,13 @@ model JournalEntry {
   // entry; the guest dimension lives in `guestCreated` below.
   countsInLedger Boolean     @default(true)
   // System rule, set once at posting and never user-editable: true when the
-  // creator was a guest. It keeps guest posts IN the ledger-wide journal
-  // regardless of countsInLedger, and their participant shares feed the
-  // share-based statement — group spending is real consumption for the
-  // tagged members. Kept as its own column (instead of inferring "creator
-  // is not a ledger member" at query time) because createdById is nullable
-  // (SetNull on account deletion) and per-query membership joins are costly.
+  // creator was not a ledger member (a guest-role member or a project
+  // outsider). It keeps such posts IN the ledger-wide journal regardless of
+  // countsInLedger, and their participant shares feed the share-based
+  // statement — group spending is real consumption for the tagged members.
+  // Kept as its own column (instead of inferring "creator is not a ledger
+  // member" at query time) because createdById is nullable (SetNull on
+  // account deletion) and per-query membership joins are costly.
   guestCreated  Boolean      @default(false)
   // Optional location captured at posting time, resolved on the client
   // (CoreLocation / browser geolocation + reverse geocoding) — the service

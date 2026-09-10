@@ -211,25 +211,34 @@ struct QuickEntryView: View {
     }
 
     /// Who can be tagged on this entry. When the entry targets a project
-    /// (mandatory for guests), only that project's members are eligible —
-    /// selection and the posted `participantUserIds` are keyed by userId
-    /// (the API tags participants by user, not by ledger membership).
-    /// Personal entries fall back to the whole ledger roster.
-    private var participantCandidates: [LedgerMember] {
+    /// (mandatory for guests), that project's whole membership is eligible —
+    /// including project outsiders, whose only membership is the project
+    /// row and who hold no ledger-roster entry. Personal entries fall back
+    /// to the whole ledger roster.
+    private var participantCandidates: [EntryPerson] {
         if let projectId = draft.projectId,
            let project = ledgerProjects.first(where: { $0.id == projectId }) {
-            let memberUserIds = Set(project.members.map(\.userId))
-            return memberStore.members.filter { memberUserIds.contains($0.userId) }
+            return project.members.map(\.entryPerson)
         }
-        return memberStore.members
+        return memberStore.members.map(\.entryPerson)
     }
 
     /// Who can be named as the payer: any ledger member — the recorder is
-    /// not always the person who fronted the money. Ledger-wide, unlike the
-    /// participant set: someone outside the picked project can still have
-    /// paid for it.
-    private var payerCandidates: [LedgerMember] {
-        memberStore.members
+    /// not always the person who fronted the money — plus, for a project
+    /// entry, that project's outsiders (they can front their project's
+    /// spending without being ledger members).
+    private var payerCandidates: [EntryPerson] {
+        var people = memberStore.members.map(\.entryPerson)
+        if let projectId = draft.projectId,
+           let project = ledgerProjects.first(where: { $0.id == projectId }) {
+            let known = Set(people.map(\.userId))
+            people.append(
+                contentsOf: project.members
+                    .filter { !known.contains($0.userId) }
+                    .map(\.entryPerson)
+            )
+        }
+        return people
     }
 
     /// When editing, the entry's stored payer may no longer be a member
@@ -1736,7 +1745,7 @@ struct QuickEntryView: View {
     /// (the server snapshots it as the split set), so say that instead of
     /// the ledger-wide "Not selected".
     private var participantSummary: String {
-        let names = memberStore.members
+        let names = participantCandidates
             .filter { draft.participants.contains($0.userId) }
             .map(\.displayName)
         guard !names.isEmpty else {

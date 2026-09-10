@@ -1,6 +1,5 @@
 import { isVirtualUser } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
-import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { userLookupRepository } from "#modules/identity/public";
 import { assertLedgerWritable, requireProjectAccess } from "./access";
@@ -334,35 +333,6 @@ export async function addProjectMember(
   return { success: true as const };
 }
 
-/**
- * After dropping a member's project row, a guest left with zero projects in
- * the ledger has nothing left to see — remove their ledger membership too
- * (same transaction) instead of leaving a dangling scope-less guest.
- */
-async function dropProjectMembership(
-  tx: Prisma.TransactionClient,
-  projectId: string,
-  ledgerId: string,
-  targetUserId: string,
-) {
-  await projectMemberRepository.delete(projectId, targetUserId, tx);
-  const target = await ledgerMemberRepository.findMembership(
-    ledgerId,
-    targetUserId,
-    tx,
-  );
-  if (target?.role === "guest") {
-    const remaining = await projectMemberRepository.countForUser(
-      ledgerId,
-      targetUserId,
-      tx,
-    );
-    if (remaining === 0) {
-      await ledgerMemberRepository.delete(ledgerId, targetUserId, tx);
-    }
-  }
-}
-
 /** Removes a member from the project (editor+). */
 export async function removeProjectMember(
   actingUserId: string,
@@ -398,12 +368,12 @@ export async function removeProjectMember(
     if (!existing) {
       throw new HTTPException(404, { message: "Project member not found" });
     }
-    await dropProjectMembership(tx, projectId, project.ledgerId, targetUserId);
+    await projectMemberRepository.delete(projectId, targetUserId, tx);
   });
   return { success: true as const };
 }
 
-/** Leaves a project. Guests losing their last project leave the ledger. */
+/** Leaves a project. Project outsiders just drop their membership row. */
 export async function leaveProject(userId: string, projectId: string) {
   await prisma.$transaction(async (tx) => {
     const project = await projectRepository.findById(projectId, tx);
@@ -426,7 +396,7 @@ export async function leaveProject(userId: string, projectId: string) {
         message: "You are not a member of this project",
       });
     }
-    await dropProjectMembership(tx, projectId, project.ledgerId, userId);
+    await projectMemberRepository.delete(projectId, userId, tx);
   });
   return { success: true as const };
 }

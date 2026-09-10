@@ -24,6 +24,7 @@ import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
 import { projectRepository } from "./project.repository";
+import { projectMemberRepository } from "./project-member.repository";
 
 export type JournalLineInput = {
   /**
@@ -295,20 +296,23 @@ export async function createEntry(
       access,
       data.projectId,
     );
-    const [ledgerAccounts, ledgerMembers] = await Promise.all([
+    const [ledgerAccounts, ledgerMembers, projectMembers] = await Promise.all([
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
+      projectId
+        ? projectMemberRepository.listUserIdsByProject(projectId, tx)
+        : Promise.resolve([]),
     ]);
     const participantUserIds = await withAutoParticipants(
       tx,
       projectId,
       data.participantUserIds,
-      ledgerMembers,
     );
     return postEntryInTransaction(tx, userId, ledgerId, ledger, {
       ...data,
       projectId,
       participantUserIds,
+      projectMembers,
       // Pure user intent — passes through exactly as the client set it.
       // The guest rule lives in `guestCreated` below, not here.
       countsInLedger: data.countsInLedger,
@@ -333,13 +337,15 @@ export async function createEntry(
  *
  * `participantUserIds` tags the entry to users (for turnover reports,
  * the viewer's share-based statement, and project settlement); each must
- * be a current member of this ledger. Anchored to User — not
+ * be either a current member of this ledger or a member of the entry's
+ * project — project outsiders hold no LedgerMember row, but their share
+ * of a project entry is a real consumption fact. Anchored to User — not
  * LedgerMember — so the tag survives a member leaving the ledger
  * (settlement is a historical fact; membership is just access scope).
  *
  * `paidByUserId` records who fronted the money — not necessarily the
  * recorder; omitted/null falls back to the creator, and an explicit id
- * must be a current ledger member (same roster check as participants).
+ * must pass the same roster check as participants.
  */
 export async function postEntryInTransaction(
   tx: Prisma.TransactionClient,
@@ -352,6 +358,8 @@ export async function postEntryInTransaction(
     rawLines: JournalLineInput[];
     ledgerAccounts: BookAccount[];
     ledgerMembers?: Array<{ id: string; userId: string }>;
+    /** The entry project's members (bare userIds) — extends the roster. */
+    projectMembers?: Array<{ userId: string }>;
     participantUserIds?: string[];
     /** Who fronted the money; omitted/null defaults to the creator. */
     paidByUserId?: string | null;
@@ -368,15 +376,15 @@ export async function postEntryInTransaction(
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
     expenseOnly: data.expenseOnly,
   });
+  const roster = [
+    ...(data.ledgerMembers ?? []),
+    ...(data.projectMembers ?? []),
+  ];
   const participantUserIds = validateParticipants(
     data.participantUserIds,
-    data.ledgerMembers ?? [],
+    roster,
   );
-  const paidById = resolvePaidById(
-    data.paidByUserId,
-    userId,
-    data.ledgerMembers ?? [],
-  );
+  const paidById = resolvePaidById(data.paidByUserId, userId, roster);
   // entryNo comes from the ledger's monotonic counter so numbers are never
   // reused, even after deleting the highest-numbered entry. Race-free
   // because we hold the ledger row lock.
@@ -416,11 +424,12 @@ export async function postEntryInTransaction(
 }
 
 /**
- * Each participant userId must be a current member of this ledger.
- * Deduplicated so a repeated id can't violate the (entryId, userId)
- * unique constraint. Returns undefined (not []) when no participants are
- * given, so system-generated posts (balance adjustments) skip the
- * relation entirely.
+ * Each participant userId must be on the entry's roster: a current ledger
+ * member, or a member of the entry's project (project outsiders). The
+ * caller merges the two sources. Deduplicated so a repeated id can't
+ * violate the (entryId, userId) unique constraint. Returns undefined (not
+ * []) when no participants are given, so system-generated posts (balance
+ * adjustments) skip the relation entirely.
  */
 function validateParticipants(
   participantUserIds: string[] | undefined,
@@ -439,11 +448,11 @@ function validateParticipants(
 }
 
 /**
- * Resolves the entry's payer: an explicit `paidByUserId` must be a current
- * member of this ledger (recording for someone else is fine — paying
- * from outside the ledger is not), while omitted/null falls back to the
- * creator, so plain posts and system adjustments behave exactly as before
- * explicit payers existed.
+ * Resolves the entry's payer: an explicit `paidByUserId` must be on the
+ * entry's roster (ledger members plus the project's members — recording
+ * for someone else is fine — paying from outside the roster is not),
+ * while omitted/null falls back to the creator, so plain posts and system
+ * adjustments behave exactly as before explicit payers existed.
  */
 function resolvePaidById(
   paidByUserId: string | null | undefined,
@@ -469,31 +478,22 @@ function resolvePaidById(
  * entry they consumed. Tags are userIds: project members are keyed by
  * userId, and tagging by userId (not ledgerMemberId) means a member who
  * later leaves the ledger keeps the historical split set anchored to their
- * userId — the tag survives the LedgerMember deletion. Project members who
- * are not in the ledger roster are dropped silently; members who are in the
- * ledger but have no User record fail validateParticipants. Ledger-wide
- * entries keep the optional-participant state — no settlement semantics
- * apply there.
+ * userId — the tag survives the LedgerMember deletion. Project outsiders
+ * (no LedgerMember row) are tagged like anyone else — their consumption is
+ * real. Ledger-wide entries keep the optional-participant state — no
+ * settlement semantics apply there.
  */
 async function withAutoParticipants(
   tx: Prisma.TransactionClient,
   projectId: string | null | undefined,
   participantUserIds: string[] | undefined,
-  ledgerMembers: Array<{ id: string; userId: string }>,
 ): Promise<string[] | undefined> {
   // Empty array = explicitly cleared → falls through to re-tagging,
   // mirroring create's "no explicit participants" behavior.
   if (participantUserIds?.length || !projectId) return participantUserIds;
   const project = await projectRepository.findByIdWithMembers(projectId, tx);
   if (!project) return participantUserIds;
-  const memberUserIds = new Set(ledgerMembers.map((m) => m.userId));
-  return [
-    ...new Set(
-      project.members
-        .map((member) => member.userId)
-        .filter((userId): userId is string => memberUserIds.has(userId)),
-    ),
-  ].sort();
+  return [...new Set(project.members.map((member) => member.userId))].sort();
 }
 
 /**
@@ -584,6 +584,12 @@ export async function updateEntry(
       accountRepository.listByLedger(ledgerId, tx),
       ledgerMemberRepository.listByLedger(ledgerId, tx),
     ]);
+    // The entry roster extends to the (final) project's members, so an edit
+    // can keep or re-tag project outsiders as participants/payer.
+    const projectMembers = projectId
+      ? await projectMemberRepository.listUserIdsByProject(projectId, tx)
+      : [];
+    const roster = [...ledgerMembers, ...projectMembers];
     const lines = validateJournalLines(data.lines, ledgerAccounts, {
       expenseOnly: actor.role === "guest",
     });
@@ -594,8 +600,7 @@ export async function updateEntry(
     const participantUserIds = await withAutoParticipants(
       tx,
       projectId,
-      validateParticipants(data.participantUserIds, ledgerMembers) ?? [],
-      ledgerMembers,
+      validateParticipants(data.participantUserIds, roster) ?? [],
     );
     // withAutoParticipants returns undefined for an untagged ledger-wide
     // entry; the repo's delete-and-recreate treats [] as "no tags".
@@ -623,7 +628,7 @@ export async function updateEntry(
             : resolvePaidById(
                 data.paidByUserId,
                 entry.createdById ?? actor.userId,
-                ledgerMembers,
+                roster,
               );
     // Location deviates from replace semantics like countsInLedger: omitted
     // = keep the stored place (edit forms that don't surface the field

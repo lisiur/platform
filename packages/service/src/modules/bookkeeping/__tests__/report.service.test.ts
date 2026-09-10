@@ -21,9 +21,16 @@ vi.mock("../ledger-member.repository", () => ({
   },
 }));
 
+vi.mock("../project-member.repository", () => ({
+  projectMemberRepository: {
+    listUsersInLedger: vi.fn(),
+  },
+}));
+
 import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
+import { projectMemberRepository } from "../project-member.repository";
 import { dashboard, incomeStatement, memberTurnover } from "../report.service";
 
 const mockAccountRepo = accountRepository as unknown as {
@@ -37,6 +44,9 @@ const mockJournalRepo = journalRepository as unknown as {
 };
 const mockMemberRepo = ledgerMemberRepository as unknown as {
   listByLedger: ReturnType<typeof vi.fn>;
+};
+const mockProjectMemberRepo = projectMemberRepository as unknown as {
+  listUsersInLedger: ReturnType<typeof vi.fn>;
 };
 
 function account(
@@ -102,6 +112,7 @@ beforeEach(() => {
   mockJournalRepo.listRecent.mockResolvedValue([]);
   mockJournalRepo.sumLinesByAccount.mockResolvedValue([]);
   mockJournalRepo.listShareEntries.mockResolvedValue([]);
+  mockProjectMemberRepo.listUsersInLedger.mockResolvedValue([]);
 });
 
 describe("incomeStatement (share-based)", () => {
@@ -317,7 +328,7 @@ describe("trialBalance", () => {
 });
 
 describe("memberTurnover", () => {
-  it("includes virtual members like any other member", async () => {
+  it("includes virtual members like any other member and names project outsiders", async () => {
     // A virtual member is an ordinary roster row to the turnover math —
     // its flags never filter it out of stats.
     mockMemberRepo.listByLedger.mockResolvedValue([
@@ -342,13 +353,20 @@ describe("memberTurnover", () => {
         },
       },
     ]);
+    mockProjectMemberRepo.listUsersInLedger.mockResolvedValue([
+      { userId: "user-out", user: { name: "小外", avatar: null } },
+    ]);
     mockJournalRepo.listTaggedEntries.mockResolvedValue([
       {
         lines: [
           { debit: 30, credit: 0 },
           { debit: 0, credit: 30 },
         ],
-        participants: [{ userId: "user-a" }, { userId: "user-v" }],
+        participants: [
+          { userId: "user-a" },
+          { userId: "user-v" },
+          { userId: "user-out" },
+        ],
       },
     ]);
 
@@ -365,6 +383,15 @@ describe("memberTurnover", () => {
       entryCount: 1,
       turnover: 30,
     });
-    expect(totals).toEqual({ entries: 1, turnover: 60 });
+    // A project outsider (no ledger row) resolves their identity through
+    // the project membership and maps to the guest role.
+    expect(members.find((m) => m.userId === "user-out")).toMatchObject({
+      ledgerMemberId: null,
+      name: "小外",
+      role: "guest",
+      entryCount: 1,
+      turnover: 30,
+    });
+    expect(totals).toEqual({ entries: 1, turnover: 90 });
   });
 });

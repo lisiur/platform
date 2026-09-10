@@ -22,7 +22,7 @@ export const createShareCodeRoute = defineOpenAPIRoute({
     tags: ["QianlaiShare"],
     summary: "Mint an invite code (owner; editors for project invites)",
     description:
-      'Signs a short-lived invite JWT (nothing is stored). Any registered user can redeem it to join this ledger with the bound role. With projectId set the code becomes a project invite redeemable for guest access to that project (editors and above may create those; the role field must be "guest").',
+      'Signs a short-lived invite JWT (nothing is stored). Any registered user can redeem it to join this ledger with the bound role. With projectId set the code becomes a project invite that adds the redeemer to that project only — outsiders never become ledger members and derive the guest role from their project row (editors and above may create those; the role field must be "guest").',
     request: {
       params: ledgerIdParamSchema,
       body: {

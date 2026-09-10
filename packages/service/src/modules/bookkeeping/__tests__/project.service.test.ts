@@ -51,7 +51,6 @@ vi.mock("../project-member.repository", () => ({
     create: vi.fn(),
     delete: vi.fn(),
     deleteAllInLedger: vi.fn(),
-    countForUser: vi.fn(),
   },
 }));
 
@@ -102,7 +101,6 @@ const mockProjectMemberRepo = projectMemberRepository as unknown as {
   listProjectIdsForUser: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
-  countForUser: ReturnType<typeof vi.fn>;
 };
 const mockJournalRepo = journalRepository as unknown as {
   listByProject: ReturnType<typeof vi.fn>;
@@ -562,7 +560,6 @@ describe("removeProjectMember", () => {
   it("removes a member from an active project", async () => {
     mockMemberRepo.findMembership.mockResolvedValue({ role: "editor" });
     mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
-    mockProjectMemberRepo.countForUser.mockResolvedValue(0);
     const result = await removeProjectMember("user-ed", "proj-1", "user-other");
     expect(result).toEqual({ success: true });
     expect(mockProjectMemberRepo.delete).toHaveBeenCalledWith(
@@ -610,7 +607,6 @@ describe("leaveProject", () => {
 
   it("removes the actor from the project", async () => {
     mockProjectMemberRepo.findMembership.mockResolvedValue({ id: "pm-1" });
-    mockProjectMemberRepo.countForUser.mockResolvedValue(0);
     const result = await leaveProject("user-other", "proj-1");
     expect(result).toEqual({ success: true });
     expect(mockProjectMemberRepo.delete).toHaveBeenCalledWith(

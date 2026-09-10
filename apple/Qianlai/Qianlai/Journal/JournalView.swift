@@ -579,15 +579,14 @@ struct JournalView: View {
 
     /// Participant filter options, scoped to the active project filter when
     /// one is set — a project's entries can only be tagged with that
-    /// project's members, so offering the whole ledger roster would just
-    /// yield empty results. Falls back to the full ledger roster otherwise.
-    private var participantCandidates: [LedgerMember] {
+    /// project's members, including outsiders who hold no roster row.
+    /// Falls back to the full ledger roster otherwise.
+    private var participantCandidates: [EntryPerson] {
         if let projectId = store.projectFilterId,
            let project = ledgerProjects.first(where: { $0.id == projectId }) {
-            let memberUserIds = Set(project.members.map(\.userId))
-            return memberStore.members.filter { memberUserIds.contains($0.userId) }
+            return project.members.map(\.entryPerson)
         }
-        return memberStore.members
+        return memberStore.members.map(\.entryPerson)
     }
 
     /// The project currently claiming scope in the ledger switcher — an

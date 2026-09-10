@@ -3,6 +3,7 @@ import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
 import { journalRepository, type SumLinesWindow } from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
+import { projectMemberRepository } from "./project-member.repository";
 
 type AccountSums = Map<string, { debit: number; credit: number }>;
 
@@ -251,12 +252,16 @@ export async function memberTurnover(
   ledgerId: string,
   window: { from?: Date; to?: Date } = {},
 ) {
-  const [members, tagged] = await Promise.all([
+  const [members, projectUsers, tagged] = await Promise.all([
     ledgerMemberRepository.listByLedger(ledgerId),
+    projectMemberRepository.listUsersInLedger(ledgerId),
     journalRepository.listTaggedEntries(ledgerId, window),
   ]);
 
   const memberByUserId = new Map(members.map((m) => [m.userId, m]));
+  // Project outsiders hold no ledger row — their identity comes from the
+  // project membership's User.
+  const projectUserByUserId = new Map(projectUsers.map((p) => [p.userId, p]));
 
   const turnoverByUserId = new Map<
     string,
@@ -281,14 +286,17 @@ export async function memberTurnover(
 
   const rows = [...turnoverByUserId.entries()].map(([userId, agg]) => {
     const member = memberByUserId.get(userId);
+    const projectUser = projectUserByUserId.get(userId);
     return {
       // Forward the userId so the client can disambiguate a row even when
       // the user is no longer a current ledger member.
       userId,
       ledgerMemberId: member?.id ?? null,
-      name: member?.user?.name ?? userId,
-      avatar: member?.user?.avatar ?? null,
-      role: (member?.role ?? "editor") as LedgerRole,
+      name: member?.user?.name ?? projectUser?.user?.name ?? userId,
+      avatar: member?.user?.avatar ?? projectUser?.user?.avatar ?? null,
+      // Project outsiders aren't ledger members — the guest role is what
+      // their participation maps to.
+      role: (member?.role ?? "guest") as LedgerRole,
       entryCount: agg.entries,
       turnover: round(agg.turnover),
     };

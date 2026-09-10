@@ -15,22 +15,33 @@ export type LedgerAccess = {
  * Guard for ledger-scoped routes. Non-members get a 404 (no existence leak),
  * members below the minimum role get a 403.
  *
- * Pass minRole "guest" for "any member" — guests are ledger members whose
- * visibility is instead scoped by the project helpers below.
+ * Pass minRole "guest" for "any member" — guests are full ledger members
+ * with the guest role, or project outsiders whose only membership is a
+ * ProjectMember row (derived as the guest role here, so every guest-scoped
+ * behavior downstream applies to them unchanged).
  */
 export async function requireLedgerAccess(
   userId: string,
   ledgerId: string,
   minRole: LedgerRole,
 ): Promise<LedgerAccess> {
-  const membership = await ledgerMemberRepository.findMembership(
-    ledgerId,
-    userId,
-  );
-  if (!membership) {
-    throw new HTTPException(404, { message: "Ledger not found" });
+  const row = await ledgerMemberRepository.findMembership(ledgerId, userId);
+  let role: LedgerRole;
+  if (row) {
+    role = row.role as LedgerRole;
+  } else {
+    // Project outsiders hold no LedgerMember row; their project rows are
+    // the membership, expressed as the guest role.
+    const projects = await projectMemberRepository.listProjectIdsForUser(
+      ledgerId,
+      userId,
+    );
+    if (projects.length === 0) {
+      throw new HTTPException(404, { message: "Ledger not found" });
+    }
+    role = "guest";
   }
-  if (!roleAtLeast(membership.role, minRole)) {
+  if (!roleAtLeast(role, minRole)) {
     throw new HTTPException(403, {
       message: `This action requires the ${minRole} role or higher`,
     });
@@ -46,7 +57,7 @@ export async function requireLedgerAccess(
       status: ledger.status,
       name: ledger.name,
     },
-    membership: { role: membership.role as LedgerRole },
+    membership: { role },
   };
 }
 
@@ -87,13 +98,14 @@ export async function requireProjectAccess(
     project.ledgerId,
     userId,
   );
-  if (!membership) {
-    throw new HTTPException(404, { message: "Project not found" });
-  }
-  const role = membership.role as LedgerRole;
-  if (role === "guest") {
-    // Guests never satisfy a higher minimum — project routes cap them at
-    // read/participate actions regardless of their ProjectMember row.
+  // Ledger guests and project outsiders (no LedgerMember row — the project
+  // row IS their membership) both resolve to the guest role, which never
+  // satisfies a higher minimum and must hold this project's row. Full
+  // roles pass through roleAtLeast.
+  let role: LedgerRole | null = membership
+    ? (membership.role as LedgerRole)
+    : null;
+  if (role === null || role === "guest") {
     if (minRole !== "guest") {
       throw new HTTPException(403, {
         message: `This action requires the ${minRole} role or higher`,
@@ -106,6 +118,7 @@ export async function requireProjectAccess(
     if (!projectMember) {
       throw new HTTPException(404, { message: "Project not found" });
     }
+    role = "guest";
   } else if (!roleAtLeast(role, minRole)) {
     throw new HTTPException(403, {
       message: `This action requires the ${minRole} role or higher`,
