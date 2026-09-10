@@ -47,6 +47,7 @@ struct JournalDetailView: View {
             sharesSection
             linesSection
         }
+        .appBackgroundCanvas()
         .navigationTitle(Text(L10n.string("journal.detail.title", defaultValue: "Entry Details")))
         .inlineNavigationBarTitle()
         .toolbar {
@@ -87,6 +88,7 @@ struct JournalDetailView: View {
                 viewerUserId: auth.currentUser?.id,
                 showsViewerShare: false
             )
+            .appCardRow()
             .listRowSeparator(.hidden)
         }
     }
@@ -205,6 +207,7 @@ struct JournalDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
+        .appCardRow()
     }
 
     private func lineBadge(_ line: JournalLine) -> some View {
@@ -255,6 +258,7 @@ struct JournalDetailView: View {
             Text(label)
                 .foregroundStyle(.primary)
         }
+        .appCardRow()
     }
 
     /// Who fronted the money is part of the record even when they're the

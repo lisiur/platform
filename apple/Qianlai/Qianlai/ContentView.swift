@@ -373,7 +373,7 @@ struct ContentView: View {
         switch tab {
         case .dashboard: DashboardView()
         case .journal: JournalView()
-        case .members: MembersTabPageView()
+        case .members: MembersTabPageView().appBackgroundCanvas()
         case .assets: RealAccountsView()
         case .projects: ProjectsView()
         case .reports: ReportsView()

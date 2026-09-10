@@ -110,6 +110,7 @@ struct LedgersView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
+                .appCardRow()
             } else if let error = ledgerStore.loadError, !hasVisibleContent {
                 ErrorRetryView(message: error) {
                     Task { await ledgerStore.load() }
@@ -346,6 +347,7 @@ struct LedgersView: View {
                 leaveAction(ledger)
             }
         }
+        .appCardRow()
     }
 
     /// Project row used when a guest-ledger entry explodes into its
@@ -401,6 +403,7 @@ struct LedgersView: View {
                 Label(L10n.string("projects.leave", defaultValue: "Leave"), systemImage: "rectangle.portrait.and.arrow.right")
             }
         }
+        .appCardRow()
     }
 
     // Shared row actions used by both the context menu and the swipe actions.

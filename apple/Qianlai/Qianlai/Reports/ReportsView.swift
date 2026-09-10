@@ -90,6 +90,7 @@ struct ReportsView: View {
             case .memberTurnover: memberTurnoverSection
             }
         }
+        .appBackgroundCanvas()
         .refreshable {
             await store.reloadWindowed()
         }
@@ -117,6 +118,7 @@ struct ReportsView: View {
                             .font(.callout.weight(.medium).monospacedDigit())
                             .frame(minWidth: 90, alignment: .trailing)
                     }
+                .appCardRow()
                 }
                 HStack {
                     Text(L10n.string("reports.totals", defaultValue: "Totals"))
@@ -130,6 +132,7 @@ struct ReportsView: View {
                     }
                 }
                 .foregroundStyle(.secondary)
+                .appCardRow()
             } header: {
                 Text(L10n.string("reports.trialBalance", defaultValue: "Trial Balance"))
             }
@@ -171,6 +174,7 @@ struct ReportsView: View {
                         .font(.body.weight(.bold).monospacedDigit())
                         .foregroundStyle(statement.net >= 0 ? Color.income : Color.expense)
                 }
+                .appCardRow()
             }
         } else {
             emptyRow(L10n.string("reports.empty", defaultValue: "No data for this period"))
@@ -196,6 +200,7 @@ struct ReportsView: View {
                             .font(.callout.weight(.medium).monospacedDigit())
                             .frame(minWidth: 90, alignment: .trailing)
                     }
+                .appCardRow()
                 }
                 HStack {
                     Text(L10n.string("reports.totals", defaultValue: "Totals"))
@@ -209,6 +214,7 @@ struct ReportsView: View {
                         .frame(minWidth: 90, alignment: .trailing)
                 }
                 .foregroundStyle(.secondary)
+                .appCardRow()
             } header: {
                 Text(L10n.string("reports.memberTurnover", defaultValue: "Member Turnover"))
             }
@@ -224,6 +230,7 @@ struct ReportsView: View {
             Text(Money.format(row.balance))
                 .font(.callout.monospacedDigit())
         }
+        .appCardRow()
     }
 
     private func totalRow(label: String, value: Double) -> some View {
@@ -235,6 +242,7 @@ struct ReportsView: View {
                 .font(.body.weight(.semibold).monospacedDigit())
         }
         .foregroundStyle(.secondary)
+        .appCardRow()
     }
 
     private var loadingRow: some View {
@@ -245,11 +253,13 @@ struct ReportsView: View {
         }
         .listRowSeparator(.hidden)
         .padding(.vertical, 40)
+        .appCardRow()
     }
 
     private func emptyRow(_ message: String) -> some View {
         EmptyStateView(message: message, systemImage: "chart.bar")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
+        .appCardRow()
     }
 }

@@ -446,9 +446,11 @@ struct MembersView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
+                .appCardRow()
             } else if store.members.isEmpty {
                 Text(L10n.string("members.noOthers", defaultValue: "No other members"))
                     .foregroundStyle(.secondary)
+                    .appCardRow()
             } else {
                 ForEach(store.members) { member in
                     memberRow(member)
@@ -469,6 +471,7 @@ struct MembersView: View {
             if project.members.isEmpty {
                 Text(L10n.string("members.noOthers", defaultValue: "No other members"))
                     .foregroundStyle(.secondary)
+                    .appCardRow()
             } else {
                 ForEach(project.members) { member in
                     HStack(spacing: 10) {
@@ -515,6 +518,7 @@ struct MembersView: View {
                             projectRemoveAction(member)
                         }
                     }
+                .appCardRow()
                 }
             }
         }
@@ -693,6 +697,7 @@ struct MembersView: View {
                     .tint(.blue)
             }
         }
+        .appCardRow()
     }
 
     /// Ledger-roster row actions shared by the long-press context menu,

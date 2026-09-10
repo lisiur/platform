@@ -60,8 +60,10 @@ struct ProfileView: View {
                     Label(L10n.string("profile.signOut", defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
                         .foregroundStyle(.red)
                 }
+                .appCardRow()
             }
         }
+        .appBackgroundCanvas()
         .navigationTitle(Text(L10n.string("profile.title", defaultValue: "Me")))
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
@@ -103,16 +105,19 @@ struct ProfileView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+            .appCardRow()
             Button {
                 isShowingNameSheet = true
             } label: {
                 Label(L10n.string("profile.editName", defaultValue: "Edit Name"), systemImage: "pencil")
             }
+            .appCardRow()
             Button {
                 isShowingPasswordSheet = true
             } label: {
                 Label(L10n.string("profile.changePassword", defaultValue: "Change Password"), systemImage: "key")
             }
+            .appCardRow()
         }
     }
 
@@ -123,13 +128,16 @@ struct ProfileView: View {
             } label: {
                 Label(L10n.string("realAccounts.entryLabel", defaultValue: "Assets"), systemImage: "creditcard")
             }
+            .appCardRow()
             NavigationLink {
                 // Expanded for guests: guest-ledger rows render as their
                 // projects, never as ledger names.
                 LedgersView(expandGuestLedgers: isGuest)
+                    .appBackgroundCanvas()
             } label: {
                 Label(L10n.string("ledgers.title", defaultValue: "Ledgers"), systemImage: "book")
             }
+            .appCardRow()
         }
     }
 
@@ -142,28 +150,35 @@ struct ProfileView: View {
             } label: {
                 Label(L10n.string("accounts.title", defaultValue: "Accounts"), systemImage: "chart.bar.doc.horizontal")
             }
+            .appCardRow()
             NavigationLink {
                 CategoriesManageView()
+                    .appBackgroundCanvas()
             } label: {
                 Label(L10n.string("categories.title", defaultValue: "Categories"), systemImage: "tag")
             }
+            .appCardRow()
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
                     MembersView(ledger: ledger, isModal: false)
+                        .appBackgroundCanvas()
                 } label: {
                     Label(L10n.string("members.title", defaultValue: "Members"), systemImage: "person.2")
                 }
+                .appCardRow()
             }
             NavigationLink {
                 ProjectsView()
             } label: {
                 Label(L10n.string("projects.title", defaultValue: "Projects"), systemImage: "folder")
             }
+            .appCardRow()
             NavigationLink {
                 ReportsView()
             } label: {
                 Label(L10n.string("reports.title", defaultValue: "Reports"), systemImage: "chart.pie")
             }
+            .appCardRow()
         } header: {
             Text(ledgerStore.activeLedger?.name ?? L10n.string("ledger.none", defaultValue: "No ledger"))
         }
@@ -180,7 +195,17 @@ struct ProfileView: View {
                         systemImage: "slider.horizontal.3"
                     )
                 }
+                .appCardRow()
             }
+            NavigationLink {
+                BackgroundSettingsView()
+            } label: {
+                Label(
+                    L10n.string("profile.theme", defaultValue: "Theme"),
+                    systemImage: "paintpalette"
+                )
+            }
+            .appCardRow()
             Picker(
                 selection: Binding(
                     get: { localeSettings.identifier },
@@ -195,6 +220,7 @@ struct ProfileView: View {
             } label: {
                 Label(L10n.string("profile.language", defaultValue: "Language"), systemImage: "globe")
             }
+            .appCardRow()
         }
     }
 

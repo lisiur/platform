@@ -254,6 +254,7 @@ struct CalculatorEngine {
 /// `isCommitting` swapping the checkmark for a spinner while the save
 /// runs.
 struct CalculatorView: View {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
     @Binding var engine: CalculatorEngine
     @State private var keyPressCount = 0
 
@@ -323,7 +324,7 @@ struct CalculatorView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.cardSurface)
+                .fill(backgroundSettings.cardSurface)
         )
     }
 
@@ -408,7 +409,7 @@ struct CalculatorView: View {
             .foregroundStyle(KeyRole.commit.foreground)
             .frame(maxWidth: .infinity, minHeight: 48 * 2 + 8)
             .background(
-                KeyRole.commit.background,
+                KeyRole.commit.background(backgroundSettings),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
             .contentShape(Rectangle())
@@ -438,7 +439,7 @@ struct CalculatorView: View {
                 .foregroundStyle(role.foreground)
                 .frame(maxWidth: .infinity, minHeight: height)
                 .background(
-                    role.background,
+                    role.background(backgroundSettings),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
@@ -459,7 +460,7 @@ struct CalculatorView: View {
                 .foregroundStyle(role.foreground)
                 .frame(maxWidth: .infinity, minHeight: height)
                 .background(
-                    role.background,
+                    role.background(backgroundSettings),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contentShape(Rectangle())
@@ -479,12 +480,19 @@ struct CalculatorView: View {
             }
         }
 
-        var background: Color {
+        /// The base weights read on the plain canvas; over the global
+        /// background image they step up so keys stay distinct.
+        func background(_ settings: BackgroundSettings) -> Color {
             switch self {
             case .commit: .accentColor
-            case .operation: .accentColor.opacity(0.14)
-            case .function: .primary.opacity(0.08)
-            case .digit: .primary.opacity(0.05)
+            case .operation: .accentColor.opacity(settings.isActive ? 0.22 : 0.14)
+            // Digits and functions join the cards at the user's card
+            // opacity; without the background they keep their whisper of
+            // primary.
+            case .function, .digit:
+                settings.isActive
+                    ? settings.cardSurface
+                    : Color.primary.opacity(self == .function ? 0.08 : 0.05)
             }
         }
     }

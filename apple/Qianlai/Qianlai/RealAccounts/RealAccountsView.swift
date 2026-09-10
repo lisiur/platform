@@ -25,6 +25,7 @@ struct RealAccountsView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
+                .appCardRow()
             } else if let error = store.loadError, store.realAccounts.isEmpty {
                 ErrorRetryView(message: error) {
                     Task { await store.load() }
@@ -73,6 +74,7 @@ struct RealAccountsView: View {
                 }
             }
         }
+        .appBackgroundCanvas()
         .navigationTitle(Text(L10n.string("realAccounts.title", defaultValue: "Assets")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -180,6 +182,7 @@ struct RealAccountsView: View {
         .contextMenu {
             realMenuItems(real)
         }
+        .appCardRow()
     }
 
     /// Card actions shared by the long-press context menu and the trailing

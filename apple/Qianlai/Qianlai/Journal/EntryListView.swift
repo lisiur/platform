@@ -104,6 +104,7 @@ struct EntryListView: View {
                         ForEach(group.entries) { entry in
                             entryRow(entry)
                         }
+                        .appCardRow()
                     } header: {
                         Text(AppDates.formatEntryDay(group.day, locale: locale))
                     }
@@ -118,6 +119,7 @@ struct EntryListView: View {
                     ForEach(store.entries) { entry in
                         entryRow(entry)
                     }
+                    .appCardRow()
                 }
             }
             if store.isLoadingMore {
@@ -127,6 +129,7 @@ struct EntryListView: View {
                     Spacer()
                 }
                 .listRowSeparator(.hidden)
+                .appCardRow()
             }
             if showsPostHint, !ledger.canPost {
                 Label(
@@ -136,8 +139,10 @@ struct EntryListView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .listRowSeparator(.hidden)
+                .appCardRow()
             }
         }
+        .appBackgroundCanvas()
         .alert(
             L10n.string("journal.delete", defaultValue: "Delete"),
             isPresented: Binding(

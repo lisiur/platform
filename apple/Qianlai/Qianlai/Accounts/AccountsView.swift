@@ -164,6 +164,7 @@ struct AccountsView: View {
                         }
                     }
                 }
+                .appCardRow()
             }
 
             if !ledger.canPost {
@@ -174,8 +175,10 @@ struct AccountsView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .listRowSeparator(.hidden)
+                .appCardRow()
             }
         }
+        .appBackgroundCanvas()
         #if os(iOS)
         .environment(\.editMode, .constant(isReordering ? .active : .inactive))
         // macOS lists reorder by dragging directly — no edit mode needed.

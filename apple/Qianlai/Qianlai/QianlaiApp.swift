@@ -16,6 +16,8 @@ struct QianlaiApp: App {
     @State private var reportStore = ReportStore()
     @State private var projectStore = ProjectStore()
     @State private var preferenceStore = PreferenceStore()
+    @State private var backgroundSettings = BackgroundSettings()
+    @State private var appearanceSettings = AppearanceSettings()
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -58,9 +60,13 @@ struct QianlaiApp: App {
             .environment(reportStore)
             .environment(projectStore)
             .environment(preferenceStore)
+            .environment(backgroundSettings)
+            .environment(appearanceSettings)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
+            // Theme page's appearance override: nil follows the system.
+            .preferredColorScheme(appearanceSettings.appearance.colorScheme)
             // The widget renders with the mirrored language override on its
             // next refresh; nudge it so the switch shows up promptly.
             .onChange(of: localeSettings.identifier) {

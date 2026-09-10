@@ -143,6 +143,8 @@ extension Color {
 /// totals rows. A `currency` ISO code prefixes the amount with its symbol;
 /// leave it nil on surfaces without a single currency (cross-ledger totals).
 struct StatCard: View {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+
     var icon: String?
     let label: String
     let value: Double?
@@ -189,7 +191,7 @@ struct StatCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.cardSurface)
+                .fill(backgroundSettings.cardSurface)
         )
     }
 }
@@ -681,5 +683,109 @@ extension View {
         #else
         self
         #endif
+    }
+
+    /// Page-level global background while it is active (see
+    /// `AppBackgroundCanvasModifier`). No-op while the background is off.
+    /// Main-window pages only — sheets and covers are separate opaque
+    /// surfaces.
+    func appBackgroundCanvas() -> some View {
+        modifier(AppBackgroundCanvasModifier())
+    }
+
+    /// Card-colored row background that turns translucent with the global
+    /// background image (see `AppCardRowModifier`).
+    func appCardRow() -> some View {
+        modifier(AppCardRowModifier())
+    }
+}
+
+extension BackgroundSettings {
+    /// The wallpaper-tinted card surface, at the user's card opacity.
+    private var activeCardSurface: Color {
+        Color.cardSurface.opacity(cardOpacity)
+    }
+
+    /// The grouped-card surface: opaque by default, translucent while the
+    /// global background is active so the wallpaper tints through the
+    /// cards.
+    var cardSurface: Color {
+        isActive ? activeCardSurface : Color.cardSurface
+    }
+
+    /// Small-circle surface (category icons, recents, more/manage chips):
+    /// a whisper of primary by default; while the background is active the
+    /// circles join the cards.
+    var chipSurface: Color {
+        isActive ? activeCardSurface : Color.primary.opacity(0.06)
+    }
+}
+
+/// Row background matching the grouped-card look — translucent while the
+/// global background is active; rows otherwise keep the system's
+/// opaque grouped background untouched.
+private struct AppCardRowModifier: ViewModifier {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if backgroundSettings.isActive {
+            content.listRowBackground(backgroundSettings.cardSurface)
+        } else {
+            content
+        }
+    }
+}
+
+/// Paints the global background image at page level: the iOS 26
+/// TabView/NavigationStack containers draw opaque surfaces, so a single
+/// layer behind the tab root never shows through — each page has to carry
+/// the image itself and hide its grouped-list canvas, letting it show
+/// between the cards (rows keep their opaque default). The image rides in
+/// `.background` (not a wrapping ZStack) — an `ignoresSafeArea` sibling
+/// inside a ZStack relaxes the safe area for the content too and collapses
+/// the large-title/search layout.
+///
+/// The layer is pinned to the WINDOW, never to the page or its safe area:
+/// an `ignoresSafeArea`-expanded layer re-fits whenever the safe area
+/// changes — large title collapsing on scroll, search drawer appearing,
+/// per-tab chrome differences — and visibly drifts. Cancelling the page's
+/// own global origin leaves the wallpaper motionless through scroll and
+/// tab switches; pushes slide page content over it, not with it.
+/// The scrim tints toward the scheme's base color: black in dark mode
+/// (darker wallpaper keeps white canvas text readable), white in light
+/// mode (a pastel wash keeps black canvas text readable) — a black veil
+/// under a light theme would sink exactly the text drawn on the canvas.
+private struct AppBackgroundCanvasModifier: ViewModifier {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+    @Environment(\.colorScheme) private var colorScheme
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if backgroundSettings.isActive, let image = backgroundSettings.image {
+            content
+                .scrollContentBackground(.hidden)
+                .background {
+                    GeometryReader { geo in
+                        let origin = geo.frame(in: .global).origin
+                        ZStack {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                            (colorScheme == .dark ? Color.black : Color.white)
+                                .opacity(backgroundSettings.dim)
+                        }
+                        .frame(
+                            width: BackgroundSettings.sharedScreenSize.width,
+                            height: BackgroundSettings.sharedScreenSize.height
+                        )
+                        .clipped()
+                        .offset(x: -origin.x, y: -origin.y)
+                    }
+                    .allowsHitTesting(false)
+                }
+        } else {
+            content
+        }
     }
 }

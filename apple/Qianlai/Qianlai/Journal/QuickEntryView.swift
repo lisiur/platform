@@ -83,6 +83,7 @@ struct QuickEntryView: View {
     @Environment(JournalStore.self) private var journalStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(AuthManager.self) private var auth
+    @Environment(BackgroundSettings.self) private var backgroundSettings
     /// In-app language override for date formatting (`quickTimeValue`).
     @Environment(\.locale) private var locale
     private let editedEntry: JournalEntry?
@@ -336,6 +337,11 @@ struct QuickEntryView: View {
                 isCommitting: isPosting
             )
         }
+        // The wallpaper rides behind the sheet's own grouped canvas: while
+        // the global background is active it covers the canvas (the keypad
+        // and the form's gaps pick it up); while off, this modifier renders
+        // unchanged and the canvas is the sheet's surface.
+        .appBackgroundCanvas()
         // The whole sheet sits on the form's grouped canvas: the keypad is
         // transparent, so without this it would read as a plain-white
         // panel against the form's gray in light mode. On the shared
@@ -894,7 +900,7 @@ struct QuickEntryView: View {
             .padding(.vertical, 6)
             .background(
                 Capsule().fill(
-                    isSelected ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06)
+                    isSelected ? Color.accentColor.opacity(0.15) : backgroundSettings.chipSurface
                 )
             )
             .foregroundStyle(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary))
@@ -912,7 +918,7 @@ struct QuickEntryView: View {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 24))
                     .frame(width: 48, height: 48)
-                    .background(Circle().fill(Color.primary.opacity(0.06)))
+                    .background(Circle().fill(backgroundSettings.chipSurface))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.more", defaultValue: "More"))
                     .font(.caption)
@@ -935,7 +941,7 @@ struct QuickEntryView: View {
                 Image(systemName: "gearshape")
                     .font(.system(size: 24))
                     .frame(width: 48, height: 48)
-                    .background(Circle().fill(Color.primary.opacity(0.06)))
+                    .background(Circle().fill(backgroundSettings.chipSurface))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.manage", defaultValue: "Manage"))
                     .font(.caption)
@@ -964,7 +970,7 @@ struct QuickEntryView: View {
         }
         .frame(width: diameter, height: diameter)
         .background(
-            Circle().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.primary.opacity(0.06)))
+            Circle().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(backgroundSettings.chipSurface))
         )
     }
 

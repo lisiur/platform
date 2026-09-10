@@ -45,6 +45,7 @@ struct ProjectsView: View {
                     ProgressView()
                     Spacer()
                 }
+                .appCardRow()
             } else if projectStore.projects.isEmpty {
                 EmptyStateView(
                     message: L10n.string("projects.empty", defaultValue: "No projects yet. Create one to start recording together."),
@@ -58,9 +59,11 @@ struct ProjectsView: View {
                     } label: {
                         ProjectListRow(project: project)
                     }
+            .appCardRow()
                 }
             }
         }
+        .appBackgroundCanvas()
         .toolbar {
             if LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive) {
                 ToolbarItem(placement: .primaryAction) {
@@ -262,6 +265,7 @@ struct ProjectDetailView: View {
                 }
             }
         }
+        .appBackgroundCanvas()
         .refreshable {
             await projectStore.load(ledgerId: ledger.id, force: true)
             await projectStore.loadReport(ledgerId: ledger.id, projectId: project.id)
@@ -277,10 +281,12 @@ struct ProjectDetailView: View {
             statementTotalLink(project, ledger, type: .expense, amount: report.statement.totalExpense)
             ForEach(report.statement.expense) { row in
                 statementRowLink(project, ledger, type: .expense, row: row)
+            .appCardRow()
             }
             statementTotalLink(project, ledger, type: .income, amount: report.statement.totalIncome)
             ForEach(report.statement.income) { row in
                 statementRowLink(project, ledger, type: .income, row: row)
+            .appCardRow()
             }
         } header: {
             Text(L10n.string("projects.statement", defaultValue: "Income & Expense"))
@@ -315,6 +321,7 @@ struct ProjectDetailView: View {
                     .font(.callout.weight(.semibold).monospacedDigit())
             }
         }
+        .appCardRow()
     }
 
     /// One category row, drilling into the project's entries of exactly
@@ -340,6 +347,7 @@ struct ProjectDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .appCardRow()
     }
 
     private func settlementSection(
@@ -374,6 +382,7 @@ struct ProjectDetailView: View {
                         }
                     }
                 }
+            .appCardRow()
             }
         } header: {
             Text(L10n.string("projects.settlement", defaultValue: "Settlement"))

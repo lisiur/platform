@@ -31,11 +31,14 @@ struct TabCustomizationView: View {
         List {
             Section {
                 pinnedRow(.dashboard)
+                    .appCardRow()
                 ForEach(order, id: \.self) { tab in
                     configurableRow(tab, isShown: shown.contains(tab))
                 }
                 .onMove(perform: move)
+                .appCardRow()
                 pinnedRow(.profile)
+                    .appCardRow()
             } footer: {
                 Text(L10n.string(
                     "preferences.tabs.footer",
@@ -43,6 +46,7 @@ struct TabCustomizationView: View {
                 ))
             }
         }
+        .appBackgroundCanvas()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(L10n.string("preferences.restoreDefaults", defaultValue: "Reset")) {
