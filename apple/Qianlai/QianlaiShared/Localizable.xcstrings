@@ -3816,23 +3816,6 @@
         }
       }
     },
-    "journal.totalAmount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合计"
-          }
-        }
-      }
-    },
     "journal.updateSuccess" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -16,7 +16,6 @@ struct EntryListView: View {
     @Environment(JournalStore.self) private var store
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
-    @Environment(AuthManager.self) private var auth
     @Environment(\.locale) private var locale
 
     let ledger: QianlaiLedger
@@ -33,11 +32,6 @@ struct EntryListView: View {
     /// drill-downs: the member's share, the entry total, their paid line).
     /// Nil renders the standard headline.
     var amountSection: ((JournalEntry) -> EntryAmountSection?)?
-    /// Journal/dashboard switch: rows headline the viewer's own share of
-    /// each entry — the real shared cost for me — instead of the gross
-    /// total. Entries outside the viewer's split set read zero with the
-    /// total captioned beneath. Drill-downs keep the gross.
-    var showsViewerShare = false
     /// Project-surface switch: rows always name the payer ("由 X 付款"),
     /// even when they recorded the entry themselves. See `EntryRow`.
     var alwaysShowsPayer = false
@@ -50,7 +44,6 @@ struct EntryListView: View {
         emptyMessage: String,
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
-        showsViewerShare: Bool = false,
         alwaysShowsPayer: Bool = false,
         topContent: AnyView? = nil
     ) {
@@ -58,7 +51,6 @@ struct EntryListView: View {
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
         self.amountSection = amountSection
-        self.showsViewerShare = showsViewerShare
         self.alwaysShowsPayer = alwaysShowsPayer
         self.topContent = topContent
     }
@@ -182,8 +174,6 @@ struct EntryListView: View {
             entry: entry,
             currency: ledger.currency,
             amountSection: amountSection?(entry),
-            viewerUserId: auth.currentUser?.id,
-            showsViewerShare: showsViewerShare,
             alwaysShowsPayer: alwaysShowsPayer
         )
             .background {
@@ -293,12 +283,6 @@ struct EntryRow: View {
     /// Custom right-hand column replacing the standard headline (settlement
     /// drill-downs); nil renders the entry's own amount.
     var amountSection: EntryAmountSection?
-    /// The signed-in viewer whose share the headline shows; nil keeps the
-    /// gross total.
-    var viewerUserId: String?
-    /// Journal/dashboard switch: headline the viewer's own share instead
-    /// of the gross total (see `EntryListView.showsViewerShare`).
-    var showsViewerShare = false
     /// Project-surface switch: always name the payer ("由 X 付款"), even
     /// when they recorded the entry themselves.
     var alwaysShowsPayer = false
@@ -402,11 +386,6 @@ struct EntryRow: View {
                         Text(headlineAmount.text)
                             .font(.callout.weight(.semibold).monospacedDigit())
                             .foregroundStyle(headlineAmount.color)
-                        if let sharedTotalCaption {
-                            Text(sharedTotalCaption)
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
                     }
                     if !entry.countsInLedger {
                         HStack(spacing: 3) {
@@ -517,36 +496,14 @@ struct EntryRow: View {
         }
     }
 
-    /// When the headline shows the viewer's share and it differs from the
-    /// gross total, caption the total underneath so the two reconcile.
-    private var sharedTotalCaption: String? {
-        guard showsViewerShare, categoryLine != nil, let viewerUserId else { return nil }
-        let share = Double(entry.viewerShareCents(viewerUserId: viewerUserId)) / 100
-        guard share != entry.amount else { return nil }
-        let totalLabel = L10n.string("journal.totalAmount", defaultValue: "Total")
-        return "\(totalLabel) \(Money.format(entry.amount, currency: currency))"
-    }
-
-    /// The headline value: the gross total normally; with
-    /// `showsViewerShare`, the viewer's own share — zero outside the
-    /// viewer's split set, gross kept for transfers (no shared cost) and
-    /// when the viewer is unknown.
-    private var displayAmount: Double {
-        guard showsViewerShare, categoryLine != nil, let viewerUserId else {
-            return entry.amount
-        }
-        return Double(entry.viewerShareCents(viewerUserId: viewerUserId)) / 100
-    }
-
     /// The headline amount carries the entry's money flow: an expense
     /// category line makes it negative, an income line positive; transfers
-    /// (no category line) stay unsigned. Zero shares render plain so a
-    /// non-participant never sees "−¥0.00". The sign is prepended to the
-    /// bare magnitude — `Money.format` emits its own leading minus for
-    /// negatives, and viewer shares are signed (an income entry shares
-    /// negative), so feeding them in verbatim renders "+-¥12.00".
+    /// (no category line) stay unsigned. The sign is prepended to the bare
+    /// magnitude because `Money.format` emits its own leading minus for
+    /// negatives, so feeding `abs` and prepending the symbol avoids the
+    /// double-sign "+-¥12.00" rendering.
     private var headlineAmount: (text: String, color: Color) {
-        let value = displayAmount
+        let value = entry.amount
         if value == 0 {
             return (Money.format(0, currency: currency), .primary)
         }

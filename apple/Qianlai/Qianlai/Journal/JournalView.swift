@@ -49,7 +49,6 @@ struct JournalView: View {
                 EntryListView(
                     ledger: ledger,
                     emptyMessage: L10n.string("journal.empty", defaultValue: "No entries yet"),
-                    showsViewerShare: true,
                     topContent: AnyView(rangeHeader)
                 )
             } else {

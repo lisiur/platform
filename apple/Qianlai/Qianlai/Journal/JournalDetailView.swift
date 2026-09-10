@@ -19,7 +19,6 @@ struct JournalDetailView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
-    @Environment(AuthManager.self) private var auth
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
 
@@ -84,9 +83,7 @@ struct JournalDetailView: View {
         Section {
             EntryRow(
                 entry: resolved,
-                currency: ledgerStore.activeLedger?.currency ?? "",
-                viewerUserId: auth.currentUser?.id,
-                showsViewerShare: false
+                currency: ledgerStore.activeLedger?.currency ?? ""
             )
             .appCardRow()
             .listRowSeparator(.hidden)

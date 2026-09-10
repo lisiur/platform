@@ -111,7 +111,6 @@ struct DashboardView: View {
                             "dashboard.noEntriesThisMonth",
                             defaultValue: "No entries this month yet"
                         ),
-                        showsViewerShare: true,
                         topContent: AnyView(monthSummary)
                     )
                     #if os(iOS)
