@@ -3646,6 +3646,23 @@
         }
       }
     },
+    "journal.receivedByFormat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Received by %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由%@收款"
+          }
+        }
+      }
+    },
     "journal.project.scopeFooter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6710,6 +6727,57 @@
         }
       }
     },
+    "projects.balanceOwes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应付"
+          }
+        }
+      }
+    },
+    "projects.balanceReceives" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receives"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应收"
+          }
+        }
+      }
+    },
+    "projects.balanceSettled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settled up"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已结清"
+          }
+        }
+      }
+    },
     "projects.create" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6876,6 +6944,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该项目已不存在。"
+          }
+        }
+      }
+    },
+    "projects.incomeShare" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income share"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分账"
           }
         }
       }

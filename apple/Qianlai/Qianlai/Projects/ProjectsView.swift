@@ -363,24 +363,7 @@ struct ProjectDetailView: View {
                         scope: .settlement(projectId: project.id, userId: row.userId, name: row.name)
                     )
                 } label: {
-                    HStack(spacing: 10) {
-                        avatar(row.name, row.avatar)
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(row.name)
-                                Spacer()
-                                Text(Money.format(row.balance, currency: ledger.currency))
-                                    .font(.callout.weight(.semibold).monospacedDigit())
-                                    .foregroundStyle(row.balance > 0 ? Color.income : row.balance < 0 ? Color.expense : .secondary)
-                            }
-                            HStack(spacing: 12) {
-                                Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(row.paid, currency: ledger.currency))")
-                                Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(row.share, currency: ledger.currency))")
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
+                    SettlementSummaryLabel(row: row, ledger: ledger)
                 }
             .appCardRow()
             }
@@ -437,32 +420,6 @@ struct ProjectDetailView: View {
         return project.members.contains { $0.userId == myUserId }
     }
 
-    /// Rounded initial-with-avatar used by settlement rows. Member rows
-    /// moved to the Members tab.
-    private func avatar(_ name: String, _ path: String?) -> some View {
-        let initial = String(name.prefix(1)).uppercased()
-        return Group {
-            if let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(initial)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            } else {
-                Text(initial)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .frame(width: 36, height: 36)
-        .background(Circle().fill(Color.accentColor.opacity(0.85)))
-        .clipShape(Circle())
-    }
-
     private func toggleArchive(_ project: QianlaiProject) async {
         guard let ledger else { return }
         do {
@@ -504,9 +461,80 @@ struct ProjectDetailView: View {
     }
 }
 
+/// One member's settlement summary row, shared by the project page's
+/// member rows and the member settlement detail page's header card: avatar,
+/// name, and paid/share figures on the left, the signed balance as the hero
+/// figure on the right — status caption above it (receives/owes/settled),
+/// both tinted by the balance's sign. Chrome-free; mounts carry the card
+/// surface.
+struct SettlementSummaryLabel: View {
+    @Environment(AuthManager.self) private var auth
+
+    let row: ProjectSettlementRow
+    let ledger: QianlaiLedger
+
+    var body: some View {
+        HStack(spacing: 10) {
+            avatar
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.name)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                HStack(spacing: 12) {
+                    Text("\(L10n.string("projects.paid", defaultValue: "Paid")) \(Money.format(abs(row.paid), currency: ledger.currency))")
+                    Text("\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(abs(row.share), currency: ledger.currency))")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(balanceStatus)
+                    .font(.caption)
+                Text(Money.format(abs(row.balance), currency: ledger.currency))
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+            }
+            .foregroundStyle(row.balance > 0 ? Color.income : row.balance < 0 ? Color.expense : .secondary)
+        }
+    }
+
+    /// Caption for the signed balance: positive means the member is owed,
+    /// negative means they owe, zero means settled up.
+    private var balanceStatus: String {
+        if row.balance > 0 { return L10n.string("projects.balanceReceives", defaultValue: "Receives") }
+        if row.balance < 0 { return L10n.string("projects.balanceOwes", defaultValue: "Owes") }
+        return L10n.string("projects.balanceSettled", defaultValue: "Settled up")
+    }
+
+    /// Rounded initial-with-avatar from the settlement rows.
+    private var avatar: some View {
+        let initial = String(row.name.prefix(1)).uppercased()
+        return Group {
+            if let url = ProfileStore.absoluteAvatarURL(row.avatar, baseURL: auth.apiBaseURL) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(initial)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            } else {
+                Text(initial)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 36, height: 36)
+        .background(Circle().fill(Color.accentColor.opacity(0.85)))
+        .clipShape(Circle())
+    }
+}
+
 /// Creates or edits a project. Pass a project to edit it.
-struct ProjectFormView: View {
-    @Environment(\.dismiss) private var dismiss
+struct ProjectFormView: View {    @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
     @Environment(ToastCenter.self) private var toast

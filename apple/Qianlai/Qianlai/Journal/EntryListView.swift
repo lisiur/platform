@@ -254,15 +254,23 @@ struct EntryListView: View {
 
 /// Custom right-hand amount column for one entry row: a main colored
 /// amount plus optional secondary captions beneath it (settlement
-/// drill-downs: the member's share, the entry total, their paid line).
+/// drill-downs: the gross spend, the member's share, their receivable or
+/// payable line).
 struct EntryAmountSection: Hashable {
     var headline: Headline
-    var total: String?
-    var paid: String?
+    var total: Caption?
+    var paid: Caption?
 
     struct Headline: Hashable {
         var text: String
         var color: Color
+    }
+
+    /// One caption line under the headline. A nil color keeps the row's
+    /// secondary tint; a semantic color overrides it.
+    struct Caption: Hashable {
+        var text: String
+        var color: Color?
     }
 }
 
@@ -385,9 +393,9 @@ struct EntryRow: View {
                             .foregroundStyle(amountSection.headline.color)
                         let captions = [amountSection.total, amountSection.paid].compactMap { $0 }
                         ForEach(captions.indices, id: \.self) { index in
-                            Text(captions[index])
+                            Text(captions[index].text)
                                 .font(.caption2.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(captions[index].color ?? Color.secondary)
                                 .lineLimit(1)
                         }
                     } else {
@@ -450,20 +458,23 @@ struct EntryRow: View {
 
     /// The meta caption's person slot. Ledger surfaces name the payer only
     /// when they differ from the creator, else the plain creator name —
-    /// project surfaces (`alwaysShowsPayer`) always call the payer out
-    /// ("由 X 付款"), whoever recorded the entry.
+    /// project surfaces (`alwaysShowsPayer`) always call the person out,
+    /// whoever recorded the entry: 由 X 付款 on expenses, 由 X 收款 on
+    /// income (the money flows to them).
     private var payerCaption: String? {
-        let paidByFormat = L10n.string("journal.paidByFormat", defaultValue: "Paid by %@")
         if alwaysShowsPayer {
+            let format = categoryLine?.account.type == .income
+                ? L10n.string("journal.receivedByFormat", defaultValue: "Received by %@")
+                : L10n.string("journal.paidByFormat", defaultValue: "Paid by %@")
             if let payerName = entry.paidBy?.name ?? entry.createdBy?.name, !payerName.isEmpty {
-                return String(format: paidByFormat, payerName)
+                return String(format: format, payerName)
             }
             return nil
         }
         if entry.paidById != entry.createdById,
            let paidByName = entry.paidBy?.name, !paidByName.isEmpty {
             return String(
-                format: paidByFormat,
+                format: L10n.string("journal.paidByFormat", defaultValue: "Paid by %@"),
                 paidByName
             )
         }

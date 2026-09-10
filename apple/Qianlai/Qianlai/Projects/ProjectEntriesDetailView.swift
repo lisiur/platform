@@ -33,6 +33,7 @@ enum ProjectEntryScope: Hashable {
 struct ProjectEntriesDetailView: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(ReportStore.self) private var reportStore
+    @Environment(BackgroundSettings.self) private var backgroundSettings
 
     let ledger: QianlaiLedger
     let scope: ProjectEntryScope
@@ -81,7 +82,8 @@ struct ProjectEntriesDetailView: View {
             emptyMessage: emptyMessage,
             showsPostHint: false,
             amountSection: settlementAmountSection,
-            alwaysShowsPayer: true
+            alwaysShowsPayer: true,
+            topContent: settlementSummary
         )
         .environment(entryStore)
         .navigationTitle(Text(title))
@@ -124,9 +126,32 @@ struct ProjectEntriesDetailView: View {
         return nil
     }
 
-    /// Custom right-hand column per settlement row: the member's share as
-    /// the main amount, the entry total, and their 垫付 (fronted) line — so
-    /// each row reconciles with the settlement table's paid/share columns.
+    /// The scoped member's settlement summary as the list's scrolling
+    /// header card: paid/share figures plus the signed balance hero, the
+    /// same design as the project page's member rows. Nil on statement
+    /// scopes, or until the report carries a row for this member.
+    private var settlementSummary: AnyView? {
+        guard case .settlement = scope else { return nil }
+        guard let report = projectStore.report,
+              report.project.id == scope.projectId,
+              let userId = settlementUserId,
+              let row = report.settlement.first(where: { $0.userId == userId })
+        else { return nil }
+        return AnyView(
+            SettlementSummaryLabel(row: row, ledger: ledger)
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(backgroundSettings.cardSurface)
+                )
+                .padding(.vertical, 8)
+        )
+    }
+
+    /// Custom right-hand column per settlement row: the entry's gross
+    /// actual spend as the headline, then the member's share and their
+    /// 应收/应付 line — paid − share for this entry — so each row
+    /// reconciles with the settlement table's share and balance columns.
     private var settlementAmountSection: ((JournalEntry) -> EntryAmountSection?)? {
         guard let userId = settlementUserId else { return nil }
         return { [self] entry in makeAmountSection(for: entry, userId: userId) }
@@ -140,22 +165,66 @@ struct ProjectEntriesDetailView: View {
         )
         let currency = ledger.currency
         let shareValue = Double(share) / 100
+        let balance = (Double(paid) - Double(share)) / 100
+        // The gross headline carries the entry's money flow like every
+        // journal card: expense negative green, income positive red,
+        // transfers unsigned neutral.
         let headline: EntryAmountSection.Headline
-        switch shareValue {
-        case ..<0:
-            headline = .init(text: "+\(Money.format(abs(shareValue), currency: currency))", color: .income)
-        case 0:
-            headline = .init(text: Money.format(0, currency: currency), color: .primary)
+        switch categoryType(of: entry) {
+        case .expense:
+            headline = .init(text: "−\(Money.format(entry.amount, currency: currency))", color: .expense)
+        case .income:
+            headline = .init(text: "+\(Money.format(entry.amount, currency: currency))", color: .income)
         default:
-            headline = .init(text: "−\(Money.format(shareValue, currency: currency))", color: .expense)
+            headline = .init(text: Money.format(entry.amount, currency: currency), color: .primary)
         }
-        let totalLabel = L10n.string("journal.totalAmount", defaultValue: "Total")
-        let paidLabel = L10n.string("projects.paid", defaultValue: "Paid")
-        return EntryAmountSection(
-            headline: headline,
-            total: "\(totalLabel) \(Money.format(entry.amount, currency: currency))",
-            paid: "\(paidLabel) \(Money.format(Double(paid) / 100, currency: currency))"
-        )
+        // An income share flows TO the member — label and tint say so and
+        // the value renders as a bare magnitude; expense shares keep the
+        // signed 分摊 with the flow tint.
+        let shareCaption: EntryAmountSection.Caption
+        if categoryType(of: entry) == .income {
+            shareCaption = EntryAmountSection.Caption(
+                text: "\(L10n.string("projects.incomeShare", defaultValue: "Income share")) \(Money.format(abs(shareValue), currency: currency))",
+                color: shareValue == 0 ? nil : .income
+            )
+        } else {
+            shareCaption = EntryAmountSection.Caption(
+                text: "\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(shareValue, currency: currency))",
+                color: captionTone(for: shareValue)
+            )
+        }
+        let balanceCaption: EntryAmountSection.Caption?
+        switch balance {
+        case ..<0:
+            balanceCaption = EntryAmountSection.Caption(
+                text: "\(L10n.string("projects.balanceOwes", defaultValue: "Owes")) \(Money.format(abs(balance), currency: currency))",
+                color: .expense
+            )
+        case 0:
+            balanceCaption = nil
+        default:
+            balanceCaption = EntryAmountSection.Caption(
+                text: "\(L10n.string("projects.balanceReceives", defaultValue: "Receives")) \(Money.format(balance, currency: currency))",
+                color: .income
+            )
+        }
+        return EntryAmountSection(headline: headline, total: shareCaption, paid: balanceCaption)
+    }
+
+    /// The entry's category type (expense wins over income); nil for
+    /// pocket-to-pocket transfers. Mirrors EntryRow's private helper.
+    private func categoryType(of entry: JournalEntry) -> AccountType? {
+        entry.lines.first { $0.account.type == .expense }?.account.type
+            ?? entry.lines.first { $0.account.type == .income }?.account.type
+    }
+
+    /// Semantic tint by money flow: an inflow (negative — an income share)
+    /// tints income red, an outflow (positive — an owed expense share)
+    /// tints expense green, zero stays the row's secondary.
+    private func captionTone(for value: Double) -> Color? {
+        if value < 0 { return .income }
+        if value > 0 { return .expense }
+        return nil
     }
 
     private var currentMemberUserIds: [String]? {
