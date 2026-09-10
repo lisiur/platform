@@ -23,10 +23,10 @@ export type EntryWindow = {
    */
   kind?: EntryKind;
   /**
-   * Restrict to entries that involve this user in settlement terms: created
-   * by them, tagged with them as a participant, or untagged — untagged
-   * entries count only while the user is a current member of the entry's
-   * project, because untagged splits run across current members. Pair with
+   * Restrict to entries that involve this user in settlement terms: paid
+   * for by them, tagged with them as a participant, or untagged while a
+   * current member of the entry's project. Creation deliberately doesn't
+   * match — see entryFilterWhere for the branch rationale. Pair with
    * projectId — the settlement drill-down.
    */
   memberUserId?: string;
@@ -139,11 +139,11 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     // The untagged branch requires current project membership: untagged
     // splits run across current members, so entries a departed member's
     // settlement math never touched must not appear in their drill-down.
-    // An entry the member paid for but didn't create (or vice versa) is
-    // settlement-relevant to them either way, hence the two actor branches.
+    // Creation is deliberately absent: the settlement math weights only
+    // the payer (paidById) and the split set (participants), so a
+    // created-only entry has nothing to reconcile and stays off the page.
     andFilters.push({
       OR: [
-        { createdById: window.memberUserId },
         { paidById: window.memberUserId },
         {
           participants: {

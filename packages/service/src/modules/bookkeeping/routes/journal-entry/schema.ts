@@ -164,7 +164,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
     }),
     memberUserId: z.string().optional().openapi({
       description:
-        "Only entries that involve this user in settlement terms: entries they created or paid for, entries tagged with them as a participant, and untagged entries (which split across all project members). Use together with projectId for a member's settlement drill-down.",
+        "Only entries that involve this user in settlement terms: entries they paid for, entries tagged with them as a participant, and untagged entries (which split across all project members). Entries they merely created are excluded — creation carries no settlement weight. Use together with projectId for a member's settlement drill-down.",
     }),
     includeExcluded: z.enum(["true", "false"]).optional().openapi({
       description:

@@ -14,9 +14,10 @@ enum ProjectEntryScope: Hashable {
     /// narrowed to a single category row (nil = the flow total).
     case statement(projectId: String, type: AccountType, category: StatementRow?)
     /// Settlement drill-down: the entries behind one member's paid/share/
-    /// balance — created by them or tagged with them, plus untagged entries
-    /// while they are a current member (untagged splits run across current
-    /// members only).
+    /// balance — paid for by them or tagged with them, plus untagged
+    /// entries while they are a current member (untagged splits run across
+    /// current members only). Entries they merely created are excluded —
+    /// creation carries no settlement weight.
     case settlement(projectId: String, userId: String, name: String)
 
     var projectId: String {

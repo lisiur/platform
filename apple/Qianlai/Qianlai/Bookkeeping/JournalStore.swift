@@ -63,9 +63,10 @@ final class JournalStore {
     /// Statement flow drill-down: only entries with a line against an
     /// account of this type (expense vs income totals).
     var accountType: String? { didSet { scheduleReload() } }
-    /// Settlement drill-down: entries that involve this user — created by
-    /// or paid for by them, tagged with them, or untagged (split across all
-    /// members).
+    /// Settlement drill-down: entries that involve this user — paid for by
+    /// them, tagged with them, or untagged (split across all members).
+    /// Creation alone doesn't qualify: it carries no settlement weight, so
+    /// a created-only entry would render an all-zero row.
     var memberUserId: String? { didSet { scheduleReload() } }
     /// Entry-kind filter (the dashboard's month-header menu): classified
     /// the way rows render them — an expense line makes the entry an
