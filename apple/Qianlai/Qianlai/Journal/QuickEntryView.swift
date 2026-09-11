@@ -126,9 +126,19 @@ struct QuickEntryView: View {
     /// Place chosen on the location picker map; its result is copied into
     /// the draft.
     @State private var isLocationPickerPresented = false
-    /// Memo editor sheet behind the quick bar's memo chip; binds the draft
-    /// live so Done just dismisses.
-    @State private var isMemoPresented = false
+    /// Inline memo editing behind the quick bar's memo chip: the chip swaps
+    /// for a live field in the bar itself — no sheet — so the keyboard
+    /// rises straight from the tap instead of waiting out a presentation.
+    @State private var isMemoEditing = false
+    /// Focus for the inline memo field. Lives on this view because the
+    /// field renders here (same view = same focus namespace); the old
+    /// sheet needed its own struct for exactly this reason.
+    @FocusState private var isMemoFieldFocused: Bool
+    /// The pinned keypad layer's measured height (fixed 48pt keys: 216 +
+    /// the 10pt bottom inset). The display's idle bottom padding stacks the
+    /// compact 8pt gap on top, so the overlay keypad never overlaps the
+    /// in-flow content no matter how the key metrics evolve.
+    @State private var memoPadBlockHeight: CGFloat = 226
     /// The chip bar / more-sheet arrangement for the row fields. Ships
     /// `.standard`; the later customization UI replaces this in place.
     @State private var layout: QuickEntryLayout = .standard
@@ -271,79 +281,124 @@ struct QuickEntryView: View {
         var id: String { rawValue }
     }
 
+    /// Guests are scoped to expense-only entries; the kind picker is hidden
+    /// and `draft.kind` stays at its default (`.expense`). Pinned above the
+    /// form: grouped lists reserve a built-in top margin for the first
+    /// section that no public config removes, so the tabs live outside the
+    /// form — flush under the title.
+    @ViewBuilder
+    private var kindTabs: some View {
+        if !isGuest {
+            Picker(L10n.string("quick.accountType", defaultValue: "Account Type"), selection: $draft.kind) {
+                ForEach(QuickEntryKind.allCases) { kind in
+                    Text(kind.label).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+            .controlSize(.regular)
+            // Hug the segment titles instead of stretching edge to edge;
+            // the infinite frame centers the hugged control.
+            .fixedSize()
+            .frame(maxWidth: .infinity)
+            // Breathing gap to the form below (the VStack spacing is zero
+            // so the form meets the calculator flush).
+            .padding(.bottom, 8)
+            .onChange(of: draft.kind) {
+                // Both sides restart unselected when the scenario changes.
+                draft.debitAccountId = nil
+                draft.creditAccountId = nil
+                validationError = nil
+                applyCategoryDefault()
+            }
+        }
+    }
+
+    /// The calculator's display card — one constant view, never swapped.
+    /// It rests `memoPadBlockHeight + 8` above the sheet's bottom edge,
+    /// clearing the pinned keypad layer exactly like the old compact unit's
+    /// 8pt gap; while the memo chip is editing its bottom padding animates
+    /// down to a 12pt breathing gap above the keyboard. Constant identity
+    /// is load-bearing: with the earlier compact→display-only swap the card
+    /// popped in at the keyboard's edge instead of gliding from its resting
+    /// spot.
+    private var calculator: some View {
+        memoCalculator(.displayOnly)
+            .padding(.bottom, isMemoEditing ? 12 : memoPadBlockHeight + 8)
+    }
+
+    /// The keypad layer, pinned to the host's true bottom edge at all times
+    /// — flush under the display while idle, sliding behind the keyboard
+    /// while the memo chip is editing. The greedy bottom-aligned frame sits
+    /// inside the keyboard-ignoring region: without it the keypad would
+    /// ride the expanded layer's center.
+    private var memoPadLayer: some View {
+        memoCalculator(.padOnly)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { memoPadBlockHeight = $0 }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    private func memoCalculator(_ visibility: CalculatorView.Visibility) -> CalculatorView {
+        CalculatorView(
+            engine: $engine,
+            currency: ledger?.currency,
+            onCommit: { Task { await save() } },
+            isCommitDisabled: isPosting || draft.isSameAccount,
+            visibility: visibility,
+            isCommitting: isPosting
+        )
+    }
+
     var body: some View {
-        // Zero spacing: the form and the calculator must sit flush, or the
-        // grouped canvas would peek through as a strip between the form's
-        // canvas and the calculator's top border.
-        VStack(spacing: 0) {
-            // Guests are scoped to expense-only entries; the kind picker is
-            // hidden and `draft.kind` stays at its default (`.expense`).
-            if !isGuest {
-                // Pinned above the form: grouped lists reserve a built-in
-                // top margin for the first section that no public config
-                // removes, so the tabs live outside the form — flush under
-                // the title.
-                Picker(L10n.string("quick.accountType", defaultValue: "Account Type"), selection: $draft.kind) {
-                    ForEach(QuickEntryKind.allCases) { kind in
-                        Text(kind.label).tag(kind)
+        // Top-aligned so the avoiding layout stays pinned under the title
+        // while the keypad layer rides the bottom edge.
+        ZStack(alignment: .top) {
+            // Zero spacing: the form and the calculator must sit flush, or
+            // the grouped canvas would peek through as a strip between the
+            // form's canvas and the calculator's top border.
+            VStack(spacing: 0) {
+                kindTabs
+
+                // The category grid is the only always-visible form surface;
+                // every row field lives in the quick bar's chips or the more
+                // sheet behind them, per the layout — except the transfer's
+                // pockets, which are the kind's essential fields (no category
+                // grid) and get a fixed section.
+                Form {
+                    categorySection
+
+                    if draft.kind == .transfer {
+                        transferAccountsSection
                     }
                 }
-                .pickerStyle(.segmented)
-                .controlSize(.regular)
-                // Hug the segment titles instead of stretching edge to
-                // edge; the infinite frame centers the hugged control.
-                .fixedSize()
-                .frame(maxWidth: .infinity)
-                // Breathing gap to the form below (the VStack spacing is
-                // zero so the form meets the calculator flush).
-                .padding(.bottom, 8)
-                .onChange(of: draft.kind) {
-                    // Both sides restart unselected when the scenario
-                    // changes.
-                    draft.debitAccountId = nil
-                    draft.creditAccountId = nil
-                    validationError = nil
-                    applyCategoryDefault()
-                }
+                // Zeroing the top content margin drops the grouped style's
+                // built-in first-section inset, so the grid sits flush under
+                // the tabs.
+                .compactListSectionSpacing()
+                .contentMargins(.top, 12, for: .scrollContent)
+
+                // The pinned chip bar above the calculator: chips for the
+                // layout's chip fields, the more button fixed at the trailing
+                // edge opening a sheet with everything else.
+                quickFieldsBar
+
+                calculator
             }
+            // One curve for the whole memo-editing reflow: the keyboard's
+            // own safe-area steps are coarse, and without this the chips
+            // and the grid ride them as jumps — appearing at the keyboard's
+            // edge instead of gliding from their resting spots while the
+            // avoidance bound toggles.
+            .animation(.snappy(duration: 0.25), value: isMemoEditing)
+            // Keyboard avoidance only while the memo chip is editing: the
+            // grid, chips, and display share the space above the keyboard
+            // (the grid scrolls in whatever is left). The rest of the time
+            // nothing here takes keyboard focus, so avoidance would only
+            // shove the pinned calculator around: the stack stays exactly
+            // where it is and the keyboard just slides over the lower half.
+            .ignoresSafeArea(isMemoEditing ? SafeAreaRegions() : .keyboard, edges: .bottom)
 
-            // The category grid is the only always-visible form surface;
-            // every row field lives in the quick bar's chips or the more
-            // sheet behind them, per the layout — except the transfer's
-            // pockets, which are the kind's essential fields (no category
-            // grid) and get a fixed section.
-            Form {
-                categorySection
-
-                if draft.kind == .transfer {
-                    transferAccountsSection
-                }
-            }
-            // Zeroing the top content margin drops the grouped style's
-            // built-in first-section inset, so the grid sits flush under
-            // the tabs.
-            .compactListSectionSpacing()
-            .contentMargins(.top, 12, for: .scrollContent)
-
-            // The pinned chip bar above the calculator: chips for the
-            // layout's chip fields, the more button fixed at the trailing
-            // edge opening a sheet with everything else.
-            quickFieldsBar
-
-            // Pinned calculator between the form and the sheet's bottom
-            // edge: display and keypad combined, always visible, so the
-            // amount is typed and adjusted without presenting anything.
-            // The pad's check key posts the entry — the sheet's only save
-            // control, spinner while posting. The display paints a card
-            // matching the form's sections; the pad itself stays
-            // transparent on the canvas.
-            CalculatorView(
-                engine: $engine,
-                currency: ledger?.currency,
-                onCommit: { Task { await save() } },
-                isCommitDisabled: isPosting || draft.isSameAccount,
-                isCommitting: isPosting
-            )
+            memoPadLayer
         }
         // The wallpaper rides behind the sheet's own grouped canvas: while
         // the global background is active it covers the canvas (the keypad
@@ -357,11 +412,6 @@ struct QuickEntryView: View {
         // form scrolls on, and the segmented control's translucent chrome
         // picks the canvas up too.
         .background(Color.groupedCanvas)
-        // Opt out of keyboard avoidance: focusing the memo field must not
-        // shrink this layout or shove the pinned calculator above the
-        // keyboard — the whole stack stays exactly where it is and the
-        // keyboard just slides over the lower half.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         // Disables the form and its fields only — attached before the
         // toolbar so Cancel and the ledger switcher stay usable on a
         // read-only ledger (switching away is the escape hatch there).
@@ -419,17 +469,6 @@ struct QuickEntryView: View {
                 draft.location = place
                 draft.isLocationCleared = false
             }
-        }
-        // Memo editor sheet behind the quick bar's memo chip: binds the
-        // draft live, Done just dismisses — the same pattern as the
-        // date-time sheet.
-        .sheet(isPresented: $isMemoPresented) {
-            QuickEntryMemoSheet(memo: $draft.memo) {
-                isMemoPresented = false
-            }
-            #if os(iOS)
-            .presentationDetents([.medium])
-            #endif
         }
         // More-fields sheet behind the quick bar's trailing button: the
         // layout's non-chip fields as one form. The chip arrangement edit
@@ -1075,8 +1114,12 @@ struct QuickEntryView: View {
                 }
             }
         case .memo:
-            quickChip(systemImage: "square.and.pencil", value: memoChipValue) {
-                isMemoPresented = true
+            if isMemoEditing {
+                memoEditingChip
+            } else {
+                quickChip(systemImage: "square.and.pencil", value: memoChipValue) {
+                    isMemoEditing = true
+                }
             }
         case .time:
             quickChip(systemImage: "clock", value: quickTimeValue) {
@@ -1313,6 +1356,40 @@ struct QuickEntryView: View {
         draft.memo.isEmpty
             ? L10n.string("quick.memo", defaultValue: "Memo")
             : draft.memo
+    }
+
+    /// The memo chip swapped for a live field while editing: same capsule
+    /// anatomy as `quickChip` (icon + one-line text), so the swap reads as
+    /// the chip growing an insertion point. The field claims focus in its
+    /// own `.task` — it installs on the tap's frame, and a focus write from
+    /// the button action can drop before installation — which is all the
+    /// delay there is; no sheet presentation has to settle first. The
+    /// binding is live, so the confirm key (and a tap anywhere outside the
+    /// capsule) only ends the edit; every keystroke is already kept.
+    private var memoEditingChip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "square.and.pencil")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            TextField(
+                L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
+                text: $draft.memo
+            )
+            .font(.footnote)
+            .submitLabel(.done)
+            .focused($isMemoFieldFocused)
+            .task { isMemoFieldFocused = true }
+            .onSubmit { isMemoEditing = false }
+            .onChange(of: isMemoFieldFocused) {
+                if !isMemoFieldFocused, isMemoEditing {
+                    isMemoEditing = false
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.primary.opacity(0.06)))
+        .foregroundStyle(.primary)
     }
 
     /// Account chip: a placeholder banknote icon + the side's title while
@@ -1805,43 +1882,6 @@ struct QuickEntryView: View {
             }
         } catch {
             validationError = error.localizedDescription
-        }
-    }
-}
-
-/// The memo editor's sheet content, as its own view so the `@FocusState`
-/// lives in the same view that renders the TextField — one declared on the
-/// presenter sits outside the sheet's focus namespace, and its updates are
-/// dropped, so tapping the memo chip opened the sheet with an unfocused
-/// field. Focus lands in `onAppear` with a main-queue hop to let the
-/// presentation animation settle first.
-private struct QuickEntryMemoSheet: View {
-    @Binding var memo: String
-    let onDone: () -> Void
-    @FocusState private var isFieldFocused: Bool
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                TextField(
-                    L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
-                    text: $memo,
-                    axis: .vertical
-                )
-                .submitLabel(.done)
-                .onSubmit { isFieldFocused = false }
-                .focused($isFieldFocused)
-            }
-            .navigationTitle(Text(L10n.string("quick.memo", defaultValue: "Memo")))
-            .inlineNavigationBarTitle()
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.string("common.done", defaultValue: "Done")) { onDone() }
-                }
-            }
-        }
-        .onAppear {
-            DispatchQueue.main.async { isFieldFocused = true }
         }
     }
 }

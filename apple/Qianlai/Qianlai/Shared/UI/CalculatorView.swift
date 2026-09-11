@@ -281,6 +281,20 @@ struct CalculatorView: View {
     /// run (posting in flight, or the form fails pre-validation).
     var isCommitDisabled = false
 
+    /// Which pieces of the calculator a host renders. `.compact` is the
+    /// default unit — display and keypad together. The split pair serves
+    /// quick entry's memo editing: `.displayOnly` renders the amount card
+    /// inside the keyboard-avoiding layout above the keyboard, while
+    /// `.padOnly` renders the keypad in a keyboard-ignoring bottom layer so
+    /// it stays pinned at the host's bottom edge behind the keyboard.
+    enum Visibility {
+        case compact
+        case displayOnly
+        case padOnly
+    }
+
+    var visibility: Visibility = .compact
+
     /// Swaps the checkmark for a spinner while the commit action runs —
     /// the key doubles as the host's posting indicator.
     var isCommitting = false
@@ -291,14 +305,25 @@ struct CalculatorView: View {
         // host's edges; the top inset sits on the same 8pt rhythm so the
         // host's chip row, the display card, and the keypad keep one even
         // gap, while the deeper bottom inset keeps clear of the sheet's
-        // bottom edge.
-        VStack(spacing: 8) {
-            display
-            pad
+        // bottom edge. The split modes keep their own half of those insets.
+        Group {
+            switch visibility {
+            case .compact:
+                VStack(spacing: 8) {
+                    display
+                    pad
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+            case .displayOnly:
+                display
+                    .padding(.top, 8)
+            case .padOnly:
+                pad
+                    .padding(.bottom, 10)
+            }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
         .sensoryFeedback(.selection, trigger: keyPressCount)
         // Keep the calculator aligned with the form on wide surfaces.
         .frame(maxWidth: 420)
