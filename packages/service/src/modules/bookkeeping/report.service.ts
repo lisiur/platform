@@ -64,14 +64,14 @@ function round(value: number): number {
 }
 
 /** Line shape returned by `listShareEntries`. */
-interface ShareLine {
+export interface ShareLine {
   accountId: string;
   debit: Prisma.Decimal | number;
   credit: Prisma.Decimal | number;
   account: { type: string };
 }
 
-interface ShareEntry {
+export interface ShareEntry {
   paidById: string | null;
   lines: ShareLine[];
   participants: Array<{ userId: string }>;
@@ -148,7 +148,7 @@ function viewerShareCents(entry: ShareEntry, viewerUserId: string): number {
  * member's personal entry counts in full, an outsider-paid legacy row
  * contributes nothing. Zero when nobody in the split set is a member.
  */
-function memberSharesCents(
+export function memberSharesCents(
   entry: ShareEntry,
   memberUserIds: ReadonlySet<string>,
 ): number {

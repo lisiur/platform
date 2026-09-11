@@ -28,12 +28,17 @@ vi.mock("../account.repository", () => ({
   },
 }));
 
-vi.mock("../journal.repository", () => ({
+// Partial mock: the real `isLedgerActivityEntry` stays live so the
+// listEntries gate below exercises the actual activity twin, not a copy.
+vi.mock("../journal.repository", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   journalRepository: {
     createEntry: vi.fn(),
     findById: vi.fn(),
     updateEntry: vi.fn(),
     delete: vi.fn(),
+    listEntries: vi.fn(),
+    countEntries: vi.fn(),
   },
 }));
 
@@ -57,6 +62,7 @@ import { journalRepository } from "../journal.repository";
 import {
   createEntry,
   deleteEntry,
+  listEntries,
   updateEntry,
   validateJournalLines,
 } from "../journal.service";
@@ -83,6 +89,8 @@ const mockJournalRepo = journalRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
   updateEntry: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
+  listEntries: ReturnType<typeof vi.fn>;
+  countEntries: ReturnType<typeof vi.fn>;
 };
 
 function account(overrides: Partial<BookAccount> = {}): BookAccount {
@@ -1508,5 +1516,87 @@ describe("entry location", () => {
       }),
       expect.anything(),
     );
+  });
+});
+
+describe("listEntries memberSharesCents", () => {
+  // The members' combined share attached to each listed entry mirrors the
+  // dashboard month statement's own math (memberSharesCents over the same
+  // split rules), so a ledger journal card can reconcile with the stat
+  // totals: only ledger members' slices sum in — project outsiders (no
+  // roster row) drop out of the split.
+  const food = account({ id: "acc-food", name: "Food", type: "expense" });
+  const pocket = account({ id: "acc-default" });
+
+  function entry(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "e-1",
+      ledgerId: "led-1",
+      guestCreated: false,
+      countsInLedger: true,
+      paidById: "user-a",
+      lines: [
+        { accountId: "acc-default", debit: 0, credit: 30, account: pocket },
+        { accountId: "acc-food", debit: 30, credit: 0, account: food },
+      ],
+      participants: [],
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockJournalRepo.countEntries.mockResolvedValue(1);
+  });
+
+  it("sums only the members' slices of a tagged split", async () => {
+    // ¥30 tagged {user-a (member), user-out (project outsider)}: the
+    // outsider's half falls out of the ledger's split — ¥15 counts.
+    mockJournalRepo.listEntries.mockResolvedValue([
+      entry({ participants: [{ userId: "user-a" }, { userId: "user-out" }] }),
+    ]);
+    const result = await listEntries("led-1", {}, "owner");
+    expect(result.entries[0].memberSharesCents).toBe(1500);
+  });
+
+  it("counts an untagged member-paid entry in full and an outsider-paid one at zero", async () => {
+    mockJournalRepo.listEntries.mockResolvedValue([
+      entry({ id: "e-member", paidById: "user-b" }),
+      entry({ id: "e-outsider", paidById: "user-out" }),
+    ]);
+    const result = await listEntries("led-1", {}, "owner");
+    const byId = new Map(result.entries.map((e) => [e.id, e]));
+    expect(byId.get("e-member")?.memberSharesCents).toBe(3000);
+    expect(byId.get("e-outsider")?.memberSharesCents).toBe(0);
+  });
+
+  it("reports zero for a non-guest opt-out but still counts a guest post", async () => {
+    // The activity stats (guest posts stay, only non-guest opt-outs drop)
+    // are the contract the field mirrors.
+    mockJournalRepo.listEntries.mockResolvedValue([
+      entry({ id: "e-optout", countsInLedger: false }),
+      entry({ id: "e-guest", countsInLedger: false, guestCreated: true }),
+    ]);
+    const result = await listEntries("led-1", {}, "owner");
+    const byId = new Map(result.entries.map((e) => [e.id, e]));
+    expect(byId.get("e-optout")?.memberSharesCents).toBe(0);
+    expect(byId.get("e-guest")?.memberSharesCents).toBe(3000);
+  });
+
+  it("reports zero for a transfer (no expense/income value to split)", async () => {
+    mockJournalRepo.listEntries.mockResolvedValue([
+      entry({
+        lines: [
+          { accountId: "acc-default", debit: 0, credit: 30, account: pocket },
+          { accountId: "acc-default", debit: 30, credit: 0, account: pocket },
+        ],
+      }),
+    ]);
+    const result = await listEntries("led-1", {}, "owner");
+    expect(result.entries[0].memberSharesCents).toBe(0);
   });
 });

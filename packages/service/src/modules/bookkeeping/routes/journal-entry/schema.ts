@@ -183,7 +183,24 @@ export const listEntriesQuerySchema = paginationQuerySchema
 
 export const listEntriesResponseSchema = z
   .object({
-    entries: journalEntrySchema.array(),
+    entries: journalEntrySchema
+      .extend({
+        // The ledger members' combined share of the entry's value in cents —
+        // the exact figure the dashboard's month statement (and the journal's
+        // stat card through the same endpoint) counts, attached so clients
+        // can reconcile each card with the stat totals. Equal split across
+        // the tagged participant set with only ledger members' slices summed
+        // (project outsiders drop out); untagged entries count the payer
+        // alone. Zero for transfers (no expense/income value) and for
+        // entries outside the ledger's activity set (non-guest
+        // countsInLedger opt-outs never feed the stats).
+        memberSharesCents: z.number().int().openapi({
+          example: 1500,
+          description:
+            "The ledger members' combined share of this entry in cents — the same split the dashboard's month statement counts.",
+        }),
+      })
+      .array(),
     total: z.number().int(),
   })
   .openapi("QianlaiListEntriesResponse");

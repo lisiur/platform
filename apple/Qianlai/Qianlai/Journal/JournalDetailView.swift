@@ -24,6 +24,10 @@ struct JournalDetailView: View {
 
     /// The pushed snapshot; the freshest copy comes from the store below.
     let entry: JournalEntry
+    /// Mirrors the list that pushed this page: ledger-wide surfaces also
+    /// show the ledger members' combined share on project entries (see
+    /// `EntryRow`); project surfaces stay without it.
+    var showsProjectShare = false
 
     @State private var isEditPresented = false
     @State private var isDeletePending = false
@@ -83,7 +87,8 @@ struct JournalDetailView: View {
         Section {
             EntryRow(
                 entry: resolved,
-                currency: ledgerStore.activeLedger?.currency ?? ""
+                currency: ledgerStore.activeLedger?.currency ?? "",
+                showsProjectShare: showsProjectShare
             )
             .appCardRow()
             .listRowSeparator(.hidden)

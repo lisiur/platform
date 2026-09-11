@@ -342,7 +342,6 @@ enum SettlementAmountColumn {
             userId: userId,
             memberUserIds: memberUserIds
         )
-        let shareValue = Double(share) / 100
         let balance = (Double(paid) - Double(share)) / 100
         // The gross headline carries the entry's money flow like every
         // journal card: expense negative green, income positive red,
@@ -356,21 +355,11 @@ enum SettlementAmountColumn {
         default:
             headline = .init(text: Money.format(entry.amount, currency: currency), color: .primary)
         }
-        // An income share flows TO the member — label and tint say so and
-        // the value renders as a bare magnitude; expense shares keep the
-        // signed 分摊 with the flow tint.
-        let shareCaption: EntryAmountSection.Caption
-        if categoryType(of: entry) == .income {
-            shareCaption = EntryAmountSection.Caption(
-                text: "\(L10n.string("projects.incomeShare", defaultValue: "Income share")) \(Money.format(abs(shareValue), currency: currency))",
-                color: shareValue == 0 ? nil : .income
-            )
-        } else {
-            shareCaption = EntryAmountSection.Caption(
-                text: "\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(shareValue, currency: currency))",
-                color: tone(for: shareValue)
-            )
-        }
+        let shareCaption = Self.shareCaption(
+            cents: share,
+            categoryType: categoryType(of: entry),
+            currency: currency
+        )
         let balanceCaption: EntryAmountSection.Caption?
         switch balance {
         case ..<0:
@@ -394,6 +383,30 @@ enum SettlementAmountColumn {
     static func categoryType(of entry: JournalEntry) -> AccountType? {
         entry.lines.first { $0.account.type == .expense }?.account.type
             ?? entry.lines.first { $0.account.type == .income }?.account.type
+    }
+
+    /// The 分摊/分账 caption beneath an amount headline, shared by the
+    /// settlement drill-down's rows and the ledger journal's project cards
+    /// (whose figure is the ledger members' combined share instead of one
+    /// member's): an income share flows TO the member — label and tint say
+    /// so and the value renders as a bare magnitude; expense shares keep
+    /// the signed 分摊 with the flow tint.
+    static func shareCaption(
+        cents: Int,
+        categoryType: AccountType?,
+        currency: String?
+    ) -> EntryAmountSection.Caption {
+        let shareValue = Double(cents) / 100
+        if categoryType == .income {
+            return EntryAmountSection.Caption(
+                text: "\(L10n.string("projects.incomeShare", defaultValue: "Income share")) \(Money.format(abs(shareValue), currency: currency))",
+                color: shareValue == 0 ? nil : .income
+            )
+        }
+        return EntryAmountSection.Caption(
+            text: "\(L10n.string("projects.share", defaultValue: "Share")) \(Money.format(shareValue, currency: currency))",
+            color: tone(for: shareValue)
+        )
     }
 
     /// Semantic tint by money flow: an inflow (negative — an income share)

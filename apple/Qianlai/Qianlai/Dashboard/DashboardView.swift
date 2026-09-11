@@ -111,7 +111,10 @@ struct DashboardView: View {
                             "dashboard.noEntriesThisMonth",
                             defaultValue: "No entries this month yet"
                         ),
-                        topContent: AnyView(monthSummary)
+                        topContent: AnyView(monthSummary),
+                        // This mount only renders in ledger scope (project
+                        // scope swaps to ProjectDetailView above).
+                        showsProjectShare: true
                     )
                     #if os(iOS)
                     // Pull-down drawer search like the category picker's:

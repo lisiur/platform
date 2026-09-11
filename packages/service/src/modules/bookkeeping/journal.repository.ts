@@ -63,6 +63,19 @@ export const ledgerActivityWhere = {
   OR: [{ guestCreated: true }, { countsInLedger: true }],
 } as const satisfies Prisma.JournalEntryWhereInput;
 
+/**
+ * The TS twin of `ledgerActivityWhere` for entries already loaded — kept
+ * adjacent so the two forms move together. Everything deciding per entry
+ * whether it feeds the ledger's activity stats (the journal list's
+ * `memberSharesCents` gate) must go through this, never re-encode the OR.
+ */
+export function isLedgerActivityEntry(entry: {
+  guestCreated: boolean;
+  countsInLedger: boolean;
+}): boolean {
+  return entry.guestCreated || entry.countsInLedger;
+}
+
 /** The [from, to] entry-date window as a where fragment — the one shape
  *  every windowed entry/line query shares. */
 function dateWindowWhere(window: {

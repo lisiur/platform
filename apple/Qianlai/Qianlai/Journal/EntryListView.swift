@@ -35,6 +35,12 @@ struct EntryListView: View {
     /// Project-surface switch: rows always name the payer ("由 X 付款"),
     /// even when they recorded the entry themselves. See `EntryRow`.
     var alwaysShowsPayer = false
+    /// Ledger-wide switch: project entries carry the ledger members'
+    /// combined share (分摊/分账) beneath their headline — the settlement
+    /// drill-down's right-column look, with the figure the stat cards
+    /// count. Project surfaces hide it (their settlement pages compute
+    /// per-member shares among project members instead).
+    var showsProjectShare = false
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
@@ -45,7 +51,8 @@ struct EntryListView: View {
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
         alwaysShowsPayer: Bool = false,
-        topContent: AnyView? = nil
+        topContent: AnyView? = nil,
+        showsProjectShare: Bool = false
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
@@ -53,6 +60,7 @@ struct EntryListView: View {
         self.amountSection = amountSection
         self.alwaysShowsPayer = alwaysShowsPayer
         self.topContent = topContent
+        self.showsProjectShare = showsProjectShare
     }
 
     var body: some View {
@@ -174,11 +182,12 @@ struct EntryListView: View {
             entry: entry,
             currency: ledger.currency,
             amountSection: amountSection?(entry),
-            alwaysShowsPayer: alwaysShowsPayer
+            alwaysShowsPayer: alwaysShowsPayer,
+            showsProjectShare: showsProjectShare
         )
             .background {
                 NavigationLink {
-                    JournalDetailView(entry: entry)
+                    JournalDetailView(entry: entry, showsProjectShare: showsProjectShare)
                 } label: {
                     EmptyView()
                 }
@@ -277,6 +286,7 @@ struct EntryRow: View {
     /// which re-runs this row's body so `title` re-resolves through the
     /// override bundle. Without it the row keeps its first-render string.
     @Environment(\.locale) private var locale
+    @Environment(AuthManager.self) private var auth
 
     let entry: JournalEntry
     let currency: String
@@ -286,12 +296,27 @@ struct EntryRow: View {
     /// Project-surface switch: always name the payer ("由 X 付款"), even
     /// when they recorded the entry themselves.
     var alwaysShowsPayer = false
+    /// Ledger-wide switch: a project entry's amount column also carries the
+    /// 分摊/分账 caption — the ledger members' combined share (what the
+    /// stat cards count from this entry), rendered with the settlement
+    /// drill-down's shared caption. Off on project surfaces, where the
+    /// settlement math runs among project members instead.
+    var showsProjectShare = false
 
     /// Fixed icon column for the meta rows (project, location,
-    /// participants, not-counted): the symbols' natural widths differ, so
-    /// without it the labels after them don't line up.
+    /// not-counted): the symbols' natural widths differ, so without it the
+    /// labels after them don't line up. The participants row leads with its
+    /// avatar circles instead.
     @ScaledMetric(relativeTo: .caption2)
     private var metaIconWidth: CGFloat = 16
+
+    /// Participant avatar circles share the meta icon column's caption2
+    /// scale so the row keeps its rhythm under dynamic type.
+    @ScaledMetric(relativeTo: .caption2)
+    private var participantAvatarSize: CGFloat = 16
+
+    /// Avatar circles shown before the "+N" overflow label.
+    private static let participantAvatarCap = 5
 
     var body: some View {
         HStack(spacing: 10) {
@@ -344,17 +369,7 @@ struct EntryRow: View {
                         .lineLimit(1)
                     }
                     if let participants = entry.participants, !participants.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.2")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .frame(width: metaIconWidth, alignment: .leading)
-                            Text(participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", "))
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                        }
+                        participantAvatars(participants)
                     }
                     if let location = entry.location,
                        let label = location.displayName ?? coordinateLabel(location) {
@@ -371,11 +386,11 @@ struct EntryRow: View {
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 1) {
-                    if let amountSection {
-                        Text(amountSection.headline.text)
+                    if let section = amountSection ?? projectShareSection {
+                        Text(section.headline.text)
                             .font(.callout.weight(.semibold).monospacedDigit())
-                            .foregroundStyle(amountSection.headline.color)
-                        let captions = [amountSection.total, amountSection.paid].compactMap { $0 }
+                            .foregroundStyle(section.headline.color)
+                        let captions = [section.total, section.paid].compactMap { $0 }
                         ForEach(captions.indices, id: \.self) { index in
                             Text(captions[index].text)
                                 .font(.caption2.monospacedDigit())
@@ -407,6 +422,86 @@ struct EntryRow: View {
     private var categoryLine: JournalLine? {
         entry.lines.first { $0.account.type == .expense }
             ?? entry.lines.first { $0.account.type == .income }
+    }
+
+    /// The participants row's content: one small avatar circle per tagged
+    /// member — the profile photo when it exists, else the initial on the
+    /// accent circle (the members roster's fallback, miniaturized) — in
+    /// place of the name list the row used to render; the detail page's
+    /// Shares section still names them. Caps at `participantAvatarCap`
+    /// circles with a "+N" label because a project entry without explicit
+    /// tags snapshots the project's whole roster onto participants, and
+    /// fixed-size circles can't truncate like the old text did. VoiceOver
+    /// reads the names.
+    private func participantAvatars(_ participants: [EntryParticipant]) -> some View {
+        let shown = participants.prefix(Self.participantAvatarCap)
+        return HStack(spacing: 3) {
+            ForEach(shown) { participant in
+                participantAvatar(participant)
+            }
+            if participants.count > Self.participantAvatarCap {
+                Text("+\(participants.count - Self.participantAvatarCap)")
+                    .font(.caption2.weight(.medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            participants.map { $0.user?.name ?? $0.userId }.joined(separator: ", ")
+        )
+    }
+
+    @ViewBuilder
+    private func participantAvatar(_ participant: EntryParticipant) -> some View {
+        let name = participant.user?.name ?? participant.userId
+        let initial = String(name.prefix(1)).uppercased()
+        Group {
+            if let url = ProfileStore.absoluteAvatarURL(
+                participant.user?.avatar,
+                baseURL: auth.apiBaseURL
+            ) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(initial)
+                    }
+                }
+            } else {
+                Text(initial)
+            }
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(.white)
+        .frame(width: participantAvatarSize, height: participantAvatarSize)
+        .background(Circle().fill(Color.accentColor.opacity(0.85)))
+        .clipShape(Circle())
+    }
+
+    /// The settlement drill-down's right-column look, synthesized for
+    /// project entries on ledger-wide surfaces: the standard gross headline
+    /// plus the 分摊/分账 caption — the ledger members' combined share the
+    /// server attached, the exact figure the stat cards count from this
+    /// entry (the settlement pages instead show one member's share, computed
+    /// among project members). Reuses `SettlementAmountColumn.shareCaption`
+    /// so the two captions never drift. Hidden for transfers (nothing to
+    /// split), when the list didn't supply the figure, and on project
+    /// surfaces (showsProjectShare off).
+    private var projectShareSection: EntryAmountSection? {
+        guard showsProjectShare,
+              entry.project != nil,
+              let cents = entry.memberSharesCents,
+              entry.valueCents != 0
+        else { return nil }
+        return EntryAmountSection(
+            headline: .init(text: headlineAmount.text, color: headlineAmount.color),
+            total: SettlementAmountColumn.shareCaption(
+                cents: cents,
+                categoryType: categoryLine?.account.type,
+                currency: currency
+            ),
+            paid: nil
+        )
     }
 
     /// Coordinates-only fallback for a location whose geocoding never

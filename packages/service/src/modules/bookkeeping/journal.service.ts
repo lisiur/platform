@@ -18,6 +18,7 @@ import {
 import {
   type EntryOrdering,
   type EntryWindow,
+  isLedgerActivityEntry,
   journalRepository,
 } from "./journal.repository";
 import { ledgerRepository, lockLedgerRow } from "./ledger.repository";
@@ -25,6 +26,7 @@ import { ledgerMemberRepository } from "./ledger-member.repository";
 import { isForeignKeyViolation } from "./prisma-errors";
 import { projectRepository } from "./project.repository";
 import { projectMemberRepository } from "./project-member.repository";
+import { memberSharesCents, type ShareEntry } from "./report.service";
 
 export type JournalLineInput = {
   /**
@@ -222,17 +224,50 @@ function redactEntryCreatorEmail<
   };
 }
 
+/**
+ * Attaches each entry's `memberSharesCents` — the ledger members' COMBINED
+ * share of its value, the exact figure the dashboard's month statement (and
+ * the journal's stat card through the same endpoint) counts, so ledger-wide
+ * clients can reconcile every card with the stat totals without recomputing
+ * the split (the project settlement pages compute per-member shares among
+ * project members instead — a different membership basis). The gate is the
+ * activity twin (`isLedgerActivityEntry`): entries outside the activity set
+ * never feed the stats, so a non-guest `countsInLedger` opt-out reports 0;
+ * the split itself reads zero for transfers (no expense/income value to
+ * split).
+ */
+function withMemberSharesCents<
+  T extends ShareEntry & {
+    guestCreated: boolean;
+    countsInLedger: boolean;
+  },
+>(
+  entry: T,
+  memberUserIds: ReadonlySet<string>,
+): T & { memberSharesCents: number } {
+  return {
+    ...entry,
+    memberSharesCents: isLedgerActivityEntry(entry)
+      ? memberSharesCents(entry, memberUserIds)
+      : 0,
+  };
+}
+
 export async function listEntries(
   ledgerId: string,
   opts: { limit?: number; offset?: number } & EntryWindow & EntryOrdering,
   viewerRole: LedgerRole,
 ) {
-  const [entries, total] = await Promise.all([
+  const [entries, total, members] = await Promise.all([
     journalRepository.listEntries(ledgerId, opts),
     journalRepository.countEntries(ledgerId, opts),
+    ledgerMemberRepository.listByLedger(ledgerId),
   ]);
+  const memberUserIds = new Set(members.map((m) => m.userId));
   return {
-    entries: entries.map((e) => redactEntryCreatorEmail(e, viewerRole)),
+    entries: entries
+      .map((e) => withMemberSharesCents(e, memberUserIds))
+      .map((e) => redactEntryCreatorEmail(e, viewerRole)),
     total,
   };
 }

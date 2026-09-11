@@ -241,6 +241,20 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(recorderPaid.viewerShareCents(viewerUserId: "user-me"), 1000)
     }
 
+    func testMemberSharesCentsRoundTripsThroughTheJournalListPayload() throws {
+        // The journal list endpoint attaches the ledger members' combined
+        // share under this exact key; nil where the server omits it (the
+        // field is optional so dashboard recent entries and single-entry
+        // responses decode unchanged).
+        var entry = makeEntry(paidById: "user-me", participants: [])
+        XCTAssertNil(entry.memberSharesCents)
+
+        entry.memberSharesCents = 1500
+        let data = try JSONEncoder().encode(entry)
+        let decoded = try JSONDecoder().decode(JournalEntry.self, from: data)
+        XCTAssertEqual(decoded.memberSharesCents, 1500)
+    }
+
     /// A ¥10 expense with the category and default-pocket lines, recorded
     /// by user-me.
     private func makeEntry(paidById: String?, participants: [EntryParticipant]) -> JournalEntry {

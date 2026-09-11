@@ -390,6 +390,18 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var location: EntryLocationRef?
     var lines: [JournalLine]
     var participants: [EntryParticipant]?
+    /// The ledger members' COMBINED share of this entry's value in cents,
+    /// as attached by the journal list endpoint — the exact figure the
+    /// ledger's share-based stats (dashboard/journal stat cards) count.
+    /// The split rules live in the server's `memberSharesCents`
+    /// (report.service.ts, the same function the dashboard month statement
+    /// runs) — don't restate them here. Zero for transfers and for entries
+    /// outside the ledger's activity set. Nil where the endpoint doesn't
+    /// supply it — the dashboard endpoint's `recentEntries` (the widget
+    /// snapshot feed; the dashboard month LIST uses this list endpoint and
+    /// does carry the field) and single-entry responses — and those
+    /// surfaces don't render it.
+    var memberSharesCents: Int?
 
     var amount: Double {
         lines.reduce(0) { $0 + $1.debit }

@@ -49,7 +49,10 @@ struct JournalView: View {
                 EntryListView(
                     ledger: ledger,
                     emptyMessage: L10n.string("journal.empty", defaultValue: "No entries yet"),
-                    topContent: AnyView(rangeHeader)
+                    topContent: AnyView(rangeHeader),
+                    // Ledger-wide journal only: in project scope the
+                    // settlement pages own the shares (project members).
+                    showsProjectShare: scopedProject == nil
                 )
             } else {
                 EmptyStateView(
