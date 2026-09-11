@@ -102,6 +102,24 @@ function entryValueCents(lines: ShareLine[]): number {
   return value;
 }
 
+/** The entry's split set: deduped participant userIds sorted by userId —
+ *  the same ordering the settlement remainder math uses. */
+function splitSetOf(entry: ShareEntry): string[] {
+  return [...new Set(entry.participants.map((p) => p.userId))].sort();
+}
+
+/** One slice of `value` in an equal split across `splitUserIds`: the base
+ *  share plus one cent when this index carries the division remainder. */
+function sliceCents(
+  value: number,
+  splitUserIds: string[],
+  index: number,
+): number {
+  const base = Math.floor(value / splitUserIds.length);
+  const remainder = value - base * splitUserIds.length;
+  return base + (index < remainder ? 1 : 0);
+}
+
 /**
  * The viewer's share of an entry's value in cents: equal split across the
  * tagged participant set (deduped, sorted by userId, remainder to the
@@ -113,24 +131,52 @@ function entryValueCents(lines: ShareLine[]): number {
 function viewerShareCents(entry: ShareEntry, viewerUserId: string): number {
   const value = entryValueCents(entry.lines);
   if (value === 0) return 0;
-  const tagged = [...new Set(entry.participants.map((p) => p.userId))].sort();
+  const tagged = splitSetOf(entry);
   const splitUserIds =
     tagged.length > 0 ? tagged : [entry.paidById ?? viewerUserId];
   const index = splitUserIds.indexOf(viewerUserId);
   if (index === -1) return 0;
-  const base = Math.floor(value / splitUserIds.length);
-  const remainder = value - base * splitUserIds.length;
-  return base + (index < remainder ? 1 : 0);
+  return sliceCents(value, splitUserIds, index);
 }
 
 /**
- * Per-account sums of the viewer's shares over the given entries, feeding
+ * The ledger members' COMBINED share of an entry's value in cents: equal
+ * split across the tagged participant set (same split math as above), with
+ * only the members' slices summed in — project outsiders hold no roster
+ * row, so their slices fall out of the split and stop feeding the family's
+ * income/expense. Untagged entries fall back to the payer alone: a
+ * member's personal entry counts in full, an outsider-paid legacy row
+ * contributes nothing. Zero when nobody in the split set is a member.
+ */
+function memberSharesCents(
+  entry: ShareEntry,
+  memberUserIds: ReadonlySet<string>,
+): number {
+  const value = entryValueCents(entry.lines);
+  if (value === 0) return 0;
+  const tagged = splitSetOf(entry);
+  const splitUserIds =
+    tagged.length > 0 ? tagged : entry.paidById ? [entry.paidById] : [];
+  let share = 0;
+  for (let index = 0; index < splitUserIds.length; index++) {
+    if (memberUserIds.has(splitUserIds[index])) {
+      share += sliceCents(value, splitUserIds, index);
+    }
+  }
+  return share;
+}
+
+/**
+ * Per-account sums of the given per-entry share over the entries, feeding
  * `buildStatementRows`. Each line is attributed its share/value fraction
  * (rounded to cents), then the per-entry rounding drift is absorbed by the
  * entry's largest line so Σ attributed − Σ income attributed equals the
- * viewer's share exactly.
+ * entry's share exactly.
  */
-function shareSumsByAccount(entries: ShareEntry[], viewerUserId: string) {
+function shareSumsByAccount(
+  entries: ShareEntry[],
+  shareOf: (entry: ShareEntry) => number,
+) {
   const sums: AccountSums = new Map();
   const add = (
     accountId: string,
@@ -143,7 +189,7 @@ function shareSumsByAccount(entries: ShareEntry[], viewerUserId: string) {
     sums.set(accountId, current);
   };
   for (const entry of entries) {
-    const share = viewerShareCents(entry, viewerUserId);
+    const share = shareOf(entry);
     if (share === 0) continue;
     const value = entryValueCents(entry.lines);
     const flows = entry.lines
@@ -154,7 +200,7 @@ function shareSumsByAccount(entries: ShareEntry[], viewerUserId: string) {
       cents: value === 0 ? 0 : Math.round((f.cents * share) / value),
     }));
     // The attribution invariant: Σ expense attributed − Σ income attributed
-    // equals the viewer's share of the entry's value. Any per-line rounding
+    // equals the entry's share of the entry's value. Any per-line rounding
     // drift is absorbed by the entry's dominant line so it holds exactly.
     const net = attributed.reduce(
       (acc, f) => acc + (f.line.account.type === "income" ? -f.cents : f.cents),
@@ -234,7 +280,10 @@ export async function incomeStatement(
     accountRepository.listByLedger(ledgerId),
     journalRepository.listShareEntries(ledgerId, userId, window),
   ]);
-  return buildStatementRows(accounts, shareSumsByAccount(entries, userId));
+  return buildStatementRows(
+    accounts,
+    shareSumsByAccount(entries, (entry) => viewerShareCents(entry, userId)),
+  );
 }
 
 /**
@@ -332,21 +381,26 @@ export async function dashboard(
     );
 
   const accounts = await accountRepository.listByLedger(ledgerId);
-  const [allTimeSums, monthSums, recentEntries] = await Promise.all([
-    // Net worth stays accounting-true — the money really moved.
-    sumsByAccount(ledgerId),
-    // Behavioral month statement: every member's actual share — the
-    // participants' shares sum to each entry's full value, so the ledger's
-    // income/expense totals count every entry in full. Visibility mirrors
-    // the journal list: guest posts stay counted even when opted out;
-    // only non-guest opt-outs drop.
-    sumsByAccount(ledgerId, {
-      from: monthStart,
-      to: monthEnd,
-      activityVisibility: true,
-    }),
-    journalRepository.listRecent(ledgerId, 5),
-  ]);
+  const [allTimeSums, monthEntries, members, recentEntries] = await Promise.all(
+    [
+      // Net worth stays accounting-true — the money really moved.
+      sumsByAccount(ledgerId),
+      // Behavioral month statement: the ledger members' actual shares. Each
+      // entry splits across its participant set and only the members' slices
+      // sum in — project outsiders (no roster row) drop out of the split, so
+      // the family's income/expense stops absorbing their spending, while
+      // pure member entries still count in full. Visibility mirrors the
+      // journal list: guest posts stay counted even when opted out; only
+      // non-guest opt-outs drop.
+      journalRepository.listActivityEntries(ledgerId, {
+        from: monthStart,
+        to: monthEnd,
+      }),
+      ledgerMemberRepository.listByLedger(ledgerId),
+      journalRepository.listRecent(ledgerId, 5),
+    ],
+  );
+  const memberUserIds = new Set(members.map((m) => m.userId));
 
   const netWorthAccounts = accounts.filter(
     (a) => a.type === "asset" || a.type === "liability",
@@ -362,7 +416,12 @@ export async function dashboard(
     }
   }
 
-  const statement = buildStatementRows(accounts, monthSums);
+  const statement = buildStatementRows(
+    accounts,
+    shareSumsByAccount(monthEntries, (entry) =>
+      memberSharesCents(entry, memberUserIds),
+    ),
+  );
 
   // Recent entries mirror the journal activity: member entries the creator
   // kept in plus every guest post (every entry feeding the statement stays

@@ -11,6 +11,7 @@ vi.mock("../journal.repository", () => ({
     listRecent: vi.fn(),
     sumLinesByAccount: vi.fn(),
     listShareEntries: vi.fn(),
+    listActivityEntries: vi.fn(),
     listTaggedEntries: vi.fn(),
   },
 }));
@@ -40,6 +41,7 @@ const mockJournalRepo = journalRepository as unknown as {
   listRecent: ReturnType<typeof vi.fn>;
   sumLinesByAccount: ReturnType<typeof vi.fn>;
   listShareEntries: ReturnType<typeof vi.fn>;
+  listActivityEntries: ReturnType<typeof vi.fn>;
   listTaggedEntries: ReturnType<typeof vi.fn>;
 };
 const mockMemberRepo = ledgerMemberRepository as unknown as {
@@ -82,7 +84,8 @@ function shareEntry(
   } = {},
 ) {
   return {
-    paidById: overrides.paidById ?? "user-a",
+    // Explicit null must survive: a missing payer is its own test case.
+    paidById: overrides.paidById !== undefined ? overrides.paidById : "user-a",
     lines: (overrides.lines ?? []).map((line) => ({
       accountId: line.accountId,
       debit: line.debit,
@@ -112,6 +115,12 @@ beforeEach(() => {
   mockJournalRepo.listRecent.mockResolvedValue([]);
   mockJournalRepo.sumLinesByAccount.mockResolvedValue([]);
   mockJournalRepo.listShareEntries.mockResolvedValue([]);
+  mockJournalRepo.listActivityEntries.mockResolvedValue([]);
+  // The dashboard's member set: who counts as "family" in the split.
+  mockMemberRepo.listByLedger.mockResolvedValue([
+    { id: "m-a", userId: "user-a", role: "owner" },
+    { id: "m-b", userId: "user-b", role: "editor" },
+  ]);
   mockProjectMemberRepo.listUsersInLedger.mockResolvedValue([]);
 });
 
@@ -244,13 +253,6 @@ describe("incomeStatement (share-based)", () => {
 });
 
 describe("dashboard", () => {
-  /** The month-statement call: the one carrying a from/to window. */
-  function monthWindowCall(): { from?: Date; to?: Date } | undefined {
-    return mockJournalRepo.sumLinesByAccount.mock.calls
-      .map((call) => call[1] as { from?: Date; to?: Date })
-      .find((window) => window.from);
-  }
-
   it("defaults to the month containing now", async () => {
     const before = new Date();
 
@@ -258,7 +260,9 @@ describe("dashboard", () => {
 
     // Net worth stays the all-time sum; the month statement gets the window.
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
-    const window = monthWindowCall();
+    const window = mockJournalRepo.listActivityEntries.mock.calls[0]?.[1] as {
+      from?: Date;
+    };
     expect(window?.from?.getUTCMonth()).toBe(before.getUTCMonth());
     expect(window?.from?.getUTCFullYear()).toBe(before.getUTCFullYear());
     expect(window?.from?.getUTCDate()).toBe(1);
@@ -266,9 +270,14 @@ describe("dashboard", () => {
     expect(result.month.month).toBe(before.getUTCMonth() + 1);
   });
 
-  it("summarizes the caller-provided window with the journal's visibility rule", async () => {
-    mockJournalRepo.sumLinesByAccount.mockResolvedValue([
-      { accountId: "acc-food", _sum: { debit: 100, credit: 0 } },
+  it("summarizes the caller-provided window at the members' shares", async () => {
+    mockJournalRepo.listActivityEntries.mockResolvedValue([
+      // 100 split across two roster members: both slices count, so the
+      // entry lands in full.
+      shareEntry({
+        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
+        participants: ["user-a", "user-b"],
+      }),
     ]);
 
     const from = new Date(Date.UTC(2025, 11, 1));
@@ -278,12 +287,9 @@ describe("dashboard", () => {
       to,
     });
 
-    // Not flag equality: `activityVisibility` keeps opted-out guest posts
-    // counted — the same rule the journal list shows them by.
-    expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {
+    expect(mockJournalRepo.listActivityEntries).toHaveBeenCalledWith("led-1", {
       from,
       to,
-      activityVisibility: true,
     });
     expect(result.month.year).toBe(2025);
     expect(result.month.month).toBe(12);
@@ -292,25 +298,59 @@ describe("dashboard", () => {
     expect(result.month.net).toBe(-100);
   });
 
-  it("counts every entry in full (all members' shares) while net worth stays all-time", async () => {
-    mockJournalRepo.sumLinesByAccount.mockImplementation(
-      async (_ledgerId: string, window?: { activityVisibility?: boolean }) =>
-        // No visibility flag = the all-time net-worth sum; flagged = the
-        // month statement. A shared 100 expense counts in full even though
-        // the caller is only one of the two participants.
-        window?.activityVisibility
-          ? [{ accountId: "acc-food", _sum: { debit: 100, credit: 0 } }]
-          : [{ accountId: "acc-pocket", _sum: { debit: 0, credit: 100 } }],
-    );
+  it("drops project outsiders' slices from the split while net worth stays all-time", async () => {
+    // The beforeEach roster knows only user-a/user-b — "user-out" and
+    // "user-guest" hold no ledger row.
+    mockJournalRepo.listActivityEntries.mockResolvedValue([
+      // 100 across two members and one outsider: only the members' slices
+      // count (33.34 + 33.33).
+      shareEntry({
+        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
+        participants: ["user-a", "user-b", "user-out"],
+      }),
+      // An outsiders-only entry: not the family's expense at all.
+      shareEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 60, credit: 0 }],
+        participants: ["user-out", "user-guest"],
+      }),
+      // An untagged outsider-paid legacy row: the payer alone bears it,
+      // and the payer is no member.
+      shareEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 40, credit: 0 }],
+        participants: [],
+      }),
+      // An outsider fronted it, but a member shared the consumption: the
+      // member's slice still counts.
+      shareEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 60, credit: 0 }],
+        participants: ["user-a", "user-out"],
+      }),
+      // An ownerless system entry (no payer, no participants): nothing to
+      // attribute, contributes nothing.
+      shareEntry({
+        paidById: null,
+        lines: [{ accountId: "acc-food", debit: 40, credit: 0 }],
+        participants: [],
+      }),
+    ]);
+    mockJournalRepo.sumLinesByAccount.mockResolvedValue([
+      // The viewer fronted 100 out of the pocket in total.
+      { accountId: "acc-pocket", _sum: { debit: 0, credit: 100 } },
+    ]);
 
     const result = await dashboard("led-1");
 
     // Net worth: unfiltered gross (accounting truth — the money moved).
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
     expect(result.assets).toBe(-100);
-    // Month statement: the entry's full value, not the caller's share.
-    expect(monthWindowCall()).toMatchObject({ activityVisibility: true });
-    expect(result.month.totalExpense).toBe(100);
+    // Month statement: the members' shares only — 33.34 + 33.33 from the
+    // three-way split plus the member's 30 of the outsider-fronted entry;
+    // the outsiders-only, outsider-paid-untagged, and ownerless entries
+    // contribute nothing.
+    expect(result.month.totalExpense).toBe(96.67);
     // Recent entries mirror the journal activity: member entries the creator
     // kept in plus every guest post (every entry feeding the statement stays
     // visible at the top of the dashboard too).

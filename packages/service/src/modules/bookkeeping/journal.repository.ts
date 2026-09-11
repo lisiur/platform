@@ -63,6 +63,41 @@ export const ledgerActivityWhere = {
   OR: [{ guestCreated: true }, { countsInLedger: true }],
 } as const satisfies Prisma.JournalEntryWhereInput;
 
+/** The [from, to] entry-date window as a where fragment — the one shape
+ *  every windowed entry/line query shares. */
+function dateWindowWhere(window: {
+  from?: Date;
+  to?: Date;
+}): Prisma.JournalEntryWhereInput {
+  return {
+    ...(window.from || window.to
+      ? {
+          date: {
+            ...(window.from ? { gte: window.from } : {}),
+            ...(window.to ? { lte: window.to } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
+/** The share-statement entry shape: payer, typed lines, participant ids —
+ *  everything the split math reads, nothing else. */
+const shareEntrySelect = {
+  paidById: true,
+  lines: {
+    select: {
+      accountId: true,
+      debit: true,
+      credit: true,
+      account: { select: { type: true } },
+    },
+  },
+  participants: {
+    select: { userId: true },
+  },
+} as const satisfies Prisma.JournalEntrySelect;
+
 /**
  * Window + visibility options for `sumLinesByAccount`, shared with its
  * callers so the shapes can't drift.
@@ -72,12 +107,6 @@ export interface SumLinesWindow {
   to?: Date;
   countsInLedger?: boolean;
   guestCreated?: boolean;
-  /**
-   * Journal-list visibility (`ledgerActivityWhere`) instead of flag
-   * equality: guest posts stay in even when opted out; only non-guest
-   * opt-outs drop.
-   */
-  activityVisibility?: boolean;
 }
 
 /** Participant rows with the user's profile, as returned on entries. */
@@ -525,12 +554,10 @@ export const journalRepository = {
    *
    * Accounting truth by default: trial balance, net worth, and
    * balance-as-of pass no flags, so every posted entry is summed —
-   * opted-out and guest entries included. `activityVisibility` switches to
-   * the journal list's visibility rule so the behavioral statements that
-   * need narrower sums can't drift from what the journal shows. The
-   * `countsInLedger` / `guestCreated` flag-equality filters stay opt-in
-   * for a future caller; the per-viewer share-based income statement is
-   * computed elsewhere, via `listShareEntries`.
+   * opted-out and guest entries included. The `countsInLedger` /
+   * `guestCreated` flag-equality filters stay opt-in for a future caller;
+   * the behavioral statements are computed elsewhere, share-based, via
+   * `listShareEntries` (per viewer) and `listActivityEntries` (member set).
    */
   sumLinesByAccount(
     ledgerId: string,
@@ -542,20 +569,13 @@ export const journalRepository = {
       where: {
         account: { ledgerId },
         entry: {
-          ...(window.activityVisibility
-            ? ledgerActivityWhere
-            : {
-                ...(window.countsInLedger !== undefined
-                  ? { countsInLedger: window.countsInLedger }
-                  : {}),
-                ...(window.guestCreated !== undefined
-                  ? { guestCreated: window.guestCreated }
-                  : {}),
-              }),
-          date: {
-            ...(window.from ? { gte: window.from } : {}),
-            ...(window.to ? { lte: window.to } : {}),
-          },
+          ...(window.countsInLedger !== undefined
+            ? { countsInLedger: window.countsInLedger }
+            : {}),
+          ...(window.guestCreated !== undefined
+            ? { guestCreated: window.guestCreated }
+            : {}),
+          ...dateWindowWhere(window),
         },
       },
       _sum: { debit: true, credit: true },
@@ -669,14 +689,7 @@ export const journalRepository = {
     return tx.journalEntry.findMany({
       where: {
         ledgerId,
-        ...(window.from || window.to
-          ? {
-              date: {
-                ...(window.from ? { gte: window.from } : {}),
-                ...(window.to ? { lte: window.to } : {}),
-              },
-            }
-          : {}),
+        ...dateWindowWhere(window),
         OR: [
           {
             // Project entries I participate in — unless I paid for the
@@ -700,20 +713,32 @@ export const journalRepository = {
           },
         ],
       },
-      select: {
-        paidById: true,
-        lines: {
-          select: {
-            accountId: true,
-            debit: true,
-            credit: true,
-            account: { select: { type: true } },
-          },
-        },
-        participants: {
-          select: { userId: true },
-        },
+      select: shareEntrySelect,
+    });
+  },
+
+  /**
+   * Every activity-visible entry of the ledger in the window, in the
+   * share-statement shape (lines with account types, participants, payer).
+   * The ledger-wide share-based statement (dashboard month cards) splits
+   * each entry across its participant set and counts only the ledger
+   * members' shares, so it needs EVERY entry — not one viewer's subset —
+   * under the journal list's own visibility rule (guest posts stay in even
+   * when opted out; only non-guest opt-outs drop). Project outsiders have
+   * no roster row, so their shares fall out of the member set naturally.
+   */
+  listActivityEntries(
+    ledgerId: string,
+    window: { from?: Date; to?: Date } = {},
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.findMany({
+      where: {
+        ledgerId,
+        ...ledgerActivityWhere,
+        ...dateWindowWhere(window),
       },
+      select: shareEntrySelect,
     });
   },
 
