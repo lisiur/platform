@@ -81,42 +81,50 @@ struct DashboardView: View {
         activeProject != nil || isProjectScopeLoading
     }
 
-    /// Large-title name while the scope window is still loading. The widget
-    /// mirror holds the last scope resolved for the active ledger — including
-    /// its name, which labels the widget surfaces — so a relaunch that
-    /// restores a project selection can title itself with the project name
-    /// before the list fetch lands, instead of flashing the ledger name for
-    /// the round-trip. The mirror is not cleared on this path (the ledger
-    /// context did not change), and a stale entry (project deleted while
-    /// away) self-corrects when the load clears the selection. nil — mirror
-    /// cleared at logout, missing App Group, foreign ledger after a fallback
-    /// — falls back to the ledger name as before.
-    private var loadingScopeName: String? {
-        guard isProjectScopeLoading,
-              let ledger = ledgerStore.activeLedger,
-              let mirror = WidgetDataStore.loadScopedProject(),
-              mirror.ledgerId == ledger.id
-        else { return nil }
+    /// The scoped-project mirror's name for `ledgerId` — the project name
+    /// the widgets surface for the last scope resolved in that ledger. nil
+    /// when the mirror holds another ledger (cleared at logout, missing
+    /// App Group, or a ledger context that changed).
+    private func mirroredProjectName(inLedgerId ledgerId: String) -> String? {
+        guard let mirror = WidgetDataStore.loadScopedProject(), mirror.ledgerId == ledgerId else {
+            return nil
+        }
         return mirror.name
     }
 
-    /// Title while the LEDGER list itself is still fetching — the one window
-    /// where even `activeLedger` is nil and no live scope name exists. The
-    /// mirrors describe the last scope resolved for the restored ledger
-    /// context (the scoped project when the last session ended in project
-    /// scope, else the active ledger), so the relaunch titles itself with
-    /// the name it is about to land on instead of flashing the generic
-    /// title for the round-trip. Gated on `isLoading` so it never outlives
-    /// the fetch: once the list settles the live chain takes over, and a
-    /// ledger deleted while away stops matching its own mirror (the stale
-    /// name can then only show for this one window before the live chain
-    /// corrects it).
+    /// Large-title name while the scope window is still loading: the
+    /// project name from the mirror, so a relaunch that restores a project
+    /// selection titles itself with the project before the list fetch
+    /// lands, instead of flashing the ledger name for the round-trip. The
+    /// mirror is not cleared on this path (the ledger context did not
+    /// change), and a stale entry (project deleted while away)
+    /// self-corrects when the load clears the selection. nil — no matching
+    /// mirror — falls back to the ledger name as before.
+    private var loadingScopeName: String? {
+        guard isProjectScopeLoading, let ledger = ledgerStore.activeLedger else { return nil }
+        return mirroredProjectName(inLedgerId: ledger.id)
+    }
+
+    /// Title while the LEDGER list itself is still fetching — the one
+    /// window where even `activeLedger` is nil and no live scope name
+    /// exists. The mirrors describe the last scope resolved for the
+    /// restored ledger context (the scoped project when the last session
+    /// ended in project scope, else the active ledger), so the relaunch
+    /// titles itself with the name it is about to land on instead of
+    /// flashing the generic title for the round-trip. Gated on `!hasLoaded`
+    /// rather than the transient `isLoading`: isLoading is still false on
+    /// frames between the dashboard mounting and the app-level task
+    /// starting the first fetch, and a first frame on the generic title is
+    /// exactly the flash this exists to prevent. Once the first load
+    /// settles the live chain takes over, and a ledger deleted while away
+    /// stops matching its own mirror (the stale name can then only show
+    /// for this one window before the live chain corrects it).
     private var restoredScopeName: String? {
-        guard ledgerStore.isLoading,
+        guard !ledgerStore.hasLoaded,
               let restoredId = WidgetDataStore.loadAppActiveLedgerId()
         else { return nil }
-        if let project = WidgetDataStore.loadScopedProject(), project.ledgerId == restoredId {
-            return project.name
+        if let projectName = mirroredProjectName(inLedgerId: restoredId) {
+            return projectName
         }
         if let ledger = WidgetDataStore.loadActiveLedger(), ledger.id == restoredId {
             return ledger.name

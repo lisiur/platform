@@ -21,6 +21,13 @@ final class LedgerStore {
 
     private(set) var ledgers: [QianlaiLedger] = []
     private(set) var isLoading = false
+    /// True once any `load` has settled (success or failure). The
+    /// dashboard's launch-window title hint keys off this instead of the
+    /// transient `isLoading`, which is still false on the frames between
+    /// the dashboard mounting and the app-level task starting the first
+    /// fetch — a race that would otherwise leak the generic title for a
+    /// frame.
+    private(set) var hasLoaded = false
     private(set) var loadError: String?
 
     private var activeLedgerId: String? {
@@ -55,7 +62,10 @@ final class LedgerStore {
 
     func load() async {
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasLoaded = true
+        }
         do {
             let response: LedgersResponse = try await client.request("GET", "bookkeeping/ledgers")
             ledgers = response.ledgers
