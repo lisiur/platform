@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Qianlai";
 "NSCameraUsageDescription" = "Qianlai uses the camera to scan invite QR codes. Nothing is recorded.";
+"NSPhotoLibraryAddUsageDescription" = "Saving the settlement share image to your photo library requires this permission.";
