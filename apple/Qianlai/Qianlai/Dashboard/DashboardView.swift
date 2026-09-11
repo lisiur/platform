@@ -81,6 +81,25 @@ struct DashboardView: View {
         activeProject != nil || isProjectScopeLoading
     }
 
+    /// Large-title name while the scope window is still loading. The widget
+    /// mirror holds the last scope resolved for the active ledger — including
+    /// its name, which labels the widget surfaces — so a relaunch that
+    /// restores a project selection can title itself with the project name
+    /// before the list fetch lands, instead of flashing the ledger name for
+    /// the round-trip. The mirror is not cleared on this path (the ledger
+    /// context did not change), and a stale entry (project deleted while
+    /// away) self-corrects when the load clears the selection. nil — mirror
+    /// cleared at logout, missing App Group, foreign ledger after a fallback
+    /// — falls back to the ledger name as before.
+    private var loadingScopeName: String? {
+        guard isProjectScopeLoading,
+              let ledger = ledgerStore.activeLedger,
+              let mirror = WidgetDataStore.loadScopedProject(),
+              mirror.ledgerId == ledger.id
+        else { return nil }
+        return mirror.name
+    }
+
     /// Key for the dashboard fetch task: active ledger plus the project
     /// scope state the skip decision depends on. Reacting to the scope
     /// settling matters — the loading-window early return below must be
@@ -164,11 +183,12 @@ struct DashboardView: View {
         // Large title like the assets page's, not the tab-chrome inline
         // style. Names the active scope: the project in project scope
         // (ProjectDetailView sets no title of its own, so this shows
-        // through), otherwise the ledger; the generic title only covers
+        // through), the mirror's project name while that scope is still
+        // loading, otherwise the ledger; the generic title only covers
         // the no-ledger empty state.
         .navigationTitle(
             Text(
-                activeProject?.name ?? ledgerStore.activeLedger?.name
+                activeProject?.name ?? loadingScopeName ?? ledgerStore.activeLedger?.name
                     ?? L10n.string("dashboard.title", defaultValue: "Dashboard")
             )
         )
