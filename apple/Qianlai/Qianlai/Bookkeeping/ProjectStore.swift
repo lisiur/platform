@@ -15,6 +15,10 @@ import Observation
 final class ProjectStore {
     let client = APIClient.shared
 
+    private static let selectedProjectKey = "qianlai.selectedProjectId"
+
+    private let defaults: UserDefaults
+
     private(set) var projects: [QianlaiProject] = []
     /// Per-ledger project cache so the ledger switcher can list projects of
     /// every guest ledger without re-fetching each time the menu opens.
@@ -29,6 +33,11 @@ final class ProjectStore {
     private var reportLoadTask: Task<Result<ProjectReport, Error>, Never>?
     private(set) var isLoading = false
     private(set) var loadError: String?
+    /// The user's explicit project selection — mirrored into UserDefaults
+    /// through `setSelectedProjectId` so a relaunch reopens the scope the
+    /// user left off at. All writes go through that helper, including the
+    /// stale-id clear in `performLoad`, so the mirror never outlives the
+    /// state.
     private(set) var selectedProjectId: String?
     /// Ledgers whose project list finished loading at least once this
     /// session (success or failure). Scope resolution reads this instead of
@@ -42,6 +51,15 @@ final class ProjectStore {
     /// resolved set is written) awaits it instead of firing a duplicate
     /// request.
     private var inFlightLoads: [String: Task<Void, Never>] = [:]
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        // Seed the last explicit selection before the first render so a
+        // relaunch reopens the project the user left off at. A project
+        // deleted while away is dropped by `performLoad`'s validation on
+        // the active ledger's first load.
+        selectedProjectId = defaults.string(forKey: Self.selectedProjectKey)
+    }
 
     var selectedProject: QianlaiProject? {
         projects.first { $0.id == selectedProjectId } ?? projects.first
@@ -81,7 +99,7 @@ final class ProjectStore {
             projectsByLedger[ledgerId] = projects
             loadError = nil
             if let selectedProjectId, !projects.contains(where: { $0.id == selectedProjectId }) {
-                self.selectedProjectId = nil
+                setSelectedProjectId(nil)
             }
             mirrorScopedProject(matchingLedger: ledgerId)
         } catch {
@@ -158,8 +176,20 @@ final class ProjectStore {
     }
 
     func select(_ id: String?) {
-        selectedProjectId = id
+        setSelectedProjectId(id)
         mirrorScopedProject()
+    }
+
+    /// The one write path for `selectedProjectId`: assigns the state and
+    /// mirrors it into UserDefaults so the next launch starts from this
+    /// exact selection.
+    private func setSelectedProjectId(_ id: String?) {
+        selectedProjectId = id
+        if let id {
+            defaults.set(id, forKey: Self.selectedProjectKey)
+        } else {
+            defaults.removeObject(forKey: Self.selectedProjectKey)
+        }
     }
 
     /// Publishes the quick-entry/dashboard scope (explicit selection, or
@@ -300,7 +330,7 @@ final class ProjectStore {
             "bookkeeping/ledgers/\(ledgerId)/projects/\(project.id)"
         )
         if selectedProjectId == project.id {
-            selectedProjectId = nil
+            setSelectedProjectId(nil)
         }
         await load(ledgerId: ledgerId, force: true)
     }
@@ -369,7 +399,7 @@ final class ProjectStore {
             "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/leave"
         )
         if selectedProjectId == projectId {
-            selectedProjectId = nil
+            setSelectedProjectId(nil)
         }
         // No auto-reload: use `leaveAndReselect` — it refreshes the ledger
         // and project lists and re-resolves the active scope. Bare `leave`
