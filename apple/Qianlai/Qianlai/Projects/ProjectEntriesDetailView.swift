@@ -88,6 +88,14 @@ struct ProjectEntriesDetailView: View {
         }
     }
 
+    /// The member settlement drill-down keeps the pushed-page large title
+    /// like the top-level surfaces; statement drill-downs (totals and
+    /// category rows) stay inline.
+    private var titleDisplayMode: NavigationBarItem.TitleDisplayMode {
+        if case .settlement = scope { return .large }
+        return .inline
+    }
+
     var body: some View {
         EntryListView(
             ledger: ledger,
@@ -100,7 +108,7 @@ struct ProjectEntriesDetailView: View {
         .environment(entryStore)
         .toolbar { settlementToolbar }
         .navigationTitle(Text(title))
-        .inlineNavigationBarTitle()
+        .navigationBarTitleDisplayMode(titleDisplayMode)
         .sheet(item: $shareCard) { request in
             ShareSheet(items: [request.image])
         }
