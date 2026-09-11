@@ -76,6 +76,7 @@ vi.mock("../project-member.repository", () => ({
     create: vi.fn(),
     deleteAllInLedger: vi.fn(),
     listSharedMemberUserIds: vi.fn(),
+    findFirstInLedger: vi.fn(),
   },
 }));
 
@@ -122,6 +123,7 @@ const mockProjectMemberRepo = projectMemberRepository as unknown as {
   create: ReturnType<typeof vi.fn>;
   deleteAllInLedger: ReturnType<typeof vi.fn>;
   listSharedMemberUserIds: ReturnType<typeof vi.fn>;
+  findFirstInLedger: ReturnType<typeof vi.fn>;
 };
 const mockLookupRepo = userLookupRepository as unknown as {
   findFlagsById: ReturnType<typeof vi.fn>;
@@ -623,6 +625,33 @@ describe("updateMember", () => {
     expect(mockMemberRepo.updateRole).not.toHaveBeenCalled();
   });
 
+  it("renames a project-scope virtual member (no ledger row)", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce({
+        ...actorOwner,
+        userId: "user-e",
+        role: "editor",
+      })
+      .mockResolvedValueOnce(null);
+    mockProjectMemberRepo.findFirstInLedger.mockResolvedValue({
+      id: "pm-1",
+      projectId: "prj-1",
+      userId: "user-v",
+    });
+    mockLookupRepo.findFlagsById.mockResolvedValue({
+      flags: ["virtual"],
+    });
+    const result = await updateMember("led-1", "user-e", "user-v", {
+      name: "小明",
+    });
+    expect(result).toEqual({ success: true });
+    expect(mockLookupRepo.renameById).toHaveBeenCalledWith(
+      "user-v",
+      "小明",
+      expect.anything(),
+    );
+  });
+
   it("refuses to rename a real member (400)", async () => {
     mockMemberRepo.findMembership
       .mockResolvedValueOnce(actorOwner)
@@ -759,6 +788,49 @@ describe("uploadMemberAvatar", () => {
     await expectStatus(
       () => uploadMemberAvatar("led-1", "user-e", "user-x", avatarFile),
       404,
+    );
+    expect(mockReplaceUserAvatar).not.toHaveBeenCalled();
+  });
+
+  it("accepts a project-scope virtual member (no ledger row)", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce(actorEditor)
+      .mockResolvedValueOnce(null);
+    mockProjectMemberRepo.findFirstInLedger.mockResolvedValue({
+      id: "pm-1",
+      projectId: "prj-1",
+      userId: "user-v",
+    });
+    mockLookupRepo.findFlagsById.mockResolvedValue({
+      flags: ["virtual"],
+    });
+    const result = await uploadMemberAvatar(
+      "led-1",
+      "user-e",
+      "user-v",
+      avatarFile,
+    );
+    expect(result.attachmentId).toBe("att-1");
+    expect(mockReplaceUserAvatar).toHaveBeenCalledWith(
+      "user-v",
+      avatarFile,
+      "user-e",
+      expect.anything(),
+    );
+  });
+
+  it("refuses a real project-scope member (400)", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce(actorEditor)
+      .mockResolvedValueOnce(null);
+    mockProjectMemberRepo.findFirstInLedger.mockResolvedValue({
+      id: "pm-2",
+      projectId: "prj-1",
+      userId: "user-b",
+    });
+    await expectStatus(
+      () => uploadMemberAvatar("led-1", "user-e", "user-b", avatarFile),
+      400,
     );
     expect(mockReplaceUserAvatar).not.toHaveBeenCalled();
   });

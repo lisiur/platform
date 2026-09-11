@@ -31,7 +31,7 @@ export const uploadMemberAvatarRoute = defineOpenAPIRoute({
     tags: ["QianlaiShare"],
     summary: "Set a virtual member's avatar (editor+)",
     description:
-      "Uploads an avatar image for a virtual member, replacing any previous one. Only virtual members can be given an avatar here — real users manage their own through their profile.",
+      "Uploads an avatar image for a virtual member, replacing any previous one. Only virtual members can be given an avatar here — real users manage their own through their profile. The target may be a ledger member or a project-scope member (a project membership alone anchors them).",
     request: {
       params: memberParamSchema,
       body: {

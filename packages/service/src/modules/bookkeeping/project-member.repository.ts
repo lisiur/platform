@@ -48,6 +48,21 @@ export const projectMemberRepository = {
   },
 
   /**
+   * The user's first project membership inside a ledger, or null — the
+   * anchor that lets writes aimed at a member's user surface (rename,
+   * avatar) accept a project-scope member with no LedgerMember row.
+   */
+  findFirstInLedger(
+    ledgerId: string,
+    userId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.projectMember.findFirst({
+      where: { userId, project: { ledgerId } },
+    });
+  },
+
+  /**
    * Bare userIds of a project's members — the participant-roster extension
    * that lets project outsiders (no LedgerMember row) be tagged or pay.
    * Rows, not bare strings: callers merge them into the roster shape.

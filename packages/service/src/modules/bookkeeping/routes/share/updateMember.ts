@@ -20,7 +20,7 @@ export const updateMemberRoute = defineOpenAPIRoute({
     tags: ["QianlaiShare"],
     summary: "Update a member (role: owner-only; rename: editor+)",
     description:
-      "With `role`, switches the target member between editor and viewer (owner only; virtual members have a fixed viewer role). With `name`, renames a virtual member (editor+). The owner row is protected — use transfer ownership to reassign it.",
+      "With `role`, switches the target member between editor and viewer (owner only; virtual members have a fixed viewer role). With `name`, renames a virtual member (editor+) — the target may be a ledger member or a project-scope member (a project membership alone anchors them). The owner row is protected — use transfer ownership to reassign it.",
     request: {
       params: memberParamSchema,
       body: {

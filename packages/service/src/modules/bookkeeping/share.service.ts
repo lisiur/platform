@@ -415,17 +415,14 @@ export async function removeMember(ledgerId: string, targetUserId: string) {
 }
 
 /**
- * Shared gate for member-management writes: re-verifies the actor's editor+
- * role and the target's membership under the ledger row lock — the route's
- * snapshot can't see a concurrent demotion or removal — and resolves whether
- * the target is virtual, the flag that splits the role path (real members
- * only) from the rename/avatar paths (virtual only).
+ * Actor floor for the member-management writes: editor+ on the ledger,
+ * re-verified under the ledger row lock — the route's snapshot can't see a
+ * concurrent demotion or removal.
  */
-async function requireManagedMember(
+async function requireLedgerEditor(
   tx: Prisma.TransactionClient,
   ledgerId: string,
   actingUserId: string,
-  targetUserId: string,
 ) {
   const actor = await ledgerMemberRepository.findMembership(
     ledgerId,
@@ -437,6 +434,21 @@ async function requireManagedMember(
       message: "This action requires the editor role or higher",
     });
   }
+  return actor;
+}
+
+/**
+ * Gate for the role write: re-verifies the target's ledger membership under
+ * the ledger row lock (a non-member has no role to switch) and resolves
+ * whether the target is virtual.
+ */
+async function requireManagedMember(
+  tx: Prisma.TransactionClient,
+  ledgerId: string,
+  actingUserId: string,
+  targetUserId: string,
+) {
+  const actor = await requireLedgerEditor(tx, ledgerId, actingUserId);
   const target = await ledgerMemberRepository.findMembership(
     ledgerId,
     targetUserId,
@@ -452,13 +464,45 @@ async function requireManagedMember(
 }
 
 /**
+ * Gate for writes that manage a member's *user surface* (rename, avatar) —
+ * they mutate the User row, not a membership, so the target only needs an
+ * anchor in this ledger: a LedgerMember row, or a ProjectMember row in any
+ * of its projects (a project-scope virtual member the ledger roster doesn't
+ * know — the project row alone is their membership). Resolves
+ * `targetIsVirtual` for the callers' refusals of real users.
+ */
+async function requireManagedVirtualMember(
+  tx: Prisma.TransactionClient,
+  ledgerId: string,
+  actingUserId: string,
+  targetUserId: string,
+) {
+  await requireLedgerEditor(tx, ledgerId, actingUserId);
+  const anchored =
+    (await ledgerMemberRepository.findMembership(ledgerId, targetUserId, tx)) ??
+    (await projectMemberRepository.findFirstInLedger(
+      ledgerId,
+      targetUserId,
+      tx,
+    ));
+  if (!anchored) {
+    throw new HTTPException(404, { message: "Member not found" });
+  }
+  const targetIsVirtual = isVirtualUser(
+    (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
+  );
+  return { targetIsVirtual };
+}
+
+/**
  * Updates a member. Two capabilities on one endpoint, each with its own
  * permission:
  * - `role` (owner-only): switch a real member between editor and viewer. The
  *   owner row is untouchable — transfer ownership instead. Virtual members
  *   are refused a fixed "viewer".
  * - `name` (editor+): rename a virtual member — real users own their account
- *   names.
+ *   names. Project-scope virtual members (no ledger row) rename fine; the
+ *   project membership anchors them.
  *
  * Re-verifies actor and target under the ledger row lock so a concurrent
  * `transferOwnership` can't demote the actor or promote the target
@@ -495,13 +539,13 @@ export async function updateMember(
   }
   await prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
-    const { actor, target, targetIsVirtual } = await requireManagedMember(
-      tx,
-      ledgerId,
-      actingUserId,
-      targetUserId,
-    );
     if (role !== undefined) {
+      const { actor, target, targetIsVirtual } = await requireManagedMember(
+        tx,
+        ledgerId,
+        actingUserId,
+        targetUserId,
+      );
       if (actor.role !== "owner") {
         throw new HTTPException(403, {
           message: "Only the ledger owner can perform this action",
@@ -521,6 +565,12 @@ export async function updateMember(
       await ledgerMemberRepository.updateRole(ledgerId, targetUserId, role, tx);
     }
     if (name !== undefined) {
+      const { targetIsVirtual } = await requireManagedVirtualMember(
+        tx,
+        ledgerId,
+        actingUserId,
+        targetUserId,
+      );
       if (!targetIsVirtual) {
         throw new HTTPException(400, {
           message: "Only virtual members can be renamed",
@@ -535,10 +585,11 @@ export async function updateMember(
 /**
  * Sets a virtual member's avatar (editor+). Same guards as the rename branch:
  * real users own their account surface and upload through their profile, so
- * only virtual members can be given one here. Runs inside the ledger row lock
- * and delegates the delete-old/create-new/repoint swap to
- * `replaceUserAvatar`; the caller re-reads the roster (the avatar rides the
- * member DTO).
+ * only virtual members can be given one here — ledger-roster members and
+ * project-scope virtual members (no ledger row, anchored by their project
+ * membership) alike. Runs inside the ledger row lock and delegates the
+ * delete-old/create-new/repoint swap to `replaceUserAvatar`; the caller
+ * re-reads the roster (the avatar rides the member DTO).
  */
 export async function uploadMemberAvatar(
   ledgerId: string,
@@ -546,13 +597,11 @@ export async function uploadMemberAvatar(
   targetUserId: string,
   file: File,
 ) {
-  const { replaceUserAvatar } = await import(
-    "#modules/identity/user.service"
-  );
+  const { replaceUserAvatar } = await import("#modules/identity/user.service");
 
   return prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
-    const { targetIsVirtual } = await requireManagedMember(
+    const { targetIsVirtual } = await requireManagedVirtualMember(
       tx,
       ledgerId,
       actingUserId,
