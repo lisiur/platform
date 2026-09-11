@@ -100,6 +100,30 @@ struct DashboardView: View {
         return mirror.name
     }
 
+    /// Title while the LEDGER list itself is still fetching — the one window
+    /// where even `activeLedger` is nil and no live scope name exists. The
+    /// mirrors describe the last scope resolved for the restored ledger
+    /// context (the scoped project when the last session ended in project
+    /// scope, else the active ledger), so the relaunch titles itself with
+    /// the name it is about to land on instead of flashing the generic
+    /// title for the round-trip. Gated on `isLoading` so it never outlives
+    /// the fetch: once the list settles the live chain takes over, and a
+    /// ledger deleted while away stops matching its own mirror (the stale
+    /// name can then only show for this one window before the live chain
+    /// corrects it).
+    private var restoredScopeName: String? {
+        guard ledgerStore.isLoading,
+              let restoredId = WidgetDataStore.loadAppActiveLedgerId()
+        else { return nil }
+        if let project = WidgetDataStore.loadScopedProject(), project.ledgerId == restoredId {
+            return project.name
+        }
+        if let ledger = WidgetDataStore.loadActiveLedger(), ledger.id == restoredId {
+            return ledger.name
+        }
+        return nil
+    }
+
     /// Key for the dashboard fetch task: active ledger plus the project
     /// scope state the skip decision depends on. Reacting to the scope
     /// settling matters — the loading-window early return below must be
@@ -184,11 +208,14 @@ struct DashboardView: View {
         // style. Names the active scope: the project in project scope
         // (ProjectDetailView sets no title of its own, so this shows
         // through), the mirror's project name while that scope is still
-        // loading, otherwise the ledger; the generic title only covers
-        // the no-ledger empty state.
+        // loading, the ledger otherwise — and while even the ledger list is
+        // still fetching, the last scope the mirrors recorded, so a relaunch
+        // never flashes the generic name on its way to the restored scope.
+        // The generic title only covers the settled no-ledger empty state.
         .navigationTitle(
             Text(
                 activeProject?.name ?? loadingScopeName ?? ledgerStore.activeLedger?.name
+                    ?? restoredScopeName
                     ?? L10n.string("dashboard.title", defaultValue: "Dashboard")
             )
         )
