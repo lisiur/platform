@@ -30,6 +30,9 @@
     "%lld" : {
 
     },
+    "+%lld" : {
+
+    },
     "account.name.alipay" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3646,23 +3649,6 @@
         }
       }
     },
-    "journal.receivedByFormat" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Received by %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "由%@收款"
-          }
-        }
-      }
-    },
     "journal.project.scopeFooter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3676,6 +3662,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "流水仅显示该项目的记录，请从账本切换器中更改项目。"
+          }
+        }
+      }
+    },
+    "journal.receivedByFormat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Received by %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由%@收款"
           }
         }
       }
@@ -7302,19 +7305,19 @@
         }
       }
     },
-    "projects.shareSettlement" : {
+    "projects.shareCard.entriesTruncated" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Share settlement"
+            "value" : "Showing first %d entries"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "分享结算"
+            "value" : "仅展示前 %d 笔"
           }
         }
       }
@@ -7336,23 +7339,6 @@
         }
       }
     },
-    "projects.shareCard.entriesTruncated" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Showing first %d entries"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅展示前 %d 笔"
-          }
-        }
-      }
-    },
     "projects.shareCard.failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7366,23 +7352,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成分享图片失败"
-          }
-        }
-      }
-    },
-    "projects.shareCard.preparing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparing share image…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在生成分享图片…"
           }
         }
       }
@@ -7404,6 +7373,23 @@
         }
       }
     },
+    "projects.shareCard.preparing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing share image…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成分享图片…"
+          }
+        }
+      }
+    },
     "projects.shareCard.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7417,6 +7403,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "结算明细"
+          }
+        }
+      }
+    },
+    "projects.shareSettlement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share settlement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享结算"
           }
         }
       }
