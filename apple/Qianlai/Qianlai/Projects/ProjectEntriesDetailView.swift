@@ -111,6 +111,15 @@ struct ProjectEntriesDetailView: View {
         .navigationBarTitleDisplayMode(titleDisplayMode)
         .sheet(item: $shareCard) { request in
             ShareSheet(items: [request.image])
+                // The scrim must outlive `prepareShare` — dropping it there
+                // exposes a bright frame while the share sheet is still
+                // sliding in. Its own dimming hides the removal, so the
+                // overlay only lets go once the sheet is actually appearing.
+                .onAppear {
+                    withAnimation {
+                        isPreparingShare = false
+                    }
+                }
         }
         .overlay {
             if isPreparingShare {
@@ -176,10 +185,11 @@ struct ProjectEntriesDetailView: View {
     /// the user just taps the button again.
     /// Page-wide overlay shown while the share is preparing. The toolbar's
     /// inline spinner is too easy to miss when the user is looking at the
-    /// list mid-scroll — full-scrim ProgressView is unambiguous. The system
-    /// activity sheet dismisses the overlay automatically when it appears;
-    /// we also flip `isPreparingShare` off in `prepareShare` before the
-    /// sheet, so the overlay never races ahead of the result.
+    /// list mid-scroll — full-scrim ProgressView is unambiguous. It ignores
+    /// safe areas so the large-title nav bar dims together with the list,
+    /// and it stays up until the system activity sheet appears (cleared from
+    /// the sheet's `onAppear`, hidden by the sheet's own dimming); the
+    /// failure path clears it before toasting.
     private var sharePreparingOverlay: some View {
         ZStack {
             Color.groupedCanvas.opacity(0.7)
@@ -198,6 +208,7 @@ struct ProjectEntriesDetailView: View {
                     .fill(Color.cardSurface)
             )
         }
+        .ignoresSafeArea()
         .transition(.opacity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(L10n.string(
@@ -208,11 +219,15 @@ struct ProjectEntriesDetailView: View {
 
     private func prepareShare() {
         guard !isPreparingShare else { return }
-        isPreparingShare = true
+        withAnimation {
+            isPreparingShare = true
+        }
         Task {
             let rendered = await renderShareImage()
-            isPreparingShare = false
             guard let rendered else {
+                withAnimation {
+                    isPreparingShare = false
+                }
                 toast.show(L10n.string(
                     "projects.shareCard.failed",
                     defaultValue: "Couldn't generate the share image"
