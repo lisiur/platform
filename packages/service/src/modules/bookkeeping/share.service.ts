@@ -1,5 +1,6 @@
 import { isVirtualUser, VIRTUAL_USER_FLAG } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
+import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { userLookupRepository } from "../identity/user-lookup.repository";
 import { assertLedgerWritable } from "./access";
@@ -400,11 +401,54 @@ export async function removeMember(ledgerId: string, targetUserId: string) {
         ledgerMemberRepository.countMembershipsByUser(targetUserId, tx),
       ]);
       if (anchors === 0 && tags === 0 && memberships === 0) {
+        // User.avatarId is a plain string (no FK), so deleting the row would
+        // otherwise orphan the avatar's Attachment + Upload rows and file.
+        const { deleteAttachmentsByBiz, USER_AVATAR_BIZ_TYPE } = await import(
+          "#modules/attachment/attachment.service"
+        );
+        await deleteAttachmentsByBiz(USER_AVATAR_BIZ_TYPE, targetUserId, tx);
         await userLookupRepository.deleteById(targetUserId, tx);
       }
     }
   });
   return { success: true as const };
+}
+
+/**
+ * Shared gate for member-management writes: re-verifies the actor's editor+
+ * role and the target's membership under the ledger row lock — the route's
+ * snapshot can't see a concurrent demotion or removal — and resolves whether
+ * the target is virtual, the flag that splits the role path (real members
+ * only) from the rename/avatar paths (virtual only).
+ */
+async function requireManagedMember(
+  tx: Prisma.TransactionClient,
+  ledgerId: string,
+  actingUserId: string,
+  targetUserId: string,
+) {
+  const actor = await ledgerMemberRepository.findMembership(
+    ledgerId,
+    actingUserId,
+    tx,
+  );
+  if (!actor || !roleAtLeast(actor.role, "editor")) {
+    throw new HTTPException(403, {
+      message: "This action requires the editor role or higher",
+    });
+  }
+  const target = await ledgerMemberRepository.findMembership(
+    ledgerId,
+    targetUserId,
+    tx,
+  );
+  if (!target) {
+    throw new HTTPException(404, { message: "Member not found" });
+  }
+  const targetIsVirtual = isVirtualUser(
+    (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
+  );
+  return { actor, target, targetIsVirtual };
 }
 
 /**
@@ -451,28 +495,11 @@ export async function updateMember(
   }
   await prisma.$transaction(async (tx) => {
     await lockLedgerRow(tx, ledgerId);
-    // The route floor is editor; role changes re-verify owner here under the
-    // lock (the route's snapshot can't see a concurrent demotion).
-    const actor = await ledgerMemberRepository.findMembership(
+    const { actor, target, targetIsVirtual } = await requireManagedMember(
+      tx,
       ledgerId,
       actingUserId,
-      tx,
-    );
-    if (!actor || !roleAtLeast(actor.role, "editor")) {
-      throw new HTTPException(403, {
-        message: "This action requires the editor role or higher",
-      });
-    }
-    const target = await ledgerMemberRepository.findMembership(
-      ledgerId,
       targetUserId,
-      tx,
-    );
-    if (!target) {
-      throw new HTTPException(404, { message: "Member not found" });
-    }
-    const targetIsVirtual = isVirtualUser(
-      (await userLookupRepository.findFlagsById(targetUserId, tx))?.flags,
     );
     if (role !== undefined) {
       if (actor.role !== "owner") {
@@ -503,6 +530,47 @@ export async function updateMember(
     }
   });
   return { success: true as const };
+}
+
+/**
+ * Sets a virtual member's avatar (editor+). Same guards as the rename branch:
+ * real users own their account surface and upload through their profile, so
+ * only virtual members can be given one here. Runs inside the ledger row lock
+ * and delegates the delete-old/create-new/repoint swap to
+ * `replaceUserAvatar`; the caller re-reads the roster (the avatar rides the
+ * member DTO).
+ */
+export async function uploadMemberAvatar(
+  ledgerId: string,
+  actingUserId: string,
+  targetUserId: string,
+  file: File,
+) {
+  const { replaceUserAvatar } = await import(
+    "#modules/identity/user.service"
+  );
+
+  return prisma.$transaction(async (tx) => {
+    await lockLedgerRow(tx, ledgerId);
+    const { targetIsVirtual } = await requireManagedMember(
+      tx,
+      ledgerId,
+      actingUserId,
+      targetUserId,
+    );
+    if (!targetIsVirtual) {
+      throw new HTTPException(400, {
+        message: "Only virtual members can be given an avatar",
+      });
+    }
+    const { url, attachmentId } = await replaceUserAvatar(
+      targetUserId,
+      file,
+      actingUserId,
+      tx,
+    );
+    return { url, attachmentId };
+  });
 }
 
 /** Moves ownership to an existing member; the previous owner becomes editor. */

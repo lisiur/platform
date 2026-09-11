@@ -30,6 +30,14 @@ export const userLookupRepository = {
     return tx.user.update({ where: { id }, data: { name } });
   },
 
+  setAvatarById(
+    id: string,
+    data: { avatar: string; avatarId: string },
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.user.update({ where: { id }, data });
+  },
+
   deleteById(id: string, tx: Prisma.TransactionClient = prisma) {
     return tx.user.delete({ where: { id } });
   },

@@ -5,6 +5,7 @@
 //  Created by Lisiur Day on 2026/8/26.
 //
 
+import PhotosUI
 import SwiftUI
 
 /// Members manager for one scope. Ledger scope (default): the ledger's
@@ -40,6 +41,15 @@ struct MembersView: View {
     @State private var memberPendingRename: LedgerMember?
     @State private var projectMemberPendingRename: ProjectMemberRow?
     @State private var renameMemberName = ""
+    /// Virtual-member avatar flow: the actions record the target, the
+    /// shared photo picker delivers into `avatarPickerItem`, and the
+    /// onChange handler consumes both. Nil-ing the item inside the handler
+    /// (ProfileView's pattern) keeps a repeated pick of the same photo
+    /// firing every time.
+    @State private var memberPendingAvatar: LedgerMember?
+    @State private var projectMemberPendingAvatar: ProjectMemberRow?
+    @State private var isPickingAvatar = false
+    @State private var avatarPickerItem: PhotosPickerItem?
     @State private var isShowingInvite = false
 
     var body: some View {
@@ -302,6 +312,16 @@ struct MembersView: View {
                 Text(row.displayName)
             }
         }
+        .photosPicker(
+            isPresented: $isPickingAvatar,
+            selection: $avatarPickerItem,
+            matching: .images
+        )
+        .onChange(of: avatarPickerItem) { _, item in
+            guard let item else { return }
+            avatarPickerItem = nil
+            uploadAvatar(from: item)
+        }
     }
 
     private func addVirtualMember() {
@@ -371,6 +391,54 @@ struct MembersView: View {
                     L10n.string(
                         "ledgers.renameMemberSuccess",
                         defaultValue: "Member renamed"
+                    )
+                )
+            } catch {
+                toast.show(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Consumes a delivered photo pick against the recorded avatar target.
+    /// Both pending targets are cleared up front so a failure can't leave
+    /// one pointing at a stale member; the flow restarts from the row
+    /// actions either way.
+    private func uploadAvatar(from item: PhotosPickerItem) {
+        let ledgerMember = memberPendingAvatar
+        let projectRow = projectMemberPendingAvatar
+        memberPendingAvatar = nil
+        projectMemberPendingAvatar = nil
+        guard ledgerMember != nil || projectRow != nil else { return }
+        Task {
+            do {
+                guard let image = try await item.loadTransferable(
+                    type: AvatarImage.self
+                ), let data = ProfileStore.avatarJPEG(image.data) else {
+                    toast.show(
+                        L10n.string("profile.uploadFailed", defaultValue: "Upload failed")
+                    )
+                    return
+                }
+                if let member = ledgerMember {
+                    try await store.setAvatar(member, imageData: data)
+                } else if let row = projectRow {
+                    try await store.setVirtualMemberAvatar(
+                        ledgerId: ledger.id,
+                        userId: row.userId,
+                        imageData: data
+                    )
+                    // Project scope doesn't refresh the ledger roster;
+                    // reload the project so the row picks up the new
+                    // avatar (same split as the project-scope rename).
+                    await projectStore.load(
+                        ledgerId: ledger.id,
+                        force: true
+                    )
+                }
+                toast.show(
+                    L10n.string(
+                        "ledgers.setAvatarSuccess",
+                        defaultValue: "Avatar updated"
                     )
                 )
             } catch {
@@ -509,6 +577,8 @@ struct MembersView: View {
                         if member.user?.isVirtual == true, canManageVirtualMembers {
                             projectRenameAction(member)
                                 .tint(.blue)
+                            projectAvatarAction(member)
+                                .tint(.blue)
                         }
                         // Mirror the ledger roster's swipe-to-remove: red,
                         // destructive role, never offered for self (the
@@ -531,10 +601,24 @@ struct MembersView: View {
         // Mirror the ledger roster's rename entry point: editor+ on the
         // ledger can rename a virtual member from any scope they manage.
         if member.user?.isVirtual == true, canManageVirtualMembers {
+            projectAvatarAction(member)
             projectRenameAction(member)
         }
         if canManageProjectMembers, member.userId != myUserId {
             projectRemoveAction(member)
+        }
+    }
+
+    private func projectAvatarAction(_ member: ProjectMemberRow) -> some View {
+        Button {
+            avatarPickerItem = nil
+            projectMemberPendingAvatar = member
+            isPickingAvatar = true
+        } label: {
+            Label(
+                L10n.string("ledgers.setAvatar", defaultValue: "Set Avatar"),
+                systemImage: "person.crop.circle"
+            )
         }
     }
 
@@ -695,6 +779,8 @@ struct MembersView: View {
             if member.isVirtual, canManageVirtualMembers {
                 ledgerRenameAction(member)
                     .tint(.blue)
+                ledgerAvatarAction(member)
+                    .tint(.blue)
             }
         }
         .appCardRow()
@@ -705,6 +791,7 @@ struct MembersView: View {
     @ViewBuilder
     private func ledgerMemberMenuItems(_ member: LedgerMember) -> some View {
         if member.isVirtual, canManageVirtualMembers {
+            ledgerAvatarAction(member)
             ledgerRenameAction(member)
         }
         if store.isOwner, member.userId != myUserId, !member.isVirtual {
@@ -712,6 +799,19 @@ struct MembersView: View {
         }
         if store.isOwner, member.userId != myUserId {
             ledgerRemoveAction(member)
+        }
+    }
+
+    private func ledgerAvatarAction(_ member: LedgerMember) -> some View {
+        Button {
+            avatarPickerItem = nil
+            memberPendingAvatar = member
+            isPickingAvatar = true
+        } label: {
+            Label(
+                L10n.string("ledgers.setAvatar", defaultValue: "Set Avatar"),
+                systemImage: "person.crop.circle"
+            )
         }
     }
 

@@ -104,6 +104,34 @@ final class MemberStore {
         )
     }
 
+    /// Sets a virtual member's avatar — the server refuses non-virtual
+    /// targets (real users upload through their profile). The response
+    /// carries the new URL, but every consumer reads it off the member
+    /// DTO, so mirror `rename(_:)` and refresh the roster.
+    func setAvatar(_ member: LedgerMember, imageData: Data) async throws {
+        guard let ledgerId else { return }
+        let _: UploadAvatarResponse = try await client.uploadMultipart(
+            "bookkeeping/ledgers/\(ledgerId)/members/\(member.userId)/avatar",
+            fileData: imageData,
+            fileName: "avatar.jpg",
+            mimeType: "image/jpeg"
+        )
+        await reloadAll()
+    }
+
+    /// Project-scope avatar upload — mirrors `renameVirtualMember`: takes
+    /// the ledger and user explicitly (the caller holds a
+    /// `ProjectMemberRow`), leaves the cached ledger roster alone, and the
+    /// caller refreshes the project.
+    func setVirtualMemberAvatar(ledgerId: String, userId: String, imageData: Data) async throws {
+        let _: UploadAvatarResponse = try await client.uploadMultipart(
+            "bookkeeping/ledgers/\(ledgerId)/members/\(userId)/avatar",
+            fileData: imageData,
+            fileName: "avatar.jpg",
+            mimeType: "image/jpeg"
+        )
+    }
+
     func remove(_ member: LedgerMember) async throws {
         guard let ledgerId else { return }
         _ = try await client.send(

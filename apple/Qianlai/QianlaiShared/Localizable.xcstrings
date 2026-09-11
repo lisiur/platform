@@ -4377,6 +4377,40 @@
         }
       }
     },
+    "ledgers.setAvatar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Avatar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置头像"
+          }
+        }
+      }
+    },
+    "ledgers.setAvatarSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avatar updated"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "头像已更新"
+          }
+        }
+      }
+    },
     "ledgers.shared" : {
       "extractionState" : "manual",
       "localizations" : {

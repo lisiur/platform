@@ -1,5 +1,6 @@
 import { isBuiltinUser } from "@repo/shared";
 import { HTTPException } from "hono/http-exception";
+import type { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import { logAudit } from "#lib/logger";
 import { hashPassword } from "#lib/password";
@@ -13,6 +14,7 @@ import {
   scopeOfRoleCode,
 } from "#lib/scope";
 import { createUser as createAuthUser } from "#modules/identity/auth.service";
+import { userLookupRepository } from "./user-lookup.repository";
 
 const userWithRolesInclude = {
   roleAssignments: {
@@ -345,35 +347,56 @@ export async function updateUserProfile(
 }
 
 export async function uploadAvatar(userId: string, file: File) {
-  const { createAttachment: createAttachmentSvc, deleteAttachmentsByBiz } =
-    await import("#modules/attachment/attachment.service");
+  return prisma.$transaction(async (tx) =>
+    replaceUserAvatar(userId, file, userId, tx),
+  );
+}
 
-  return prisma.$transaction(async (tx) => {
-    await deleteAttachmentsByBiz("user:avatar", userId, tx);
+/**
+ * The whole avatar swap — old attachment deleted, replacement created, user
+ * row repointed — in one caller-owned transaction. Shared by the self
+ * upload (`uploadAvatar`) and Qianlai's virtual-member avatar, which runs it
+ * inside the ledger row lock. Must run in a transaction: a failure between
+ * deletion and creation would otherwise leave the user avatarless. Avatars
+ * are public attachments (they must render inline in rosters).
+ *
+ * @param uploaderId the acting user — the avatar owner themselves, or the
+ *   editor setting it on a virtual member's behalf (audit trail).
+ */
+export async function replaceUserAvatar(
+  userId: string,
+  file: File,
+  uploaderId: string,
+  tx: Prisma.TransactionClient,
+) {
+  const {
+    createAttachment: createAttachmentSvc,
+    deleteAttachmentsByBiz,
+    USER_AVATAR_BIZ_TYPE,
+  } = await import("#modules/attachment/attachment.service");
 
-    const result = await createAttachmentSvc({
-      file,
-      visibility: "public",
-      uploaderId: userId,
-      bizType: "user:avatar",
-      bizId: userId,
-      tx,
-    });
+  await deleteAttachmentsByBiz(USER_AVATAR_BIZ_TYPE, userId, tx);
 
-    const user = await tx.user.update({
-      where: { id: userId },
-      data: {
-        avatar: result.url,
-        avatarId: result.attachmentId,
-      },
-    });
-
-    return {
-      url: result.url,
-      attachmentId: result.attachmentId,
-      user,
-    };
+  const result = await createAttachmentSvc({
+    file,
+    visibility: "public",
+    uploaderId,
+    bizType: USER_AVATAR_BIZ_TYPE,
+    bizId: userId,
+    tx,
   });
+
+  const user = await userLookupRepository.setAvatarById(
+    userId,
+    { avatar: result.url, avatarId: result.attachmentId },
+    tx,
+  );
+
+  return {
+    url: result.url,
+    attachmentId: result.attachmentId,
+    user,
+  };
 }
 
 export async function deleteUser(id: string) {

@@ -19,6 +19,16 @@ vi.mock("#lib/db", () => ({
   },
 }));
 
+vi.mock("#modules/attachment/attachment.service", () => ({
+  USER_AVATAR_BIZ_TYPE: "user:avatar",
+  createAttachment: vi.fn(),
+  deleteAttachmentsByBiz: vi.fn(),
+}));
+
+vi.mock("../../identity/user.service", () => ({
+  replaceUserAvatar: vi.fn(),
+}));
+
 vi.mock("../ledger.repository", () => ({
   ledgerRepository: {
     findById: vi.fn(),
@@ -70,6 +80,8 @@ vi.mock("../project-member.repository", () => ({
 }));
 
 import { verify } from "hono/jwt";
+import { deleteAttachmentsByBiz } from "#modules/attachment/attachment.service";
+import { replaceUserAvatar } from "../../identity/user.service";
 import { userLookupRepository } from "../../identity/user-lookup.repository";
 import { INVITE_AUDIENCE, INVITE_TTL_SECONDS } from "../invite-token";
 import { journalRepository } from "../journal.repository";
@@ -86,6 +98,7 @@ import {
   removeMember,
   transferOwnership,
   updateMember,
+  uploadMemberAvatar,
 } from "../share.service";
 
 const mockLedgerRepo = ledgerRepository as unknown as {
@@ -119,6 +132,11 @@ const mockJournalRepo = journalRepository as unknown as {
   countEntriesAnchoringUser: ReturnType<typeof vi.fn>;
   countParticipationsByUser: ReturnType<typeof vi.fn>;
 };
+const mockDeleteAttachmentsByBiz =
+  deleteAttachmentsByBiz as unknown as ReturnType<typeof vi.fn>;
+const mockReplaceUserAvatar = replaceUserAvatar as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 const baseLedger = {
   id: "led-1",
@@ -641,6 +659,127 @@ describe("updateMember", () => {
   });
 });
 
+describe("uploadMemberAvatar", () => {
+  const avatarFile = new File([new Uint8Array([1, 2, 3])], "a.jpg", {
+    type: "image/jpeg",
+  });
+  const actorEditor = {
+    id: "m-e",
+    ledgerId: "led-1",
+    userId: "user-e",
+    role: "editor",
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockReplaceUserAvatar.mockResolvedValue({
+      url: "/api/attachment/att-1",
+      attachmentId: "att-1",
+      user: {},
+    });
+    mockLookupRepo.findFlagsById.mockResolvedValue({ flags: [] });
+  });
+
+  it("replaces a virtual member's avatar (editor+)", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce(actorEditor)
+      .mockResolvedValueOnce({
+        id: "m-1",
+        ledgerId: "led-1",
+        userId: "user-v",
+        role: "viewer",
+      });
+    mockLookupRepo.findFlagsById.mockResolvedValue({
+      flags: ["virtual"],
+    });
+    const result = await uploadMemberAvatar(
+      "led-1",
+      "user-e",
+      "user-v",
+      avatarFile,
+    );
+    expect(result).toEqual({
+      url: "/api/attachment/att-1",
+      attachmentId: "att-1",
+    });
+    // The editor uploads on the virtual member's behalf — the swap itself
+    // (delete old, create public replacement, repoint the user row) is
+    // `replaceUserAvatar`'s contract, covered in user.service.test.ts.
+    expect(mockReplaceUserAvatar).toHaveBeenCalledWith(
+      "user-v",
+      avatarFile,
+      "user-e",
+      expect.anything(),
+    );
+  });
+
+  it("is open to owners too", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce({
+        ...actorEditor,
+        userId: "user-owner",
+        role: "owner",
+      })
+      .mockResolvedValueOnce({
+        id: "m-1",
+        ledgerId: "led-1",
+        userId: "user-v",
+        role: "viewer",
+      });
+    mockLookupRepo.findFlagsById.mockResolvedValue({
+      flags: ["virtual"],
+    });
+    const result = await uploadMemberAvatar(
+      "led-1",
+      "user-owner",
+      "user-v",
+      avatarFile,
+    );
+    expect(result.attachmentId).toBe("att-1");
+  });
+
+  it("requires editor+ (viewer → 403)", async () => {
+    mockMemberRepo.findMembership.mockResolvedValue({
+      id: "m-vw",
+      ledgerId: "led-1",
+      userId: "user-vw",
+      role: "viewer",
+    });
+    await expectStatus(
+      () => uploadMemberAvatar("led-1", "user-vw", "user-v", avatarFile),
+      403,
+    );
+    expect(mockReplaceUserAvatar).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the target is not a member", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce(actorEditor)
+      .mockResolvedValueOnce(null);
+    await expectStatus(
+      () => uploadMemberAvatar("led-1", "user-e", "user-x", avatarFile),
+      404,
+    );
+    expect(mockReplaceUserAvatar).not.toHaveBeenCalled();
+  });
+
+  it("refuses a real member (400)", async () => {
+    mockMemberRepo.findMembership
+      .mockResolvedValueOnce(actorEditor)
+      .mockResolvedValueOnce({
+        id: "m-1",
+        ledgerId: "led-1",
+        userId: "user-b",
+        role: "editor",
+      });
+    await expectStatus(
+      () => uploadMemberAvatar("led-1", "user-e", "user-b", avatarFile),
+      400,
+    );
+    expect(mockReplaceUserAvatar).not.toHaveBeenCalled();
+  });
+});
+
 describe("createVirtualMember", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -892,6 +1031,12 @@ describe("removeMember", () => {
     mockMemberRepo.countMembershipsByUser.mockResolvedValue(0);
     await removeMember("led-1", "user-v");
     expect(mockLookupRepo.deleteById).toHaveBeenCalledWith(
+      "user-v",
+      expect.anything(),
+    );
+    // No FK anchors the avatar to the user row — it must be swept here.
+    expect(mockDeleteAttachmentsByBiz).toHaveBeenCalledWith(
+      "user:avatar",
       "user-v",
       expect.anything(),
     );

@@ -7,6 +7,7 @@ import { redeemShareCodeRoute } from "./redeemShareCode";
 import { removeMemberRoute } from "./removeMember";
 import { transferOwnershipRoute } from "./transferOwnership";
 import { updateMemberRoute } from "./updateMember";
+import { uploadMemberAvatarRoute } from "./uploadMemberAvatar";
 
 const shareRoutes = new OpenAPIHono();
 
@@ -15,6 +16,7 @@ const routes = shareRoutes.openapiRoutes([
   createVirtualMemberRoute,
   removeMemberRoute,
   updateMemberRoute,
+  uploadMemberAvatarRoute,
   transferOwnershipRoute,
   leaveLedgerRoute,
   createShareCodeRoute,

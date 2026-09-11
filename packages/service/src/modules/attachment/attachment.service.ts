@@ -40,6 +40,9 @@ function getSignSecret(): string {
   return secret;
 }
 
+/** bizType tagging user avatars; also the owner predicate for signing. */
+export const USER_AVATAR_BIZ_TYPE = "user:avatar";
+
 function computeHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -280,7 +283,7 @@ export async function signFile(params: { id: string; userId: string }) {
   }
 
   const isOwner =
-    attachment.bizType === "user:avatar" && attachment.bizId === userId;
+    attachment.bizType === USER_AVATAR_BIZ_TYPE && attachment.bizId === userId;
   if (!isOwner) {
     throw new HTTPException(403, { message: "Not file owner" });
   }
