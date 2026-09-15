@@ -46,7 +46,7 @@ export const TAB_LIMITS = { min: 1, max: 2 } as const;
 
 /**
  * Quick-entry fields that can appear as calculator chips. Only chip-capable
- * fields qualify — paidBy/project/countsInLedger have no chip builders and
+ * fields qualify — project/countsInLedger have no chip builders and
  * always live in the more-fields form.
  */
 export const QUICK_ENTRY_CHIP_FIELDS = [
@@ -55,6 +55,7 @@ export const QUICK_ENTRY_CHIP_FIELDS = [
   "time",
   "participants",
   "location",
+  "paidBy",
 ] as const;
 export type QuickEntryChipField = (typeof QUICK_ENTRY_CHIP_FIELDS)[number];
 

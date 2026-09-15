@@ -281,6 +281,41 @@ struct QuickEntryView: View {
         var id: String { rawValue }
     }
 
+    /// The effective payer id: the draft's stored pick, else the signed-in
+    /// user — the server records the recorder for a nil payer.
+    private var effectivePaidById: String? {
+        draft.paidByUserId ?? auth.currentUser?.id
+    }
+
+    /// Whether a payer can be picked at all — a candidate exists, or the
+    /// edited entry carries a historical payer who has since left. The one
+    /// visibility rule behind both payer pickers (chip and more-sheet row).
+    private var canPickPayer: Bool {
+        !payerCandidates.isEmpty || historicalPayer != nil
+    }
+
+    /// The payer selection shared by the more sheet's row and the chip's
+    /// menu: the draft's stored payer, displayed as the signed-in user
+    /// while nil.
+    private var paidBySelection: Binding<String> {
+        Binding(
+            get: { effectivePaidById ?? "" },
+            set: { draft.paidByUserId = $0.isEmpty ? nil : $0 }
+        )
+    }
+
+    /// The payer options shared by both picker surfaces: every candidate
+    /// member plus the entry's historical payer when editing.
+    @ViewBuilder
+    private var paidByOptions: some View {
+        ForEach(payerCandidates) { member in
+            Text(member.displayName).tag(member.userId)
+        }
+        if let historicalPayer {
+            Text(historicalPayer.label).tag(historicalPayer.id)
+        }
+    }
+
     /// Guests are scoped to expense-only entries; the kind picker is hidden
     /// and `draft.kind` stays at its default (`.expense`). Pinned above the
     /// form: grouped lists reserve a built-in top margin for the first
@@ -1040,8 +1075,9 @@ struct QuickEntryView: View {
     /// which fields render as chips here and which wait in the more
     /// sheet's form behind the button. Some fields hide contextually:
     /// guests get no account chip (their pay side falls back to the
-    /// ledger's default pocket on the server) and the participants chip
-    /// hides when no candidates exist.
+    /// ledger's default pocket on the server), the participants chip
+    /// hides when no candidates exist, and the payer chip hides when
+    /// there's no candidate or historical payer to pick.
     private var quickFieldsBar: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1084,7 +1120,7 @@ struct QuickEntryView: View {
     }
 
     /// The chip rendering for one layout field. Chip builders exist for
-    /// the standard chip set; a field without a chip builder renders
+    /// the chip-capable set; a field without a chip builder renders
     /// nothing here, so a future user-arranged layout sticks to the
     /// chip-capable fields until builders are added.
     @ViewBuilder
@@ -1133,7 +1169,11 @@ struct QuickEntryView: View {
             }
         case .location:
             locationChip
-        case .paidBy, .project, .countsInLedger:
+        case .paidBy:
+            if canPickPayer {
+                paidByChip
+            }
+        case .project, .countsInLedger:
             EmptyView()
         }
     }
@@ -1244,17 +1284,9 @@ struct QuickEntryView: View {
             // Who fronted the money — a person, unlike the paying pocket.
             // Defaults to the recorder; picking a teammate records that
             // THEY paid while I only wrote the entry down.
-            if !payerCandidates.isEmpty || historicalPayer != nil {
-                Picker(L10n.string("quick.paidBy", defaultValue: "Paid By"), selection: Binding(
-                    get: { draft.paidByUserId ?? auth.currentUser?.id ?? "" },
-                    set: { draft.paidByUserId = $0.isEmpty ? nil : $0 }
-                )) {
-                    ForEach(payerCandidates) { member in
-                        Text(member.displayName).tag(member.userId)
-                    }
-                    if let historicalPayer {
-                        Text(historicalPayer.label).tag(historicalPayer.id)
-                    }
+            if canPickPayer {
+                Picker(L10n.string("quick.paidBy", defaultValue: "Paid By"), selection: paidBySelection) {
+                    paidByOptions
                 }
             }
         case .project:
@@ -1502,21 +1534,59 @@ struct QuickEntryView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.footnote)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Color.primary.opacity(0.06)))
-            .foregroundStyle(.primary)
-            .contentShape(Capsule())
+            quickChipCapsule(systemImage: systemImage, value: value)
         }
         .buttonStyle(.plain)
+    }
+
+    /// The payer chip: a Menu over the same options as the more sheet's
+    /// row. The Menu owns the tap, so its label is the bare capsule —
+    /// no Button, which would compete for the tap inside the label.
+    private var paidByChip: some View {
+        Menu {
+            Picker(L10n.string("quick.paidBy", defaultValue: "Paid By"), selection: paidBySelection) {
+                paidByOptions
+            }
+        } label: {
+            quickChipCapsule(
+                systemImage: "person.crop.circle.badge.dollar",
+                value: paidByChipValue
+            )
+        }
+    }
+
+    /// The payer chip's label: the selected person's name — the picked
+    /// member, the entry's historical payer, or the signed-in user while
+    /// the draft holds nil — falling back to the field name before the
+    /// roster loads, so the capsule never reads blank.
+    private var paidByChipValue: String {
+        if let selectedId = effectivePaidById {
+            if let member = payerCandidates.first(where: { $0.userId == selectedId }) {
+                return member.displayName
+            }
+            if let historicalPayer, historicalPayer.id == selectedId {
+                return historicalPayer.label
+            }
+        }
+        return L10n.string("quick.paidBy", defaultValue: "Paid By")
+    }
+
+    /// The chip capsule itself — shared by the tap-through `quickChip`
+    /// and the payer chip's Menu label.
+    private func quickChipCapsule(systemImage: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.footnote)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.primary.opacity(0.06)))
+        .foregroundStyle(.primary)
+        .contentShape(Capsule())
     }
 
     /// Whether the entry falls on today — the display-only condition behind
