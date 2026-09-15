@@ -1478,7 +1478,7 @@ struct QuickEntryView: View {
                     isLocationPickerPresented = true
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "mappin")
+                        Image(systemName: QuickEntryField.location.icon)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         Text(locationLabel(location))
@@ -1507,7 +1507,7 @@ struct QuickEntryView: View {
             .foregroundStyle(.primary)
         } else {
             quickChip(
-                systemImage: "mappin",
+                systemImage: QuickEntryField.location.icon,
                 value: L10n.string("quick.location.add", defaultValue: "Add Location")
             ) {
                 isLocationPickerPresented = true
@@ -1542,6 +1542,7 @@ struct QuickEntryView: View {
     /// The payer chip: a Menu over the same options as the more sheet's
     /// row. The Menu owns the tap, so its label is the bare capsule —
     /// no Button, which would compete for the tap inside the label.
+    /// The icon mirrors the customization row via the field's `icon`.
     private var paidByChip: some View {
         Menu {
             Picker(L10n.string("quick.paidBy", defaultValue: "Paid By"), selection: paidBySelection) {
@@ -1549,7 +1550,7 @@ struct QuickEntryView: View {
             }
         } label: {
             quickChipCapsule(
-                systemImage: "person.crop.circle.badge.dollar",
+                systemImage: QuickEntryField.paidBy.icon,
                 value: paidByChipValue
             )
         }

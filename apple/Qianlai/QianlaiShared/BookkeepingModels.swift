@@ -1069,8 +1069,10 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         case .memo: "square.and.pencil"
         case .time: "clock"
         case .participants: "person.2"
-        case .location: "mappin"
-        case .paidBy: "person.crop.circle.badge.dollar"
+        case .location: "location"
+        // Single person — the payer is one of the crowd; person.crop.
+        // circle.badge.dollar looked ideal but is NOT a real SF Symbol.
+        case .paidBy: "person.crop.circle"
         case .project: "folder"
         case .countsInLedger: "book"
         }
