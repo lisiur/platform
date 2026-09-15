@@ -267,18 +267,14 @@ struct ProjectEntriesDetailView: View {
     }
 
     /// ImageRenderer snapshots synchronously — AsyncImage never lands. The
-    /// member's avatar is fetched ahead of time so the rendered circle is
-    /// either the bitmap or the initial-letter fallback, never blank.
+    /// member's avatar goes through the session avatar cache ahead of time
+    /// (usually already warm from the rows the share was opened from) so
+    /// the rendered circle is either the bitmap or the initial-letter
+    /// fallback, never blank.
     private func loadAvatar(for path: String?) async -> UIImage? {
         guard let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL)
         else { return nil }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 5
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, http.statusCode == 200,
-              let image = UIImage(data: data)
-        else { return nil }
-        return image
+        return await AvatarImageCache.shared.image(for: url)
     }
 
     private var currentMemberUserIds: [String]? {

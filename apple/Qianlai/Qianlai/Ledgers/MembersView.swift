@@ -851,26 +851,12 @@ struct MembersView: View {
 
     private func avatar(_ name: String, _ avatarPath: String?) -> some View {
         let initial = String(name.prefix(1)).uppercased()
-        return Group {
-            if let url = ProfileStore.absoluteAvatarURL(
-                avatarPath,
-                baseURL: auth.apiBaseURL
-            ) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(initial)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            } else {
-                Text(initial)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-            }
-        }
+        return CachedAvatarImage(
+            url: ProfileStore.absoluteAvatarURL(avatarPath, baseURL: auth.apiBaseURL),
+            initial: initial
+        )
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.white)
         .frame(width: 36, height: 36)
         .background(Circle().fill(Color.accentColor.opacity(0.85)))
         .clipShape(Circle())

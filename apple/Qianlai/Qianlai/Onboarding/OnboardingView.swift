@@ -178,28 +178,14 @@ struct OnboardingView: View {
             auth.currentUser?.avatar,
             baseURL: auth.apiBaseURL
         )
+        let initial = String((auth.currentUser?.name ?? auth.currentUser?.email ?? "?").prefix(1)).uppercased()
         return ZStack(alignment: .bottomTrailing) {
-            Group {
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure:
-                            initials
-                        case .empty:
-                            ProgressView()
-                        @unknown default:
-                            initials
-                        }
-                    }
-                } else {
-                    initials
-                }
-            }
-            .frame(width: 64, height: 64)
-            .background(Circle().fill(Color.accentColor))
-            .clipShape(Circle())
+            CachedAvatarImage(url: url, initial: initial)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 64, height: 64)
+                .background(Circle().fill(Color.accentColor))
+                .clipShape(Circle())
 
             Image(systemName: "camera.fill")
                 .font(.caption2)
@@ -209,12 +195,6 @@ struct OnboardingView: View {
                 .overlay(Circle().stroke(.background, lineWidth: 1.5))
                 .offset(x: 2, y: 2)
         }
-    }
-
-    private var initials: some View {
-        Text(String((auth.currentUser?.name ?? auth.currentUser?.email ?? "?").prefix(1)).uppercased())
-            .font(.title2.weight(.semibold))
-            .foregroundStyle(.white)
     }
 
     private func uploadAvatar(from item: PhotosPickerItem) async {

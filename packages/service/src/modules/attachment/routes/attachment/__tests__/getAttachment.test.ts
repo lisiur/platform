@@ -82,6 +82,38 @@ describe("GET /{id} - getFile SVG XSS mitigation", () => {
     expect(res.headers.get("Content-Security-Policy")).toBeNull();
   });
 
+  it("serves public files with a long-lived per-client cache policy", async () => {
+    mockGetFileAccess.mockResolvedValue({
+      stream: mkStream(),
+      path: "public/aa/bb/aabb.png",
+      mimeType: "image/png",
+      size: 100,
+      visibility: "public",
+    });
+
+    const res = await testRoute({ path: "/png-cache-1" });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "private, max-age=31536000, immutable",
+    );
+  });
+
+  it("keeps private files out of any cache", async () => {
+    mockGetFileAccess.mockResolvedValue({
+      stream: mkStream(),
+      path: "private/aa/bb/aabb.pdf",
+      mimeType: "application/pdf",
+      size: 100,
+      visibility: "private",
+    });
+
+    const res = await testRoute({ path: "/pdf-cache-1" });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
   it("serves non-image types as attachment with no CSP", async () => {
     mockGetFileAccess.mockResolvedValue({
       stream: mkStream(),
@@ -114,5 +146,8 @@ describe("GET /{id} - getFile SVG XSS mitigation", () => {
 
     expect(res.status).toBe(304);
     expect(res.headers.get("ETag")).toBe('"public/aa/bb/aabb.svg"');
+    expect(res.headers.get("Cache-Control")).toBe(
+      "private, max-age=31536000, immutable",
+    );
   });
 });

@@ -451,26 +451,16 @@ struct EntryRow: View {
         )
     }
 
-    @ViewBuilder
     private func participantAvatar(_ participant: EntryParticipant) -> some View {
         let name = participant.user?.name ?? participant.userId
         let initial = String(name.prefix(1)).uppercased()
-        Group {
-            if let url = ProfileStore.absoluteAvatarURL(
+        return CachedAvatarImage(
+            url: ProfileStore.absoluteAvatarURL(
                 participant.user?.avatar,
                 baseURL: auth.apiBaseURL
-            ) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(initial)
-                    }
-                }
-            } else {
-                Text(initial)
-            }
-        }
+            ),
+            initial: initial
+        )
         .font(.caption2.weight(.semibold))
         .foregroundStyle(.white)
         .frame(width: participantAvatarSize, height: participantAvatarSize)

@@ -79,7 +79,7 @@ final class ProfileStore {
     }
 
     /// The avatar URL is a relative path (e.g. "/api/attachment/...") — make
-    /// it absolute against the API origin for AsyncImage.
+    /// it absolute against the API origin for CachedAvatarImage.
     nonisolated static func absoluteAvatarURL(_ path: String?, baseURL: URL) -> URL? {
         guard let path, !path.isEmpty else { return nil }
         if let url = URL(string: path), url.scheme != nil {

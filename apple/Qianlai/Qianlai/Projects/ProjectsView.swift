@@ -516,23 +516,12 @@ struct SettlementSummaryLabel: View {
     /// Rounded initial-with-avatar from the settlement rows.
     private var avatar: some View {
         let initial = String(row.name.prefix(1)).uppercased()
-        return Group {
-            if let url = ProfileStore.absoluteAvatarURL(row.avatar, baseURL: auth.apiBaseURL) {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(initial)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            } else {
-                Text(initial)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-            }
-        }
+        return CachedAvatarImage(
+            url: ProfileStore.absoluteAvatarURL(row.avatar, baseURL: auth.apiBaseURL),
+            initial: initial
+        )
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.white)
         .frame(width: 36, height: 36)
         .background(Circle().fill(Color.accentColor.opacity(0.85)))
         .clipShape(Circle())

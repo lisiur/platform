@@ -230,39 +230,17 @@ struct ProfileView: View {
         }
     }
 
-    /// Letter fallback for users without a decodable avatar image.
-    private var initials: some View {
-        Text(String((auth.currentUser?.name ?? auth.currentUser?.email ?? "?").prefix(1)).uppercased())
-            .font(.title2.weight(.semibold))
-            .foregroundStyle(.white)
-    }
-
-    @ViewBuilder
     private var avatar: some View {
         let user = auth.currentUser
         let url = ProfileStore.absoluteAvatarURL(user?.avatar, baseURL: auth.apiBaseURL)
-        ZStack(alignment: .bottomTrailing) {
-            Group {
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure:
-                            initials
-                        case .empty:
-                            ProgressView()
-                        @unknown default:
-                            ProgressView()
-                        }
-                    }
-                } else {
-                    initials
-                }
-            }
-            .frame(width: 64, height: 64)
-            .background(Circle().fill(Color.accentColor))
-            .clipShape(Circle())
+        let initial = String((user?.name ?? user?.email ?? "?").prefix(1)).uppercased()
+        return ZStack(alignment: .bottomTrailing) {
+            CachedAvatarImage(url: url, initial: initial)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 64, height: 64)
+                .background(Circle().fill(Color.accentColor))
+                .clipShape(Circle())
 
             Menu {
                 Button {
