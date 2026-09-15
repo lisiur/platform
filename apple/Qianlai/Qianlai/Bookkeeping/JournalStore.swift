@@ -53,32 +53,36 @@ final class JournalStore {
     private(set) var entryBounds: EntryDateBounds?
     private var boundsTask: Task<Void, Never>?
 
+    /// Filter didSets skip same-value writes: a pushed drill-down page's
+    /// `.task` re-runs on pop-back and re-assigns its scope filters, and a
+    /// redundant reload there would fetch page 1 over the accumulated
+    /// pages — collapsing the list under the restored scroll position.
     var searchQuery = "" { didSet { guard !suppressReload, oldValue != searchQuery else { return }; scheduleReload() } }
-    var fromDate: Date? { didSet { scheduleReload() } }
-    var toDate: Date? { didSet { scheduleReload() } }
-    var participantMemberId: String? { didSet { scheduleReload() } }
-    var projectFilterId: String? { didSet { scheduleReload() } }
+    var fromDate: Date? { didSet { guard !suppressReload, oldValue != fromDate else { return }; scheduleReload() } }
+    var toDate: Date? { didSet { guard !suppressReload, oldValue != toDate else { return }; scheduleReload() } }
+    var participantMemberId: String? { didSet { guard !suppressReload, oldValue != participantMemberId else { return }; scheduleReload() } }
+    var projectFilterId: String? { didSet { guard !suppressReload, oldValue != projectFilterId else { return }; scheduleReload() } }
     /// Category drill-down: only entries with a line against this account.
-    var accountId: String? { didSet { scheduleReload() } }
+    var accountId: String? { didSet { guard !suppressReload, oldValue != accountId else { return }; scheduleReload() } }
     /// Statement flow drill-down: only entries with a line against an
     /// account of this type (expense vs income totals).
-    var accountType: String? { didSet { scheduleReload() } }
+    var accountType: String? { didSet { guard !suppressReload, oldValue != accountType else { return }; scheduleReload() } }
     /// Settlement drill-down: entries that involve this user — paid for by
     /// them, tagged with them, or untagged (split across all members).
     /// Creation alone doesn't qualify: it carries no settlement weight, so
     /// a created-only entry would render an all-zero row.
-    var memberUserId: String? { didSet { scheduleReload() } }
+    var memberUserId: String? { didSet { guard !suppressReload, oldValue != memberUserId else { return }; scheduleReload() } }
     /// Entry-kind filter (the dashboard's month-header menu): classified
     /// the way rows render them — an expense line makes the entry an
     /// expense, otherwise an income line makes it income, otherwise it is
     /// a transfer. nil lists every kind.
-    var kind: QuickEntryKind? { didSet { scheduleReload() } }
+    var kind: QuickEntryKind? { didSet { guard !suppressReload, oldValue != kind else { return }; scheduleReload() } }
     /// Entry scope of the ledger-wide list: true (default) lists every
     /// activity entry — member kept-in, guest posts, and entries the
     /// creator opted out of the ledger's books (e.g. repayments); false
     /// hides those opted-out entries. Irrelevant while a project filter is
     /// active — a project always shows all its entries.
-    var includeExcluded = true { didSet { scheduleReload() } }
+    var includeExcluded = true { didSet { guard !suppressReload, oldValue != includeExcluded else { return }; scheduleReload() } }
     /// Project the page is hard-scoped to (the Journal follows the ledger
     /// switcher's scope). Not a user filter: the filter sheet can't change
     /// it, `clearFilters` restores it instead of lifting it. nil =
