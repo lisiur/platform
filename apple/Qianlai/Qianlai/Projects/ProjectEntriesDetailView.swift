@@ -242,7 +242,10 @@ struct ProjectEntriesDetailView: View {
         guard case .settlement(let projectId, let userId, _) = scope,
               let summaryRow = projectStore.report?.settlement
                 .first(where: { $0.userId == userId }),
-              let allEntries = await entryStore.fetchAllEntries()
+              let allEntries = await entryStore.fetchAllEntries(
+                from: entryStore.fromDate,
+                to: entryStore.toDate
+              )
         else { return nil }
         let truncated = Array(allEntries.prefix(Self.shareEntriesCap))
         let projectName = projectStore.projects(for: ledger.id)

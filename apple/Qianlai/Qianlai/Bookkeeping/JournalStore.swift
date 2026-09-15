@@ -22,6 +22,11 @@ struct EntryDateBounds: Equatable {
 final class JournalStore {
     static let pageSize = 20
 
+    /// Server pagination cap: the entries route validates limit ≤ 100
+    /// (zod `.max(100)` — a larger limit is a 400, not a silent clamp), so
+    /// a loaded-window refresh walks the window in pages of at most this.
+    static let requestPageSizeCap = 100
+
     /// List ordering. `.date` (default) is the server's newest-first order;
     /// the amount modes ask the server to order entries by their gross total
     /// (the sum of line debits) so offset pagination stays consistent —
@@ -123,16 +128,108 @@ final class JournalStore {
         entryBounds = nil
         // New ledger is a genuine first load again.
         hasLoadedOnce = false
-        await reload()
+        await reloadFromStart()
     }
 
-    /// Immediate reload (pull-to-refresh, retry, post/edit/delete, ledger
-    /// switch): supersedes any pending debounced task — it would refetch
-    /// the same query right behind this one — then fetches inline.
+    /// Immediate refresh of exactly the rows the list has already loaded —
+    /// offset 0 through the loaded count, in pages of at most
+    /// `requestPageSizeCap` — so pull-to-refresh, cross-posting refreshes,
+    /// and post-edit syncs keep the lazy-loaded pages and the scroll
+    /// position instead of collapsing the list back to page 1. The server
+    /// re-judges membership and order for the whole window. Fails silent:
+    /// a warm refresh that errors keeps the loaded content (the list's
+    /// data is still good) — the next pull-to-refresh retries.
     func reload() async {
+        guard !entries.isEmpty else {
+            // Nothing loaded yet: this is a cold retry, and it should
+            // announce itself like a first load.
+            await reloadFromStart()
+            return
+        }
+        reloadTask?.cancel()
+        reloadTask = nil
+        guard let ledgerId else { return }
+        let plan = Self.windowReloadPlan(
+            loadedCount: entries.count,
+            pageSize: Self.pageSize,
+            pageCap: Self.requestPageSizeCap
+        )
+        var fetched: [JournalEntry] = []
+        var latestTotal = total
+        for (offset, limit) in plan {
+            do {
+                let response: EntriesResponse = try await fetchEntries(
+                    ledgerId: ledgerId,
+                    limit: limit,
+                    offset: offset,
+                    from: fromDate,
+                    to: toDate,
+                    sort: sort
+                )
+                guard self.ledgerId == ledgerId else { return }
+                fetched += response.entries
+                latestTotal = response.total
+                // A short page means the filtered set shrank mid-refresh
+                // (a concurrent delete); the tail is simply gone.
+                if response.entries.count < limit { break }
+            } catch {
+                return
+            }
+        }
+        guard self.ledgerId == ledgerId else { return }
+        if entries != fetched { entries = fetched }
+        if total != latestTotal { total = latestTotal }
+        if loadError != nil { loadError = nil }
+        refreshBounds()
+    }
+
+    /// Immediate page-1 reset for content-changing paths: a fresh post
+    /// (the new entry should be visible at the top), a ledger switch, or
+    /// a retry after a failed first load. Supersedes any pending debounced
+    /// task — it would refetch the same query right behind this one — then
+    /// fetches inline.
+    func reloadFromStart() async {
         reloadTask?.cancel()
         reloadTask = nil
         await performReload()
+    }
+
+    /// The one list request every read path goes through: the current
+    /// filters plus the caller's window (limit/offset), date bounds, and
+    /// order. `from`/`to` are explicit rather than implied — most callers
+    /// pass the store's date filter, while the day-slice and extent
+    /// callers pass their own bounds (or nil). `includingSearch: false`
+    /// drops the text query for reads that describe the ledger's extent
+    /// rather than the transient search (refreshBounds).
+    private func fetchEntries(
+        ledgerId: String,
+        limit: Int,
+        offset: Int,
+        from: Date?,
+        to: Date?,
+        sort: EntrySort,
+        dateAscending: Bool = false,
+        includingSearch: Bool = true
+    ) async throws -> EntriesResponse {
+        try await client.request(
+            "GET",
+            "bookkeeping/ledgers/\(ledgerId)/entries" + Self.query(
+                limit: limit,
+                offset: offset,
+                q: includingSearch ? searchQuery : "",
+                from: from,
+                to: to,
+                participant: participantMemberId,
+                project: projectFilterId,
+                account: accountId,
+                accountType: accountType,
+                member: memberUserId,
+                kind: kind,
+                includeExcluded: includeExcluded,
+                sort: sort,
+                dateAscending: dateAscending
+            )
+        )
     }
 
     /// The fetch itself. Never cancels the calling task: when it runs as
@@ -153,23 +250,13 @@ final class JournalStore {
             if isLoading { isLoading = false }
         }
         do {
-            let response: EntriesResponse = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/entries" + Self.query(
-                    limit: Self.pageSize,
-                    offset: 0,
-                    q: searchQuery,
-                    from: fromDate,
-                    to: toDate,
-                    participant: participantMemberId,
-                    project: projectFilterId,
-                    account: accountId,
-                    accountType: accountType,
-                    member: memberUserId,
-                    kind: kind,
-                    includeExcluded: includeExcluded,
-                    sort: sort
-                )
+            let response: EntriesResponse = try await fetchEntries(
+                ledgerId: ledgerId,
+                limit: Self.pageSize,
+                offset: 0,
+                from: fromDate,
+                to: toDate,
+                sort: sort
             )
             guard self.ledgerId == ledgerId else { return }
             if entries != response.entries { entries = response.entries }
@@ -196,26 +283,17 @@ final class JournalStore {
 
     func loadMore() async {
         guard hasMore, !isLoading, !isLoadingMore else { return }
+        guard let ledgerId else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let response: EntriesResponse = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId!)/entries" + Self.query(
-                    limit: Self.pageSize,
-                    offset: entries.count,
-                    q: searchQuery,
-                    from: fromDate,
-                    to: toDate,
-                    participant: participantMemberId,
-                    project: projectFilterId,
-                    account: accountId,
-                    accountType: accountType,
-                    member: memberUserId,
-                    kind: kind,
-                    includeExcluded: includeExcluded,
-                    sort: sort
-                )
+            let response: EntriesResponse = try await fetchEntries(
+                ledgerId: ledgerId,
+                limit: Self.pageSize,
+                offset: entries.count,
+                from: fromDate,
+                to: toDate,
+                sort: sort
             )
             entries += response.entries
             total = response.total
@@ -226,11 +304,14 @@ final class JournalStore {
 
     /// Fetches every page under the current filters without touching the
     /// visible list — the settlement share card renders a member's full
-    /// detail, not only the pages the list happens to have loaded. Returns
-    /// nil on any fetch failure. The hard page cap is well above the share
-    /// card's render cap (200) so a desynchronized `total` cannot spin
-    /// this forever; once we've satisfied `total` we stop early.
-    func fetchAllEntries() async -> [JournalEntry]? {
+    /// detail, and the day-slice edit refresh refetches exactly one day,
+    /// neither limited to the pages the list happens to have loaded. Pass
+    /// `from`/`to` to scope the sweep (one day each for the slice
+    /// refresh); nil bounds sweep the whole filtered set. Returns nil on
+    /// any fetch failure. The hard page cap is far above the share card's
+    /// render cap (200 rows) so a desynchronized `total` cannot spin this
+    /// forever; once we've satisfied `total` we stop early.
+    func fetchAllEntries(from: Date? = nil, to: Date? = nil) async -> [JournalEntry]? {
         guard let ledgerId else { return nil }
         var all: [JournalEntry] = []
         var pages = 0
@@ -238,30 +319,20 @@ final class JournalStore {
         while pages < maxPages {
             pages += 1
             do {
-                let response: EntriesResponse = try await client.request(
-                    "GET",
-                    "bookkeeping/ledgers/\(ledgerId)/entries" + Self.query(
-                        limit: Self.pageSize,
-                        offset: all.count,
-                        q: searchQuery,
-                        from: fromDate,
-                        to: toDate,
-                        participant: participantMemberId,
-                        project: projectFilterId,
-                        account: accountId,
-                        accountType: accountType,
-                        member: memberUserId,
-                        kind: kind,
-                        includeExcluded: includeExcluded,
-                        sort: .date
-                    )
+                let response: EntriesResponse = try await fetchEntries(
+                    ledgerId: ledgerId,
+                    limit: Self.requestPageSizeCap,
+                    offset: all.count,
+                    from: from,
+                    to: to,
+                    sort: .date
                 )
                 all += response.entries
                 // Total exhaustion always wins: empty pages after we've
                 // matched `total` are the expected tail, not a failure.
                 if all.count >= response.total { return all }
                 // An empty page before we've matched `total` is a real
-                // signal of a desynced server.
+                // signal of a desynchronized server.
                 if response.entries.isEmpty { return nil }
             } catch {
                 return nil
@@ -279,7 +350,8 @@ final class JournalStore {
             "bookkeeping/ledgers/\(ledgerId)/entries",
             body: draft.body
         )
-        await reload()
+        // Reset to page 1: the fresh entry should be visible at the top.
+        await reloadFromStart()
     }
 
     /// Optimistic delete: the entry leaves the local list the moment this
@@ -338,14 +410,70 @@ final class JournalStore {
     /// Replaces an entry's date, memo, lines, and participants from the
     /// same draft shape a fresh post uses; the server keeps entryNo and
     /// the original creator.
+    ///
+    /// The refresh is day-scoped: only the entry's old and — when the date
+    /// changed — new day are refetched (one small request each, two at
+    /// most), and the returned rows replace that day's contiguous slice in
+    /// the list. Every other loaded day is untouched, so the scroll
+    /// position survives however deep the list is. The server re-judges
+    /// the day's membership under the active filters (e.g. a settlement
+    /// edit that removes the member drops the row), so no client-side
+    /// predicate mirrors the query.
     func update(_ entry: JournalEntry, draft: QuickEntryDraft) async throws {
         guard let ledgerId else { throw APIError.noActiveLedger }
-        _ = try await client.send(
+        let updated: JournalEntry = try await client.request(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)",
             body: draft.body
         )
-        await reload()
+        await refreshEditedEntry(entry, updated: updated)
+    }
+
+    /// Day-scoped refresh after a successful edit. All-or-nothing: every
+    /// involved day must refetch before any slice is written, so a failure
+    /// leaves the list exactly as-is (the edit itself already landed
+    /// server-side; the next pull-to-refresh retries). Silent, like every
+    /// warm refresh.
+    private func refreshEditedEntry(_ old: JournalEntry, updated: JournalEntry) async {
+        guard let ledgerId else { return }
+        guard sort == .date else {
+            // Amount order is global — a day's rows are not contiguous in
+            // it, so no day slice can be spliced in. Fall back to the
+            // whole-window refresh.
+            await reload()
+            return
+        }
+        let days = Self.editRefreshTargets(
+            oldDay: Calendar.current.startOfDay(for: old.date),
+            newDay: Calendar.current.startOfDay(for: updated.date),
+            oldestLoadedDay: entries.last.map { Calendar.current.startOfDay(for: $0.date) },
+            fromDate: fromDate,
+            toDate: toDate
+        )
+        var fetchedDays: [(day: Date, rows: [JournalEntry])] = []
+        for day in days {
+            guard let rows = await fetchAllEntries(from: day, to: day) else { return }
+            fetchedDays.append((day, rows))
+        }
+        // A ledger switch during the fetches makes the fetched rows foreign
+        // to whatever the store holds now — drop them entirely.
+        guard self.ledgerId == ledgerId else { return }
+        var result = entries
+        for (day, rows) in fetchedDays {
+            result = Self.replacingDay(result, day: day, with: rows)
+        }
+        if result != entries { entries = result }
+        // An edit can move the entry out of the active filters (a
+        // settlement participant removal): its day slice then comes back
+        // without it, and the list's filtered total drops by one — the
+        // same bookkeeping delete() does inline.
+        if entries.contains(where: { $0.id == updated.id }),
+           !result.contains(where: { $0.id == updated.id }),
+           total > 0 {
+            total -= 1
+        }
+        if loadError != nil { loadError = nil }
+        refreshBounds()
     }
 
     /// Batched clear: suppresses the per-key didSet storms so exactly one
@@ -388,47 +516,30 @@ final class JournalStore {
         guard let ledgerId else { return }
         boundsTask?.cancel()
         boundsTask = Task {
-            let oldestQuery = Self.query(
-                limit: 1,
-                offset: 0,
-                q: "",
-                from: nil,
-                to: nil,
-                participant: participantMemberId,
-                project: projectFilterId,
-                account: accountId,
-                accountType: accountType,
-                member: memberUserId,
-                kind: kind,
-                includeExcluded: includeExcluded,
-                sort: .date,
-                dateAscending: true
-            )
-            let newestQuery = Self.query(
-                limit: 1,
-                offset: 0,
-                q: "",
-                from: nil,
-                to: nil,
-                participant: participantMemberId,
-                project: projectFilterId,
-                account: accountId,
-                accountType: accountType,
-                member: memberUserId,
-                kind: kind,
-                includeExcluded: includeExcluded,
-                sort: .date
-            )
             do {
                 // Sequential awaits, not `async let`: the response decode
-                // runs under the store's MainActor isolation.
-                let oldest: EntriesResponse = try await client.request(
-                    "GET",
-                    "bookkeeping/ledgers/\(ledgerId)/entries\(oldestQuery)"
+                // runs under the store's MainActor isolation. The extent
+                // ignores the transient text search and the date window —
+                // it describes what the ledger contains, not what is
+                // currently being searched.
+                let oldest: EntriesResponse = try await fetchEntries(
+                    ledgerId: ledgerId,
+                    limit: 1,
+                    offset: 0,
+                    from: nil,
+                    to: nil,
+                    sort: .date,
+                    dateAscending: true,
+                    includingSearch: false
                 )
-                let newest: EntriesResponse = try await client.request(
-                    "GET",
-                    "bookkeeping/ledgers/\(ledgerId)/entries\(newestQuery)"
+                let newest: EntriesResponse = try await fetchEntries(
+                    ledgerId: ledgerId,
+                    limit: 1,
+                    offset: 0,
+                    from: nil,
+                    to: nil,
+                    sort: .date,
+                    includingSearch: false
                 )
                 guard self.ledgerId == ledgerId, !Task.isCancelled else { return }
                 if let earliest = oldest.entries.first?.date,
@@ -440,6 +551,72 @@ final class JournalStore {
                 // Keep the previous extent; the next reload retries.
             }
         }
+    }
+
+    /// Page plan for a loaded-window refresh: whole pages of `pageCap`
+    /// rows then one partial tail. The floor of `pageSize` keeps a cold
+    /// list's refresh at one ordinary page-size request.
+    nonisolated static func windowReloadPlan(
+        loadedCount: Int,
+        pageSize: Int,
+        pageCap: Int
+    ) -> [(offset: Int, limit: Int)] {
+        let loaded = max(pageSize, loadedCount)
+        return stride(from: 0, to: loaded, by: pageCap).map { offset in
+            (offset: offset, limit: min(pageCap, loaded - offset))
+        }
+    }
+
+    /// Which days an edit's day-slice refresh must refetch: always the old
+    /// day; the new day too only when it moved, stays within the loaded
+    /// span (a day older than everything loaded is below the window — the
+    /// moved-away row simply leaves the list), and passes the date-range
+    /// filter. Pure so the skip rules stay unit-testable.
+    nonisolated static func editRefreshTargets(
+        oldDay: Date,
+        newDay: Date,
+        oldestLoadedDay: Date?,
+        fromDate: Date?,
+        toDate: Date?
+    ) -> [Date] {
+        var days = [oldDay]
+        guard newDay != oldDay else { return days }
+        if let oldestLoadedDay, newDay < oldestLoadedDay { return days }
+        if let fromDate, newDay < Calendar.current.startOfDay(for: fromDate) { return days }
+        if let toDate, newDay > Calendar.current.startOfDay(for: toDate) { return days }
+        days.append(newDay)
+        return days
+    }
+
+    /// Replaces every row of `day` (startOfDay semantics, the same key
+    /// `groupedByDay` groups by) in the date-sorted list with `fetched` —
+    /// the day's rows are contiguous, so this is one slice write. A day
+    /// with no existing rows inserts `fetched` at its date position
+    /// (newest-first day order); empty `fetched` for an existing day
+    /// removes it. Pure so the day-refresh arithmetic stays unit-testable.
+    nonisolated static func replacingDay(
+        _ entries: [JournalEntry],
+        day: Date,
+        with fetched: [JournalEntry]
+    ) -> [JournalEntry] {
+        let dayKey = Calendar.current.startOfDay(for: day)
+        var result = entries
+        guard let start = result.firstIndex(where: {
+            Calendar.current.startOfDay(for: $0.date) == dayKey
+        }) else {
+            guard !fetched.isEmpty else { return result }
+            let insertAt = result.firstIndex(where: {
+                Calendar.current.startOfDay(for: $0.date) < dayKey
+            }) ?? result.count
+            result.insert(contentsOf: fetched, at: insertAt)
+            return result
+        }
+        var end = start
+        while end < result.count, Calendar.current.startOfDay(for: result[end].date) == dayKey {
+            end += 1
+        }
+        result.replaceSubrange(start..<end, with: fetched)
+        return result
     }
 
     private static func query(
