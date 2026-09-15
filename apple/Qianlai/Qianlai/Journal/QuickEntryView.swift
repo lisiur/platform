@@ -740,24 +740,7 @@ struct QuickEntryView: View {
                     .listRowBackground(Color.clear)
                 }
 
-                LazyVGrid(
-                    // Five tight columns: more categories per row without
-                    // crowding the 48pt icon circles.
-                    columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5),
-                    spacing: 10
-                ) {
-                    ForEach(categoryEntries) { entry in
-                        categoryChip(entry)
-                    }
-                    moreChip(side: side)
-                    // Owner/editor on the recording ledger only — guests
-                    // (and viewers) never see it. Bound sheets hide it too:
-                    // the manage screen follows the app's active ledger,
-                    // which a widget-bound sheet may not be recording into.
-                    if binding == nil, canPost {
-                        categoryManageChip
-                    }
-                }
+                categoryGrid(side: side)
                 // Zero horizontal insets let the grid span the grouped
                 // card edge to edge — the card's own screen margin then
                 // matches the pinned calculator's 16pt outer padding,
@@ -775,6 +758,56 @@ struct QuickEntryView: View {
     /// bubble's 44pt default so the always-visible grid reads a touch
     /// bigger; the more/manage chips match.
     private static let gridIconDiameter: CGFloat = 48
+
+    /// Column count of the category grid — five tight columns: more
+    /// categories per row without crowding the 48pt icon circles.
+    private static let gridColumns = 5
+
+    /// The category grid as fixed HStack rows instead of a LazyVGrid. The
+    /// lazy grid speculates its height, and when the categories land while
+    /// the sheet is still presenting, the speculation ran at a collapsed
+    /// width — a single-column stack several times the real height that
+    /// the List kept as the row's estimate, scrolling the settled grid
+    /// below the fold so the form opened blank until a kind round-trip
+    /// forced a re-measure. Top-level categories number in the dozens at
+    /// most, so laziness buys nothing here; fixed rows hand the List an
+    /// exact height on the first pass.
+    private func categoryGrid(side: AccountSide) -> some View {
+        let cellCount = categoryEntries.count + 1 + ((binding == nil && canPost) ? 1 : 0)
+        let rowCount = (cellCount + Self.gridColumns - 1) / Self.gridColumns
+        return VStack(spacing: 10) {
+            ForEach(0..<rowCount, id: \.self) { row in
+                let start = row * Self.gridColumns
+                let end = min(start + Self.gridColumns, cellCount)
+                HStack(spacing: 6) {
+                    ForEach(start..<end, id: \.self) { index in
+                        categoryGridCell(at: index, side: side)
+                    }
+                    // Pad the trailing row so its cells keep the column
+                    // width a full row gives them.
+                    ForEach(end..<(row + 1) * Self.gridColumns, id: \.self) { _ in
+                        Color.clear.frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The grid cell at a flattened index: categories first, then the More
+    /// chip, then the manage chip — owner/editor on the recording ledger
+    /// only (guests and viewers never see it), and bound sheets hide it
+    /// too: the manage screen follows the app's active ledger, which a
+    /// widget-bound sheet may not be recording into.
+    @ViewBuilder
+    private func categoryGridCell(at index: Int, side: AccountSide) -> some View {
+        if index < categoryEntries.count {
+            categoryChip(categoryEntries[index])
+        } else if index == categoryEntries.count {
+            moreChip(side: side)
+        } else {
+            categoryManageChip
+        }
+    }
 
     /// Icon-over-name grid cell: a tinted circle carries the category's
     /// emoji (or a fallback glyph when it has none); the picked category's
