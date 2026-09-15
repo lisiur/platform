@@ -495,6 +495,19 @@ struct DashboardView: View {
             // The expense card spans the summary's width; the chrome-less
             // rows above and below it are inset a little instead.
             .padding(.horizontal, 6)
+            // The budget card rides directly under the month header so the
+            // "how much is left" answer is the first thing on the page. It
+            // renders only when a budget is set (nil report / nil month =
+            // no card, and per the spec no onboarding hint either — guests
+            // never even fetch it, since the report endpoint 403s them).
+            if let budget = store.budget, let month = budget.month {
+                BudgetCardView(
+                    month: month,
+                    year: budget.year,
+                    currency: ledgerStore.activeLedger?.currency ?? budget.currency,
+                    isCurrentMonth: selectedMonth == YearMonth.current
+                )
+            }
             StatSummaryBlock(
                 month: store.dashboard?.month,
                 currency: ledgerStore.activeLedger?.currency

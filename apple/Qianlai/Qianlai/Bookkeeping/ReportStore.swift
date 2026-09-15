@@ -19,6 +19,12 @@ final class ReportStore {
     private(set) var dashboard: Dashboard?
     private(set) var isLoadingDashboard = false
 
+    /// The budget card's payload for `dashboardMonth` — nil until the first
+    /// successful fetch, and stale-safe on failure (the last report stays
+    /// published, matching the dashboard's keep-previous behavior). Also
+    /// feeds the quick entry's toggle default (`excludedAccountIds`).
+    private(set) var budget: BudgetReport?
+
     /// Month the dashboard cards summarize; nil follows the current month
     /// (server default). Writing it schedules a coalesced dashboard reload,
     /// so `refreshAfterPosting` re-summarizes the month on screen.
@@ -87,6 +93,13 @@ final class ReportStore {
     func load(ledgerId: String) async {
         let ledgerChanged = self.ledgerId != ledgerId
         self.ledgerId = ledgerId
+        if ledgerChanged {
+            // Never let another ledger's budget card survive a switch whose
+            // fresh fetch fails — hiding beats cross-ledger numbers. (The
+            // dashboard keeps its keep-previous semantics; the budget card
+            // has no back-compat to honor.)
+            budget = nil
+        }
         async let dash: () = loadDashboard()
         if ledgerChanged {
             async let trial: () = loadTrialBalance()
@@ -127,27 +140,68 @@ final class ReportStore {
                 ("from", window.map { ApiQuery.iso($0.from) }),
                 ("to", window.map { ApiQuery.iso($0.to) }),
             ])
-            dashboard = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"
+            // The budget card follows the dashboard's month exactly: the
+            // server buckets by natural month under the device's offset, so
+            // it needs year/month/offset instead of the dashboard's
+            // from/to instants (which parse as UTC and mislabel local
+            // month starts east of UTC).
+            let month = dashboardMonth ?? AppDates.currentYearMonth
+            async let dash: () = fetchDashboard(ledgerId, query)
+            async let budgetReport: () = loadBudgetReport(
+                ledgerId: ledgerId, month: month
             )
-            // Publish the widget snapshot only when the fetched dashboard is
-            // the current month — the widget always shows month-to-date, and
-            // a user browsing an older month must not overwrite it.
-            if dashboardMonth == nil || dashboardMonth == AppDates.currentYearMonth,
-               let dashboard {
-                WidgetDataStore.saveSnapshot(
-                    WidgetSnapshot(
-                        ledgerId: ledgerId,
-                        dashboard: dashboard,
-                        month: dashboardMonth ?? AppDates.currentYearMonth
-                    )
-                )
-                WidgetSync.reloadTimelines()
-            }
+            // If the dashboard fetch throws, the catch keeps the previous
+            // values — the budget may or may not have landed, same
+            // keep-previous semantics either way.
+            _ = try await (dash, budgetReport)
         } catch {
             // Keep whatever was loaded; the retry button reloads.
         }
+    }
+
+    private func fetchDashboard(_ ledgerId: String, _ query: String) async throws {
+        dashboard = try await client.request(
+            "GET",
+            "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"
+        )
+        // Publish the widget snapshot only when the fetched dashboard is
+        // the current month — the widget always shows month-to-date, and
+        // a user browsing an older month must not overwrite it.
+        if dashboardMonth == nil || dashboardMonth == AppDates.currentYearMonth,
+           let dashboard {
+            WidgetDataStore.saveSnapshot(
+                WidgetSnapshot(
+                    ledgerId: ledgerId,
+                    dashboard: dashboard,
+                    month: dashboardMonth ?? AppDates.currentYearMonth
+                )
+            )
+            WidgetSync.reloadTimelines()
+        }
+    }
+
+    /// One budget report fetch; a failure keeps the previous report (guests
+    /// 403 — callers gate the card the same way as the dashboard).
+    private func loadBudgetReport(ledgerId: String, month: YearMonth) async {
+        let query = ApiQuery.build([
+            ("year", String(month.year)),
+            ("month", String(month.month)),
+            ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+        ])
+        budget = try? await client.request(
+            "GET",
+            "bookkeeping/ledgers/\(ledgerId)/reports/budget\(query)"
+        )
+    }
+
+    /// Refetches just the budget report — after a budget settings write —
+    /// so the dashboard card re-renders without reloading the dashboard.
+    func refreshBudget() async {
+        guard let ledgerId else { return }
+        await loadBudgetReport(
+            ledgerId: ledgerId,
+            month: dashboardMonth ?? AppDates.currentYearMonth
+        )
     }
 
     /// One-shot share-based summary for an explicit window (the journal's

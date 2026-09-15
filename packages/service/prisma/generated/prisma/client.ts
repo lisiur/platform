@@ -307,6 +307,16 @@ export type RedeemCode = Prisma.RedeemCodeModel
  */
 export type Ledger = Prisma.LedgerModel
 /**
+ * Model LedgerBudgetYear
+ * 
+ */
+export type LedgerBudgetYear = Prisma.LedgerBudgetYearModel
+/**
+ * Model LedgerBudgetMonthOverride
+ * 
+ */
+export type LedgerBudgetMonthOverride = Prisma.LedgerBudgetMonthOverrideModel
+/**
  * Model Project
  * 
  */

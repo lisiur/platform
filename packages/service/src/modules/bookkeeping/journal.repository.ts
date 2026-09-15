@@ -462,6 +462,7 @@ export const journalRepository = {
       paidById: string;
       projectId?: string;
       countsInLedger?: boolean;
+      excludedFromBudget?: boolean;
       /** System guest rule, set once at posting. */
       guestCreated?: boolean;
       /** Flat location columns; omitted fields store as null. */
@@ -490,6 +491,7 @@ export const journalRepository = {
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
         guestCreated: data.guestCreated ?? false,
+        excludedFromBudget: data.excludedFromBudget ?? false,
         address: data.address ?? null,
         addressName: data.addressName ?? null,
         latitude: data.latitude ?? null,
@@ -528,6 +530,8 @@ export const journalRepository = {
       projectId?: string | null;
       /** Required: the service resolves guest pinning and keep-on-omit. */
       countsInLedger: boolean;
+      /** Required: the service resolves keep-on-omit for the budget flag. */
+      excludedFromBudget: boolean;
       /**
        * Full replacement location (parts may be null). Absent = keep the
        * stored location — the service resolves keep-on-omit vs clear.
@@ -556,6 +560,7 @@ export const journalRepository = {
         ...(data.paidById !== undefined ? { paidById: data.paidById } : {}),
         projectId: data.projectId ?? null,
         countsInLedger: data.countsInLedger,
+        excludedFromBudget: data.excludedFromBudget,
         ...(data.location
           ? {
               address: data.location.address,
@@ -772,6 +777,39 @@ export const journalRepository = {
         ...dateWindowWhere(window),
       },
       select: shareEntrySelect,
+    });
+  },
+
+  /**
+   * Every activity entry of the ledger in the window with the shape the
+   * yearly budget aggregate needs: the date (month bucketing), the entry's
+   * budget flag, and its raw lines (expense lines form the two budget
+   * pools). Income/transfer entries come through with empty expense value —
+   * they still mark their month as recorded. Same ledger-activity
+   * visibility as the dashboard's month statement.
+   */
+  listBudgetActivity(
+    ledgerId: string,
+    window: { from?: Date; to?: Date } = {},
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.findMany({
+      where: {
+        ledgerId,
+        ...ledgerActivityWhere,
+        ...dateWindowWhere(window),
+      },
+      select: {
+        date: true,
+        excludedFromBudget: true,
+        lines: {
+          select: {
+            debit: true,
+            credit: true,
+            account: { select: { type: true } },
+          },
+        },
+      },
     });
   },
 

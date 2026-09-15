@@ -667,6 +667,37 @@ describe("createEntry", () => {
       expect.anything(),
     );
   });
+
+  it("defaults excludedFromBudget to false and passes the client's intent through", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-8" });
+    await createEntry("user-a", "led-1", baseEntryInput, editorAccess);
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ excludedFromBudget: false }),
+      expect.anything(),
+    );
+
+    // The client resolves the default from the ledger's excluded categories
+    // and posts the final result; the server never re-derives it.
+    await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, excludedFromBudget: true },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenLastCalledWith(
+      expect.objectContaining({ excludedFromBudget: true }),
+      expect.anything(),
+    );
+  });
 });
 
 describe("updateEntry", () => {
@@ -863,6 +894,43 @@ describe("updateEntry", () => {
     expect(mockJournalRepo.updateEntry).toHaveBeenLastCalledWith(
       "e-1",
       expect.objectContaining({ countsInLedger: true }),
+      expect.anything(),
+    );
+  });
+
+  it("keeps the current excludedFromBudget when omitted and honors an explicit toggle", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: true,
+      excludedFromBudget: true,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+
+    // Omitted: an excluded entry (e.g. insurance) stays excluded across an
+    // edit that doesn't surface the budget toggle.
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ excludedFromBudget: true }),
+      expect.anything(),
+    );
+
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      excludedFromBudget: false,
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenLastCalledWith(
+      "e-1",
+      expect.objectContaining({ excludedFromBudget: false }),
       expect.anything(),
     );
   });
@@ -1618,6 +1686,7 @@ describe("serializeEntry parent account passthrough", () => {
       memo: null,
       status: "posted",
       createdById: null,
+      createdBy: null,
       createdAt: new Date(),
       projectId: null,
       lines: [
@@ -1666,6 +1735,7 @@ describe("serializeEntry parent account passthrough", () => {
       memo: null,
       status: "posted",
       createdById: null,
+      createdBy: null,
       createdAt: new Date(),
       projectId: null,
       lines: [

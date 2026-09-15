@@ -424,6 +424,20 @@ struct EntryRow: View {
                         }
                         .foregroundStyle(.tertiary)
                     }
+                    if entry.excludedFromBudget {
+                        // Mirrors the not-counted badge one line down the
+                        // amount column: the row must show why the budget
+                        // card didn't move (and where the manual override
+                        // lives).
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.circle.badge.xmark")
+                                .font(.caption2)
+                            Text(L10n.string("journal.excludedFromBudget", defaultValue: "Off budget"))
+                                .font(.caption2)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.tertiary)
+                    }
                 }
             }
         }

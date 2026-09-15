@@ -75,6 +75,13 @@ enum Money {
         let prefixed = "\(symbol(for: currency))\(format(abs(value)))"
         return value < 0 ? "-\(prefixed)" : prefixed
     }
+
+    /// Cents-formatted cell; nil renders the em dash placeholder (the
+    /// budget year table's total row leaves budget/spent empty).
+    nonisolated static func format(cents: Int?, currency: String?) -> String {
+        guard let cents else { return "—" }
+        return format(Double(cents) / 100, currency: currency)
+    }
 }
 
 /// Date helpers. Entry dates are true UTC instants — exactly what the user
@@ -87,6 +94,15 @@ nonisolated enum AppDates {
     static var currentYearMonth: YearMonth {
         let components = Calendar.current.dateComponents([.year, .month], from: Date())
         return YearMonth(year: components.year ?? 1970, month: components.month ?? 1)
+    }
+
+    /// The device's current UTC offset in minutes EAST of UTC (ISO style,
+    /// so UTC+8 sends 480) — the budget report's month-bucketing parameter.
+    /// The server buckets by natural month under this fixed offset instead
+    /// of parsing from/to instants in UTC, which would re-label local
+    /// month starts for timezones east of UTC as the previous month.
+    static var localTzOffsetMinutes: Int {
+        TimeZone.current.secondsFromGMT(for: Date()) / 60
     }
 
     /// Inclusive end of the LOCAL day containing `date` (23:59:59.999) —
@@ -129,6 +145,17 @@ nonisolated enum AppDates {
         formatter.calendar = Calendar.current
         formatter.locale = locale
         formatter.setLocalizedDateFormatFromTemplate("yMMM")
+        return formatter.string(from: month.start)
+    }
+
+    /// Short month label for compact rows ("9月", "Sep") — the budget year
+    /// table's first column. `locale` must be threaded explicitly (device
+    /// language otherwise wins over the in-app override).
+    static func formatMonthShort(_ month: YearMonth, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("MMM")
         return formatter.string(from: month.start)
     }
 

@@ -130,6 +130,12 @@ struct JournalDetailView: View {
                     value: ""
                 )
             }
+            if resolved.excludedFromBudget {
+                row(
+                    L10n.string("journal.detail.excludedFromBudget", defaultValue: "Excluded from budget"),
+                    value: ""
+                )
+            }
         } header: {
             Text(L10n.string("journal.detail.details", defaultValue: "Details"))
         }

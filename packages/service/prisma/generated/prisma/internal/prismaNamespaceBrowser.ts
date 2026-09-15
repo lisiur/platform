@@ -104,6 +104,8 @@ export const ModelName = {
   UserCreditLedger: 'UserCreditLedger',
   RedeemCode: 'RedeemCode',
   Ledger: 'Ledger',
+  LedgerBudgetYear: 'LedgerBudgetYear',
+  LedgerBudgetMonthOverride: 'LedgerBudgetMonthOverride',
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
@@ -943,10 +945,31 @@ export const LedgerScalarFieldEnum = {
   isDefault: 'isDefault',
   lastEntryNo: 'lastEntryNo',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  budgetExcludedAccountIds: 'budgetExcludedAccountIds'
 } as const
 
 export type LedgerScalarFieldEnum = (typeof LedgerScalarFieldEnum)[keyof typeof LedgerScalarFieldEnum]
+
+
+export const LedgerBudgetYearScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  year: 'year',
+  cents: 'cents'
+} as const
+
+export type LedgerBudgetYearScalarFieldEnum = (typeof LedgerBudgetYearScalarFieldEnum)[keyof typeof LedgerBudgetYearScalarFieldEnum]
+
+
+export const LedgerBudgetMonthOverrideScalarFieldEnum = {
+  id: 'id',
+  budgetYearId: 'budgetYearId',
+  month: 'month',
+  cents: 'cents'
+} as const
+
+export type LedgerBudgetMonthOverrideScalarFieldEnum = (typeof LedgerBudgetMonthOverrideScalarFieldEnum)[keyof typeof LedgerBudgetMonthOverrideScalarFieldEnum]
 
 
 export const ProjectScalarFieldEnum = {
@@ -1032,6 +1055,7 @@ export const JournalEntryScalarFieldEnum = {
   projectId: 'projectId',
   countsInLedger: 'countsInLedger',
   guestCreated: 'guestCreated',
+  excludedFromBudget: 'excludedFromBudget',
   address: 'address',
   addressName: 'addressName',
   latitude: 'latitude',

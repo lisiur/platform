@@ -255,6 +255,34 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(decoded.memberSharesCents, 1500)
     }
 
+    func testExcludedFromBudgetFlowsIntoTheEntryBody() throws {
+        // The toggle always rides the create/update body explicitly (same
+        // as countsInLedger): the form surfaces it on every expense edit,
+        // so the draft's value is the resolved final result. Keep-on-omit
+        // only serves clients that don't know the field.
+        var draft = QuickEntryDraft()
+        draft.kind = .expense
+        draft.amount = 10
+        draft.debitAccountId = "food"
+        let counted = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(counted["excludedFromBudget"] as? Bool, false)
+
+        draft.excludedFromBudget = true
+        let excluded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(excluded["excludedFromBudget"] as? Bool, true)
+
+        // And the entry model decodes the flag back off the wire.
+        var entry = makeEntry(paidById: nil, participants: [])
+        entry.excludedFromBudget = true
+        let data = try JSONEncoder().encode(entry)
+        let decoded = try JSONDecoder().decode(JournalEntry.self, from: data)
+        XCTAssertTrue(decoded.excludedFromBudget)
+    }
+
     /// A ¥10 expense with the category and default-pocket lines, recorded
     /// by user-me.
     private func makeEntry(paidById: String?, participants: [EntryParticipant]) -> JournalEntry {

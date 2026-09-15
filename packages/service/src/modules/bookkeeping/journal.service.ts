@@ -314,6 +314,7 @@ export async function createEntry(
     paidByUserId?: string | null;
     projectId?: string | null;
     countsInLedger?: boolean;
+    excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
   },
   access: LedgerAccess,
@@ -351,6 +352,9 @@ export async function createEntry(
       // Pure user intent — passes through exactly as the client set it.
       // The guest rule lives in `guestCreated` below, not here.
       countsInLedger: data.countsInLedger,
+      // Budget intent, same pass-through: the client resolves the default
+      // from the ledger's excluded categories and stores the final result.
+      excludedFromBudget: data.excludedFromBudget,
       // System snapshot: true when the creator was a guest. Client-immutable
       // — a later role change never rewrites history. It keeps guest posts
       // in the ledger-wide journal regardless of `countsInLedger`, and
@@ -403,6 +407,8 @@ export async function postEntryInTransaction(
     expenseOnly?: boolean;
     /** Defaults to true when omitted (e.g. system balance adjustments). */
     countsInLedger?: boolean;
+    /** Budget intent; defaults to false when omitted. */
+    excludedFromBudget?: boolean;
     /** System guest rule (see schema): true for guest-created posts. */
     guestCreated?: boolean;
     location?: EntryLocationInput | null;
@@ -437,6 +443,7 @@ export async function postEntryInTransaction(
         projectId: data.projectId,
         countsInLedger: data.countsInLedger ?? true,
         guestCreated: data.guestCreated ?? false,
+        excludedFromBudget: data.excludedFromBudget ?? false,
         ...locationColumns(data.location),
         lines: lines.map((line) => ({
           accountId: line.accountId,
@@ -563,6 +570,7 @@ export async function updateEntry(
     paidByUserId?: string | null;
     projectId?: string | null;
     countsInLedger?: boolean;
+    excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
   },
 ) {
@@ -646,6 +654,11 @@ export async function updateEntry(
     // like anyone else; the guest rule lives in the immutable guestCreated
     // column, which this update never touches.
     const countsInLedger = data.countsInLedger ?? entry.countsInLedger;
+    // The budget flag mirrors that keep-on-omit pattern: omitted = keep the
+    // entry's current intent, so editing an excluded entry without
+    // surfacing the toggle can't silently re-include it in the budget.
+    const excludedFromBudget =
+      data.excludedFromBudget ?? entry.excludedFromBudget;
     // The payer mirrors that keep-on-omit pattern: omitted = keep the
     // current payer (edit forms that don't surface the field can't strip
     // it), null = reset to the original creator (may itself be null when
@@ -699,6 +712,7 @@ export async function updateEntry(
           memo: data.memo,
           projectId: projectId ?? null,
           countsInLedger,
+          excludedFromBudget,
           ...(paidByIdUpdate !== undefined ? { paidById: paidByIdUpdate } : {}),
           ...(locationUpdate ? { location: locationUpdate } : {}),
           lines: lines.map((line) => ({

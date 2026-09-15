@@ -71,6 +71,7 @@ export type LedgerCountAggregateOutputType = {
   lastEntryNo: number
   createdAt: number
   updatedAt: number
+  budgetExcludedAccountIds: number
   _all: number
 }
 
@@ -120,6 +121,7 @@ export type LedgerCountAggregateInputType = {
   lastEntryNo?: true
   createdAt?: true
   updatedAt?: true
+  budgetExcludedAccountIds?: true
   _all?: true
 }
 
@@ -220,6 +222,7 @@ export type LedgerGroupByOutputType = {
   lastEntryNo: number
   createdAt: Date
   updatedAt: Date
+  budgetExcludedAccountIds: string[]
   _count: LedgerCountAggregateOutputType | null
   _avg: LedgerAvgAggregateOutputType | null
   _sum: LedgerSumAggregateOutputType | null
@@ -256,11 +259,13 @@ export type LedgerWhereInput = {
   lastEntryNo?: Prisma.IntFilter<"Ledger"> | number
   createdAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
+  budgetExcludedAccountIds?: Prisma.StringNullableListFilter<"Ledger">
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   members?: Prisma.LedgerMemberListRelationFilter
   accounts?: Prisma.BookAccountListRelationFilter
   entries?: Prisma.JournalEntryListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
+  budgetYears?: Prisma.LedgerBudgetYearListRelationFilter
 }
 
 export type LedgerOrderByWithRelationInput = {
@@ -274,11 +279,13 @@ export type LedgerOrderByWithRelationInput = {
   lastEntryNo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  budgetExcludedAccountIds?: Prisma.SortOrder
   owner?: Prisma.UserOrderByWithRelationInput
   members?: Prisma.LedgerMemberOrderByRelationAggregateInput
   accounts?: Prisma.BookAccountOrderByRelationAggregateInput
   entries?: Prisma.JournalEntryOrderByRelationAggregateInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
+  budgetYears?: Prisma.LedgerBudgetYearOrderByRelationAggregateInput
 }
 
 export type LedgerWhereUniqueInput = Prisma.AtLeast<{
@@ -295,11 +302,13 @@ export type LedgerWhereUniqueInput = Prisma.AtLeast<{
   lastEntryNo?: Prisma.IntFilter<"Ledger"> | number
   createdAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
+  budgetExcludedAccountIds?: Prisma.StringNullableListFilter<"Ledger">
   owner?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   members?: Prisma.LedgerMemberListRelationFilter
   accounts?: Prisma.BookAccountListRelationFilter
   entries?: Prisma.JournalEntryListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
+  budgetYears?: Prisma.LedgerBudgetYearListRelationFilter
 }, "id">
 
 export type LedgerOrderByWithAggregationInput = {
@@ -313,6 +322,7 @@ export type LedgerOrderByWithAggregationInput = {
   lastEntryNo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  budgetExcludedAccountIds?: Prisma.SortOrder
   _count?: Prisma.LedgerCountOrderByAggregateInput
   _avg?: Prisma.LedgerAvgOrderByAggregateInput
   _max?: Prisma.LedgerMaxOrderByAggregateInput
@@ -334,6 +344,7 @@ export type LedgerScalarWhereWithAggregatesInput = {
   lastEntryNo?: Prisma.IntWithAggregatesFilter<"Ledger"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Ledger"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Ledger"> | Date | string
+  budgetExcludedAccountIds?: Prisma.StringNullableListFilter<"Ledger">
 }
 
 export type LedgerCreateInput = {
@@ -346,11 +357,13 @@ export type LedgerCreateInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
   members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateInput = {
@@ -364,10 +377,12 @@ export type LedgerUncheckedCreateInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUpdateInput = {
@@ -380,11 +395,13 @@ export type LedgerUpdateInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
   members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateInput = {
@@ -398,10 +415,12 @@ export type LedgerUncheckedUpdateInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateManyInput = {
@@ -415,6 +434,7 @@ export type LedgerCreateManyInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
 }
 
 export type LedgerUpdateManyMutationInput = {
@@ -427,6 +447,7 @@ export type LedgerUpdateManyMutationInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
 }
 
 export type LedgerUncheckedUpdateManyInput = {
@@ -440,6 +461,7 @@ export type LedgerUncheckedUpdateManyInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
 }
 
 export type LedgerListRelationFilter = {
@@ -463,6 +485,7 @@ export type LedgerCountOrderByAggregateInput = {
   lastEntryNo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  budgetExcludedAccountIds?: Prisma.SortOrder
 }
 
 export type LedgerAvgOrderByAggregateInput = {
@@ -546,6 +569,29 @@ export type LedgerUncheckedUpdateManyWithoutOwnerNestedInput = {
   deleteMany?: Prisma.LedgerScalarWhereInput | Prisma.LedgerScalarWhereInput[]
 }
 
+export type LedgerCreatebudgetExcludedAccountIdsInput = {
+  set: string[]
+}
+
+export type LedgerUpdatebudgetExcludedAccountIdsInput = {
+  set?: string[]
+  push?: string | string[]
+}
+
+export type LedgerCreateNestedOneWithoutBudgetYearsInput = {
+  create?: Prisma.XOR<Prisma.LedgerCreateWithoutBudgetYearsInput, Prisma.LedgerUncheckedCreateWithoutBudgetYearsInput>
+  connectOrCreate?: Prisma.LedgerCreateOrConnectWithoutBudgetYearsInput
+  connect?: Prisma.LedgerWhereUniqueInput
+}
+
+export type LedgerUpdateOneRequiredWithoutBudgetYearsNestedInput = {
+  create?: Prisma.XOR<Prisma.LedgerCreateWithoutBudgetYearsInput, Prisma.LedgerUncheckedCreateWithoutBudgetYearsInput>
+  connectOrCreate?: Prisma.LedgerCreateOrConnectWithoutBudgetYearsInput
+  upsert?: Prisma.LedgerUpsertWithoutBudgetYearsInput
+  connect?: Prisma.LedgerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LedgerUpdateToOneWithWhereWithoutBudgetYearsInput, Prisma.LedgerUpdateWithoutBudgetYearsInput>, Prisma.LedgerUncheckedUpdateWithoutBudgetYearsInput>
+}
+
 export type LedgerCreateNestedOneWithoutProjectsInput = {
   create?: Prisma.XOR<Prisma.LedgerCreateWithoutProjectsInput, Prisma.LedgerUncheckedCreateWithoutProjectsInput>
   connectOrCreate?: Prisma.LedgerCreateOrConnectWithoutProjectsInput
@@ -612,10 +658,12 @@ export type LedgerCreateWithoutOwnerInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateWithoutOwnerInput = {
@@ -628,10 +676,12 @@ export type LedgerUncheckedCreateWithoutOwnerInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerCreateOrConnectWithoutOwnerInput = {
@@ -674,6 +724,95 @@ export type LedgerScalarWhereInput = {
   lastEntryNo?: Prisma.IntFilter<"Ledger"> | number
   createdAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Ledger"> | Date | string
+  budgetExcludedAccountIds?: Prisma.StringNullableListFilter<"Ledger">
+}
+
+export type LedgerCreateWithoutBudgetYearsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  currency?: string
+  status?: string
+  isDefault?: boolean
+  lastEntryNo?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
+  owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
+  members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
+  accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
+  entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+}
+
+export type LedgerUncheckedCreateWithoutBudgetYearsInput = {
+  id?: string
+  ownerId: string
+  name: string
+  description?: string | null
+  currency?: string
+  status?: string
+  isDefault?: boolean
+  lastEntryNo?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
+  members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
+  accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
+  entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+}
+
+export type LedgerCreateOrConnectWithoutBudgetYearsInput = {
+  where: Prisma.LedgerWhereUniqueInput
+  create: Prisma.XOR<Prisma.LedgerCreateWithoutBudgetYearsInput, Prisma.LedgerUncheckedCreateWithoutBudgetYearsInput>
+}
+
+export type LedgerUpsertWithoutBudgetYearsInput = {
+  update: Prisma.XOR<Prisma.LedgerUpdateWithoutBudgetYearsInput, Prisma.LedgerUncheckedUpdateWithoutBudgetYearsInput>
+  create: Prisma.XOR<Prisma.LedgerCreateWithoutBudgetYearsInput, Prisma.LedgerUncheckedCreateWithoutBudgetYearsInput>
+  where?: Prisma.LedgerWhereInput
+}
+
+export type LedgerUpdateToOneWithWhereWithoutBudgetYearsInput = {
+  where?: Prisma.LedgerWhereInput
+  data: Prisma.XOR<Prisma.LedgerUpdateWithoutBudgetYearsInput, Prisma.LedgerUncheckedUpdateWithoutBudgetYearsInput>
+}
+
+export type LedgerUpdateWithoutBudgetYearsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  isDefault?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
+  owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
+  members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
+  accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
+  entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+}
+
+export type LedgerUncheckedUpdateWithoutBudgetYearsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  isDefault?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
+  members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
+  accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
+  entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateWithoutProjectsInput = {
@@ -686,10 +825,12 @@ export type LedgerCreateWithoutProjectsInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
   members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateWithoutProjectsInput = {
@@ -703,9 +844,11 @@ export type LedgerUncheckedCreateWithoutProjectsInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerCreateOrConnectWithoutProjectsInput = {
@@ -734,10 +877,12 @@ export type LedgerUpdateWithoutProjectsInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
   members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateWithoutProjectsInput = {
@@ -751,9 +896,11 @@ export type LedgerUncheckedUpdateWithoutProjectsInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateWithoutMembersInput = {
@@ -766,10 +913,12 @@ export type LedgerCreateWithoutMembersInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
   accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateWithoutMembersInput = {
@@ -783,9 +932,11 @@ export type LedgerUncheckedCreateWithoutMembersInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerCreateOrConnectWithoutMembersInput = {
@@ -814,10 +965,12 @@ export type LedgerUpdateWithoutMembersInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
   accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateWithoutMembersInput = {
@@ -831,9 +984,11 @@ export type LedgerUncheckedUpdateWithoutMembersInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateWithoutAccountsInput = {
@@ -846,10 +1001,12 @@ export type LedgerCreateWithoutAccountsInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
   members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateWithoutAccountsInput = {
@@ -863,9 +1020,11 @@ export type LedgerUncheckedCreateWithoutAccountsInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
   entries?: Prisma.JournalEntryUncheckedCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerCreateOrConnectWithoutAccountsInput = {
@@ -894,10 +1053,12 @@ export type LedgerUpdateWithoutAccountsInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
   members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateWithoutAccountsInput = {
@@ -911,9 +1072,11 @@ export type LedgerUncheckedUpdateWithoutAccountsInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateWithoutEntriesInput = {
@@ -926,10 +1089,12 @@ export type LedgerCreateWithoutEntriesInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   owner: Prisma.UserCreateNestedOneWithoutOwnedQianlaiLedgersInput
   members?: Prisma.LedgerMemberCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerUncheckedCreateWithoutEntriesInput = {
@@ -943,9 +1108,11 @@ export type LedgerUncheckedCreateWithoutEntriesInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedCreateNestedManyWithoutLedgerInput
   accounts?: Prisma.BookAccountUncheckedCreateNestedManyWithoutLedgerInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutLedgerInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedCreateNestedManyWithoutLedgerInput
 }
 
 export type LedgerCreateOrConnectWithoutEntriesInput = {
@@ -974,10 +1141,12 @@ export type LedgerUpdateWithoutEntriesInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   owner?: Prisma.UserUpdateOneRequiredWithoutOwnedQianlaiLedgersNestedInput
   members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateWithoutEntriesInput = {
@@ -991,9 +1160,11 @@ export type LedgerUncheckedUpdateWithoutEntriesInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerCreateManyOwnerInput = {
@@ -1006,6 +1177,7 @@ export type LedgerCreateManyOwnerInput = {
   lastEntryNo?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerCreatebudgetExcludedAccountIdsInput | string[]
 }
 
 export type LedgerUpdateWithoutOwnerInput = {
@@ -1018,10 +1190,12 @@ export type LedgerUpdateWithoutOwnerInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateWithoutOwnerInput = {
@@ -1034,10 +1208,12 @@ export type LedgerUncheckedUpdateWithoutOwnerInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
   members?: Prisma.LedgerMemberUncheckedUpdateManyWithoutLedgerNestedInput
   accounts?: Prisma.BookAccountUncheckedUpdateManyWithoutLedgerNestedInput
   entries?: Prisma.JournalEntryUncheckedUpdateManyWithoutLedgerNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutLedgerNestedInput
+  budgetYears?: Prisma.LedgerBudgetYearUncheckedUpdateManyWithoutLedgerNestedInput
 }
 
 export type LedgerUncheckedUpdateManyWithoutOwnerInput = {
@@ -1050,6 +1226,7 @@ export type LedgerUncheckedUpdateManyWithoutOwnerInput = {
   lastEntryNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetExcludedAccountIds?: Prisma.LedgerUpdatebudgetExcludedAccountIdsInput | string[]
 }
 
 
@@ -1062,6 +1239,7 @@ export type LedgerCountOutputType = {
   accounts: number
   entries: number
   projects: number
+  budgetYears: number
 }
 
 export type LedgerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1069,6 +1247,7 @@ export type LedgerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   accounts?: boolean | LedgerCountOutputTypeCountAccountsArgs
   entries?: boolean | LedgerCountOutputTypeCountEntriesArgs
   projects?: boolean | LedgerCountOutputTypeCountProjectsArgs
+  budgetYears?: boolean | LedgerCountOutputTypeCountBudgetYearsArgs
 }
 
 /**
@@ -1109,6 +1288,13 @@ export type LedgerCountOutputTypeCountProjectsArgs<ExtArgs extends runtime.Types
   where?: Prisma.ProjectWhereInput
 }
 
+/**
+ * LedgerCountOutputType without action
+ */
+export type LedgerCountOutputTypeCountBudgetYearsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LedgerBudgetYearWhereInput
+}
+
 
 export type LedgerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1121,11 +1307,13 @@ export type LedgerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   lastEntryNo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  budgetExcludedAccountIds?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   members?: boolean | Prisma.Ledger$membersArgs<ExtArgs>
   accounts?: boolean | Prisma.Ledger$accountsArgs<ExtArgs>
   entries?: boolean | Prisma.Ledger$entriesArgs<ExtArgs>
   projects?: boolean | Prisma.Ledger$projectsArgs<ExtArgs>
+  budgetYears?: boolean | Prisma.Ledger$budgetYearsArgs<ExtArgs>
   _count?: boolean | Prisma.LedgerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["ledger"]>
 
@@ -1140,6 +1328,7 @@ export type LedgerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   lastEntryNo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  budgetExcludedAccountIds?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["ledger"]>
 
@@ -1154,6 +1343,7 @@ export type LedgerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   lastEntryNo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  budgetExcludedAccountIds?: boolean
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["ledger"]>
 
@@ -1168,15 +1358,17 @@ export type LedgerSelectScalar = {
   lastEntryNo?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  budgetExcludedAccountIds?: boolean
 }
 
-export type LedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "name" | "description" | "currency" | "status" | "isDefault" | "lastEntryNo" | "createdAt" | "updatedAt", ExtArgs["result"]["ledger"]>
+export type LedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "name" | "description" | "currency" | "status" | "isDefault" | "lastEntryNo" | "createdAt" | "updatedAt" | "budgetExcludedAccountIds", ExtArgs["result"]["ledger"]>
 export type LedgerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   members?: boolean | Prisma.Ledger$membersArgs<ExtArgs>
   accounts?: boolean | Prisma.Ledger$accountsArgs<ExtArgs>
   entries?: boolean | Prisma.Ledger$entriesArgs<ExtArgs>
   projects?: boolean | Prisma.Ledger$projectsArgs<ExtArgs>
+  budgetYears?: boolean | Prisma.Ledger$budgetYearsArgs<ExtArgs>
   _count?: boolean | Prisma.LedgerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LedgerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1194,6 +1386,7 @@ export type $LedgerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     accounts: Prisma.$BookAccountPayload<ExtArgs>[]
     entries: Prisma.$JournalEntryPayload<ExtArgs>[]
     projects: Prisma.$ProjectPayload<ExtArgs>[]
+    budgetYears: Prisma.$LedgerBudgetYearPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1206,6 +1399,7 @@ export type $LedgerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     lastEntryNo: number
     createdAt: Date
     updatedAt: Date
+    budgetExcludedAccountIds: string[]
   }, ExtArgs["result"]["ledger"]>
   composites: {}
 }
@@ -1605,6 +1799,7 @@ export interface Prisma__LedgerClient<T, Null = never, ExtArgs extends runtime.T
   accounts<T extends Prisma.Ledger$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Ledger$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   entries<T extends Prisma.Ledger$entriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Ledger$entriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JournalEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   projects<T extends Prisma.Ledger$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Ledger$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  budgetYears<T extends Prisma.Ledger$budgetYearsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Ledger$budgetYearsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LedgerBudgetYearPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1644,6 +1839,7 @@ export interface LedgerFieldRefs {
   readonly lastEntryNo: Prisma.FieldRef<"Ledger", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Ledger", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Ledger", 'DateTime'>
+  readonly budgetExcludedAccountIds: Prisma.FieldRef<"Ledger", 'String[]'>
 }
     
 
@@ -2138,6 +2334,30 @@ export type Ledger$projectsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.ProjectScalarFieldEnum | Prisma.ProjectScalarFieldEnum[]
+}
+
+/**
+ * Ledger.budgetYears
+ */
+export type Ledger$budgetYearsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LedgerBudgetYear
+   */
+  select?: Prisma.LedgerBudgetYearSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LedgerBudgetYear
+   */
+  omit?: Prisma.LedgerBudgetYearOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LedgerBudgetYearInclude<ExtArgs> | null
+  where?: Prisma.LedgerBudgetYearWhereInput
+  orderBy?: Prisma.LedgerBudgetYearOrderByWithRelationInput | Prisma.LedgerBudgetYearOrderByWithRelationInput[]
+  cursor?: Prisma.LedgerBudgetYearWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LedgerBudgetYearScalarFieldEnum | Prisma.LedgerBudgetYearScalarFieldEnum[]
 }
 
 /**

@@ -162,6 +162,11 @@ struct QuickEntryView: View {
     /// Ledger the scoped stores were last loaded for — lets the task tell
     /// the initial load apart from a switcher tap inside the sheet.
     @State private var loadedLedgerId: String?
+    /// True once the user flips the budget toggle themselves — from then on
+    /// the category pick stops re-deriving the default (FR5: the manual
+    /// toggle outranks the excluded-category rule). Editing an entry starts
+    /// true so its stored flag survives a category re-pick.
+    @State private var didTouchBudgetToggle = false
 
     /// Editing seeds every field from the entry; creating starts blank,
     /// optionally prefilled from the bound widget's binding.
@@ -181,6 +186,10 @@ struct QuickEntryView: View {
             }
         }
         _draft = State(initialValue: seed)
+        // An edit seeds the toggle from the entry's stored budget flag and
+        // must keep it across category re-picks — the stored result only
+        // moves when the user flips the switch themselves.
+        _didTouchBudgetToggle = State(initialValue: entry != nil)
         // No grouping separator so post()'s Double parsing round-trips.
         _engine = State(initialValue: CalculatorEngine(initialText: entry.map { String(format: "%.2f", $0.amount) } ?? ""))
     }
@@ -401,6 +410,8 @@ struct QuickEntryView: View {
                 // grid) and get a fixed section.
                 Form {
                     categorySection
+
+                    budgetToggleSection
 
                     if draft.kind == .transfer {
                         transferAccountsSection
@@ -752,6 +763,39 @@ struct QuickEntryView: View {
                 .listRowBackground(Color.clear)
             }
         }
+    }
+
+    /// FR3's "不计入预算" toggle, pinned right under the category grid (the
+    /// spec's 金额/分类下方 spot). Expenses only — the budget counts expense
+    /// value; guests are excluded like the countsInLedger choice, since the
+    /// budget is full-role ledger state they can't see.
+    @ViewBuilder
+    private var budgetToggleSection: some View {
+        if draft.kind == .expense, !isGuest {
+            Section {
+                Toggle(isOn: Binding(
+                    get: { draft.excludedFromBudget },
+                    set: { draft.excludedFromBudget = $0; didTouchBudgetToggle = true }
+                )) {
+                    Text(L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget"))
+                }
+            }
+        }
+    }
+
+    /// FR5's default resolution: until the user touches the toggle, the
+    /// picked category decides — its ROOT ancestor sitting in the ledger's
+    /// budget-excluded list turns the toggle on, anything else off (so a
+    /// pick that moves from an excluded tree back to a counted leaf clears
+    /// it again). Reads the exclusions off the dashboard's budget report;
+    /// when that never loaded (guests, cold start) the default is counted.
+    private func resolveBudgetDefault() {
+        guard !didTouchBudgetToggle, !isGuest else { return }
+        draft.excludedFromBudget = BudgetMath.isExcludedByCategory(
+            leafAccountId: categorySelection.wrappedValue,
+            accounts: accountStore.visible,
+            excludedAccountIds: Set(reportStore.budget?.excludedAccountIds ?? [])
+        )
     }
 
     /// Main-grid icon circle diameter — a step above the sub-picker
@@ -1811,6 +1855,7 @@ struct QuickEntryView: View {
     /// the recents row.
     private func selectCategory(_ id: String) {
         categorySelection.wrappedValue = id
+        resolveBudgetDefault()
     }
 
     private func recordRecentCategory(_ id: String) {
@@ -1861,6 +1906,10 @@ struct QuickEntryView: View {
         case .transfer:
             break
         }
+        // The prefilled category (a default, a kind round-trip, or the
+        // bound widget's) re-derives the toggle's default the same way a
+        // manual pick would.
+        resolveBudgetDefault()
     }
 
     /// A guest's only project pre-fills the assignment so they only have to
@@ -1903,6 +1952,7 @@ struct QuickEntryView: View {
         case .income: draft.creditAccountId = categoryId
         case .transfer: break
         }
+        resolveBudgetDefault()
     }
 
     /// Drops picked participants who aren't members of the entry's current

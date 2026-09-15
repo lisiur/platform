@@ -403,6 +403,14 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     /// share-based statement) regardless of `countsInLedger` — their
     /// participant shares are real consumption.
     var guestCreated: Bool
+    /// Budget intent recorded at posting time as the final resolved result:
+    /// true = the entry's expense value feeds the ledger's "excluded from
+    /// budget" pool instead of the monthly discretionary spend. The quick
+    /// entry resolves the default from the ledger's budget-excluded
+    /// categories; the per-entry toggle is the highest authority. Only the
+    /// budget pools read this — balances and settlement never do. Defaults
+    /// to false so fixtures and pre-deploy payloads decode as counted.
+    var excludedFromBudget: Bool = false
     var createdById: String?
     var createdBy: EntryUserRef?
     /// Who actually fronted the money — not necessarily the creator: anyone
@@ -772,6 +780,193 @@ struct MemberTurnover: Codable, Hashable {
     var totals: MemberTurnoverTotals
 }
 
+// MARK: - Budget
+
+/// The anchor month's budget pools in cents. `remaining`/status/daily
+/// figures derive on the client (local calendar math the server has no
+/// business redoing).
+struct BudgetMonthSummary: Codable, Hashable {
+    var year: Int
+    var month: Int
+    /// The month's effective budget (its own era's amount, not today's).
+    var budgetCents: Int
+    /// Expense value the budget answers for (activity entries, not excluded).
+    var countedCents: Int
+    /// Expense value marked "不计入预算" at posting time — display-only.
+    var excludedCents: Int
+
+    var remainingCents: Int { budgetCents - countedCents }
+}
+
+/// One recorded past month in the year-to-date table; positive diff =
+/// overspend, negative surplus (surpluses cancel overspends in the net).
+struct BudgetYearRow: Codable, Hashable {
+    var year: Int
+    var month: Int
+    var budgetCents: Int
+    var countedCents: Int
+    var diffCents: Int
+}
+
+struct BudgetYear: Codable, Hashable {
+    /// The year's first recorded month — the aggregate starts there, not at
+    /// January (mid-year adoption counts from where the records start).
+    var startYear: Int
+    var startMonth: Int
+    var rows: [BudgetYearRow]
+    var netCents: Int
+}
+
+extension BudgetYear {
+    /// 今年累计超支/结余/持平（截至上月）: the sign of the net picks the
+    /// wording. Shared by the card's annual line and the year detail's
+    /// navigation title; the 持平 case carries no figure (format the net
+    /// separately, only when it isn't zero).
+    var annualStatusLabel: String {
+        if netCents > 0 {
+            return L10n.string("budget.annual.overspent", defaultValue: "Overspent this year (through last month)")
+        }
+        if netCents < 0 {
+            return L10n.string("budget.annual.saved", defaultValue: "Saved this year (through last month)")
+        }
+        return L10n.string("budget.annual.even", defaultValue: "Even this year (through last month)")
+    }
+}
+
+/// The budget card's payload (GET reports/budget). `month`/`year` are nil
+/// when the anchor year has no budget — every budget surface hides then,
+/// and the settings alone (amount + overrides + exclusions) still ride
+/// along so quick entry can resolve the toggle's default.
+struct BudgetReport: Codable, Hashable {
+    /// The anchor year's monthly budget (a single month's override is
+    /// resolved server-side into `month.budgetCents`).
+    var budgetCents: Int?
+    var currency: String
+    var excludedAccountIds: [String]
+    var month: BudgetMonthSummary?
+    var year: BudgetYear?
+}
+
+/// One year's budget settings (GET/PUT budget) — the settings page's
+/// state: the year's monthly amount plus optional single-month pins.
+struct BudgetMonthOverride: Codable, Hashable {
+    var month: Int
+    var cents: Int
+}
+
+struct BudgetSettings: Codable, Hashable {
+    /// The year these settings describe (the settings page edits the
+    /// current year; there is no year switcher).
+    var year: Int
+    /// The year's monthly budget; nil = this year has no budget — the card
+    /// and the year table hide everywhere until one is set.
+    var cents: Int?
+    /// The previous year's amount — the form's prefill so a new year
+    /// starts where the last one left off (saving is what makes it real).
+    var carryOverCents: Int?
+    /// Single-month overrides; only the pinned months. No per-month delete
+    /// exists — closing the year clears them all.
+    var months: [BudgetMonthOverride]
+    var excludedAccountIds: [String]
+
+    /// The month's effective amount: its pin, else the year's monthly
+    /// value. Nil only when the year itself has no budget.
+    func effectiveCents(month: Int) -> Int? {
+        months.first { $0.month == month }?.cents ?? cents
+    }
+
+    /// The month's own pin, when one exists.
+    func monthOverride(month: Int) -> BudgetMonthOverride? {
+        months.first { $0.month == month }
+    }
+}
+
+/// Sets (or re-sets) the year's monthly budget — covers every month of the
+/// year, including already-recorded ones (mid-year adoption is retroactive).
+struct SetYearBudgetBody: Encodable {
+    var year: Int
+    var cents: Int
+}
+
+/// Pins a single month to its own amount. Upsert only — no per-month
+/// delete; closing the year clears every pin with it.
+struct SetMonthBudgetBody: Encodable {
+    var year: Int
+    var month: Int
+    var cents: Int
+}
+
+/// Full replacement of the budget-excluded top-level expense categories.
+/// Year-independent — shapes how future entries post, never rewrites
+/// stored ones. (The year rides in the query string; it only shapes the
+/// settings payload the write returns.)
+struct SetExcludedCategoriesBody: Encodable {
+    var excludedAccountIds: [String]
+}
+
+/// The budget card's status ladder (FR6): normal below 80% of the month's
+/// budget, near from 80%, over from 100%. A zero budget overspends on the
+/// first counted cent (the spec's "预算为 0 视为有效预算").
+enum BudgetStatus: Hashable {
+    case normal
+    case near
+    case over
+}
+
+/// Pure budget math shared by the card and the tests. All inputs are
+/// integer cents; calendar reads come in as parameters so callers (and
+/// tests) control "now".
+nonisolated enum BudgetMath {
+    /// 80% / 100% of the month's budget, per the spec's status ladder.
+    static func status(countedCents: Int, budgetCents: Int) -> BudgetStatus {
+        guard budgetCents > 0 else {
+            return countedCents > 0 ? .over : .normal
+        }
+        let ratio = Double(countedCents) / Double(budgetCents)
+        if ratio >= 1 { return .over }
+        if ratio >= 0.8 { return .near }
+        return .normal
+    }
+
+    /// Days from `now`'s day through the end of its LOCAL month, inclusive
+    /// (the spec's "剩余天数（含当天）").
+    static func daysRemaining(inMonthOf now: Date, calendar: Calendar = .current) -> Int {
+        guard let interval = calendar.dateInterval(of: .month, for: now) else {
+            return 1
+        }
+        let today = calendar.startOfDay(for: now)
+        let day = calendar.dateComponents([.day], from: interval.start, to: today).day ?? 0
+        return max(calendar.component(.day, from: interval.end.addingTimeInterval(-1)) - day, 1)
+    }
+
+    /// 日均还能花: floor(remaining / days); a negative or zero remaining
+    /// shows 0 (the spec forbids a negative daily figure).
+    static func dailyAvailableCents(remainingCents: Int, daysRemaining: Int) -> Int {
+        guard remainingCents > 0, daysRemaining > 0 else { return 0 }
+        return remainingCents / daysRemaining
+    }
+
+    /// The quick-entry toggle's default for a picked category: walking the
+    /// leaf UP its parent chain decides — the ledger's excluded list names
+    /// top-level categories, and a child inherits its parent's exclusion.
+    /// Nothing picked (or an unknown id) defaults to counted.
+    static func isExcludedByCategory(
+        leafAccountId: String?,
+        accounts: [BookAccount],
+        excludedAccountIds: Set<String>
+    ) -> Bool {
+        guard let leafAccountId else { return false }
+        let byId = Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) })
+        var current = byId[leafAccountId]
+        var visited = Set<String>()
+        while let account = current, visited.insert(account.id).inserted {
+            if excludedAccountIds.contains(account.id) { return true }
+            current = account.parentId.flatMap { byId[$0] }
+        }
+        return false
+    }
+}
+
 // MARK: - Response wrappers
 
 struct LedgersResponse: Codable {
@@ -985,6 +1180,11 @@ struct CreateEntryBody: Encodable {
     /// intent — unrelated to `guestCreated`, which only records that the
     /// creator was a guest and never excludes anything.
     var countsInLedger: Bool?
+    /// Budget intent (the "不计入预算" toggle): true feeds the ledger's
+    /// excluded-from-budget pool instead of the monthly discretionary spend.
+    /// nil omits the field: server default false on create, keep-on-omit on
+    /// edit (an edit form that doesn't surface the toggle can't strip it).
+    var excludedFromBudget: Bool?
     /// nil omits the field: no location on create, keep-on-edit.
     var location: EntryLocationPayload? = nil
 }
@@ -1148,6 +1348,11 @@ struct QuickEntryDraft: Equatable {
     /// False marks the entry as not counting in ledger-wide surfaces (e.g.
     /// a credit-card repayment already expensed at purchase time).
     var countsInLedger = true
+    /// True marks the entry as excluded from the ledger's monthly budget
+    /// (planned big charges). The default is resolved from the ledger's
+    /// budget-excluded categories when a category is picked; once the user
+    /// touches the toggle it stays manual for the rest of the compose.
+    var excludedFromBudget = false
     /// The captured place shown in the form; nil = no location row value.
     var location: EntryLocationBody? = nil
     /// Set when the user removes the entry's existing location during an
@@ -1185,6 +1390,7 @@ struct QuickEntryDraft: Equatable {
             paidByUserId: paidByUserId,
             projectId: projectId,
             countsInLedger: countsInLedger,
+            excludedFromBudget: excludedFromBudget,
             location: location.map(EntryLocationPayload.capture)
                 ?? (isLocationCleared ? .clear : nil)
         )
@@ -1231,6 +1437,7 @@ extension QuickEntryDraft {
             paidByUserId: entry.paidById,
             projectId: entry.projectId,
             countsInLedger: entry.countsInLedger,
+            excludedFromBudget: entry.excludedFromBudget,
             location: entry.location.map { EntryLocationBody($0) }
         )
     }

@@ -159,6 +159,16 @@ struct ProfileView: View {
                 Label(L10n.string("categories.title", defaultValue: "Categories"), systemImage: "tag")
             }
             .appCardRow()
+            // The budget is ledger-scoped shared state, so the entry lives
+            // in the active-ledger section next to the categories it
+            // filters — not in the personal settings section.
+            NavigationLink {
+                BudgetSettingsView()
+                    .appBackgroundCanvas()
+            } label: {
+                Label(L10n.string("budget.settings.title", defaultValue: "Budget Settings"), systemImage: "gauge.with.needle")
+            }
+            .appCardRow()
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
                     MembersView(ledger: ledger, isModal: false)

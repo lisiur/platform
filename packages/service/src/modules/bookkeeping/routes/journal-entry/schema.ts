@@ -148,6 +148,13 @@ export const journalEntrySchema = z
     // regardless of `countsInLedger` — their participant shares feed the
     // share-based statement.
     guestCreated: z.boolean().openapi({ example: false }),
+    // Budget intent recorded at posting time as the final resolved result:
+    // true = the entry's expense value feeds the ledger's "excluded from
+    // budget" pool instead of the monthly discretionary spend. The client
+    // resolves the default from the ledger's budget-excluded categories;
+    // the per-entry toggle is the highest authority. Pure user intent —
+    // only the budget pools read it.
+    excludedFromBudget: z.boolean().openapi({ example: false }),
     // null = recorded without a location.
     location: entryLocationSchema.nullable().openapi({ example: null }),
     createdAt: z.date(),
@@ -264,6 +271,12 @@ export const createEntryBodySchema = z
     // `guestCreated` flag is the guest dimension, not this one. On update,
     // omitted = keep the current flag.
     countsInLedger: z.boolean().optional(),
+    // Budget intent: true = the entry's expense value feeds the ledger's
+    // "excluded from budget" pool (planned big charges). Defaults to false;
+    // the client resolves the default from the ledger's budget-excluded
+    // categories and stores the final result. On update, omitted = keep the
+    // current flag.
+    excludedFromBudget: z.boolean().optional(),
     // Optional place of the entry. On create, omitted = no location. On
     // update, omitted = keep the current location and null = clear it (so
     // clients that don't know the field never strip it accidentally).

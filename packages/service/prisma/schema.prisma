@@ -1093,13 +1093,56 @@ model Ledger {
   lastEntryNo Int            @default(0)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  // Budgets are organized PER YEAR: each year carries its own monthly
+  // amount plus optional single-month overrides (see LedgerBudgetYear).
+  // There is no live "current amount" column — whether a month has a
+  // budget is resolved from the year row, so past and present read the
+  // same way. Category exclusions are year-independent and live here.
+  budgetExcludedAccountIds String[] @default([])
   members     LedgerMember[]
   accounts    BookAccount[]
   entries     JournalEntry[]
   projects    Project[]
+  budgetYears LedgerBudgetYear[]
 
   @@index([ownerId])
   @@map("qianlai_ledger")
+}
+
+// One year's monthly discretionary budget for a ledger, shared by every
+// member (the budget surfaces are ledger-scoped like the dashboard). The
+// amount applies to EVERY month of the year — including already-recorded
+// ones — so adopting a budget mid-year retroactively budgets the months
+// before it existed, no history reconstruction needed. Deleting the row
+// ("关闭当年预算") is the only off-switch: single months have no delete
+// path, they are overridden instead (see LedgerBudgetMonthOverride).
+model LedgerBudgetYear {
+  id       String   @id @default(cuid())
+  ledgerId String
+  ledger   Ledger   @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  year     Int
+  // The year's monthly budget in cents (0 is a valid, tight budget).
+  cents    Int
+  months   LedgerBudgetMonthOverride[]
+
+  @@unique([ledgerId, year])
+  @@map("qianlai_ledger_budget_year")
+}
+
+// A single month pinned to its own amount, deviating from the year's
+// monthly value (a heavier December, a lighter February). Upsert only —
+// the requirement forbids a per-month delete entry; the override can be
+// re-adjusted to any amount, including the year's default. Cascades with
+// the year row, so closing the year clears every override with it.
+model LedgerBudgetMonthOverride {
+  id           String           @id @default(cuid())
+  budgetYearId String
+  budgetYear   LedgerBudgetYear @relation(fields: [budgetYearId], references: [id], onDelete: Cascade)
+  month        Int
+  cents        Int
+
+  @@unique([budgetYearId, month])
+  @@map("qianlai_ledger_budget_month_override")
 }
 
 // A sub-scope of a ledger that both tags entries (JournalEntry.projectId)
@@ -1270,6 +1313,14 @@ model JournalEntry {
   // member" at query time) because createdById is nullable (SetNull on
   // account deletion) and per-query membership joins are costly.
   guestCreated  Boolean      @default(false)
+  // Budget intent, recorded at posting time as the final resolved result:
+  // true = the entry's expense value feeds the ledger's "excluded from
+  // budget" pool instead of the monthly discretionary spend (planned big
+  // charges like insurance or travel). Clients resolve the default from the
+  // ledger's budget-excluded categories; the per-entry toggle is the
+  // highest authority. Updates keep-on-omit like countsInLedger. Pure user
+  // intent — never touches balances or settlement, only the budget pools.
+  excludedFromBudget Boolean @default(false)
   // Optional location captured at posting time, resolved on the client
   // (CoreLocation / browser geolocation + reverse geocoding) — the service
   // only stores what was captured. `address` is the display text,
