@@ -333,7 +333,7 @@ struct EntryRow: View {
                                 String(
                                     format: L10n.string(
                                         "journal.parentContext",
-                                        defaultValue: "(%@)"
+                                        defaultValue: "· %@"
                                     ),
                                     parent.displayName
                                 )
@@ -342,16 +342,14 @@ struct EntryRow: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                         }
-                        if let memo = entry.memo, !memo.isEmpty {
-                            Text(verbatim: "·")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(memo)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                        }
+                    }
+                    if let memo = entry.memo, !memo.isEmpty {
+                        Text(memo)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(AppDates.formatEntryTime(entry.date))
@@ -382,9 +380,6 @@ struct EntryRow: View {
                         }
                         .lineLimit(1)
                     }
-                    if let participants = entry.participants, !participants.isEmpty {
-                        participantAvatars(participants)
-                    }
                     if let location = entry.location,
                        let label = location.displayName ?? coordinateLabel(location) {
                         HStack(spacing: 4) {
@@ -396,6 +391,9 @@ struct EntryRow: View {
                         }
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
+                    }
+                    if let participants = entry.participants, !participants.isEmpty {
+                        participantAvatars(participants)
                     }
                 }
                 Spacer(minLength: 8)
@@ -597,8 +595,7 @@ struct EntryRow: View {
                 Text(parentIcon)
                     .font(.system(size: 11))
                     .frame(width: 16, height: 16)
-                    .background(Circle().fill(.background))
-                    .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
+                    .background(Circle().fill(Color.primary.opacity(0.06)))
                     .accessibilityHidden(true)
             }
         }

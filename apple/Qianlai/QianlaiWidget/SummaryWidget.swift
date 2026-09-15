@@ -567,7 +567,7 @@ struct SummaryEntryView: View {
                             String(
                                 format: L10n.string(
                                     "journal.parentContext",
-                                    defaultValue: "(%@)"
+                                    defaultValue: "· %@"
                                 ),
                                 parentName
                             )
