@@ -20,9 +20,6 @@ final class WidgetDataStoreTests: XCTestCase {
     private func sampleSnapshot(ledgerId: String = "l1") -> WidgetSnapshot {
         WidgetSnapshot(
             ledgerId: ledgerId,
-            assets: 100,
-            liabilities: 40,
-            netWorth: 60,
             monthYear: 2026,
             monthMonth: 9,
             totalIncome: 500,

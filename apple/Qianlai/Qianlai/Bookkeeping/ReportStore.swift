@@ -136,7 +136,13 @@ final class ReportStore {
             // a user browsing an older month must not overwrite it.
             if dashboardMonth == nil || dashboardMonth == AppDates.currentYearMonth,
                let dashboard {
-                WidgetDataStore.saveSnapshot(WidgetSnapshot(ledgerId: ledgerId, dashboard: dashboard))
+                WidgetDataStore.saveSnapshot(
+                    WidgetSnapshot(
+                        ledgerId: ledgerId,
+                        dashboard: dashboard,
+                        month: dashboardMonth ?? AppDates.currentYearMonth
+                    )
+                )
                 WidgetSync.reloadTimelines()
             }
         } catch {

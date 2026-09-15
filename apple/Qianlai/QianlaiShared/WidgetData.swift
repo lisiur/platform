@@ -93,15 +93,12 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
     }
 }
 
-/// The widget-shaped slice of a ledger's dashboard: balances, current-month
-/// totals, and a few recent entries. Built by the app after each dashboard
-/// load (and by the widget after each successful fetch) so the widget can
+/// The widget-shaped slice of a ledger's dashboard: current-month totals
+/// and a few recent entries. Built by the app after each dashboard load
+/// (and by the widget after each successful fetch) so the widget can
 /// render its last-known numbers when the network is down.
 nonisolated struct WidgetSnapshot: Codable, Hashable {
     let ledgerId: String
-    let assets: Double
-    let liabilities: Double
-    let netWorth: Double
     let monthYear: Int
     let monthMonth: Int
     let totalIncome: Double
@@ -112,9 +109,6 @@ nonisolated struct WidgetSnapshot: Codable, Hashable {
 
     init(
         ledgerId: String,
-        assets: Double,
-        liabilities: Double,
-        netWorth: Double,
         monthYear: Int,
         monthMonth: Int,
         totalIncome: Double,
@@ -124,9 +118,6 @@ nonisolated struct WidgetSnapshot: Codable, Hashable {
         generatedAt: Date
     ) {
         self.ledgerId = ledgerId
-        self.assets = assets
-        self.liabilities = liabilities
-        self.netWorth = netWorth
         self.monthYear = monthYear
         self.monthMonth = monthMonth
         self.totalIncome = totalIncome
@@ -139,14 +130,16 @@ nonisolated struct WidgetSnapshot: Codable, Hashable {
     /// MainActor because flattening entries resolves localized titles
     /// through `L10n`. Callers are the app's `ReportStore` and the widget's
     /// load path, both main-actor.
+    ///
+    /// `month` is the local month the dashboard window covered — the server
+    /// echoes its window's `from` instant in UTC terms, which lands in the
+    /// previous month for timezones east of UTC, so the label must never
+    /// come from `dashboard.month`.
     @MainActor
-    init(ledgerId: String, dashboard: Dashboard) {
+    init(ledgerId: String, dashboard: Dashboard, month: YearMonth) {
         self.ledgerId = ledgerId
-        assets = dashboard.assets
-        liabilities = dashboard.liabilities
-        netWorth = dashboard.netWorth
-        monthYear = dashboard.month.year
-        monthMonth = dashboard.month.month
+        monthYear = month.year
+        monthMonth = month.month
         totalIncome = dashboard.month.totalIncome
         totalExpense = dashboard.month.totalExpense
         net = dashboard.month.net

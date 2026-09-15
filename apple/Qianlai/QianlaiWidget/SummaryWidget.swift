@@ -27,8 +27,9 @@ struct SummaryWidget: Widget {
 // MARK: - Presentation
 
 /// Everything the three layouts render, flattened from whichever scope is
-/// active — a ledger (net-worth headline, month window) or the scoped
-/// project (net headline, whole-project statement).
+/// active — a ledger (month window) or the scoped project (whole-project
+/// statement). Every figure is verifiable in-app: the month trio mirrors
+/// the dashboard's stat block, the project statement its detail page.
 nonisolated struct SummaryPresentation {
     let scopeName: String?
     let isProjectScope: Bool
@@ -38,10 +39,6 @@ nonisolated struct SummaryPresentation {
     let totalExpense: Double
     let totalIncome: Double
     let net: Double
-    /// The small widget's bottom line and the medium widget's third stat:
-    /// net worth for ledgers, net for projects.
-    let headlineLabel: String
-    let headlineValue: Double
     let recentEntries: [WidgetRecentEntry]
     let generatedAt: Date
     /// True when the scoped project belongs to a ledger the viewer is only
@@ -61,8 +58,6 @@ nonisolated struct SummaryPresentation {
             totalExpense: snapshot.totalExpense,
             totalIncome: snapshot.totalIncome,
             net: snapshot.net,
-            headlineLabel: L10n.string("common.netWorth", defaultValue: "Net Worth"),
-            headlineValue: snapshot.netWorth,
             recentEntries: snapshot.recentEntries,
             generatedAt: snapshot.generatedAt,
             isGuestScope: false
@@ -78,8 +73,6 @@ nonisolated struct SummaryPresentation {
             totalExpense: snapshot.totalExpense,
             totalIncome: snapshot.totalIncome,
             net: snapshot.net,
-            headlineLabel: L10n.string("common.net", defaultValue: "Net"),
-            headlineValue: snapshot.net,
             recentEntries: snapshot.recentEntries,
             generatedAt: snapshot.generatedAt,
             isGuestScope: isGuest
@@ -109,9 +102,6 @@ nonisolated struct SummaryEntry: TimelineEntry {
             .ledger(
                 WidgetSnapshot(
                     ledgerId: "sample",
-                    assets: 32800,
-                    liabilities: 4300,
-                    netWorth: 28500,
                     monthYear: 2026,
                     monthMonth: 9,
                     totalIncome: 12000,
@@ -218,11 +208,26 @@ struct SummaryProvider: TimelineProvider {
                 }
                 ledger = resolved
             }
+            // Same window the app's dashboard sends: the viewer's LOCAL
+            // month. Omitting the window would fall back to the server's
+            // current-UTC-month default, which in timezones east of UTC
+            // sums a day-shifted slice (entries recorded on the 1st before
+            // 08:00 land in the previous month) — the widget's totals must
+            // match the app's to the entry.
+            let window = AppDates.monthWindow()
+            let query = ApiQuery.build([
+                ("from", ApiQuery.iso(window.from)),
+                ("to", ApiQuery.iso(window.to)),
+            ])
             let dashboard: Dashboard = try await APIClient.shared.request(
                 "GET",
-                "bookkeeping/ledgers/\(ledger.id)/reports/dashboard"
+                "bookkeeping/ledgers/\(ledger.id)/reports/dashboard\(query)"
             )
-            let snapshot = WidgetSnapshot(ledgerId: ledger.id, dashboard: dashboard)
+            let snapshot = WidgetSnapshot(
+                ledgerId: ledger.id,
+                dashboard: dashboard,
+                month: AppDates.currentYearMonth
+            )
             WidgetDataStore.saveSnapshot(snapshot)
             return SummaryEntry(
                 date: now,
@@ -345,7 +350,7 @@ struct SummaryEntryView: View {
         .widgetURL(family == .systemSmall ? WidgetLinks.quickEntry : WidgetLinks.dashboard)
     }
 
-    // MARK: Small — scope, month expense, headline
+    // MARK: Small — scope, month expense, month net
 
     private func smallContent(presentation: SummaryPresentation, offline: Date?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -371,11 +376,11 @@ struct SummaryEntryView: View {
             }
             Spacer(minLength: 0)
             HStack(alignment: .firstTextBaseline) {
-                Text(presentation.headlineLabel)
+                Text(L10n.string("common.net", defaultValue: "Net"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 4)
-                Text(Money.format(presentation.headlineValue, currency: presentation.currency))
+                Text(Money.format(presentation.net, currency: presentation.currency))
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -402,8 +407,8 @@ struct SummaryEntryView: View {
                         color: .widgetIncome
                     )
                     stat(
-                        label: presentation.headlineLabel,
-                        value: Money.format(presentation.headlineValue, currency: presentation.currency),
+                        label: L10n.string("common.net", defaultValue: "Net"),
+                        value: Money.format(presentation.net, currency: presentation.currency),
                         color: .primary
                     )
                 }
