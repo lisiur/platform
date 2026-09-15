@@ -250,6 +250,12 @@ struct JournalLineAccountRef: Codable, Hashable {
     var sortOrder: Int
     var icon: String?
     var flags: [String]?
+    /// The parent account for sub-categories, joined on the server (see
+    /// `entryInclude` in journal.repository.ts). `nil` for top-level
+    /// categories and for payloads fetched before the join landed —
+    /// journal surfaces treat it as optional and skip the parent badge
+    /// / caption when absent.
+    var parent: JournalLineAccountParentRef?
 
     /// The seeded default pocket: a prefill-only system account, hidden from
     /// entry rows so implicit quick-entry lines don't add noise.
@@ -257,6 +263,27 @@ struct JournalLineAccountRef: Codable, Hashable {
         AccountFlags.contains(flags, AccountFlags.defaultDebit)
             || AccountFlags.contains(flags, AccountFlags.defaultCredit)
     }
+
+    var displayName: String {
+        if let name, !name.isEmpty { return name }
+        if let code {
+            return L10n.string("account.name.\(code)", defaultValue: code)
+        }
+        return "—"
+    }
+}
+
+/// Sibling of `JournalLineAccountRef` for the parent slot. Same shape as
+/// the leaf account but without its own `parent` field — the server only
+/// joins one level (see `entryInclude`), so a recursive value type would
+/// be lying about the data anyway. Kept distinct so Swift's value-type
+/// recursion guard doesn't reject the type, and so future accidental
+/// nesting is caught at compile time.
+struct JournalLineAccountParentRef: Codable, Hashable {
+    let id: String
+    var name: String?
+    var code: String?
+    var icon: String?
 
     var displayName: String {
         if let name, !name.isEmpty { return name }

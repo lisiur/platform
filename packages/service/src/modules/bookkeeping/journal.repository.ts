@@ -155,8 +155,28 @@ export function entryKindLines(kind: EntryKind): Prisma.JournalEntryWhereInput {
   }
 }
 
+// `lines.account.parent` is joined so journal surfaces can render the parent
+// category next to a leaf (icon badge + secondary caption), letting users tell
+// same-named leaves under different parents apart at a glance. The select
+// limits the parent payload to the same fields the leaf account exposes, so
+// nothing beyond `id/name/code/icon` ever leaks through `serializeEntry`.
 const entryInclude = {
-  lines: { include: { account: true } },
+  lines: {
+    include: {
+      account: {
+        include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              icon: true,
+            },
+          },
+        },
+      },
+    },
+  },
   participants: { include: participantInclude },
   createdBy: {
     select: { id: true, name: true, email: true, avatar: true },

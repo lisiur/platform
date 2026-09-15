@@ -328,6 +328,20 @@ struct EntryRow: View {
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
                             .layoutPriority(1)
+                        if let parent = categoryLine?.account.parent {
+                            Text(
+                                String(
+                                    format: L10n.string(
+                                        "journal.parentContext",
+                                        defaultValue: "(%@)"
+                                    ),
+                                    parent.displayName
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        }
                         if let memo = entry.memo, !memo.isEmpty {
                             Text(verbatim: "·")
                                 .font(.caption)
@@ -558,19 +572,37 @@ struct EntryRow: View {
 
     /// Leading badge showing the category account's emoji; falls back to a
     /// flow symbol when unset, or a transfer symbol without a category line.
+    /// When the category sits under a parent, a small parent badge is
+    /// overlaid in the bottom-trailing corner so same-named leaves under
+    /// different parents read as distinct at a glance. The parent badge
+    /// lives outside the main 36pt circle so it never resizes or overlaps
+    /// the leaf emoji — the surrounding HStack keeps an extra 4pt of
+    /// trailing space to host it.
     private var categoryBadge: some View {
-        Group {
-            if let icon = categoryLine?.account.icon, !icon.isEmpty {
-                Text(icon)
-                    .font(.title3)
-            } else {
-                Image(systemName: fallbackSymbol)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.secondary)
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let icon = categoryLine?.account.icon, !icon.isEmpty {
+                    Text(icon)
+                        .font(.title3)
+                } else {
+                    Image(systemName: fallbackSymbol)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 36, height: 36)
+            .background(Circle().fill(Color.primary.opacity(0.06)))
+            if let parent = categoryLine?.account.parent,
+               let parentIcon = parent.icon, !parentIcon.isEmpty {
+                Text(parentIcon)
+                    .font(.system(size: 11))
+                    .frame(width: 16, height: 16)
+                    .background(Circle().fill(.background))
+                    .overlay(Circle().stroke(Color.primary.opacity(0.08), lineWidth: 0.5))
+                    .accessibilityHidden(true)
             }
         }
-        .frame(width: 36, height: 36)
-        .background(Circle().fill(Color.primary.opacity(0.06)))
+        .frame(width: 40, height: 40, alignment: .leading)
     }
 
     private var fallbackSymbol: String {

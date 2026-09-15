@@ -3615,6 +3615,23 @@
         }
       }
     },
+    "journal.parentContext" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（%@）"
+          }
+        }
+      }
+    },
     "journal.openEntry" : {
       "extractionState" : "manual",
       "localizations" : {

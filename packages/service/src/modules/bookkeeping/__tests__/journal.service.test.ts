@@ -70,6 +70,10 @@ import { ledgerRepository } from "../ledger.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
 import { projectRepository } from "../project.repository";
 import { projectMemberRepository } from "../project-member.repository";
+import {
+  journalLineSchema,
+  serializeEntry,
+} from "../routes/journal-entry/schema";
 
 const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
@@ -1598,5 +1602,129 @@ describe("listEntries memberSharesCents", () => {
     ]);
     const result = await listEntries("led-1", {}, "owner");
     expect(result.entries[0].memberSharesCents).toBe(0);
+  });
+});
+
+describe("serializeEntry parent account passthrough", () => {
+  // entryInclude joins `lines.account.parent` so journal surfaces can render
+  // the parent category next to a leaf. `serializeEntry` does not strip the
+  // joined object — the spread on `...line` carries it through unchanged.
+  it("exposes parent on a sub-category line", () => {
+    const entry = {
+      id: "e-sub",
+      ledgerId: "led-1",
+      entryNo: 1,
+      date: new Date(),
+      memo: null,
+      status: "posted",
+      createdById: null,
+      createdAt: new Date(),
+      projectId: null,
+      lines: [
+        {
+          id: "l-1",
+          accountId: "acc-meals",
+          debit: 50 as unknown as { toString(): string },
+          credit: 0 as unknown as { toString(): string },
+          memo: null,
+          account: {
+            id: "acc-meals",
+            name: "Meals",
+            code: null,
+            type: "expense",
+            sortOrder: 1,
+            icon: "🍚",
+            flags: [],
+            parent: {
+              id: "acc-food",
+              name: "Food",
+              code: null,
+              icon: "🍜",
+            },
+          },
+        },
+      ],
+    };
+
+    const serialized = serializeEntry(entry);
+    const line = serialized.lines[0];
+
+    expect(line.account.parent).toEqual({
+      id: "acc-food",
+      name: "Food",
+      code: null,
+      icon: "🍜",
+    });
+  });
+
+  it("emits null parent for a top-level category line", () => {
+    const entry = {
+      id: "e-top",
+      ledgerId: "led-1",
+      entryNo: 2,
+      date: new Date(),
+      memo: null,
+      status: "posted",
+      createdById: null,
+      createdAt: new Date(),
+      projectId: null,
+      lines: [
+        {
+          id: "l-2",
+          accountId: "acc-food",
+          debit: 50 as unknown as { toString(): string },
+          credit: 0 as unknown as { toString(): string },
+          memo: null,
+          account: {
+            id: "acc-food",
+            name: "Food",
+            code: null,
+            type: "expense",
+            sortOrder: 0,
+            icon: "🍜",
+            flags: [],
+            parent: null,
+          },
+        },
+      ],
+    };
+
+    const serialized = serializeEntry(entry);
+    expect(serialized.lines[0].account.parent).toBeNull();
+  });
+
+  it("round-trips through journalLineSchema for both shapes", () => {
+    const subLine = {
+      id: "l-sub",
+      accountId: "acc-meals",
+      account: {
+        id: "acc-meals",
+        name: "Meals",
+        code: null,
+        type: "expense",
+        sortOrder: 1,
+        icon: "🍚",
+        flags: [],
+        parent: {
+          id: "acc-food",
+          name: "Food",
+          code: null,
+          icon: "🍜",
+        },
+      },
+      debit: 50,
+      credit: 0,
+      memo: null,
+    };
+
+    const parsed = journalLineSchema.parse(subLine);
+    expect(parsed.account.parent?.id).toBe("acc-food");
+
+    const topLine = {
+      ...subLine,
+      account: { ...subLine.account, parent: null },
+    };
+    const parsedTop = journalLineSchema.parse(topLine);
+    expect(parsedTop.account.parent).toBeNull();
   });
 });

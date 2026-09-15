@@ -558,9 +558,25 @@ struct SummaryEntryView: View {
             .frame(width: 22, height: 22)
             .background(Circle().fill(Color.primary.opacity(0.06)))
             VStack(alignment: .leading, spacing: 0) {
-                Text(item.title)
-                    .font(.caption.weight(.medium))
-                    .lineLimit(1)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(item.title)
+                        .font(.caption.weight(.medium))
+                        .lineLimit(1)
+                    if let parentName = item.parentName, !parentName.isEmpty {
+                        Text(
+                            String(
+                                format: L10n.string(
+                                    "journal.parentContext",
+                                    defaultValue: "(%@)"
+                                ),
+                                parentName
+                            )
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    }
+                }
                 Text(AppDates.formatEntryTime(item.date))
                     .font(.caption2)
                     .foregroundStyle(.secondary)

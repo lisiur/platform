@@ -50,6 +50,13 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
     let flow: Flow
     /// Gross entry amount (sum of debits), same base the app's rows use.
     let value: Double
+    /// Display name of the leaf account's parent category (e.g. "Food"),
+    /// when the leaf sits under one. Mirrors the secondary caption the
+    /// app's `EntryRow` shows next to sub-category titles so the widget
+    /// disambiguates same-named leaves under different parents. Optional
+    /// so snapshots written before the parent join shipped still decode —
+    /// the missing field is treated as no parent context.
+    let parentName: String?
 
     init(
         id: String,
@@ -57,7 +64,8 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
         title: String,
         icon: String?,
         flow: Flow,
-        value: Double
+        value: Double,
+        parentName: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -65,6 +73,7 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
         self.icon = icon
         self.flow = flow
         self.value = value
+        self.parentName = parentName
     }
 
     /// Resolves the display values the same way the app's `EntryRow` does:
@@ -81,6 +90,7 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
             default: .transfer
             }
         }()
+        let parentName = categoryLine?.account.parent?.displayName
         self.init(
             id: entry.id,
             date: entry.date,
@@ -88,7 +98,8 @@ nonisolated struct WidgetRecentEntry: Codable, Hashable, Identifiable {
                 ?? L10n.string("quick.kind.transfer", defaultValue: "Transfer"),
             icon: categoryLine?.account.icon,
             flow: flow,
-            value: entry.amount
+            value: entry.amount,
+            parentName: (parentName?.isEmpty ?? true) ? nil : parentName
         )
     }
 }

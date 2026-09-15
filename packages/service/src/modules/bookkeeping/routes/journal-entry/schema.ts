@@ -28,6 +28,19 @@ export const journalLineSchema = z
       flags: z
         .array(z.string())
         .openapi({ example: [], description: 'e.g. "builtin"' }),
+      parent: z
+        .object({
+          id: z.string(),
+          name: z.string().nullable(),
+          code: z.string().nullable(),
+          icon: z.string().nullable(),
+        })
+        .nullable()
+        .openapi({
+          example: null,
+          description:
+            "Parent account for sub-categories (joined on read so journal rows can show the parent context). null for top-level categories.",
+        }),
     }),
     debit: z.number().openapi({ example: 50 }),
     credit: z.number().openapi({ example: 0 }),
@@ -299,6 +312,14 @@ export function serializeEntry<
         sortOrder: number;
         icon: string | null;
         flags: string[];
+        // Joined by `entryInclude` so journal rows can render the parent
+        // category context. `null` for top-level categories.
+        parent?: {
+          id: string;
+          name: string | null;
+          code: string | null;
+          icon: string | null;
+        } | null;
       };
       debit: { toString(): string };
       credit: { toString(): string };
@@ -339,7 +360,17 @@ export function serializeEntry<
             longitude: entry.longitude == null ? null : Number(entry.longitude),
           },
     lines: entry.lines.map((line) => ({
+      // Spread the leaf columns first, then re-project account fields
+      // explicitly. The `parent` join is part of the documented contract
+      // (see `journalLineSchema.account.parent`), so naming it here makes
+      // the projection survive future refactors that re-shape the line
+      // object — tests should fail loudly if `parent` ever disappears
+      // instead of silently being dropped by a future `...` rewrite.
       ...line,
+      account: {
+        ...line.account,
+        parent: line.account.parent ?? null,
+      },
       debit: Number(line.debit),
       credit: Number(line.credit),
     })),
