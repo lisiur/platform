@@ -145,14 +145,13 @@ struct ContentView: View {
                 // only two tabs (2026-09-16 probe on the 27.0 GM runtime),
                 // and `role: .prominent` (new in 27) is what keeps it
                 // separated. Its tap is intercepted in `tabSelection`,
-                // which parks the selection
-                // on this tab for real at 0.65s (once the cover is opaque)
-                // and quietly returns it at 0.7s — the blank content is
-                // only "selected" inside that covered window, so nothing
-                // ever loads or flashes here. It must stay search-free: a
-                // `.searchable` here is what let the iOS 26 search-role
-                // tap morph latch onto the drawer search and persist after
-                // the sheet closed.
+                // which parks the selection on this tab for real at 0.65s
+                // (once the cover is opaque) and quietly returns it at
+                // 0.7s — the blank content is only "selected" inside that
+                // covered window, so nothing ever loads or flashes here.
+                // It must stay search-free: a `.searchable` here is what
+                // let the iOS 26 search-role tap morph latch onto the
+                // drawer search and persist after the sheet closed.
                 Tab(
                     AppTab.quickAdd.label,
                     systemImage: AppTab.quickAdd.icon,
@@ -250,11 +249,10 @@ struct ContentView: View {
     /// drives the denial alert and clears on dismiss.
     @State private var quickAddDeniedReason: String?
 
-    /// iOS 26 keeps the pill on `role: .search`; iOS 27 needs
-    /// `role: .prominent` to reserve the trailing capsule (see the TabView
-    /// comment). Availability-guarded because `TabRole.prominent` doesn't
-    /// exist below 27.
-    private var quickAddTabRole: TabRole? {
+    /// The pill's role, version-split for the trailing capsule — the full
+    /// story lives in the TabView comment. Availability-guarded because
+    /// `TabRole.prominent` doesn't exist below 27.
+    private var quickAddTabRole: TabRole {
         if #available(iOS 27.0, *) {
             return .prominent
         }
@@ -262,13 +260,17 @@ struct ContentView: View {
     }
 
     /// Rejects `.quickAdd` as a *visible* selection: tapping the add tab
-    /// parks the selection on the pill (the system insists on completing
-    /// its search-tab activation, and fighting it left the bar desynced)
-    /// while the sheet is up, then returns to the origin tab on dismissal.
-    /// Requires an editable active ledger, matching the floating button it
-    /// replaced. The getter also re-seats a selection that a preference
-    /// load has just hidden (e.g. synced config from another device) back
-    /// to dashboard.
+    /// parks the selection on the pill while the sheet is up, then returns
+    /// to the origin tab on dismissal. Why park at all is version-split —
+    /// iOS 26: the system insists on completing its search-role
+    /// activation, and fighting it left the bar desynced; iOS 27: the pill
+    /// is a plain `.prominent` tab with no search activation, so the same
+    /// choreography is simply harmless — the return-to-origin leg is what
+    /// keeps a dismissal from stranding the user on the highlighted blank
+    /// page. Requires an editable active ledger, matching the floating
+    /// button it replaced. The getter also re-seats a selection that a
+    /// preference load has just hidden (e.g. synced config from another
+    /// device) back to dashboard.
     private var tabSelection: Binding<AppTab> {
         Binding(
             get: { visibleTabs.contains(tab) || tab == .quickAdd ? tab : .dashboard },

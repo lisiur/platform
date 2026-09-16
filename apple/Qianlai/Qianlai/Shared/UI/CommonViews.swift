@@ -490,22 +490,19 @@ private struct AppCardRowModifier: ViewModifier {
 /// inside a ZStack relaxes the safe area for the content too and collapses
 /// the large-title/search layout.
 ///
-/// The canvas greedily fills the whole screen through safe areas
-/// (`.ignoresSafeArea` on a scaled-to-fill ZStack, clipped to it): the
+/// The canvas greedily fills the whole screen through safe areas: the
 /// backdrop covers everything behind a mounted page — nav-bar insets and
 /// the home-indicator strip included — regardless of how much of the
-/// screen the page's own frame reaches, and there are no geometry reads
-/// left to get it wrong.
+/// screen the page's own frame reaches.
 ///
 /// The canvas deliberately carries NO global-origin compensation: earlier
-/// revisions aligned the page's wallpaper slice to the screen by cancelling
-/// the host's `.global` origin — and that read is what made the wallpaper
-/// vanish inside navigation transitions: the origin is a moving value
-/// mid-animation, GeometryReader baked a transitional one in
-/// permanently, and the onGeometryChange rewrite lagged the same window.
-/// With the compensation gone there is no animated geometry left to
-/// misread — the wallpaper rides with its page through pushes, pops, and
-/// sheet dismissals, motionless through scroll (a scrolling List never
+/// revisions kept the wallpaper screen-fixed through scroll by cancelling
+/// the host's `.global` origin, and that read is what lost the wallpaper
+/// inside navigation transitions on every OS version — the origin is a
+/// moving value mid-animation, so any layout-time read bakes a
+/// transitional position in. With no geometry reads left there is nothing
+/// to misread: the wallpaper rides with its page through pushes, pops,
+/// and sheet dismissals, motionless through scroll (a scrolling List never
 /// moves its own frame).
 ///
 /// The scrim tints toward the scheme's base color: black in dark mode
@@ -529,6 +526,11 @@ private struct AppBackgroundCanvasModifier: ViewModifier {
                         (colorScheme == .dark ? Color.black : Color.white)
                             .opacity(backgroundSettings.dim)
                     }
+                    // Order is load-bearing: .clipped() must precede
+                    // .ignoresSafeArea() — clipped-after re-clips the
+                    // expanded region back to the content bounds, leaving
+                    // the status-bar strip bare (4-variant probe,
+                    // 2026-09-16).
                     .clipped()
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
