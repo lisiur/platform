@@ -9,10 +9,10 @@ import SwiftUI
 
 /// Overview of the active ledger: a pull-down system search field (the
 /// category picker's drawer search, querying the displayed month only), a
-/// scrolling month summary — month header, expense card, income/net hints
-/// — that travels with the month's entries on the same shared entry list
-/// the Journal uses, limited to a month window instead of exposing every
-/// filter.
+/// scrolling month summary — month header, budget card, and the expense
+/// card carrying the income/net figures inside it — that travels with the
+/// month's entries on the same shared entry list the Journal uses,
+/// limited to a month window instead of exposing every filter.
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard

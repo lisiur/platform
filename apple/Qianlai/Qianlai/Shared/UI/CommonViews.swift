@@ -142,6 +142,8 @@ extension Color {
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
 /// totals rows. A `currency` ISO code prefixes the amount with its symbol;
 /// leave it nil on surfaces without a single currency (cross-ledger totals).
+/// An optional `footer` renders as a second row inside the same card
+/// chrome, under the headline (the dashboard's income/net columns).
 struct StatCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
@@ -150,6 +152,7 @@ struct StatCard: View {
     let value: Double?
     var currency: String?
     var tone: Tone = .default
+    var footer: AnyView? = nil
 
     enum Tone {
         case `default`, positive, negative
@@ -164,27 +167,32 @@ struct StatCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let icon {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.12))
-                    )
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(value.map { Money.format($0, currency: currency) } ?? "—")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(tone.color ?? Color.primary)
+                        .lineLimit(1)
+                }
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Text(value.map { Money.format($0, currency: currency) } ?? "—")
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(tone.color ?? Color.primary)
-                    .lineLimit(1)
+            if let footer {
+                footer
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -196,59 +204,69 @@ struct StatCard: View {
     }
 }
 
-/// The expense hero card plus the income and net hints beneath it — the
+/// The expense card with the income and net figures inside it — the
 /// dashboard's month summary block, reused wherever a window's ledger-wide
-/// totals render (the journal's stat card). The card spans the block's
-/// width; the hint row is inset a little.
+/// totals render (the journal's stat card). The expense hero tops the card;
+/// income/net share a lower row of label-over-figure columns, the budget
+/// card's inner stat-row arrangement.
 struct StatSummaryBlock: View {
     /// The window's ledger-wide totals; nil renders placeholders.
     let month: DashboardMonth?
     var currency: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            StatCard(
-                icon: "wallet.bifold",
-                label: L10n.string("account.type.expense", defaultValue: "Expense"),
-                value: month?.totalExpense,
-                currency: currency,
-                tone: .negative
+        StatCard(
+            icon: "wallet.bifold",
+            label: L10n.string("account.type.expense", defaultValue: "Expense"),
+            value: month?.totalExpense,
+            currency: currency,
+            tone: .negative,
+            footer: AnyView(
+                HStack(spacing: 12) {
+                    column(
+                        L10n.string("account.type.income", defaultValue: "Income"),
+                        value: month?.totalIncome,
+                        tone: .positive,
+                        alignment: .leading
+                    )
+                    column(
+                        L10n.string("common.net", defaultValue: "Net"),
+                        value: month?.net,
+                        // Finance convention: negative net green (绿跌),
+                        // non-negative red (红涨).
+                        tone: (month?.net ?? 0) < 0 ? .negative : .positive,
+                        alignment: .trailing
+                    )
+                }
+                // The budget card insets its inner stat rows the same way,
+                // so the stacked cards' figures align.
+                .padding(.horizontal, 6)
             )
-            HStack(spacing: 16) {
-                hint(
-                    L10n.string("account.type.income", defaultValue: "Income"),
-                    value: month?.totalIncome,
-                    tone: .positive
-                )
-                hint(
-                    L10n.string("common.net", defaultValue: "Net"),
-                    value: month?.net,
-                    // Finance convention: negative net green (绿跌),
-                    // non-negative red (红涨).
-                    tone: (month?.net ?? 0) < 0 ? .negative : .positive
-                )
-            }
-            .padding(.horizontal, 6)
-        }
+        )
     }
 
-    /// Secondary figure: plain label + tone-colored amount, no card
-    /// chrome — the expense card is the hero figure.
-    private func hint(
+    /// One stats column: caption label above the tone-colored semibold
+    /// figure. Income hugs the card's leading edge, net its trailing edge;
+    /// each column still claims an equal share so a long amount can only
+    /// truncate its own column, never push its neighbor off the card.
+    private func column(
         _ label: String,
         value: Double?,
-        tone: StatCard.Tone
+        tone: StatCard.Tone,
+        alignment: HorizontalAlignment
     ) -> some View {
-        HStack(spacing: 4) {
+        VStack(alignment: alignment, spacing: 2) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value.map { Money.format($0, currency: currency) } ?? "—")
                 .font(.caption.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(tone.color ?? Color.primary)
                 .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
     }
 }
 
