@@ -64,6 +64,82 @@ final class AvatarImageCache {
         inflight[url] = task
         return await task.value
     }
+
+    /// The photo only if it is already in the cache — the synchronous read
+    /// for surfaces that snapshot at presentation (menus): an async fetch
+    /// would land after their frame is taken.
+    func synchronousImage(for url: URL?) -> UIImage? {
+        guard let url else { return nil }
+        return images.object(forKey: url as NSURL)
+    }
+}
+
+/// Menu items draw only `Image` values — SwiftUI-drawn views (the monogram
+/// circle, `CachedAvatarImage`) never render inside a menu, and the menu
+/// snapshot is taken synchronously at presentation, so an avatar not
+/// already warm in the session cache can't be fetched in time. This
+/// produces the same two states `CachedAvatarImage` renders, as one
+/// UIImage sized for the menu's icon slot: the cached photo circle-clipped,
+/// else the initial on the accent circle.
+@MainActor
+enum MenuAvatarImage {
+    /// The menu icon slot's point size — the system scales images down to
+    /// fit, so there is no headroom to buy.
+    static let pointSize: CGFloat = 20
+
+    static func image(url: URL?, initial: String) -> UIImage {
+        if let url,
+           let photo = AvatarImageCache.shared.synchronousImage(for: url) {
+            return circleClipped(photo)
+        }
+        return monogram(initial)
+    }
+
+    /// Aspect-fill the square and clip to the circle — the raster
+    /// equivalent of `scaledToFill` + `clipShape(Circle())`.
+    private static func circleClipped(_ photo: UIImage) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        return UIGraphicsImageRenderer(
+            size: CGSize(width: pointSize, height: pointSize),
+            format: format
+        ).image { context in
+            let square = CGRect(x: 0, y: 0, width: pointSize, height: pointSize)
+            context.cgContext.addPath(CGPath(ellipseIn: square, transform: nil))
+            context.cgContext.clip()
+            let aspect = photo.size.width / photo.size.height
+            let fillSize = aspect > 1
+                ? CGSize(width: pointSize * aspect, height: pointSize)
+                : CGSize(width: pointSize, height: pointSize / aspect)
+            photo.draw(in: CGRect(
+                x: (pointSize - fillSize.width) / 2,
+                y: (pointSize - fillSize.height) / 2,
+                width: fillSize.width,
+                height: fillSize.height
+            ))
+        }
+    }
+
+    private static func monogram(_ initial: String) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        return UIGraphicsImageRenderer(
+            size: CGSize(width: pointSize, height: pointSize),
+            format: format
+        ).image { context in
+            let square = CGRect(x: 0, y: 0, width: pointSize, height: pointSize)
+            UIColor(Color.accentColor.opacity(0.85)).setFill()
+            context.cgContext.fillEllipse(in: square)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: pointSize * 0.55, weight: .semibold),
+                .foregroundColor: UIColor.white,
+            ]
+            let letter = initial as NSString
+            let letterSize = letter.size(withAttributes: attributes)
+            letter.draw(at: CGPoint(
+                x: (pointSize - letterSize.width) / 2,
+                y: (pointSize - letterSize.height) / 2
+            ), withAttributes: attributes)
+        }
+    }
 }
 
 /// Avatar photo with the initial-letter fallback, fed by `AvatarImageCache`

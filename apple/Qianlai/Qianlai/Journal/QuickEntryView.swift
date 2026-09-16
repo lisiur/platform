@@ -264,7 +264,7 @@ struct QuickEntryView: View {
     /// (they left the ledger after posting). The server keeps a resubmitted
     /// historical payer, so the picker must still list them — without a tag
     /// matching the draft's selection it would render blank.
-    private var historicalPayer: (id: String, label: String)? {
+    private var historicalPayer: (id: String, label: String, initial: String)? {
         guard let entry = editedEntry,
               let paidById = entry.paidById,
               !payerCandidates.contains(where: { $0.userId == paidById })
@@ -278,7 +278,8 @@ struct QuickEntryView: View {
                     defaultValue: "%@ (no longer a member)"
                 ),
                 name
-            )
+            ),
+            String(name.prefix(1)).uppercased()
         )
     }
 
@@ -314,14 +315,30 @@ struct QuickEntryView: View {
     }
 
     /// The payer options shared by both picker surfaces: every candidate
-    /// member plus the entry's historical payer when editing.
+    /// member plus the entry's historical payer when editing. Each option
+    /// carries an avatar icon — menu items draw `Image` values only, so
+    /// `MenuAvatarImage` rasterizes it (the warm-cache photo, else the
+    /// initial circle).
     @ViewBuilder
     private var paidByOptions: some View {
         ForEach(payerCandidates) { member in
-            Text(member.displayName).tag(member.userId)
+            Label {
+                Text(member.displayName)
+            } icon: {
+                Image(uiImage: MenuAvatarImage.image(
+                    url: ProfileStore.absoluteAvatarURL(member.avatar, baseURL: auth.apiBaseURL),
+                    initial: member.avatarInitial
+                ))
+            }
+            .tag(member.userId)
         }
         if let historicalPayer {
-            Text(historicalPayer.label).tag(historicalPayer.id)
+            Label {
+                Text(historicalPayer.label)
+            } icon: {
+                Image(uiImage: MenuAvatarImage.image(url: nil, initial: historicalPayer.initial))
+            }
+            .tag(historicalPayer.id)
         }
     }
 
@@ -709,6 +726,34 @@ struct QuickEntryView: View {
             applyScopedProjectDefault()
             applyPreferenceLayout()
         }
+        // Warms the avatar cache for everyone pickable here — see
+        // `pickableAvatarURLs`. The payer menu snapshots at presentation
+        // and can only show photos already in the session cache, so the
+        // candidates must be fetched before its first open. Re-runs when
+        // the candidate set changes (roster load, project switch); the
+        // cache coalesces in-flight fetches and serves repeats free.
+        .task(id: pickableAvatarFetchKey) {
+            for url in pickableAvatarURLs {
+                _ = await AvatarImageCache.shared.image(for: url)
+            }
+        }
+    }
+
+    /// Every pickable person's avatar URL (payer + participants, deduped)
+    /// — the prefetch set that makes the payer menu's synchronous cache
+    /// read hit. The participants sheet needs no help: its rows fetch
+    /// async on their own.
+    private var pickableAvatarURLs: [URL] {
+        let people = payerCandidates + participantCandidates
+        return Array(Set(
+            people.compactMap {
+                ProfileStore.absoluteAvatarURL($0.avatar, baseURL: auth.apiBaseURL)
+            }
+        ))
+    }
+
+    private var pickableAvatarFetchKey: String {
+        pickableAvatarURLs.map(\.absoluteString).sorted().joined(separator: " ")
     }
 
     /// Re-reads the stored chip arrangement for the current quick-entry
