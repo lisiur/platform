@@ -134,6 +134,7 @@ struct ContentView: View {
                         NavigationStack {
                             tabPage(tab)
                                 .modifier(AppTabTitleChrome(tab: tab))
+                                .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
                         }
                     }
                 }
@@ -144,11 +145,10 @@ struct ContentView: View {
                 // `.search` pill merges into the main capsule even with
                 // only two tabs (2026-09-16 probe on the 27.0 GM runtime),
                 // and `role: .prominent` (new in 27) is what keeps it
-                // separated. Its tap is intercepted in `tabSelection`,
-                // which parks the selection on this tab for real at 0.65s
-                // (once the cover is opaque) and quietly returns it at
-                // 0.7s — the blank content is only "selected" inside that
-                // covered window, so nothing ever loads or flashes here.
+                // separated. Taps are refused one layer down, at the
+                // UITabBarControllerDelegate (QuickAddTabBarProxy): the
+                // pill never becomes selected, so this page never mounts
+                // and no park/resync choreography is needed on either OS.
                 // It must stay search-free: a `.searchable` here is what
                 // let the iOS 26 search-role tap morph latch onto the
                 // drawer search and persist after the sheet closed.
@@ -169,35 +169,8 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
-        .onChange(of: isQuickAddPresented) { _, presented in
-            guard !presented else { return }
-            // The sheet is going away: stop the deferred park/return chain
-            // and bring the selection home.
-            quickAddTransitionTask?.cancel()
-            if tab == .quickAdd, quickAddOriginTab != nil {
-                // Parked at dismissal: the mirror (the origin page minus
-                // its drawer search) stays visible while the cover clears;
-                // swap back after the transition so the bar re-mount isn't
-                // animated in front of the user.
-                unparkTask?.cancel()
-                unparkTask = Task {
-                    try? await Task.sleep(for: .seconds(0.5))
-                    guard !Task.isCancelled else { return }
-                    unparkFromQuickAdd()
-                }
-            } else if quickAddOriginTab != nil {
-                // Fast cancel before the deferred park ran: the system's
-                // tab bar already parked on the pill at tap. Give it one
-                // render pass on the pill to re-sync the highlight, then
-                // return to the origin.
-                tab = .quickAdd
-                unparkTask?.cancel()
-                unparkTask = Task {
-                    try? await Task.sleep(for: .seconds(0.05))
-                    guard !Task.isCancelled else { return }
-                    unparkFromQuickAdd()
-                }
-            }
+        .onAppear {
+            quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
         }
         .onOpenURL { url in
             // Widget deep links: qianlai://quick-entry opens the quick-entry
@@ -229,18 +202,10 @@ struct ContentView: View {
 
     @State private var tab: AppTab = .dashboard
     @State private var isQuickAddPresented = false
-    /// The tab to restore when the quick-entry sheet closes; non-nil only
-    /// while the selection is parked on the pill (see `parkOnQuickAdd`).
-    @State private var quickAddOriginTab: AppTab?
-    /// Deferred park/return chain: parks the selection on the pill once
-    /// the cover is opaque, then quietly returns under it (see the
-    /// `tabSelection` setter).
-    @State private var quickAddTransitionTask: Task<Void, Never>?
-    /// Delayed quiet return scheduled once the sheet has covered the
-    /// screen: the search-tab exit transition then plays under the opaque
-    /// cover instead of on dismissal, where it re-expanded the large
-    /// title in plain sight.
-    @State private var unparkTask: Task<Void, Never>?
+    /// The UIKit-level tap interception for the pill (see
+    /// QuickAddTabBarProxy). The proxy object must live as long as the
+    /// screen — the tab bar controller holds it as its delegate.
+    @State private var quickAddTabBarProxy = QuickAddTabBarProxy()
     /// The bound widget's target when the sheet was opened from its deep
     /// link; nil keeps the sheet on the active-ledger defaults. The bound
     /// sheet records against its own ledger — the global scope is untouched.
@@ -259,81 +224,33 @@ struct ContentView: View {
         return .search
     }
 
-    /// Rejects `.quickAdd` as a *visible* selection: tapping the add tab
-    /// parks the selection on the pill while the sheet is up, then returns
-    /// to the origin tab on dismissal. Why park at all is version-split —
-    /// iOS 26: the system insists on completing its search-role
-    /// activation, and fighting it left the bar desynced; iOS 27: the pill
-    /// is a plain `.prominent` tab with no search activation, so the same
-    /// choreography is simply harmless — the return-to-origin leg is what
-    /// keeps a dismissal from stranding the user on the highlighted blank
-    /// page. Requires an editable active ledger, matching the floating
-    /// button it replaced. The getter also re-seats a selection that a
-    /// preference load has just hidden (e.g. synced config from another
-    /// device) back to dashboard.
+    /// Pill taps are normally refused at the UIKit layer
+    /// (QuickAddTabBarProxy returns false from the tab bar controller
+    /// delegate, so the pill never becomes selected and its blank page
+    /// never mounts) and this binding only ever sees real tabs. The
+    /// `.quickAdd` branch is the degraded fallback for if that
+    /// interception ever fails to install: present the sheet, but never
+    /// write the pill into the selection — the getter keeps re-asserting
+    /// the origin tab, so the blank page can't strand the user. Requires
+    /// an editable active ledger, matching the floating button it
+    /// replaced. The getter also re-seats a selection that a preference
+    /// load has just hidden (e.g. synced config from another device) back
+    /// to dashboard.
     private var tabSelection: Binding<AppTab> {
         Binding(
             get: { visibleTabs.contains(tab) || tab == .quickAdd ? tab : .dashboard },
             set: { newValue in
                 guard newValue != .quickAdd else {
-                    // Defer the genuine selection until the cover is fully
-                    // opaque: swapping the underlying tab content while it
-                    // rises is what flashes the previous page.
-                    quickAddOriginTab = visibleTabs.contains(tab) ? tab : .dashboard
                     tryPresentQuickAdd()
-                    quickAddTransitionTask?.cancel()
-                    quickAddTransitionTask = Task {
-                        try? await Task.sleep(for: .seconds(0.65))
-                        guard !Task.isCancelled, isQuickAddPresented else { return }
-                        parkOnQuickAdd()
-                        // Quietly return right after (both writes play
-                        // under the opaque cover), so a later dismissal
-                        // reveals the real tab with no swap at all.
-                        try? await Task.sleep(for: .seconds(0.05))
-                        guard !Task.isCancelled, isQuickAddPresented else { return }
-                        unparkFromQuickAdd()
-                    }
                     return
                 }
-                quickAddOriginTab = nil
                 tab = newValue
             }
         )
     }
 
-    /// Selects the pill for real (SwiftUI and UIKit agree from here on).
-    /// The pill's page is the mirror copy of the origin tab, so the parked
-    /// state looks normal; `unparkFromQuickAdd` restores the origin.
-    private func parkOnQuickAdd() {
-        unparkTask?.cancel()
-        unparkTask = nil
-        quickAddOriginTab = visibleTabs.contains(tab) ? tab : .dashboard
-        tab = .quickAdd
-    }
-
-    private func unparkFromQuickAdd() {
-        if let origin = quickAddOriginTab {
-            tab = origin
-        }
-        quickAddOriginTab = nil
-    }
-
     private func dismissQuickAddDenial() {
         quickAddDeniedReason = nil
-        // Denied before the deferred park ran: the system's tab bar parked
-        // on the pill at tap — give it one render pass there to re-sync
-        // the highlight, then return to the origin.
-        if quickAddOriginTab != nil, tab != .quickAdd {
-            tab = .quickAdd
-            unparkTask?.cancel()
-            unparkTask = Task {
-                try? await Task.sleep(for: .seconds(0.05))
-                guard !Task.isCancelled else { return }
-                unparkFromQuickAdd()
-            }
-            return
-        }
-        unparkFromQuickAdd()
     }
 
     /// Presents the quick-entry sheet when the active ledger allows posting;
