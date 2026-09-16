@@ -137,21 +137,27 @@ struct ContentView: View {
                         }
                     }
                 }
-                // The quick-entry pill keeps `role: .search` — the only
-                // slot iOS 26 reserves with real tab avoidance. Its tap is
-                // intercepted in `tabSelection`, which parks the selection
+                // The quick-entry pill's role is version-split: iOS 26
+                // reserves the trailing capsule for `role: .search` (the
+                // only slot with real tab avoidance), while iOS 27 stopped
+                // granting search tabs that capsule — there a plain
+                // `.search` pill merges into the main capsule even with
+                // only two tabs (2026-09-16 probe on the 27.0 GM runtime),
+                // and `role: .prominent` (new in 27) is what keeps it
+                // separated. Its tap is intercepted in `tabSelection`,
+                // which parks the selection
                 // on this tab for real at 0.65s (once the cover is opaque)
                 // and quietly returns it at 0.7s — the blank content is
                 // only "selected" inside that covered window, so nothing
                 // ever loads or flashes here. It must stay search-free: a
-                // `.searchable` here is what let the search-role tap morph
-                // latch onto the drawer search and persist after the sheet
-                // closed.
+                // `.searchable` here is what let the iOS 26 search-role
+                // tap morph latch onto the drawer search and persist after
+                // the sheet closed.
                 Tab(
                     AppTab.quickAdd.label,
                     systemImage: AppTab.quickAdd.icon,
                     value: AppTab.quickAdd,
-                    role: .search
+                    role: quickAddTabRole
                 ) {
                     Color.clear
                 }
@@ -243,6 +249,17 @@ struct ContentView: View {
     /// Set when the quick-add pill is tapped without a postable ledger;
     /// drives the denial alert and clears on dismiss.
     @State private var quickAddDeniedReason: String?
+
+    /// iOS 26 keeps the pill on `role: .search`; iOS 27 needs
+    /// `role: .prominent` to reserve the trailing capsule (see the TabView
+    /// comment). Availability-guarded because `TabRole.prominent` doesn't
+    /// exist below 27.
+    private var quickAddTabRole: TabRole? {
+        if #available(iOS 27.0, *) {
+            return .prominent
+        }
+        return .search
+    }
 
     /// Rejects `.quickAdd` as a *visible* selection: tapping the add tab
     /// parks the selection on the pill (the system insists on completing
