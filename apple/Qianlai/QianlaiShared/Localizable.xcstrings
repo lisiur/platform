@@ -1747,23 +1747,6 @@
         }
       }
     },
-    "budget.amount.placeholder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monthly amount"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "输入月度金额"
-          }
-        }
-      }
-    },
     "budget.annual.even" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1964,6 +1947,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修改后立即生效，适用于今年全部月份（含已记账月份）。"
+          }
+        }
+      }
+    },
+    "budget.settings.amountNone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not set"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
           }
         }
       }
