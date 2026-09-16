@@ -252,7 +252,11 @@ async function requireLedger(ledgerId: string) {
 
 /** Reads the settings for an already-loaded ledger — every caller holds the
  *  ledger from requireLedger (for the 404 / the write floor), so the read
- *  never fetches it a second time. */
+ *  never fetches it a second time. The snapshot must POST-date any write it
+ *  should reflect: pass the write's return value when the write touches the
+ *  ledger row (see setExcludedCategories — its pre-write snapshot once
+ *  echoed the previous exclusion list back); the year/override writes
+ *  don't touch the row, so their pre-write snapshot is fine. */
 async function loadSettings(
   ledger: { id: string; budgetExcludedAccountIds: string[] },
   year: number,
@@ -337,9 +341,10 @@ export async function closeYearBudget(
 }
 
 /**
- * Replaces the budget-excluded category list (top-level expense category
- * ids the quick entry defaults to "exclude from budget"). Year-independent
- * — it shapes how future entries post, never rewrites stored ones.
+ * Replaces the budget-excluded category list (expense category ids at any
+ * depth — descendants ride an excluded ancestor — that quick entry
+ * defaults to "exclude from budget"). Year-independent — it shapes how
+ * future entries post, never rewrites stored ones.
  */
 export async function setExcludedCategories(
   ledgerId: string,
@@ -360,8 +365,11 @@ export async function setExcludedCategories(
       });
     }
   }
-  await budgetRepository.setExcludedAccountIds(ledgerId, ids);
-  return loadSettings(ledger, year);
+  // loadSettings must read the UPDATED ledger: the pre-write snapshot's
+  // excludedAccountIds would echo the previous list back as if the write
+  // hadn't happened (the client then seeds and re-commits from that echo).
+  const updated = await budgetRepository.setExcludedAccountIds(ledgerId, ids);
+  return loadSettings(updated, year);
 }
 
 /**

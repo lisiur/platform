@@ -51,8 +51,9 @@ export const budgetSettingsSchema = z
     // Single-month overrides (month-ascending); only the pinned months.
     // No per-month delete exists — closing the year clears them all.
     months: budgetMonthOverrideSchema.array().openapi({ example: [] }),
-    // Top-level expense category ids whose entries DEFAULT to "excluded
-    // from budget" at posting time.
+    // Expense category ids (any depth — descendants ride an excluded
+    // ancestor) whose entries DEFAULT to "excluded from budget" at posting
+    // time.
     excludedAccountIds: z.array(z.string()).openapi({ example: [] }),
   })
   .openapi("QianlaiBudgetSettings");
@@ -88,7 +89,7 @@ export const setMonthBudgetBodySchema = z
 
 export const setExcludedCategoriesBodySchema = z
   .object({
-    // Full replacement of the excluded top-level expense categories.
+    // Full replacement of the excluded expense categories (any depth).
     excludedAccountIds: z.array(z.string().min(1)).openapi({ example: [] }),
   })
   .openapi("QianlaiSetExcludedCategoriesBody");

@@ -784,7 +784,8 @@ struct QuickEntryView: View {
     }
 
     /// FR5's default resolution: until the user touches the toggle, the
-    /// picked category decides — its ROOT ancestor sitting in the ledger's
+    /// picked category decides — the first hit walking the leaf up its
+    /// chain (itself or any ancestor) sitting in the ledger's
     /// budget-excluded list turns the toggle on, anything else off (so a
     /// pick that moves from an excluded tree back to a counted leaf clears
     /// it again). Reads the exclusions off the dashboard's budget report;

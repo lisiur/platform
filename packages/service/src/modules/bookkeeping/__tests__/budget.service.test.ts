@@ -1,7 +1,24 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("#lib/db", () => ({ prisma: {} }));
 
+vi.mock("../ledger.repository", () => ({
+  ledgerRepository: { findById: vi.fn() },
+}));
+
+vi.mock("../account.repository", () => ({
+  accountRepository: { listByLedger: vi.fn() },
+}));
+
+vi.mock("../budget.repository", () => ({
+  budgetRepository: {
+    findYear: vi.fn(),
+    setExcludedAccountIds: vi.fn(),
+  },
+}));
+
+import { accountRepository } from "../account.repository";
+import { budgetRepository } from "../budget.repository";
 import {
   aggregateBudgetMonths,
   type BudgetActivityRow,
@@ -10,9 +27,11 @@ import {
   monthIndexOf,
   monthWindow,
   resolveMonthBudgetCents,
+  setExcludedCategories,
   toBudgetActivityRows,
   yearIndexOf,
 } from "../budget.service";
+import { ledgerRepository } from "../ledger.repository";
 
 /** An instant that reads as the given wall-clock date in UTC+8 (the
  *  offset every test uses), so month bucketing is readable in the specs. */
@@ -265,5 +284,59 @@ describe("toBudgetActivityRows", () => {
       },
       { date: localDate(2026, 3, 4), expenseCents: 0, excludedCents: 0 },
     ]);
+  });
+});
+
+describe("setExcludedCategories response echo", () => {
+  const mockLedgerRepo = ledgerRepository as unknown as {
+    findById: ReturnType<typeof vi.fn>;
+  };
+  const mockAccountRepo = accountRepository as unknown as {
+    listByLedger: ReturnType<typeof vi.fn>;
+  };
+  const mockBudgetRepo = budgetRepository as unknown as {
+    findYear: ReturnType<typeof vi.fn>;
+    setExcludedAccountIds: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    // The pre-write snapshot carries a DIFFERENT list than the update's
+    // return — the response must read the latter.
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      budgetExcludedAccountIds: ["stale"],
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      { id: "acc-food", type: "expense" },
+      { id: "acc-meals", type: "expense" },
+      { id: "acc-cash", type: "asset" },
+    ]);
+    mockBudgetRepo.setExcludedAccountIds.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      budgetExcludedAccountIds: ["acc-food", "acc-meals"],
+    });
+    mockBudgetRepo.findYear.mockResolvedValue(null);
+  });
+
+  it("returns the UPDATED exclusion list, not the pre-write snapshot", async () => {
+    const settings = await setExcludedCategories("led-1", 2026, [
+      "acc-food",
+      "acc-meals",
+    ]);
+    expect(mockBudgetRepo.setExcludedAccountIds).toHaveBeenCalledWith("led-1", [
+      "acc-food",
+      "acc-meals",
+    ]);
+    expect(settings.excludedAccountIds).toEqual(["acc-food", "acc-meals"]);
+  });
+
+  it("rejects non-expense categories without writing", async () => {
+    await expect(
+      setExcludedCategories("led-1", 2026, ["acc-cash"]),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockBudgetRepo.setExcludedAccountIds).not.toHaveBeenCalled();
   });
 });

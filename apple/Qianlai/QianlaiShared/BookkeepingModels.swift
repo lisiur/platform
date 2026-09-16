@@ -896,10 +896,10 @@ struct SetMonthBudgetBody: Encodable {
     var cents: Int
 }
 
-/// Full replacement of the budget-excluded top-level expense categories.
-/// Year-independent — shapes how future entries post, never rewrites
-/// stored ones. (The year rides in the query string; it only shapes the
-/// settings payload the write returns.)
+/// Full replacement of the budget-excluded expense categories (any depth —
+/// descendants ride an excluded ancestor). Year-independent — shapes how
+/// future entries post, never rewrites stored ones. (The year rides in the
+/// query string; it only shapes the settings payload the write returns.)
 struct SetExcludedCategoriesBody: Encodable {
     var excludedAccountIds: [String]
 }
@@ -947,21 +947,45 @@ nonisolated enum BudgetMath {
     }
 
     /// The quick-entry toggle's default for a picked category: walking the
-    /// leaf UP its parent chain decides — the ledger's excluded list names
-    /// top-level categories, and a child inherits its parent's exclusion.
-    /// Nothing picked (or an unknown id) defaults to counted.
+    /// leaf UP its parent chain decides — the first id on that walk (the
+    /// leaf itself or any ancestor) sitting in the ledger's excluded list
+    /// means excluded, so a child inherits its parent's exclusion. Nothing
+    /// picked (or an unknown id) defaults to counted.
     static func isExcludedByCategory(
         leafAccountId: String?,
         accounts: [BookAccount],
         excludedAccountIds: Set<String>
     ) -> Bool {
-        guard let leafAccountId else { return false }
-        let byId = Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) })
-        var current = byId[leafAccountId]
+        chain(
+            from: leafAccountId,
+            byId: Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) }),
+            contains: excludedAccountIds
+        )
+    }
+
+    /// The one leaf-up parent-chain walk behind the exclusion checks: true
+    /// when any visited id sits in `ids` — starting at `accountId` itself,
+    /// or at its parent when `includingSelf` is false (the picker's "this
+    /// row rides an excluded ancestor" test). Cycle-safe via a visited
+    /// set; an unknown id contains nothing. `byId` is the caller's
+    /// id→account index over the chart — build it once per render, not per
+    /// row.
+    static func chain(
+        from accountId: String?,
+        byId: [String: BookAccount],
+        contains ids: Set<String>,
+        includingSelf: Bool = true
+    ) -> Bool {
+        guard var current = accountId.flatMap({ byId[$0] }) else { return false }
+        if !includingSelf {
+            guard let parent = current.parentId.flatMap({ byId[$0] }) else { return false }
+            current = parent
+        }
         var visited = Set<String>()
-        while let account = current, visited.insert(account.id).inserted {
-            if excludedAccountIds.contains(account.id) { return true }
-            current = account.parentId.flatMap { byId[$0] }
+        while visited.insert(current.id).inserted {
+            if ids.contains(current.id) { return true }
+            guard let parent = current.parentId.flatMap({ byId[$0] }) else { return false }
+            current = parent
         }
         return false
     }

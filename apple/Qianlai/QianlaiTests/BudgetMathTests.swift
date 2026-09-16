@@ -89,6 +89,49 @@ final class BudgetMathTests: XCTestCase {
         ))
     }
 
+    func testExcludedSubCategoryLeafDefaultsExcluded() {
+        // The exclusion list may name a sub-category directly — the walk
+        // hits the leaf itself before any ancestor.
+        let accounts = [account("food", parentId: nil), account("meals", parentId: "food")]
+        XCTAssertTrue(BudgetMath.isExcludedByCategory(
+            leafAccountId: "meals",
+            accounts: accounts,
+            excludedAccountIds: ["meals"]
+        ))
+    }
+
+    func testAncestorOnlyWalkSkipsSelfAndDetectsParent() {
+        // The picker's inherited-row test walks ancestors ONLY: the row's
+        // own id in the set is an explicit pick, not an inherited one.
+        let accounts = [account("food", parentId: nil), account("meals", parentId: "food")]
+        let byId = Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) })
+        XCTAssertTrue(BudgetMath.chain(
+            from: "meals",
+            byId: byId,
+            contains: ["food"],
+            includingSelf: false
+        ))
+        XCTAssertFalse(BudgetMath.chain(
+            from: "meals",
+            byId: byId,
+            contains: ["meals"],
+            includingSelf: false
+        ))
+        // An unknown id and a root (no ancestors) contain nothing.
+        XCTAssertFalse(BudgetMath.chain(
+            from: "ghost",
+            byId: byId,
+            contains: ["food"],
+            includingSelf: false
+        ))
+        XCTAssertFalse(BudgetMath.chain(
+            from: "food",
+            byId: byId,
+            contains: ["food"],
+            includingSelf: false
+        ))
+    }
+
     func testLeafUnderCountedParentDefaultsCounted() {
         let accounts = [account("food", parentId: nil), account("meals", parentId: "food")]
         XCTAssertFalse(BudgetMath.isExcludedByCategory(

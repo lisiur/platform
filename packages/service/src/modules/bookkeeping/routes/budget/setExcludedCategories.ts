@@ -23,7 +23,7 @@ export const setExcludedCategoriesRoute = defineOpenAPIRoute({
     path: "/ledgers/{ledgerId}/budget/excluded-categories",
     tags: ["QianlaiBudget"],
     summary:
-      'Replace the budget-excluded top-level expense categories (entries under them default to "exclude from budget")',
+      'Replace the budget-excluded expense categories at any depth (entries under them default to "exclude from budget")',
     description:
       "Full replacement list. Shapes how FUTURE entries default at posting time; stored entries keep the flag they were saved with. Year-independent, unlike the amounts — the year query only shapes the settings payload the write returns.",
     request: {

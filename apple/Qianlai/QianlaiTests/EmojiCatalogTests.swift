@@ -36,6 +36,16 @@ final class EmojiCatalogTests: XCTestCase {
 }
 
 final class EmojiSearchTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        PinnedLanguage.pin()
+    }
+
+    override func tearDown() {
+        PinnedLanguage.restore()
+        super.tearDown()
+    }
+
     func testKeywordsCoverExactlyTheCatalog() {
         // Bidirectional: an icon without keywords is unsearchable; a
         // keyword entry without an icon is a typo or a removed emoji.

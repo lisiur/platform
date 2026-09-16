@@ -16,9 +16,10 @@ final class LocaleSettings {
     // Immutable constants, readable from nonisolated contexts (the widget's
     // `AppLanguage` resolution runs off the main actor).
     nonisolated static let systemIdentifier = "system"
+    nonisolated static let englishIdentifier = "en"
     nonisolated static let supportedIdentifiers: [String] = [
         systemIdentifier,
-        "en",
+        englishIdentifier,
         "zh-Hans",
     ]
 

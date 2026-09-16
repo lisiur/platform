@@ -15,6 +15,7 @@ import SwiftUI
 /// "days left" means anything.
 struct BudgetCardView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
+    @State private var showYearDetail = false
 
     let month: BudgetMonthSummary
     let year: BudgetYear?
@@ -69,15 +70,18 @@ struct BudgetCardView: View {
                     .lineLimit(1)
             }
 
-            HStack(spacing: 16) {
-                hint(L10n.string("budget.spent", defaultValue: "Spent"), value: amount(month.countedCents))
+            // Equal columns with the label above the figure: inline
+            // label+value pairs shared one line, so long amounts squeezed
+            // the neighbors out of the visible width.
+            HStack(spacing: 12) {
+                stat(L10n.string("budget.spent", defaultValue: "Spent"), value: amount(month.countedCents))
                 if isCurrentMonth {
-                    hint(
+                    stat(
                         L10n.string("budget.daily", defaultValue: "Daily left"),
                         value: amount(dailyAvailableCents)
                     )
                 }
-                hint(
+                stat(
                     L10n.string("budget.excluded", defaultValue: "Excluded"),
                     value: amount(month.excludedCents)
                 )
@@ -85,8 +89,12 @@ struct BudgetCardView: View {
             .padding(.horizontal, 6)
 
             if let year {
-                NavigationLink {
-                    BudgetYearDetailView()
+                // Not a NavigationLink: inside a List row one would append
+                // the system chevron next to the drawn one AND make the
+                // whole header row tap-to-navigate; the button keeps the
+                // gesture on the annual line only.
+                Button {
+                    showYearDetail = true
                 } label: {
                     HStack(spacing: 4) {
                         Text(year.annualStatusLabel)
@@ -109,6 +117,9 @@ struct BudgetCardView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
                 .accessibilityHint(L10n.string("budget.yearDetail", defaultValue: "Yearly breakdown"))
+                .navigationDestination(isPresented: $showYearDetail) {
+                    BudgetYearDetailView()
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -130,17 +141,22 @@ struct BudgetCardView: View {
         Money.format(Double(cents) / 100, currency: currency)
     }
 
-    private func hint(_ label: String, value: String) -> some View {
-        HStack(spacing: 4) {
+    /// One stats column: caption label above the semibold figure, each
+    /// column claiming an equal share so an amount can only truncate its
+    /// own column, never push its neighbors off the card.
+    private func stat(_ label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
                 .font(.caption.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.primary)
                 .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func annualValue(_ year: BudgetYear) -> String? {

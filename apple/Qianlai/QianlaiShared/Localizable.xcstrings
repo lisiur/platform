@@ -2008,13 +2008,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entries under an excluded top-level category default to \"exclude from budget\" when recorded. Only future entries are affected."
+            "value" : "Entries under an excluded category default to \"exclude from budget\" when recorded — sub-categories can also be excluded on their own. Only future entries are affected."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "被排除的一级分类，其下所有子分类记账时默认不计入预算；仅影响之后的新记账。"
+            "value" : "被排除的分类，其下子分类记账时默认不计入预算；也可以单独排除某个子分类。仅影响之后的新记账。"
           }
         }
       }
