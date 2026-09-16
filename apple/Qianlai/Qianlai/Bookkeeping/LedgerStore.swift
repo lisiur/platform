@@ -37,6 +37,31 @@ final class LedgerStore {
     }
 
     init() {
+        #if DEBUG
+        // Screenshot harness (`--ui-demo-budget-settings`): seed a CNY demo
+        // ledger so the budget settings page renders its amounts with the
+        // currency symbol; BudgetStore seeds its page data for the same
+        // flag. Init assignment skips the didSet — nothing persists.
+        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+            let demo = QianlaiLedger(
+                id: "demo-ledger",
+                ownerId: "demo-owner",
+                name: "演示账本",
+                description: nil,
+                currency: "CNY",
+                status: "active",
+                isDefault: true,
+                createdAt: .now,
+                updatedAt: .now,
+                myRole: .owner,
+                membersCount: 1,
+                shared: false
+            )
+            ledgers = [demo]
+            activeLedgerId = demo.id
+            return
+        }
+        #endif
         activeLedgerId = UserDefaults.standard.string(forKey: Self.activeLedgerKey)
     }
 

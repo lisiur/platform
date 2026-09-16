@@ -39,6 +39,8 @@ struct QianlaiApp: App {
                     CategoryPickerDemo()
                 } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-quick-entry") {
                     QuickEntryDemoScreen()
+                } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+                    BudgetSettingsDemoScreen()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -102,6 +104,18 @@ struct QianlaiApp: App {
         #if os(macOS)
         .windowResizability(.contentMinSize)
         #endif
+    }
+}
+
+/// Screenshot harness for the budget settings page (`--ui-demo-budget-settings`):
+/// renders the real `BudgetSettingsView`, whose own `BudgetStore` seeds its
+/// settings from the flag; `LedgerStore` seeds the demo CNY ledger so the
+/// amounts render with the currency symbol. No login or backend.
+private struct BudgetSettingsDemoScreen: View {
+    var body: some View {
+        NavigationStack {
+            BudgetSettingsView()
+        }
     }
 }
 

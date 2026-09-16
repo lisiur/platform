@@ -107,7 +107,7 @@ struct BudgetSettingsView: View {
                     if let cents = store.settings?.cents {
                         Text(Money.format(Double(cents) / 100, currency: ledgerStore.activeLedger?.currency))
                             .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.primary)
                     } else {
                         Text(L10n.string("budget.settings.amountNone", defaultValue: "Not set"))
                             .font(.subheadline)
@@ -118,6 +118,13 @@ struct BudgetSettingsView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+            // `.plain` on the three row Buttons: the Form's default
+            // borderless style feeds the label an accent foreground and the
+            // hierarchical styles (.secondary/.tertiary) resolve AGAINST it —
+            // the trailing chevron and the "Adjusted" badge rendered tint.
+            // Plain keeps the explicit grays gray (QuickEntryView's rows do
+            // the same); the accent amount still reads through the root tint.
+            .buttonStyle(.plain)
             .appCardRow()
         } header: {
             Text(L10n.string("budget.monthly", defaultValue: "Monthly Budget"))
@@ -141,6 +148,7 @@ struct BudgetSettingsView: View {
                     monthRow(month)
                 }
                 .disabled(store.settings?.cents == nil)
+                .buttonStyle(.plain)
                 .appCardRow()
             }
         } header: {
@@ -154,13 +162,14 @@ struct BudgetSettingsView: View {
     }
 
     private func monthRow(_ month: Int) -> some View {
-        HStack(spacing: 8) {
+        let isAdjusted = store.settings?.monthOverride(month: month) != nil
+        return HStack(spacing: 8) {
             Text(AppDates.formatMonthShort(
                 YearMonth(year: settingsYear, month: month),
                 locale: Locale.current
             ))
             .foregroundStyle(Color.primary)
-            if store.settings?.monthOverride(month: month) != nil {
+            if isAdjusted {
                 // The pin marker: an adjusted month reads differently from
                 // one riding the year's default amount.
                 Text(L10n.string("budget.settings.monthAdjusted", defaultValue: "Adjusted"))
@@ -171,7 +180,9 @@ struct BudgetSettingsView: View {
             if let effective = store.settings?.effectiveCents(month: month) {
                 Text(Money.format(Double(effective) / 100, currency: ledgerStore.activeLedger?.currency))
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    // An adjusted month's amount reads accent — the app's
+                    // active-state signal; unadjusted months stay secondary.
+                    .foregroundStyle(isAdjusted ? Color.accentColor : .secondary)
             } else {
                 Text(L10n.string("budget.settings.excludedNone", defaultValue: "None"))
                     .font(.subheadline)
@@ -200,6 +211,7 @@ struct BudgetSettingsView: View {
                     }
                 }
             }
+            .buttonStyle(.plain)
             .appCardRow()
         } footer: {
             excludedFooterText()

@@ -18,10 +18,33 @@ import Observation
 final class BudgetStore {
     let client = APIClient.shared
 
+    init() {
+        #if DEBUG
+        // Screenshot harness (`--ui-demo-budget-settings`): pre-seed
+        // settings so the settings page renders amounts, a pinned month,
+        // and an exclusion count offline (`load` is flag-guarded too — a
+        // failed fetch would wipe this seed with `try?`).
+        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+            settings = BudgetSettings(
+                year: YearMonth.current.year,
+                cents: 300_000,
+                carryOverCents: nil,
+                months: [BudgetMonthOverride(month: 9, cents: 500_000)],
+                excludedAccountIds: ["demo-dining", "demo-taxi"]
+            )
+        }
+        #endif
+    }
+
     private(set) var settings: BudgetSettings?
     private(set) var isLoading = false
 
     func load(ledgerId: String, year: Int) async {
+        #if DEBUG
+        // Screenshot harness: keep the seeded settings — the demo has no
+        // backend, and this method's `try?` would wipe the seed on failure.
+        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") { return }
+        #endif
         isLoading = true
         defer { isLoading = false }
         let query = ApiQuery.build([("year", String(year))])
