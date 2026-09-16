@@ -490,12 +490,24 @@ private struct AppCardRowModifier: ViewModifier {
 /// inside a ZStack relaxes the safe area for the content too and collapses
 /// the large-title/search layout.
 ///
-/// The layer is pinned to the WINDOW, never to the page or its safe area:
-/// an `ignoresSafeArea`-expanded layer re-fits whenever the safe area
-/// changes — large title collapsing on scroll, search drawer appearing,
-/// per-tab chrome differences — and visibly drifts. Cancelling the page's
-/// own global origin leaves the wallpaper motionless through scroll and
-/// tab switches; pushes slide page content over it, not with it.
+/// The canvas greedily fills the whole screen through safe areas
+/// (`.ignoresSafeArea` on a scaled-to-fill ZStack, clipped to it): the
+/// backdrop covers everything behind a mounted page — nav-bar insets and
+/// the home-indicator strip included — regardless of how much of the
+/// screen the page's own frame reaches, and there are no geometry reads
+/// left to get it wrong.
+///
+/// The canvas deliberately carries NO global-origin compensation: earlier
+/// revisions aligned the page's wallpaper slice to the screen by cancelling
+/// the host's `.global` origin — and that read is what made the wallpaper
+/// vanish inside navigation transitions: the origin is a moving value
+/// mid-animation, GeometryReader baked a transitional one in
+/// permanently, and the onGeometryChange rewrite lagged the same window.
+/// With the compensation gone there is no animated geometry left to
+/// misread — the wallpaper rides with its page through pushes, pops, and
+/// sheet dismissals, motionless through scroll (a scrolling List never
+/// moves its own frame).
+///
 /// The scrim tints toward the scheme's base color: black in dark mode
 /// (darker wallpaper keeps white canvas text readable), white in light
 /// mode (a pastel wash keeps black canvas text readable) — a black veil
@@ -510,22 +522,15 @@ private struct AppBackgroundCanvasModifier: ViewModifier {
             content
                 .scrollContentBackground(.hidden)
                 .background {
-                    GeometryReader { geo in
-                        let origin = geo.frame(in: .global).origin
-                        ZStack {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                            (colorScheme == .dark ? Color.black : Color.white)
-                                .opacity(backgroundSettings.dim)
-                        }
-                        .frame(
-                            width: BackgroundSettings.sharedScreenSize.width,
-                            height: BackgroundSettings.sharedScreenSize.height
-                        )
-                        .clipped()
-                        .offset(x: -origin.x, y: -origin.y)
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                        (colorScheme == .dark ? Color.black : Color.white)
+                            .opacity(backgroundSettings.dim)
                     }
+                    .clipped()
+                    .ignoresSafeArea()
                     .allowsHitTesting(false)
                 }
         } else {
