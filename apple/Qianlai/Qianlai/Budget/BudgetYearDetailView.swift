@@ -35,6 +35,7 @@ struct BudgetYearDetailView: View {
                                 diff: row.diffCents,
                                 emphasize: false
                             )
+                            .appCardRow()
                         }
                     } header: {
                         Text(L10n.string("budget.yearDetail.months", defaultValue: "Months"))
@@ -49,6 +50,7 @@ struct BudgetYearDetailView: View {
                             diff: year.netCents,
                             emphasize: true
                         )
+                        .appCardRow()
                     }
                 }
             } else {
@@ -80,6 +82,7 @@ struct BudgetYearDetailView: View {
             columnCaption(L10n.string("budget.spent", defaultValue: "Spent"))
             columnCaption(L10n.string("budget.yearDetail.diff", defaultValue: "Difference"))
         }
+        .appCardRow()
     }
 
     private func columnCaption(_ label: String) -> some View {

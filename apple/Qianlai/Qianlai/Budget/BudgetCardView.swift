@@ -24,9 +24,10 @@ struct BudgetCardView: View {
     /// meaningless there and the daily hint hides.
     var isCurrentMonth: Bool
 
-    /// FR6's status ladder drives the card's color: yellow from 80%, red
-    /// from 100% — the spec's 卡片变黄/变红. The tint recolors both the
-    /// card's background wash and the hero figure.
+    /// FR6's status ladder colors the hero figure: yellow from 80%, red
+    /// from 100% — the spec's 卡片变黄/变红 lives only on the remaining
+    /// amount now (2026-09-16 user ruling); the card's background stays
+    /// the static card surface like the expense stat card's.
     private var tint: Color? {
         switch BudgetMath.status(countedCents: month.countedCents, budgetCents: month.budgetCents) {
         case .normal: nil
@@ -112,6 +113,10 @@ struct BudgetCardView: View {
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
+                    // Caption text alone is a ~16pt-tall strip; lift the
+                    // row to the 44pt HIG minimum so the whole line is
+                    // the tap target.
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -126,7 +131,7 @@ struct BudgetCardView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(tint.map { $0.opacity(0.16) } ?? backgroundSettings.cardSurface)
+                .fill(backgroundSettings.cardSurface)
         )
     }
 
