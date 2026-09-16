@@ -429,6 +429,23 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertEqual(keepObject["name"] as? String, "New")
     }
 
+    /// The server schema requires the `parentId` key on every reorder item
+    /// (root accounts send explicit null); a synthesized encodeIfPresent
+    /// omission fails validation with a 400.
+    func testReorderAccountItemEncodesRootParentAsNull() throws {
+        let body = ReorderAccountsBody(items: [
+            ReorderAccountItem(id: "root", parentId: nil, sortOrder: 0),
+            ReorderAccountItem(id: "leaf", parentId: "root", sortOrder: 1),
+        ])
+        let object = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(body)
+        ) as! [String: Any]
+        let items = object["items"] as! [[String: Any]]
+        XCTAssertTrue(items[0]["parentId"] is NSNull)
+        XCTAssertEqual(items[1]["parentId"] as? String, "root")
+        XCTAssertEqual(items[0]["sortOrder"] as? Int, 0)
+    }
+
     // MARK: - Formatting & dates
 
     func testMoneyFormatting() {
@@ -475,30 +492,26 @@ final class QianlaiModelsTests: XCTestCase {
 
     func testReorderPreservesOtherTypesAndDefaultPocket() {
         // Root group: default pocket (asset), asset A, expense E1, E2.
-        let items = [
+        let store = AccountStore()
+        store.seedForDemo([
             makeAccount(id: "dp", type: .asset, sortOrder: 0, flags: ["defaultDebit"]),
             makeAccount(id: "a", type: .asset, sortOrder: 1),
             makeAccount(id: "e1", type: .expense, sortOrder: 2),
             makeAccount(id: "e2", type: .expense, sortOrder: 3),
-        ]
-        let moved = items.first { $0.id == "e1" }!
-        let group = items
-            .filter { $0.parentId == moved.parentId }
-            .sorted { $0.sortOrder < $1.sortOrder }
-        let movable = group.filter { $0.type == moved.type && !$0.isDefaultPocket }
-        var newMovable = movable
-        let movedAccount = newMovable.remove(at: 0)
-        newMovable.insert(movedAccount, at: 1)
-        var newOrder = group
-        var spliceIndex = 0
-        for index in newOrder.indices {
-            if newOrder[index].type == moved.type && !newOrder[index].isDefaultPocket {
-                newOrder[index] = newMovable[spliceIndex]
-                spliceIndex += 1
-            }
-        }
-        // Asset block keeps its slot; default pocket stays first; expenses swap.
-        XCTAssertEqual(newOrder.map(\.id), ["dp", "a", "e2", "e1"])
+        ])
+
+        // Dragging e1 below e2 (the type's flat list is [e1, e2]; a drop
+        // past the end): the expense slots swap while the asset block and
+        // the default pocket keep their positions, the request re-sends the
+        // whole root group with fresh indices, and the new order lands on
+        // `items` optimistically for the in-flight List render.
+        let body = store.prepareMove("e1", flatTargetIndex: 2)
+        XCTAssertEqual(body?.items.map(\.id), ["dp", "a", "e2", "e1"])
+        XCTAssertEqual(body?.items.map(\.sortOrder), [0, 1, 2, 3])
+        XCTAssertEqual(store.items.map(\.id), ["dp", "a", "e2", "e1"])
+
+        // Dropping e1 back where it started is a no-op — no request.
+        XCTAssertNil(store.prepareMove("e1", flatTargetIndex: 0))
     }
 
     // MARK: - Helpers

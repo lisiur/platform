@@ -26,7 +26,6 @@ struct CategoriesManageView: View {
     @State private var isShowingCreate = false
     @State private var balanceAccount: BookAccount?
     @State private var accountPendingDelete: BookAccount?
-    @State private var isReordering = false
 
     /// Equity is system-managed; expenses come first, matching the
     /// quick-entry grid's ordering.
@@ -52,17 +51,6 @@ struct CategoriesManageView: View {
         }
         .navigationTitle(Text(L10n.string("categories.title", defaultValue: "Categories")))
         .toolbar {
-            #if os(iOS)
-            if canManage {
-                ToolbarItem(placement: .navigation) {
-                    Button {
-                        isReordering.toggle()
-                    } label: {
-                        Label(L10n.string("accounts.reorder", defaultValue: "Reorder"), systemImage: "arrow.up.arrow.down")
-                    }
-                }
-            }
-            #endif
             if canManage {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -147,6 +135,17 @@ struct CategoriesManageView: View {
             let parentIds = Set(entries.compactMap(\.account.parentId))
             let visible = revealedEntries
 
+                if canManage, !entries.isEmpty {
+                    Label(
+                        L10n.string("categories.reorderHint", defaultValue: "Touch and hold, then drag to reorder."),
+                        systemImage: "hand.draw"
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .listRowSeparator(.hidden)
+                    .appCardRow()
+                }
+
             if entries.isEmpty {
                 EmptyStateView(
                     message: L10n.string("categories.empty", defaultValue: "No categories"),
@@ -161,15 +160,18 @@ struct CategoriesManageView: View {
                 }
                 .onMove { source, destination in
                     let accountId = movedAccountId(from: source)
-                    guard !accountId.isEmpty else { return }
+                    guard !accountId.isEmpty,
+                          let body = store.prepareMove(accountId, flatTargetIndex: flatIndexOfDrop(at: destination))
+                    else { return }
                     Task {
                         do {
-                            try await store.move(accountId, flatTargetIndex: flatIndexOfDrop(at: destination))
+                            try await store.commitMove(body)
                         } catch {
                             toast.show(error.localizedDescription)
                         }
                     }
                 }
+                .appCardRow()
             }
 
             if !ledger.canPost {
@@ -180,12 +182,10 @@ struct CategoriesManageView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .listRowSeparator(.hidden)
+                .appCardRow()
             }
         }
-        #if os(iOS)
-        .environment(\.editMode, .constant(isReordering ? .active : .inactive))
-        // macOS lists reorder by dragging directly — no edit mode needed.
-        #endif
+        .appBackgroundCanvas()
         .refreshable {
             await store.reload()
         }

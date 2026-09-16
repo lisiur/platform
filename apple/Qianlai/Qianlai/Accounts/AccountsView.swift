@@ -155,10 +155,12 @@ struct AccountsView: View {
                 }
                 .onMove { source, destination in
                     let accountId = movedAccountId(from: source)
-                    guard !accountId.isEmpty else { return }
+                    guard !accountId.isEmpty,
+                          let body = store.prepareMove(accountId, flatTargetIndex: destination)
+                    else { return }
                     Task {
                         do {
-                            try await store.move(accountId, flatTargetIndex: destination)
+                            try await store.commitMove(body)
                         } catch {
                             toast.show(error.localizedDescription)
                         }

@@ -201,16 +201,20 @@ final class AccountStore {
         await reload()
     }
 
-    /// Applies a drag-to-reorder from the flat (parent-first) tree list of one
-    /// type. The server only accepts position changes within an account's
+    /// Computes a drag-to-reorder from the flat (parent-first) tree list of
+    /// one type and applies it to `items` immediately, so the dropped row
+    /// settles into place instead of animating back while the request is in
+    /// flight. The server only accepts position changes within an account's
     /// current sibling group and then compacts that group to a gapless
-    /// 0..n-1 sequence — so we re-send the whole sibling group (which for
-    /// roots spans every type plus the hidden default pocket) with new
-    /// indices, keeping non-participating members in their relative slots.
-    func move(_ accountId: String, flatTargetIndex: Int) async throws {
-        guard let ledgerId,
-              let moved = items.first(where: { $0.id == accountId })
-        else { return }
+    /// 0..n-1 sequence — the returned body re-sends the whole sibling group
+    /// (which for roots spans every type plus the hidden default pocket)
+    /// with new indices, keeping non-participating members in their relative
+    /// slots. Returns nil when the drag is a no-op (unknown account or
+    /// dropped where it started); commit the result with `commitMove`.
+    /// Call synchronously from onMove — the local apply is what List's drag
+    /// animation reconciles against.
+    func prepareMove(_ accountId: String, flatTargetIndex: Int) -> ReorderAccountsBody? {
+        guard let moved = items.first(where: { $0.id == accountId }) else { return nil }
 
         // The flat parent-first list as shown in the UI (one type, no
         // archived filter so indices line up with the rendered rows).
@@ -224,7 +228,7 @@ final class AccountStore {
             .filter { $0.parentId == moved.parentId }
             .sorted { $0.sortOrder < $1.sortOrder }
         let movable = group.filter { $0.type == moved.type && !$0.isDefaultPocket }
-        guard let fromIndex = movable.firstIndex(where: { $0.id == accountId }) else { return }
+        guard let fromIndex = movable.firstIndex(where: { $0.id == accountId }) else { return nil }
 
         // Translate the flat drop index into an index within the type's
         // movable sequence: count movable rows above the drop position.
@@ -240,6 +244,7 @@ final class AccountStore {
         var newMovable = movable
         let movedAccount = newMovable.remove(at: fromIndex)
         newMovable.insert(movedAccount, at: targetIndex)
+        if newMovable.map(\.id) == movable.map(\.id) { return nil }
 
         var newOrder = group
         var spliceIndex = 0
@@ -251,16 +256,38 @@ final class AccountStore {
             }
         }
 
-        let body = ReorderAccountsBody(
+        // Slot the re-spliced group back into `items` at its members' old
+        // positions (sorted by sortOrder to match `group`'s order).
+        let groupIndices = items.indices
+            .filter { items[$0].parentId == moved.parentId }
+            .sorted { items[$0].sortOrder < items[$1].sortOrder }
+        var updated = items
+        for (slot, index) in zip(newOrder, groupIndices) {
+            updated[index] = slot
+        }
+        items = updated
+
+        return ReorderAccountsBody(
             items: newOrder.enumerated().map { index, account in
                 ReorderAccountItem(id: account.id, parentId: account.parentId, sortOrder: index)
             }
         )
-        _ = try await client.send(
-            "POST",
-            "bookkeeping/ledgers/\(ledgerId)/accounts/reorder",
-            body: body
-        )
+    }
+
+    /// Sends a prepared reorder and refreshes; a failure reloads first so
+    /// the optimistic local order drops back to the server's.
+    func commitMove(_ body: ReorderAccountsBody) async throws {
+        guard let ledgerId else { return }
+        do {
+            _ = try await client.send(
+                "POST",
+                "bookkeeping/ledgers/\(ledgerId)/accounts/reorder",
+                body: body
+            )
+        } catch {
+            await reload()
+            throw error
+        }
         await reload()
     }
 

@@ -1146,10 +1146,30 @@ struct UpdateAccountBody: Encodable {
     }
 }
 
+/// The server's schema requires the `parentId` KEY on every item (root
+/// accounts send explicit null) — the synthesized Encodable would omit nil
+/// via encodeIfPresent and fail validation, so null is encoded by hand.
 struct ReorderAccountItem: Encodable {
     var id: String
     var parentId: String?
     var sortOrder: Int
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        if let parentId {
+            try container.encode(parentId, forKey: .parentId)
+        } else {
+            try container.encodeNil(forKey: .parentId)
+        }
+        try container.encode(sortOrder, forKey: .sortOrder)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case parentId
+        case sortOrder
+    }
 }
 
 struct ReorderAccountsBody: Encodable {

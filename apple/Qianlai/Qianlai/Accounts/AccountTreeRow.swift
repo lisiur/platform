@@ -11,7 +11,8 @@ import SwiftUI
 /// management screens: emoji icon, display name, system/archived badges,
 /// and the trailing more menu. `disclosesExpansion` renders the collapsible
 /// screen's leading chevron (rotated when `isExpanded`, parents only);
-/// what a tap or long-press does belongs to the owning screen.
+/// what a tap does belongs to the owning screen — long-press stays free
+/// for the List's drag-to-reorder.
 struct AccountTreeRow<MenuItems: View>: View {
     let account: BookAccount
     /// Whether the row parents sub-rows; only visible under
@@ -51,19 +52,13 @@ struct AccountTreeRow<MenuItems: View>: View {
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
-        .contextMenu {
-            if canManage {
-                menuItems
-            }
-        }
     }
 }
 
-/// Row actions shared by both management screens' long-press context menu
-/// and trailing more menu: edit, set balance (asset-like rows), add-sub,
-/// archive toggle, delete. `addSubLabel` carries each screen's
-/// "Add Sub-account" / "Add Sub-category" copy; the closures close over
-/// the owning screen's state.
+/// Row actions for the management screens' trailing more menu: edit, set
+/// balance (asset-like rows), add-sub, archive toggle, delete. `addSubLabel`
+/// carries each screen's "Add Sub-account" / "Add Sub-category" copy; the
+/// closures close over the owning screen's state.
 struct AccountRowMenuItems: View {
     let account: BookAccount
     let addSubLabel: String
