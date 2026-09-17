@@ -1336,7 +1336,7 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         case .budget:
             LocalizedStringResource(
                 "quick.excludeFromBudget",
-                defaultValue: "Exclude from Budget",
+                defaultValue: "Excluded from budget",
                 comment: "Quick-entry toggle: keep the entry out of the ledger's monthly budget (Chinese 不计入预算)"
             )
         }

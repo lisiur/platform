@@ -1499,7 +1499,7 @@ struct QuickEntryView: View {
                     get: { draft.excludedFromBudget },
                     set: { draft.excludedFromBudget = $0; didTouchBudgetToggle = true }
                 )) {
-                    Text(L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget"))
+                    Text(L10n.string("quick.excludeFromBudget", defaultValue: "Excluded from budget"))
                 }
             }
         }
@@ -1814,7 +1814,7 @@ struct QuickEntryView: View {
         countingToggleChip(
             isActive: draft.excludedFromBudget,
             systemImage: QuickEntryField.budget.icon,
-            label: L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget")
+            label: L10n.string("quick.excludeFromBudget", defaultValue: "Excluded from budget")
         ) {
             draft.excludedFromBudget.toggle()
             didTouchBudgetToggle = true

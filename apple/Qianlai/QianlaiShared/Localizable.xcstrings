@@ -4098,13 +4098,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Off budget"
+            "value" : "Excluded from budget"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "预算外"
+            "value" : "不计入预算"
           }
         }
       }
@@ -8483,7 +8483,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exclude from Budget"
+            "value" : "Excluded from budget"
           }
         },
         "zh-Hans" : {

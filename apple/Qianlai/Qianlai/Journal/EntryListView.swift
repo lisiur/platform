@@ -423,7 +423,7 @@ struct EntryRow: View {
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.circle.badge.xmark")
                                 .font(.caption2)
-                            Text(L10n.string("journal.excludedFromBudget", defaultValue: "Off budget"))
+                            Text(L10n.string("journal.excludedFromBudget", defaultValue: "Excluded from budget"))
                                 .font(.caption2)
                                 .lineLimit(1)
                         }
