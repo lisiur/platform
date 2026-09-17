@@ -716,38 +716,20 @@ struct MembersView: View {
                 BadgeView(text: member.role.label, outlined: true)
             } else if store.isOwner, member.userId != myUserId {
                 Menu {
-                    Button {
-                        Task {
-                            do {
-                                try await store.updateRole(member, role: .editor)
-                                toast.show(L10n.string("ledgers.roleUpdated", defaultValue: "Role updated"))
-                            } catch {
-                                toast.show(error.localizedDescription)
-                            }
-                        }
-                    } label: {
-                        if member.role == .editor {
-                            Label(L10n.string("role.editor", defaultValue: "Editor"), systemImage: "checkmark")
-                        } else {
-                            Text(L10n.string("role.editor", defaultValue: "Editor"))
-                        }
-                    }
-                    Button {
-                        Task {
-                            do {
-                                try await store.updateRole(member, role: .viewer)
-                                toast.show(L10n.string("ledgers.roleUpdated", defaultValue: "Role updated"))
-                            } catch {
-                                toast.show(error.localizedDescription)
-                            }
-                        }
-                    } label: {
-                        if member.role == .viewer {
-                            Label(L10n.string("role.viewer", defaultValue: "Viewer"), systemImage: "checkmark")
-                        } else {
-                            Text(L10n.string("role.viewer", defaultValue: "Viewer"))
-                        }
-                    }
+                    // The member's current role carries the checkmark via
+                    // UIKit's selection-state channel (a Toggle's on-state),
+                    // which renders it in the menu's trailing state column
+                    // on every OS build — the hand-drawn Label icon this
+                    // replaces rendered inline against the title on device
+                    // builds.
+                    Toggle(
+                        L10n.string("role.editor", defaultValue: "Editor"),
+                        isOn: roleToggleBinding(member, .editor)
+                    )
+                    Toggle(
+                        L10n.string("role.viewer", defaultValue: "Viewer"),
+                        isOn: roleToggleBinding(member, .viewer)
+                    )
                 } label: {
                     HStack(spacing: 4) {
                         Text(member.role.label)
@@ -784,6 +766,28 @@ struct MembersView: View {
             }
         }
         .appCardRow()
+    }
+
+    /// Radio-style on-state for one of the member's assignable roles: on
+    /// while it's the current role, and writes only ever turn a role ON —
+    /// tapping the already-current row just closes the menu without
+    /// re-issuing the update. The async update keeps the old buttons'
+    /// toast-on-success / error-body behavior.
+    private func roleToggleBinding(_ member: LedgerMember, _ role: LedgerRole) -> Binding<Bool> {
+        Binding(
+            get: { member.role == role },
+            set: { isOn in
+                guard isOn else { return }
+                Task {
+                    do {
+                        try await store.updateRole(member, role: role)
+                        toast.show(L10n.string("ledgers.roleUpdated", defaultValue: "Role updated"))
+                    } catch {
+                        toast.show(error.localizedDescription)
+                    }
+                }
+            }
+        )
     }
 
     /// Ledger-roster row actions shared by the long-press context menu,

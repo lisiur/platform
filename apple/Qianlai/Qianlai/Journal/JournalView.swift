@@ -432,21 +432,32 @@ struct JournalView: View {
         }
     }
 
-    /// Amount-order menu, beside the filter button — same items, checkmark
-    /// and tint signal as the dashboard's month header (the default order
-    /// never carries the checkmark; a non-default sort tints the icon
-    /// accent and gets marked). Presentation intent, not a filter: it never
-    /// tints the funnel.
+    /// Amount-order menu, beside the filter button — same items, state
+    /// column and tint signal as the dashboard's month header (the default
+    /// order never carries the checkmark; a non-default sort tints the
+    /// icon accent and gets marked). Presentation intent, not a filter: it
+    /// never tints the funnel. The amount orders carry their on-state as
+    /// Toggles — UIKit's own selection-state channel, so the checkmark
+    /// renders in the menu's trailing state column on every OS build; the
+    /// hand-drawn Label icon this replaces is placed per-build by SwiftUI
+    /// (column on the 26.5 simulator, inline against the title on device).
     private var sortMenu: some View {
         Menu {
-            sortMenuItem(.date, title: L10n.string("journal.sortDefault", defaultValue: "Default"))
-            sortMenuItem(
-                .amountDescending,
-                title: L10n.string("journal.sortAmountDesc", defaultValue: "Amount: high to low")
+            // The default `.date` stays a plain Button and never carries
+            // the checkmark — it's the list's natural state, so only a
+            // deviation from it gets marked.
+            Button {
+                store.sort = .date
+            } label: {
+                Text(L10n.string("journal.sortDefault", defaultValue: "Default"))
+            }
+            Toggle(
+                L10n.string("journal.sortAmountDesc", defaultValue: "Amount: high to low"),
+                isOn: sortActiveBinding(.amountDescending)
             )
-            sortMenuItem(
-                .amountAscending,
-                title: L10n.string("journal.sortAmountAsc", defaultValue: "Amount: low to high")
+            Toggle(
+                L10n.string("journal.sortAmountAsc", defaultValue: "Amount: low to high"),
+                isOn: sortActiveBinding(.amountAscending)
             )
         } label: {
             CircleIcon(systemName: "arrow.up.arrow.down", isActive: store.sort != .date)
@@ -454,16 +465,14 @@ struct JournalView: View {
         .accessibilityLabel(Text(L10n.string("journal.sort", defaultValue: "Sort")))
     }
 
-    private func sortMenuItem(_ sort: JournalStore.EntrySort, title: String) -> some View {
-        Button {
-            store.sort = sort
-        } label: {
-            if store.sort == sort, sort != .date {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
+    /// Radio-style on-state for one amount order: on only while `sort` is
+    /// that order, and writes only ever turn an order ON — tapping the
+    /// already-active row just closes the menu with the selection intact.
+    private func sortActiveBinding(_ sort: JournalStore.EntrySort) -> Binding<Bool> {
+        Binding(
+            get: { store.sort == sort },
+            set: { if $0 { store.sort = sort } }
+        )
     }
 
     private var filterButton: some View {

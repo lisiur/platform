@@ -382,17 +382,30 @@ struct DashboardView: View {
     /// Month-list ordering menu, pinned to the month header's trailing
     /// edge. Writes go to the month store whose sort change schedules the
     /// reload; the flat/grouped row rendering follows the same state inside
-    /// EntryListView.
+    /// EntryListView. The amount orders carry their on-state as Toggles —
+    /// UIKit's own selection-state channel, so the checkmark renders in
+    /// the menu's trailing state column on every OS build. The hand-drawn
+    /// `Label(title, systemImage:)` this replaces is placed per-build by
+    /// SwiftUI: the 26.5 simulator gave it a column while the device build
+    /// drew it inline against the title.
     private var sortMenu: some View {
         Menu {
-            sortMenuItem(.date, title: L10n.string("dashboard.sortDefault", defaultValue: "Default"))
-            sortMenuItem(
-                .amountDescending,
-                title: L10n.string("dashboard.sortAmountDesc", defaultValue: "Amount: high to low")
+            // The default `.date` stays a plain Button and never carries
+            // the checkmark — it's the list's natural state, so only a
+            // deviation from it gets marked, which a selection Picker
+            // (always marking its selection) can't express.
+            Button {
+                entryStore.sort = .date
+            } label: {
+                Text(L10n.string("dashboard.sortDefault", defaultValue: "Default"))
+            }
+            Toggle(
+                L10n.string("dashboard.sortAmountDesc", defaultValue: "Amount: high to low"),
+                isOn: sortActiveBinding(.amountDescending)
             )
-            sortMenuItem(
-                .amountAscending,
-                title: L10n.string("dashboard.sortAmountAsc", defaultValue: "Amount: low to high")
+            Toggle(
+                L10n.string("dashboard.sortAmountAsc", defaultValue: "Amount: low to high"),
+                isOn: sortActiveBinding(.amountAscending)
             )
         } label: {
             // Tint mirrors the filter chip: black at the default order,
@@ -405,43 +418,36 @@ struct DashboardView: View {
         .accessibilityLabel(L10n.string("dashboard.sort", defaultValue: "Sort"))
     }
 
-    /// One ordering option. The default `.date` never carries the
-    /// checkmark — it's the list's natural state, so only a deviation from
-    /// it (an amount order) gets marked.
-    private func sortMenuItem(_ sort: JournalStore.EntrySort, title: String) -> some View {
-        Button {
-            entryStore.sort = sort
-        } label: {
-            if entryStore.sort == sort, sort != .date {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
+    /// Radio-style on-state for one amount order: on only while `sort` is
+    /// that order, and writes only ever turn an order ON — tapping the
+    /// already-active row just closes the menu with the selection intact.
+    private func sortActiveBinding(_ sort: JournalStore.EntrySort) -> Binding<Bool> {
+        Binding(
+            get: { entryStore.sort == sort },
+            set: { if $0 { entryStore.sort = sort } }
+        )
     }
 
     /// Month-list kind filter menu, left of the sort menu on the month
     /// header's trailing edge. Writes go to the month store whose kind
-    /// change schedules the reload; the active kind carries the checkmark
-    /// like the sort menu's selection pattern.
+    /// change schedules the reload. A Picker (the quick-entry payer menu's
+    /// construction) hands the options to UIKit, whose selection state
+    /// draws the checkmark in the trailing state column on every OS build
+    /// — the active kind, unfiltered All included, carries it exactly as
+    /// the old hand-drawn markup did where that rendered correctly.
     private var filterMenu: some View {
-        Menu {
-            filterMenuItem(
-                nil,
-                title: L10n.string("dashboard.filterAll", defaultValue: "All")
-            )
-            filterMenuItem(
-                .expense,
-                title: L10n.string("quick.kind.expense", defaultValue: "Expense")
-            )
-            filterMenuItem(
-                .income,
-                title: L10n.string("quick.kind.income", defaultValue: "Income")
-            )
-            filterMenuItem(
-                .transfer,
-                title: L10n.string("quick.kind.transfer", defaultValue: "Transfer")
-            )
+        @Bindable var entryStore = entryStore
+        return Menu {
+            Picker(L10n.string("dashboard.filter", defaultValue: "Filter"), selection: $entryStore.kind) {
+                Text(L10n.string("dashboard.filterAll", defaultValue: "All"))
+                    .tag(nil as QuickEntryKind?)
+                Text(L10n.string("quick.kind.expense", defaultValue: "Expense"))
+                    .tag(QuickEntryKind.expense as QuickEntryKind?)
+                Text(L10n.string("quick.kind.income", defaultValue: "Income"))
+                    .tag(QuickEntryKind.income as QuickEntryKind?)
+                Text(L10n.string("quick.kind.transfer", defaultValue: "Transfer"))
+                    .tag(QuickEntryKind.transfer as QuickEntryKind?)
+            }
         } label: {
             // Activity is conveyed by tint alone, never a swapped
             // symbol (the Journal's filter button).
@@ -451,19 +457,6 @@ struct DashboardView: View {
             )
         }
         .accessibilityLabel(L10n.string("dashboard.filter", defaultValue: "Filter"))
-    }
-
-    /// One kind option; nil is the unfiltered list.
-    private func filterMenuItem(_ kind: QuickEntryKind?, title: String) -> some View {
-        Button {
-            entryStore.kind = kind
-        } label: {
-            if entryStore.kind == kind {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
     }
 
     /// Mirrors the projects list's create gate exactly: the project form
