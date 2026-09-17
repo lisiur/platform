@@ -258,10 +258,13 @@ struct ContentView: View {
     /// interception and the widget's `qianlai://quick-entry` deep link. A
     /// bound widget's link resolves to its own ledger and the sheet records
     /// against it without touching the global scope. A widget tap is
-    /// usually a cold launch, so the ledger list may not be loaded yet —
-    /// the load runs and resolution retries before the sheet opens; only a
-    /// ledger that still can't be found (deleted) degrades to a plain
-    /// quick add.
+    /// usually a cold launch, and the deep link is delivered the moment
+    /// this view mounts — before the app-level ledger fetch settles — so
+    /// an empty `activeLedger` there means "no data yet", not "no
+    /// ledgers". Both paths therefore run the load and re-resolve before
+    /// denying: a bound target that still can't be found (deleted)
+    /// degrades to a plain quick add, and the plain path below only
+    /// surfaces a denial once a load has actually settled.
     private func tryPresentQuickAdd(preset: QuickEntryPreset? = nil) {
         if let preset {
             resolveBoundQuickAdd(preset)
@@ -271,7 +274,19 @@ struct ContentView: View {
         quickAddBinding = nil
         if ledgerStore.activeLedger != nil, ledgerStore.canPost {
             isQuickAddPresented = true
-        } else if ledgerStore.activeLedger == nil {
+            return
+        }
+        // The not-yet-loaded empty list is "no data yet", not "no ledgers"
+        // (see above): a cold-launch link beats the startup fetch. Load and
+        // re-enter — only the settled pass below may deny.
+        guard ledgerStore.hasLoaded else {
+            Task { @MainActor in
+                await ledgerStore.load()
+                tryPresentQuickAdd()
+            }
+            return
+        }
+        if ledgerStore.activeLedger == nil {
             quickAddDeniedReason = L10n.string("quick.selectLedgerFirst", defaultValue: "Select a ledger first")
         } else {
             quickAddDeniedReason = L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger")
