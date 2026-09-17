@@ -101,7 +101,7 @@ struct EntryListView: View {
                         }
                         .appCardRow()
                     } header: {
-                        Text(AppDates.formatEntryDay(group.day, locale: locale))
+                        dayHeader(group)
                     }
                 }
             } else {
@@ -163,6 +163,47 @@ struct EntryListView: View {
             }
             .interactiveDismissDisabled()
         }
+    }
+
+    /// The day-section header: the formatted date on the left, the day's
+    /// income/expense on the right when the daily summary knows the day.
+    /// Only non-zero sides render — a pure-transfer day shows the date
+    /// alone — and colors follow the stat-card convention (income red,
+    /// expense green), not the entry-row accent.
+    private func dayHeader(_ group: (day: Date, entries: [JournalEntry])) -> some View {
+        HStack(spacing: 8) {
+            Text(AppDates.formatEntryDay(group.day, locale: locale))
+            Spacer(minLength: 12)
+            if let totals = store.dayTotals[JournalStore.dayKey(group.day)] {
+                if totals.incomeCents != 0 {
+                    dayTotal(
+                        L10n.string("account.type.income", defaultValue: "Income"),
+                        cents: totals.incomeCents,
+                        color: .income
+                    )
+                }
+                if totals.expenseCents != 0 {
+                    dayTotal(
+                        L10n.string("account.type.expense", defaultValue: "Expense"),
+                        cents: totals.expenseCents,
+                        color: .expense
+                    )
+                }
+            }
+        }
+    }
+
+    /// One labeled amount in the header: small label beside a semibold
+    /// tabular figure, both in the semantic color.
+    private func dayTotal(_ label: String, cents: Int, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.caption2)
+            Text(Money.format(cents: cents, currency: ledger.currency))
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+        }
+        .foregroundStyle(color)
     }
 
     /// One list row in both renderings (day-grouped and flat): the entry

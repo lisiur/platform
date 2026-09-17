@@ -1,7 +1,11 @@
 import type { Prisma } from "#generated/prisma/client";
 import { accountRepository } from "./account.repository";
 import type { AccountType, LedgerRole } from "./domain";
-import { journalRepository, type SumLinesWindow } from "./journal.repository";
+import {
+  type EntryWindow,
+  journalRepository,
+  type SumLinesWindow,
+} from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
 import { projectMemberRepository } from "./project-member.repository";
 
@@ -475,4 +479,37 @@ function buildStatementRows(
     totalExpense,
     net: round(totalIncome - totalExpense),
   };
+}
+
+/**
+ * Per-day gross income/expense over the journal's filter surface — the
+ * figure behind the journal's day-section headers and the month calendar
+ * view. Line-level accounting split (the income statement's semantics,
+ * NOT the share-based statement): transfers count toward neither side.
+ * Days bucket under the requester's fixed UTC offset so an entry lands on
+ * the local day it was entered on, on any device (the budget report's tz
+ * contract). The window type omits `includeExcluded` — stats count the
+ * ledger's activity set (kept-in member entries + guest posts) and drop
+ * only the creator's own opt-outs, unless the query is project-scoped.
+ */
+export function dailySummary(
+  ledgerId: string,
+  window: Omit<EntryWindow, "includeExcluded">,
+  tzOffsetMinutes: number,
+) {
+  return journalRepository.sumLinesByDay(ledgerId, window, tzOffsetMinutes);
+}
+
+/**
+ * Per-category gross income/expense behind the composition chart — the
+ * daily summary's line-level accounting split (NOT the share-based
+ * statement) keyed per account, over the journal's filter surface, so the
+ * pie reconciles with the trend chart beside it. Amounts are integer
+ * cents; see `categorySummaryFromLines` for the row semantics.
+ */
+export function categorySummary(
+  ledgerId: string,
+  window: Omit<EntryWindow, "includeExcluded">,
+) {
+  return journalRepository.sumLinesByCategory(ledgerId, window);
 }

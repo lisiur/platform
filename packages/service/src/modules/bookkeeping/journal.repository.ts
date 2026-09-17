@@ -360,6 +360,154 @@ export function orderByAmount(
 
 const zero = new Prisma.Decimal(0);
 
+/** One LOCAL calendar day's income/expense totals in integer cents. `day`
+ *  is the "yyyy-MM-dd" of the entry date shifted by the requester's fixed
+ *  UTC offset — the budget report's tz contract — so clients key their own
+ *  local day groups on the string without a timezone round-trip. */
+export type DailySummaryRow = {
+  day: string;
+  incomeCents: number;
+  expenseCents: number;
+};
+
+/** The minimal line shape the day aggregation reads — a plain number stands
+ *  in for Prisma Decimal in tests. */
+export type DailySummaryLine = {
+  debit: Prisma.Decimal | number;
+  credit: Prisma.Decimal | number;
+  account: { type: AccountType };
+  entry: { date: Date };
+};
+
+/**
+ * One category's activity total in integer cents for the composition chart.
+ * `name`/`code` mirror the statement rows so clients render seeded
+ * categories' localized labels from the code; the parent pair joins one
+ * level up for the same-named-leaf disambiguation the journal rows use.
+ */
+export type CategoryAmountRow = {
+  accountId: string;
+  name: string | null;
+  code: string | null;
+  parentName: string | null;
+  parentCode: string | null;
+  amountCents: number;
+};
+
+export type CategorySummary = {
+  expense: CategoryAmountRow[];
+  income: CategoryAmountRow[];
+};
+
+/** The minimal line shape the category aggregation reads — a plain number
+ *  stands in for Prisma Decimal in tests. */
+export type CategorySummaryLine = {
+  debit: Prisma.Decimal | number;
+  credit: Prisma.Decimal | number;
+  account: {
+    id: string;
+    name: string | null;
+    code: string | null;
+    type: AccountType;
+    parent: { name: string | null; code: string | null } | null;
+  };
+};
+
+/**
+ * Pure day aggregation behind `sumLinesByDay`: lines land on the LOCAL day
+ * of their entry ((date + offset) floored to a UTC day, then keyed as
+ * "yyyy-MM-dd"), and each line feeds exactly one side of the split — the
+ * income statement's semantics: expense lines' debit-net sums into expense,
+ * income lines' credit-net into income, balance-sheet lines (transfers)
+ * into neither. Days come back newest first, matching the list's direction.
+ */
+export function dailySummaryFromLines(
+  lines: DailySummaryLine[],
+  tzOffsetMinutes: number,
+): DailySummaryRow[] {
+  const offsetMs = tzOffsetMinutes * 60_000;
+  const days = new Map<string, DailySummaryRow>();
+  for (const line of lines) {
+    const day = new Date(
+      Math.floor((line.entry.date.getTime() + offsetMs) / 86_400_000) *
+        86_400_000,
+    )
+      .toISOString()
+      .slice(0, 10);
+    let row = days.get(day);
+    if (!row) {
+      row = { day, incomeCents: 0, expenseCents: 0 };
+      days.set(day, row);
+    }
+    const debit = Math.round(Number(line.debit) * 100);
+    const credit = Math.round(Number(line.credit) * 100);
+    if (line.account.type === "expense") {
+      row.expenseCents += debit - credit;
+    } else if (line.account.type === "income") {
+      row.incomeCents += credit - debit;
+    }
+  }
+  return [...days.values()].sort((a, b) => (a.day < b.day ? 1 : -1));
+}
+
+/**
+ * Pure category aggregation behind `sumLinesByCategory`: the daily
+ * summary's line-level accounting split keyed per account instead of per
+ * day — expense lines' debit-net sums into `expense`, income lines'
+ * credit-net into `income`, balance-sheet lines (transfers) into neither.
+ * Amounts round per line to integer cents before summing, so a line's
+ * cents match what the entry list renders. Every touched account keeps a
+ * row (even a zero or negative net from offsetting lines) — faithful
+ * aggregation; display policy (a pie can't draw a negative slice) lives
+ * with the client. Rows sort by amount descending with a code/name/id
+ * tiebreak so palette assignment stays deterministic across reloads.
+ */
+export function categorySummaryFromLines(
+  lines: CategorySummaryLine[],
+): CategorySummary {
+  const buckets: Record<
+    "expense" | "income",
+    Map<string, CategoryAmountRow>
+  > = { expense: new Map(), income: new Map() };
+  for (const line of lines) {
+    const side =
+      line.account.type === "expense"
+        ? "expense"
+        : line.account.type === "income"
+          ? "income"
+          : null;
+    if (!side) continue;
+    const debit = Math.round(Number(line.debit) * 100);
+    const credit = Math.round(Number(line.credit) * 100);
+    const amountCents = side === "expense" ? debit - credit : credit - debit;
+    const existing = buckets[side].get(line.account.id);
+    if (existing) {
+      existing.amountCents += amountCents;
+    } else {
+      buckets[side].set(line.account.id, {
+        accountId: line.account.id,
+        name: line.account.name,
+        code: line.account.code,
+        parentName: line.account.parent?.name ?? null,
+        parentCode: line.account.parent?.code ?? null,
+        amountCents,
+      });
+    }
+  }
+  const keyOf = (row: CategoryAmountRow) =>
+    row.code ?? row.name ?? row.accountId;
+  const orderRows = (rows: Iterable<CategoryAmountRow>) =>
+    [...rows].sort(
+      (a, b) =>
+        b.amountCents - a.amountCents ||
+        (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0),
+    );
+  return {
+    expense: orderRows(buckets.expense.values()),
+    income: orderRows(buckets.income.values()),
+  };
+}
+
 /**
  * Amount-ordered listing: lines are grouped per entry with the debit sum
  * aggregated in SQL, a light fetch supplies each entry's date/entryNo for
@@ -442,6 +590,75 @@ export const journalRepository = {
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalEntry.count({ where: entryFilterWhere(ledgerId, window) });
+  },
+
+  /**
+   * Per-day income/expense totals over `entryFilterWhere`'s exact set —
+   * the journal list's whole filter surface, so day-section headers and
+   * the month calendar aggregate precisely what the list shows. The window
+   * deliberately omits `includeExcluded`: these are ledger-wide STATS, and
+   * stats never count the creator's opt-outs — the ledger-activity
+   * predicate stays on unless the query is project-scoped (a project's
+   * books count everything, like the list does). Splitting and day
+   * bucketing live in `dailySummaryFromLines`.
+   */
+  sumLinesByDay(
+    ledgerId: string,
+    window: Omit<EntryWindow, "includeExcluded">,
+    tzOffsetMinutes: number,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<DailySummaryRow[]> {
+    return tx.journalLine
+      .findMany({
+        where: { entry: entryFilterWhere(ledgerId, window) },
+        select: {
+          debit: true,
+          credit: true,
+          account: { select: { type: true } },
+          entry: { select: { date: true } },
+        },
+      })
+      .then((lines) =>
+        // The generated select types widen the enum to string; the runtime
+        // value is the AccountType union (same cast the report service does).
+        dailySummaryFromLines(lines as DailySummaryLine[], tzOffsetMinutes),
+      );
+  },
+
+  /**
+   * Per-category activity totals over `entryFilterWhere`'s exact set — the
+   * same entry set (and guest project clamping) as the journal list and the
+   * daily summary, so the composition chart reconciles with the trend chart
+   * beside it. The window deliberately omits `includeExcluded`, for the
+   * same reason `sumLinesByDay`'s does: these are ledger-wide STATS.
+   * Splitting and account grouping live in `categorySummaryFromLines`.
+   */
+  sumLinesByCategory(
+    ledgerId: string,
+    window: Omit<EntryWindow, "includeExcluded">,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<CategorySummary> {
+    return tx.journalLine
+      .findMany({
+        where: { entry: entryFilterWhere(ledgerId, window) },
+        select: {
+          debit: true,
+          credit: true,
+          account: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              parent: { select: { name: true, code: true } },
+            },
+          },
+        },
+      })
+      .then((lines) =>
+        // Same enum-widening cast the day summary does.
+        categorySummaryFromLines(lines as CategorySummaryLine[]),
+      );
   },
 
   findById(id: string, tx: Prisma.TransactionClient = prisma) {

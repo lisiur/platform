@@ -1006,6 +1006,58 @@ struct EntriesResponse: Codable {
     var total: Int
 }
 
+/// One LOCAL day's income/expense totals in integer cents, from the
+/// daily-summary report — the line-level accounting split (transfers in
+/// neither), over the same filtered entry set the list shows. `day` is the
+/// "yyyy-MM-dd" the server bucketed under the request's tz offset: key on
+/// the string, never re-parse it into a Date (that would timezone-shift).
+struct DayIncomeExpense: Codable, Equatable {
+    var day: String
+    var incomeCents: Int
+    var expenseCents: Int
+}
+
+struct DailySummaryResponse: Codable {
+    var days: [DayIncomeExpense]
+}
+
+/// One category's activity total in integer cents, from the category-summary
+/// report — the daily summary's line-level accounting split keyed per
+/// account. `name`/`code` mirror the statement rows so `displayName` renders
+/// seeded categories' localized labels from the code; the parent pair is the
+/// one-level join the journal rows carry, for same-named-leaf captions.
+struct CategoryAmountRow: Codable, Equatable, Identifiable {
+    var accountId: String
+    var name: String?
+    var code: String?
+    var parentName: String?
+    var parentCode: String?
+    var amountCents: Int
+
+    var id: String { accountId }
+
+    var displayName: String {
+        if let name, !name.isEmpty { return name }
+        if let code {
+            return L10n.string("account.name.\(code)", defaultValue: code)
+        }
+        return name ?? "—"
+    }
+
+    /// The parent's display name, same rules as the leaf — nil for
+    /// top-level categories.
+    var parentDisplayName: String? {
+        if let parentName, !parentName.isEmpty { return parentName }
+        guard let parentCode else { return nil }
+        return L10n.string("account.name.\(parentCode)", defaultValue: parentCode)
+    }
+}
+
+struct CategorySummaryResponse: Codable, Equatable {
+    var expense: [CategoryAmountRow]
+    var income: [CategoryAmountRow]
+}
+
 struct MembersResponse: Codable {
     var members: [LedgerMember]
 }

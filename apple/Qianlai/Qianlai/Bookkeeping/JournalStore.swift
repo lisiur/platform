@@ -58,6 +58,14 @@ final class JournalStore {
     private(set) var entryBounds: EntryDateBounds?
     private var boundsTask: Task<Void, Never>?
 
+    /// Per-day income/expense totals keyed by the server's "yyyy-MM-dd" day
+    /// string (see `dayKey`) — the date-section headers' right side. Like
+    /// `entryBounds`: refreshed beside every reload, never awaited by the
+    /// list, and describing the WHOLE filtered set (a header total never
+    /// depends on how many of the day's rows have loaded).
+    private(set) var dayTotals: [String: DayIncomeExpense] = [:]
+    private var dayTotalsTask: Task<Void, Never>?
+
     /// Filter didSets skip same-value writes: a pushed drill-down page's
     /// `.task` re-runs on pop-back and re-assigns its scope filters, and a
     /// redundant reload there would fetch page 1 over the accumulated
@@ -65,7 +73,9 @@ final class JournalStore {
     var searchQuery = "" { didSet { guard !suppressReload, oldValue != searchQuery else { return }; scheduleReload() } }
     var fromDate: Date? { didSet { guard !suppressReload, oldValue != fromDate else { return }; scheduleReload() } }
     var toDate: Date? { didSet { guard !suppressReload, oldValue != toDate else { return }; scheduleReload() } }
-    var participantMemberId: String? { didSet { guard !suppressReload, oldValue != participantMemberId else { return }; scheduleReload() } }
+    /// Participant filter: the tagged user's id (`EntryPerson.id`), not the
+    /// ledger-member row id — the server matches participant userIds.
+    var participantUserId: String? { didSet { guard !suppressReload, oldValue != participantUserId else { return }; scheduleReload() } }
     var projectFilterId: String? { didSet { guard !suppressReload, oldValue != projectFilterId else { return }; scheduleReload() } }
     /// Category drill-down: only entries with a line against this account.
     var accountId: String? { didSet { guard !suppressReload, oldValue != accountId else { return }; scheduleReload() } }
@@ -126,6 +136,7 @@ final class JournalStore {
         // The All tab's fields show the extent — drop the old ledger's
         // until the new one's first reload refreshes it.
         entryBounds = nil
+        dayTotals = [:]
         // New ledger is a genuine first load again.
         hasLoadedOnce = false
         await reloadFromStart()
@@ -180,7 +191,7 @@ final class JournalStore {
         if entries != fetched { entries = fetched }
         if total != latestTotal { total = latestTotal }
         if loadError != nil { loadError = nil }
-        refreshBounds()
+        refreshSidecars()
     }
 
     /// Immediate page-1 reset for content-changing paths: a fresh post
@@ -211,24 +222,23 @@ final class JournalStore {
         dateAscending: Bool = false,
         includingSearch: Bool = true
     ) async throws -> EntriesResponse {
-        try await client.request(
+        // The day-slice and extent callers override the window (or drop the
+        // transient search) — everything else is the store's live filter.
+        var filters = currentFilters
+        filters.from = from
+        filters.to = to
+        if !includingSearch { filters.q = "" }
+        let query = Self.listQuery(
+            filters: filters,
+            limit: limit,
+            offset: offset,
+            includeExcluded: includeExcluded,
+            sort: sort,
+            dateAscending: dateAscending
+        )
+        return try await client.request(
             "GET",
-            "bookkeeping/ledgers/\(ledgerId)/entries" + Self.query(
-                limit: limit,
-                offset: offset,
-                q: includingSearch ? searchQuery : "",
-                from: from,
-                to: to,
-                participant: participantMemberId,
-                project: projectFilterId,
-                account: accountId,
-                accountType: accountType,
-                member: memberUserId,
-                kind: kind,
-                includeExcluded: includeExcluded,
-                sort: sort,
-                dateAscending: dateAscending
-            )
+            "bookkeeping/ledgers/\(ledgerId)/entries" + query
         )
     }
 
@@ -263,7 +273,7 @@ final class JournalStore {
             if total != response.total { total = response.total }
             if loadError != nil { loadError = nil }
             if !hasLoadedOnce { hasLoadedOnce = true }
-            refreshBounds()
+            refreshSidecars()
         } catch {
             guard self.ledgerId == ledgerId else { return }
             // A cancelled fetch is a superseded one — a newer reload owns
@@ -393,6 +403,8 @@ final class JournalStore {
                 if wasLastLoaded, hasMore {
                     await loadMore()
                 }
+                // The deleted row's amounts left its day's total.
+                refreshDayTotals()
             } catch {
                 // Only a same-ledger list may take the row back; a ledger
                 // switch owns different content now.
@@ -473,7 +485,7 @@ final class JournalStore {
             total -= 1
         }
         if loadError != nil { loadError = nil }
-        refreshBounds()
+        refreshSidecars()
     }
 
     /// Batched clear: suppresses the per-key didSet storms so exactly one
@@ -485,7 +497,7 @@ final class JournalStore {
         if !searchQuery.isEmpty { searchQuery = "" }
         if fromDate != nil { fromDate = nil }
         if toDate != nil { toDate = nil }
-        if participantMemberId != nil { participantMemberId = nil }
+        if participantUserId != nil { participantUserId = nil }
         // A scoped page keeps its scope; an unscoped one drops the pick.
         if projectFilterId != scopeProjectId { projectFilterId = scopeProjectId }
         if accountId != nil { accountId = nil }
@@ -505,6 +517,42 @@ final class JournalStore {
         fromDate = from
         toDate = to
         suppressReload = false
+    }
+
+    /// Refreshes the per-day income/expense totals the date-section headers
+    /// render: one small request mirroring the list's filters, so a header
+    /// total always describes the rows beneath it — the WHOLE day, not just
+    /// the pages that have loaded (pagination can't split a total). Runs
+    /// beside every reload like `refreshBounds`; the list never awaits it,
+    /// and a failure keeps the previous totals for the next reload to retry.
+    func refreshDayTotals() {
+        guard let ledgerId else { return }
+        dayTotalsTask?.cancel()
+        dayTotalsTask = Task {
+            do {
+                let summaryPath = "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary"
+                    + Self.dailySummaryQuery(filters: currentFilters)
+                let response: DailySummaryResponse = try await client.request(
+                    "GET",
+                    summaryPath
+                )
+                guard self.ledgerId == ledgerId, !Task.isCancelled else { return }
+                let map = Dictionary(
+                    uniqueKeysWithValues: response.days.map { ($0.day, $0) }
+                )
+                if dayTotals != map { dayTotals = map }
+            } catch {
+                // Keep the previous totals; the next reload retries.
+            }
+        }
+    }
+
+    /// The sidecar refreshes every reload carries — the entry extent (the
+    /// All tab's from/to) and the day headers' per-day totals. One entry
+    /// point so a reload path can't refresh one and forget the other.
+    func refreshSidecars() {
+        refreshBounds()
+        refreshDayTotals()
     }
 
     /// Refreshes the entry date extent: one entry fetched oldest-first and
@@ -619,37 +667,106 @@ final class JournalStore {
         return result
     }
 
-    private static func query(
+    /// The list's local startOfDay rendered as the server's "yyyy-MM-dd"
+    /// day key — pinned to the Gregorian calendar (a device set to a non-
+    /// Gregorian calendar must still produce ISO-style keys) in the current
+    /// timezone, no locale: it must match the daily-summary endpoint's
+    /// tz-shifted bucketing, not the device's date format. Pure so the key
+    /// arithmetic stays unit-testable.
+    nonisolated static func dayKey(_ day: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let components = calendar.dateComponents([.year, .month, .day], from: day)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
+    }
+
+    /// The filter surface the list request and the daily-summary request
+    /// share — one struct so the two query builders can't drift. List
+    /// mechanics (pagination, ordering, includeExcluded) and the summary's
+    /// tz offset stay with their own builders.
+    private struct Filters {
+        var q = ""
+        var from: Date?
+        var to: Date?
+        var participantUserId: String?
+        var projectId: String?
+        var accountId: String?
+        var accountType: String?
+        var memberUserId: String?
+        var kind: QuickEntryKind?
+
+        /// The wire pairs both requests send — the trim and the local
+        /// end-of-day conversion included, so the two endpoints encode
+        /// identical values for identical store state.
+        var queryPairs: [(String, String?)] {
+            [
+                ("q", q.isEmpty ? nil : q.trimmingCharacters(in: .whitespacesAndNewlines)),
+                ("from", from.map { ApiQuery.iso($0) }),
+                ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
+                ("participantUserId", participantUserId),
+                ("projectId", projectId),
+                ("accountId", accountId),
+                ("accountType", accountType),
+                ("memberUserId", memberUserId),
+                ("kind", kind?.rawValue),
+            ]
+        }
+    }
+
+    /// The store's current filter state, as both request builders read it.
+    private var currentFilters: Filters {
+        Filters(
+            q: searchQuery,
+            from: fromDate,
+            to: toDate,
+            participantUserId: participantUserId,
+            projectId: projectFilterId,
+            accountId: accountId,
+            accountType: accountType,
+            memberUserId: memberUserId,
+            kind: kind
+        )
+    }
+
+    /// The daily-summary request's query: the shared filter pairs plus the
+    /// tz offset that keys each entry to the LOCAL day it was entered on
+    /// (the budget report's contract). No list mechanics and no
+    /// `includeExcluded` — the endpoint is a stat, and stats count the
+    /// ledger's activity set. An opted-out entry stays listed (marked
+    /// 不计入收支) but its amounts stay out of every day total, matching
+    /// the month stat card.
+    private static func dailySummaryQuery(filters: Filters) -> String {
+        ApiQuery.build(
+            filters.queryPairs + [
+                ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+            ]
+        )
+    }
+
+    /// The list request's query: the shared filter pairs plus the list's
+    /// own mechanics — pagination, the ledger-wide escape hatch, and
+    /// ordering (`dateAscending` feeds only the extent's oldest-first read).
+    private static func listQuery(
+        filters: Filters,
         limit: Int,
         offset: Int,
-        q: String,
-        from: Date?,
-        to: Date?,
-        participant: String?,
-        project: String?,
-        account: String?,
-        accountType: String?,
-        member: String?,
-        kind: QuickEntryKind?,
         includeExcluded: Bool,
         sort: EntrySort,
-        dateAscending: Bool = false
+        dateAscending: Bool
     ) -> String {
-        ApiQuery.build([
-            ("limit", String(limit)),
-            ("offset", String(offset)),
-            ("q", q.isEmpty ? nil : q.trimmingCharacters(in: .whitespacesAndNewlines)),
-            ("from", from.map { ApiQuery.iso($0) }),
-            ("to", to.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
-            ("participantMemberId", participant),
-            ("projectId", project),
-            ("accountId", account),
-            ("accountType", accountType),
-            ("memberUserId", member),
-            ("kind", kind?.rawValue),
-            ("includeExcluded", includeExcluded ? "true" : nil),
-            ("sort", sort == .date ? nil : "amount"),
-            ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : dateAscending ? "asc" : nil),
-        ])
+        ApiQuery.build(
+            filters.queryPairs + [
+                ("limit", String(limit)),
+                ("offset", String(offset)),
+                ("includeExcluded", includeExcluded ? "true" : nil),
+                ("sort", sort == .date ? nil : "amount"),
+                ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : dateAscending ? "asc" : nil),
+            ]
+        )
     }
 }

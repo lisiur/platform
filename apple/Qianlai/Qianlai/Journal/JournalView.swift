@@ -142,7 +142,7 @@ struct JournalView: View {
     /// window and search live outside this sheet and signal through the
     /// tab bar and search field instead.
     private var hasListFilters: Bool {
-        store.participantMemberId != nil
+        store.participantUserId != nil
             || store.projectFilterId != store.scopeProjectId
             || !store.includeExcluded
     }
@@ -549,8 +549,8 @@ struct JournalView: View {
                         Picker(
                             L10n.string("journal.filterParticipant", defaultValue: "Participant"),
                             selection: Binding(
-                                get: { store.participantMemberId ?? "" },
-                                set: { store.participantMemberId = $0.isEmpty ? nil : $0 }
+                                get: { store.participantUserId ?? "" },
+                                set: { store.participantUserId = $0.isEmpty ? nil : $0 }
                             )
                         ) {
                             Text(L10n.string("journal.filterAllMembers", defaultValue: "All Members")).tag("")

@@ -227,4 +227,14 @@ final class JournalStoreTests: XCTestCase {
         )
         XCTAssertEqual(onEdge, [sep10, sep1], "the range's own end day stays visible")
     }
+
+    func testDayKeyMatchesTheServerDayString() {
+        // The daily-summary lookup key: local startOfDay rendered as the
+        // server's "yyyy-MM-dd" — zero-padded, calendar arithmetic only.
+        let sep17 = day(2026, 9, 17)
+        XCTAssertEqual(JournalStore.dayKey(sep17), "2026-09-17")
+
+        let singleDigit = day(2026, 3, 5)
+        XCTAssertEqual(JournalStore.dayKey(singleDigit), "2026-03-05")
+    }
 }

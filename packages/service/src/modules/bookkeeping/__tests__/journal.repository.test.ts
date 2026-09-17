@@ -5,7 +5,13 @@ vi.mock("#lib/db", () => ({
   prisma: {},
 }));
 
-import { entryKindLines, orderByAmount } from "../journal.repository";
+import {
+  categorySummaryFromLines,
+  dailySummaryFromLines,
+  entryKindLines,
+  journalRepository,
+  orderByAmount,
+} from "../journal.repository";
 
 function row(
   entryId: string,
@@ -136,6 +142,363 @@ describe("entryKindLines", () => {
       lines: {
         none: { account: { type: { in: ["expense", "income"] } } },
       },
+    });
+  });
+});
+
+describe("dailySummaryFromLines", () => {
+  function line(
+    type: "expense" | "income" | "asset",
+    debit: number,
+    credit: number,
+    date: string,
+  ) {
+    return {
+      debit,
+      credit,
+      account: { type },
+      entry: { date: new Date(date) },
+    };
+  }
+
+  it("splits expense debit-net and income credit-net, skipping transfers", () => {
+    const rows = dailySummaryFromLines(
+      [
+        line("expense", 35, 0, "2026-09-17T10:00:00Z"),
+        line("income", 0, 50, "2026-09-17T11:00:00Z"),
+        line("asset", 20, 0, "2026-09-17T12:00:00Z"),
+      ],
+      0,
+    );
+    expect(rows).toEqual([
+      { day: "2026-09-17", incomeCents: 5000, expenseCents: 3500 },
+    ]);
+  });
+
+  it("lets contra entries reduce their side (refunds, corrections)", () => {
+    const rows = dailySummaryFromLines(
+      [
+        line("expense", 30, 5, "2026-09-17T10:00:00Z"),
+        line("income", 5, 40, "2026-09-17T10:00:00Z"),
+      ],
+      0,
+    );
+    expect(rows).toEqual([
+      { day: "2026-09-17", incomeCents: 3500, expenseCents: 2500 },
+    ]);
+  });
+
+  it("buckets by the LOCAL day under a positive offset (UTC+8)", () => {
+    const rows = dailySummaryFromLines(
+      [line("expense", 10, 0, "2026-09-17T20:00:00Z")],
+      480,
+    );
+    expect(rows.map((r) => r.day)).toEqual(["2026-09-18"]);
+  });
+
+  it("buckets by the LOCAL day under a negative offset (UTC-5)", () => {
+    const rows = dailySummaryFromLines(
+      [line("expense", 10, 0, "2026-09-17T02:00:00Z")],
+      -300,
+    );
+    expect(rows.map((r) => r.day)).toEqual(["2026-09-16"]);
+  });
+
+  it("keys one bucket per day and orders days newest first", () => {
+    const rows = dailySummaryFromLines(
+      [
+        line("expense", 1, 0, "2026-09-15T10:00:00Z"),
+        line("expense", 2, 0, "2026-09-17T08:00:00Z"),
+        line("expense", 4, 0, "2026-09-17T09:00:00Z"),
+        line("expense", 8, 0, "2026-09-16T10:00:00Z"),
+      ],
+      0,
+    );
+    expect(rows).toEqual([
+      { day: "2026-09-17", incomeCents: 0, expenseCents: 600 },
+      { day: "2026-09-16", incomeCents: 0, expenseCents: 800 },
+      { day: "2026-09-15", incomeCents: 0, expenseCents: 100 },
+    ]);
+  });
+
+  it("rounds cents per line and sums integers", () => {
+    const rows = dailySummaryFromLines(
+      [
+        line("expense", 12.5, 0, "2026-09-17T10:00:00Z"),
+        line("expense", 0.05, 0, "2026-09-17T10:00:00Z"),
+        line("expense", 1.2, 0, "2026-09-17T10:00:00Z"),
+      ],
+      0,
+    );
+    expect(rows[0].expenseCents).toBe(1250 + 5 + 120);
+  });
+
+  it("returns no days for an empty set", () => {
+    expect(dailySummaryFromLines([], 480)).toEqual([]);
+  });
+});
+
+describe("categorySummaryFromLines", () => {
+  function line(
+    id: string,
+    type: "expense" | "income" | "asset",
+    debit: number,
+    credit: number,
+    extra?: {
+      name?: string | null;
+      code?: string | null;
+      parent?: { name: string | null; code: string | null } | null;
+    },
+  ) {
+    return {
+      debit,
+      credit,
+      account: {
+        id,
+        name: extra?.name ?? null,
+        code: extra?.code ?? null,
+        type,
+        parent: extra?.parent ?? null,
+      },
+    };
+  }
+
+  it("splits expense debit-net and income credit-net per account, skipping transfers", () => {
+    const summary = categorySummaryFromLines([
+      line("acc-food", "expense", 35, 0, { code: "food" }),
+      line("acc-salary", "income", 0, 50, { code: "salary" }),
+      line("acc-pocket", "asset", 20, 0, { code: "pocket" }),
+    ]);
+    expect(summary.expense).toEqual([
+      {
+        accountId: "acc-food",
+        name: null,
+        code: "food",
+        parentName: null,
+        parentCode: null,
+        amountCents: 3500,
+      },
+    ]);
+    expect(summary.income).toEqual([
+      {
+        accountId: "acc-salary",
+        name: null,
+        code: "salary",
+        parentName: null,
+        parentCode: null,
+        amountCents: 5000,
+      },
+    ]);
+  });
+
+  it("aggregates an account's lines and carries the parent pair through", () => {
+    const parent = { name: null, code: "food" };
+    const summary = categorySummaryFromLines([
+      line("acc-groceries", "expense", 30, 0, {
+        name: "Groceries",
+        parent,
+      }),
+      line("acc-groceries", "expense", 12, 0, {
+        name: "Groceries",
+        parent,
+      }),
+    ]);
+    expect(summary.expense).toEqual([
+      {
+        accountId: "acc-groceries",
+        name: "Groceries",
+        code: null,
+        parentName: null,
+        parentCode: "food",
+        amountCents: 4200,
+      },
+    ]);
+  });
+
+  it("lets contra entries reduce their side and keeps the row", () => {
+    const summary = categorySummaryFromLines([
+      line("acc-food", "expense", 30, 0, { code: "food" }),
+      line("acc-food", "expense", 0, 5, { code: "food" }),
+    ]);
+    expect(summary.expense).toEqual([
+      {
+        accountId: "acc-food",
+        name: null,
+        code: "food",
+        parentName: null,
+        parentCode: null,
+        amountCents: 2500,
+      },
+    ]);
+  });
+
+  it("keeps zero-net accounts — the aggregation stays faithful, display filters", () => {
+    const summary = categorySummaryFromLines([
+      line("acc-food", "expense", 30, 30, { code: "food" }),
+    ]);
+    expect(summary.expense).toEqual([
+      {
+        accountId: "acc-food",
+        name: null,
+        code: "food",
+        parentName: null,
+        parentCode: null,
+        amountCents: 0,
+      },
+    ]);
+  });
+
+  it("rounds cents per line and sums integers", () => {
+    const summary = categorySummaryFromLines([
+      line("acc-a", "expense", 12.5, 0, { name: "A" }),
+      line("acc-a", "expense", 0.05, 0, { name: "A" }),
+      line("acc-a", "expense", 1.2, 0, { name: "A" }),
+    ]);
+    expect(summary.expense[0].amountCents).toBe(1250 + 5 + 120);
+  });
+
+  it("orders each side by amount descending with a code/name/id tiebreak", () => {
+    const summary = categorySummaryFromLines([
+      line("acc-small", "expense", 1, 0, { name: "Small" }),
+      line("acc-big", "expense", 8, 0, { name: "Big" }),
+      line("acc-tie-b", "expense", 4, 0, { code: "bbb" }),
+      line("acc-tie-a", "expense", 4, 0, { code: "aaa" }),
+    ]);
+    expect(summary.expense.map((row) => row.accountId)).toEqual([
+      "acc-big",
+      "acc-tie-a",
+      "acc-tie-b",
+      "acc-small",
+    ]);
+  });
+
+  it("returns empty arrays for an empty set", () => {
+    expect(categorySummaryFromLines([])).toEqual({
+      expense: [],
+      income: [],
+    });
+  });
+});
+
+describe("sumLinesByDay", () => {
+  /** A transaction client whose journalLine.findMany records its where —
+   *  the aggregation's filter surface is `entryFilterWhere`'s output, so
+   *  capturing the where is the whole assertion surface. */
+  function capturingTx() {
+    const findMany = vi.fn().mockResolvedValue([]);
+    return {
+      findMany,
+      tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
+    };
+  }
+
+  it("applies the ledger-activity predicate for ledger-wide windows — stats never count the creator's opt-outs", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay("led-1", {}, 480, tx);
+    expect(findMany.mock.calls[0][0].where.entry).toMatchObject({
+      ledgerId: "led-1",
+      OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
+  });
+
+  it("drops the activity predicate for project-scoped windows — a project's books count everything", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { projectId: "prj-1" },
+      480,
+      tx,
+    );
+    const where = findMany.mock.calls[0][0].where.entry;
+    expect(where).toMatchObject({ ledgerId: "led-1", projectId: "prj-1" });
+    expect(where.OR).toBeUndefined();
+  });
+
+  it("treats guest scope as project-scoped and clamps the project set", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { scopeProjectIds: ["prj-1", "prj-2"] },
+      480,
+      tx,
+    );
+    const where = findMany.mock.calls[0][0].where.entry;
+    expect(where.OR).toBeUndefined();
+    expect(where.projectId).toEqual({ in: ["prj-1", "prj-2"] });
+  });
+
+  it("threads the shared filter surface into the where", async () => {
+    const { tx, findMany } = capturingTx();
+    const window = {
+      q: "lunch",
+      participantUserId: "user-1",
+      kind: "expense" as const,
+      memberUserId: "user-2",
+      accountId: "acc-1",
+      from: new Date("2026-09-01T00:00:00Z"),
+      to: new Date("2026-09-30T23:59:59Z"),
+    };
+    await journalRepository.sumLinesByDay("led-1", window, 480, tx);
+    const where = findMany.mock.calls[0][0].where.entry;
+    expect(where).toMatchObject({
+      date: {
+        gte: new Date("2026-09-01T00:00:00Z"),
+        lte: new Date("2026-09-30T23:59:59Z"),
+      },
+      participants: { some: { userId: "user-1" } },
+      lines: { some: { accountId: "acc-1" } },
+    });
+    // kind and memberUserId AND-wrap together; the kind branch is the exact
+    // entryKindLines("expense") clause, the member branch is the settlement
+    // OR (payer / tagged / untagged-current-member).
+    const and = where.AND as Array<Record<string, unknown>>;
+    expect(and).toHaveLength(2);
+    expect(and).toContainEqual({
+      lines: { some: { account: { type: "expense" } } },
+    });
+    const memberOr = and[0].OR as Array<Record<string, unknown>>;
+    expect(memberOr[0]).toEqual({ paidById: "user-2" });
+  });
+});
+
+describe("sumLinesByCategory", () => {
+  /** Same capturing client as the day summary's — the aggregation's filter
+   *  surface is `entryFilterWhere`'s output, so capturing the where (and
+   *  the account payload in the select) is the whole assertion surface. */
+  function capturingTx() {
+    const findMany = vi.fn().mockResolvedValue([]);
+    return {
+      findMany,
+      tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
+    };
+  }
+
+  it("applies the same ledger-activity predicate as the day summary", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByCategory("led-1", {}, tx);
+    expect(findMany.mock.calls[0][0].where.entry).toMatchObject({
+      ledgerId: "led-1",
+      OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
+  });
+
+  it("drops the predicate for project-scoped windows and joins the parent for disambiguation", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByCategory(
+      "led-1",
+      { projectId: "prj-1" },
+      tx,
+    );
+    const call = findMany.mock.calls[0][0];
+    const where = call.where.entry;
+    expect(where).toMatchObject({ ledgerId: "led-1", projectId: "prj-1" });
+    expect(where.OR).toBeUndefined();
+    expect(call.select.account.select).toMatchObject({
+      id: true,
+      name: true,
+      code: true,
+      type: true,
+      parent: { select: { name: true, code: true } },
     });
   });
 });

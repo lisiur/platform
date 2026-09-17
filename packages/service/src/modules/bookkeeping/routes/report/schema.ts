@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { ACCOUNT_TYPES, LEDGER_ROLES } from "../../domain";
+import { ACCOUNT_TYPES, ENTRY_KINDS, LEDGER_ROLES } from "../../domain";
 import { journalEntrySchema } from "../journal-entry/schema";
 
 export const trialBalanceRowSchema = z
@@ -125,3 +125,71 @@ export const memberTurnoverQuerySchema = z
     to: z.coerce.date().optional(),
   })
   .openapi("QianlaiMemberTurnoverQuery");
+
+export const dailySummaryRowSchema = z
+  .object({
+    // The LOCAL calendar day "yyyy-MM-dd" under the request's
+    // tzOffsetMinutes — clients key their day groups on the string and
+    // never re-parse it into a UTC instant.
+    day: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .openapi({ example: "2026-09-17" }),
+    incomeCents: z.number().int().openapi({ example: 5000 }),
+    expenseCents: z.number().int().openapi({ example: 12000 }),
+  })
+  .openapi("QianlaiDailySummaryRow");
+
+export const dailySummaryResponseSchema = z
+  .object({
+    days: dailySummaryRowSchema.array(),
+  })
+  .openapi("QianlaiDailySummaryResponse");
+
+// The journal list's filter surface minus list mechanics (pagination,
+// ordering) and `includeExcluded` — these summaries are stats, and stats
+// count the ledger's activity set, never the creator's opt-outs. The
+// daily summary adds the tz offset its day bucketing needs; the category
+// summary has no day buckets.
+const statFilterFields = {
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  q: z.string().optional(),
+  participantUserId: z.string().optional(),
+  projectId: z.string().optional(),
+  accountId: z.string().optional(),
+  accountType: z.enum(ACCOUNT_TYPES).optional(),
+  kind: z.enum(ENTRY_KINDS).optional(),
+  memberUserId: z.string().optional(),
+};
+
+export const dailySummaryQuerySchema = z
+  .object({
+    ...statFilterFields,
+    tzOffsetMinutes: z.coerce.number().int().min(-840).max(840).default(0),
+  })
+  .openapi("QianlaiDailySummaryQuery");
+
+export const categorySummaryRowSchema = z
+  .object({
+    accountId: z.string().openapi({ example: "clx1234567890" }),
+    name: z.string().nullable().openapi({ example: null }),
+    code: z.string().nullable().openapi({ example: "food" }),
+    parentName: z.string().nullable().openapi({ example: null }),
+    parentCode: z.string().nullable().openapi({ example: "food" }),
+    amountCents: z.number().int().openapi({ example: 12000 }),
+  })
+  .openapi("QianlaiCategoryAmountRow");
+
+export const categorySummaryResponseSchema = z
+  .object({
+    expense: categorySummaryRowSchema.array(),
+    income: categorySummaryRowSchema.array(),
+  })
+  .openapi("QianlaiCategorySummaryResponse");
+
+export const categorySummaryQuerySchema = z
+  .object({
+    ...statFilterFields,
+  })
+  .openapi("QianlaiCategorySummaryQuery");
