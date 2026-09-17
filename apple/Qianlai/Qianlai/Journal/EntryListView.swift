@@ -409,7 +409,7 @@ struct EntryRow: View {
                         HStack(spacing: 3) {
                             Image(systemName: "minus.circle")
                                 .font(.caption2)
-                            Text(L10n.string("journal.notCounted", defaultValue: "Not counted"))
+                            Text(L10n.string("journal.notCounted", defaultValue: "Not counted in income & expense"))
                                 .font(.caption2)
                                 .lineLimit(1)
                         }

@@ -24,10 +24,11 @@ struct ChipCustomizationView: View {
     @Environment(\.dismiss) private var dismiss
 
     /// The fields a chip may ever represent — identical to the server's
-    /// enum. project/countsInLedger have no chip builders and always
-    /// live in the more sheet.
+    /// enum. project has no chip builder and always lives in the more
+    /// sheet.
     private static let chipCapable: [QuickEntryField] = [
         .account, .memo, .time, .participants, .location, .paidBy,
+        .countsInLedger, .budget,
     ]
 
     /// Row display order — every chip-capable field, shown ones first.
@@ -102,8 +103,8 @@ struct ChipCustomizationView: View {
     }
 
     /// Drops the stored arrangement — the layout resolves back to
-    /// `.standard` (the five default chips in canonical order; paidBy
-    /// resets to hidden).
+    /// `.standard` (the six default chips in canonical order; paidBy and
+    /// countsInLedger reset to hidden).
     private func restoreDefaults() {
         Task {
             do {

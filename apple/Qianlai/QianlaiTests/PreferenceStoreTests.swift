@@ -234,5 +234,11 @@ final class PreferenceStoreTests: XCTestCase {
         ))
         let object = try JSONSerialization.jsonObject(with: data) as? [String: [String: [String]]]
         XCTAssertEqual(object?["quickEntry"]?["chipFields"], ["account", "location"])
+
+        let toggles = try JSONEncoder().encode(UpdateQuickEntryBody(
+            quickEntry: .init(chipFields: [.countsInLedger, .budget])
+        ))
+        let toggleObject = try JSONSerialization.jsonObject(with: toggles) as? [String: [String: [String]]]
+        XCTAssertEqual(toggleObject?["quickEntry"]?["chipFields"], ["countsInLedger", "budget"])
     }
 }

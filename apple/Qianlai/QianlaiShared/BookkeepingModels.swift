@@ -1272,6 +1272,7 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
     case paidBy
     case project
     case countsInLedger
+    case budget
 
     var id: String { rawValue }
 
@@ -1324,10 +1325,19 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
                 comment: "Quick-entry field: project assignment (Chinese 项目)"
             )
         case .countsInLedger:
+            // Reversed framing on purpose — the copy names the exception
+            // (不计入收支) so the toggle reads like its budget sibling, and
+            // the chip highlights only the deviation from normal counting.
             LocalizedStringResource(
-                "quick.countsInLedger",
-                defaultValue: "Count in Income & Expense",
-                comment: "Quick-entry toggle: include the entry in the ledger-wide totals (Chinese 计入收支)"
+                "quick.excludeFromIncomeExpense",
+                defaultValue: "Exclude from Income & Expense",
+                comment: "Quick-entry toggle: keep the entry out of the ledger-wide totals (Chinese 不计入收支)"
+            )
+        case .budget:
+            LocalizedStringResource(
+                "quick.excludeFromBudget",
+                defaultValue: "Exclude from Budget",
+                comment: "Quick-entry toggle: keep the entry out of the ledger's monthly budget (Chinese 不计入预算)"
             )
         }
     }
@@ -1345,7 +1355,11 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         // circle.badge.dollar looked ideal but is NOT a real SF Symbol.
         case .paidBy: "person.crop.circle"
         case .project: "folder"
-        case .countsInLedger: "book"
+        // The entry rows' own not-counted marker glyph — the one visual term
+        // the ledger already has for 不计入收支.
+        case .countsInLedger: "minus.circle"
+        // The budget family's own glyph (BudgetCardView, BudgetYearDetailView).
+        case .budget: "chart.bar"
         }
     }
 }
@@ -1363,10 +1377,11 @@ struct QuickEntryLayout: Equatable, Codable {
         QuickEntryField.allCases.filter { !chipFields.contains($0) }
     }
 
-    /// The shipped split: the quick-tweak fields as chips, the rarer
-    /// posting options behind the more sheet.
+    /// The shipped split: the quick-tweak fields as chips (the budget
+    /// exclusion trailing — it only concerns expenses), the rarer posting
+    /// options behind the more sheet.
     static let standard = QuickEntryLayout(chipFields: [
-        .account, .memo, .time, .participants, .location,
+        .account, .memo, .time, .participants, .location, .budget,
     ])
 }
 

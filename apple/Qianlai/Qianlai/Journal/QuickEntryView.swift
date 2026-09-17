@@ -428,8 +428,6 @@ struct QuickEntryView: View {
                 Form {
                     categorySection
 
-                    budgetToggleSection
-
                     if draft.kind == .transfer {
                         transferAccountsSection
                     }
@@ -810,22 +808,20 @@ struct QuickEntryView: View {
         }
     }
 
-    /// FR3's "不计入预算" toggle, pinned right under the category grid (the
-    /// spec's 金额/分类下方 spot). Expenses only — the budget counts expense
-    /// value; guests are excluded like the countsInLedger choice, since the
-    /// budget is full-role ledger state they can't see.
-    @ViewBuilder
-    private var budgetToggleSection: some View {
-        if draft.kind == .expense, !isGuest {
-            Section {
-                Toggle(isOn: Binding(
-                    get: { draft.excludedFromBudget },
-                    set: { draft.excludedFromBudget = $0; didTouchBudgetToggle = true }
-                )) {
-                    Text(L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget"))
-                }
-            }
-        }
+    /// Whether the budget-exclusion control may render at all: the budget
+    /// counts expense value only, and guests are excluded like the
+    /// countsInLedger choice, since the budget is full-role ledger state
+    /// they can't see. One rule behind both the chip and the more-sheet row.
+    private var canToggleBudget: Bool {
+        draft.kind == .expense && !isGuest
+    }
+
+    /// The exception-side read of the counting flag — the copy names the
+    /// exclusion (不计入收支), so the chip's active state and the
+    /// more-row's inverted Toggle both derive from this one mapping instead
+    /// of sprinkling `!draft.countsInLedger` across the renderers.
+    private var excludesFromIncomeExpense: Bool {
+        !draft.countsInLedger
     }
 
     /// FR5's default resolution: until the user touches the toggle, the
@@ -1199,8 +1195,10 @@ struct QuickEntryView: View {
     /// sheet's form behind the button. Some fields hide contextually:
     /// guests get no account chip (their pay side falls back to the
     /// ledger's default pocket on the server), the participants chip
-    /// hides when no candidates exist, and the payer chip hides when
-    /// there's no candidate or historical payer to pick.
+    /// hides when no candidates exist, the payer chip hides when
+    /// there's no candidate or historical payer to pick, and the two
+    /// counting toggles hide out of scope — budget outside expenses,
+    /// counts-in-ledger on guest ledgers.
     private var quickFieldsBar: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1296,7 +1294,18 @@ struct QuickEntryView: View {
             if canPickPayer {
                 paidByChip
             }
-        case .project, .countsInLedger:
+        case .countsInLedger:
+            // Guests are forced into project scope server-side, so the
+            // choice is theirs only on full-role ledgers — same rule as
+            // the more-sheet row.
+            if !isGuest {
+                countsInLedgerChip
+            }
+        case .budget:
+            if canToggleBudget {
+                budgetChip
+            }
+        case .project:
             EmptyView()
         }
     }
@@ -1439,10 +1448,24 @@ struct QuickEntryView: View {
             }
         case .countsInLedger:
             // Guests are forced into project scope server-side, so the
-            // choice is theirs only on full-role ledgers.
+            // choice is theirs only on full-role ledgers. The copy names
+            // the exception (不计入收支), so the toggle binds to its
+            // negation: on = excluded, the mirror of the draft's flag.
             if !isGuest {
-                Toggle(isOn: $draft.countsInLedger) {
-                    Text(L10n.string("quick.countsInLedger", defaultValue: "Count in Income & Expense"))
+                Toggle(isOn: Binding(
+                    get: { excludesFromIncomeExpense },
+                    set: { draft.countsInLedger = !$0 }
+                )) {
+                    Text(L10n.string("quick.excludeFromIncomeExpense", defaultValue: "Exclude from Income & Expense"))
+                }
+            }
+        case .budget:
+            if canToggleBudget {
+                Toggle(isOn: Binding(
+                    get: { draft.excludedFromBudget },
+                    set: { draft.excludedFromBudget = $0; didTouchBudgetToggle = true }
+                )) {
+                    Text(L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget"))
                 }
             }
         }
@@ -1711,6 +1734,71 @@ struct QuickEntryView: View {
         .background(Capsule().fill(Color.primary.opacity(0.06)))
         .foregroundStyle(.primary)
         .contentShape(Capsule())
+    }
+
+    /// The two counting toggles' shared capsule — budget exclusion and
+    /// income-&-expense exclusion, both copy-phrased as the exception. A
+    /// constant label in the quickChipCapsule anatomy; the accent tint (the
+    /// recents-chip selected look) marks the active deviation, so the state
+    /// reads without swapping the label.
+    private func countingToggleChip(
+        isActive: Bool,
+        systemImage: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.footnote)
+                    .foregroundStyle(isActive
+                        ? AnyShapeStyle(Color.accentColor)
+                        : AnyShapeStyle(.secondary))
+                Text(label)
+                    .font(.footnote)
+                    .lineLimit(1)
+                    .foregroundStyle(isActive
+                        ? AnyShapeStyle(Color.accentColor)
+                        : AnyShapeStyle(.primary))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(
+                isActive
+                    ? Color.accentColor.opacity(0.15)
+                    : Color.primary.opacity(0.06)
+            ))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The budget-exclusion chip: taps flip the draft's flag in place, and
+    /// the first flip sets `didTouchBudgetToggle` — the manual toggle then
+    /// outranks the excluded-category default (FR5).
+    private var budgetChip: some View {
+        countingToggleChip(
+            isActive: draft.excludedFromBudget,
+            systemImage: QuickEntryField.budget.icon,
+            label: L10n.string("quick.excludeFromBudget", defaultValue: "Exclude from Budget")
+        ) {
+            draft.excludedFromBudget.toggle()
+            didTouchBudgetToggle = true
+        }
+    }
+
+    /// The income-&-expense-exclusion chip. The draft stores the flag
+    /// positively (`countsInLedger`), so the chip's active state is the
+    /// shared exception-side mapping; nothing re-derives the flag behind
+    /// the user's back, so no manual-override bookkeeping is needed.
+    private var countsInLedgerChip: some View {
+        countingToggleChip(
+            isActive: excludesFromIncomeExpense,
+            systemImage: QuickEntryField.countsInLedger.icon,
+            label: L10n.string("quick.excludeFromIncomeExpense", defaultValue: "Exclude from Income & Expense")
+        ) {
+            draft.countsInLedger.toggle()
+        }
     }
 
     /// Whether the entry falls on today — the display-only condition behind

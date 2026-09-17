@@ -532,7 +532,7 @@ struct JournalView: View {
                                 set: { store.includeExcluded = $0 == "all" }
                             )
                         ) {
-                            Text(L10n.string("journal.show.counted", defaultValue: "Counted in Income & Expense")).tag("counted")
+                            Text(L10n.string("journal.show.excludeNotCounted", defaultValue: "Excluding Not-Counted Entries")).tag("counted")
                             Text(L10n.string("journal.show.all", defaultValue: "All Entries")).tag("all")
                         }
                     }
