@@ -51,12 +51,14 @@ struct LedgerSwitcherMenu: View {
     }
 
     /// Projects the user is an explicit member of, across every active
-    /// ledger. Membership mirrors `ProjectsView.isProjectMember`; ledgers
+    /// ledger — `activeProjects`: an archived project can't take new
+    /// entries, and this menu is the quick-entry sheet's target picker.
+    /// Membership mirrors `ProjectsView.isProjectMember`; ledgers
     /// whose project lists haven't loaded yet simply contribute nothing.
     private var ownProjects: [ProjectEntry] {
         guard let myUserId = auth.currentUser?.id else { return [] }
         return ledgerStore.activeLedgers.flatMap { ledger in
-            projectStore.projects(for: ledger.id)
+            projectStore.activeProjects(for: ledger.id)
                 .filter { project in
                     project.members.contains { $0.userId == myUserId }
                 }

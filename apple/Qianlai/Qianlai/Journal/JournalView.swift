@@ -78,6 +78,13 @@ struct JournalView: View {
             syncScopeFilter()
             scheduleSummaryReload()
         }
+        // The projects cache refreshing is also when a project can flip to
+        // archived (Projects tab, another device) — drop a manual filter it
+        // carried, or the sheet would render its row blank over a still-
+        // filtered list.
+        .onChange(of: projectFilterOptions.map(\.id)) {
+            dropArchivedProjectFilter()
+        }
         // Window changes refetch the stat card, debounced like the list;
         // an emptied window (the funnel sheet's Clear) also ends a range
         // pin — its seeded range no longer exists.
@@ -494,7 +501,7 @@ struct JournalView: View {
     private var filterSheet: some View {
         NavigationStack {
             Form {
-                if !ledgerProjects.isEmpty {
+                if !projectFilterOptions.isEmpty {
                     Section {
                         Picker(
                             L10n.string("journal.filterProject", defaultValue: "Project"),
@@ -504,7 +511,7 @@ struct JournalView: View {
                             )
                         ) {
                             Text(L10n.string("journal.filterAllProjects", defaultValue: "All Projects")).tag("")
-                            ForEach(ledgerProjects) { project in
+                            ForEach(projectFilterOptions) { project in
                                 Text(project.name).tag(project.id)
                             }
                         }
@@ -589,6 +596,15 @@ struct JournalView: View {
         return appProjectStore.projects(for: ledger.id)
     }
 
+    /// The filter sheet's project options — active projects only. Archived
+    /// ones are excluded on purpose (their history lives on the project
+    /// page), which is also why a set filter must not keep pointing at one:
+    /// the picker would render its row blank while the list stays filtered.
+    private var projectFilterOptions: [QianlaiProject] {
+        guard let ledger = ledgerStore.activeLedger else { return [] }
+        return appProjectStore.activeProjects(for: ledger.id)
+    }
+
     /// Participant filter options, scoped to the active project filter when
     /// one is set — a project's entries can only be tagged with that
     /// project's members, including outsiders who hold no roster row.
@@ -622,6 +638,17 @@ struct JournalView: View {
         if store.projectFilterId != scopedId {
             store.projectFilterId = scopedId
         }
+    }
+
+    /// Drops a manual project filter that no longer points at an active
+    /// project. Scoped sessions are exempt — the switcher scope owns the
+    /// filter there, and the scope guard keeps it active.
+    private func dropArchivedProjectFilter() {
+        guard store.scopeProjectId == nil,
+              let filterId = store.projectFilterId,
+              !projectFilterOptions.contains(where: { $0.id == filterId })
+        else { return }
+        store.projectFilterId = nil
     }
 }
 

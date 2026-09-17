@@ -264,28 +264,7 @@ struct ContentView: View {
     /// quick add.
     private func tryPresentQuickAdd(preset: QuickEntryPreset? = nil) {
         if let preset {
-            if let ledger = ledgerStore.ledgers.first(where: { $0.id == preset.ledgerId }) {
-                presentQuickAdd(QuickEntryBinding(
-                    ledger: ledger,
-                    projectId: preset.projectId,
-                    categoryId: preset.categoryId,
-                    kind: preset.kind
-                ))
-            } else {
-                Task { @MainActor in
-                    await ledgerStore.load()
-                    if let ledger = ledgerStore.ledgers.first(where: { $0.id == preset.ledgerId }) {
-                        presentQuickAdd(QuickEntryBinding(
-                            ledger: ledger,
-                            projectId: preset.projectId,
-                            categoryId: preset.categoryId,
-                            kind: preset.kind
-                        ))
-                    } else {
-                        tryPresentQuickAdd()
-                    }
-                }
-            }
+            resolveBoundQuickAdd(preset)
             return
         }
         // Plain presentations must never inherit a previous bound target.
@@ -302,6 +281,48 @@ struct ContentView: View {
     private func presentQuickAdd(_ binding: QuickEntryBinding) {
         quickAddBinding = binding
         isQuickAddPresented = true
+    }
+
+    /// Presents the bound widget's sheet against its target ledger. The
+    /// target must be an ACTIVE ledger — an archived one refuses every
+    /// write server-side, and falling through to the plain path would
+    /// silently record into a different ledger than the tile names. A
+    /// cold launch delivers the link before the ledger fetch settles, so
+    /// a miss runs the load once and re-resolves; a target that still
+    /// doesn't exist (deleted) degrades to a plain quick add.
+    private func resolveBoundQuickAdd(_ preset: QuickEntryPreset) {
+        if let ledger = boundTargetLedger(preset) {
+            presentOrDenyBound(ledger, preset)
+            return
+        }
+        Task { @MainActor in
+            await ledgerStore.load()
+            guard let ledger = boundTargetLedger(preset) else {
+                tryPresentQuickAdd()
+                return
+            }
+            presentOrDenyBound(ledger, preset)
+        }
+    }
+
+    private func boundTargetLedger(_ preset: QuickEntryPreset) -> QianlaiLedger? {
+        ledgerStore.ledgers.first { $0.id == preset.ledgerId }
+    }
+
+    private func presentOrDenyBound(_ ledger: QianlaiLedger, _ preset: QuickEntryPreset) {
+        guard ledger.isActive else {
+            quickAddDeniedReason = L10n.string(
+                "quick.cannotPost",
+                defaultValue: "You can't add entries in this ledger"
+            )
+            return
+        }
+        presentQuickAdd(QuickEntryBinding(
+            ledger: ledger,
+            projectId: preset.projectId,
+            categoryId: preset.categoryId,
+            kind: preset.kind
+        ))
     }
 
     @ViewBuilder

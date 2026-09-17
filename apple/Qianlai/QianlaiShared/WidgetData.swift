@@ -309,23 +309,31 @@ nonisolated enum WidgetDataStore {
         from ledgers: [QianlaiLedger],
         storedId: String?
     ) -> QianlaiLedger? {
-        ledgers.first { $0.id == storedId }
-            ?? ledgers.first { $0.isDefault && $0.isActive }
-            ?? ledgers.first { $0.isActive }
-            ?? ledgers.first
+        resolveFallbackChain(candidates: ledgers, storedId: storedId)
     }
 
     /// The widget-facing variant of `resolveActiveLedger`: ledgers where the
     /// viewer is only a guest are skipped everywhere — a guest can see
     /// neither the owner's ledger name nor any statistic, so the widget must
     /// never resolve to one. Their data surfaces through the scoped-project
-    /// mirror instead.
+    /// mirror instead. A stored id pointing at a guest or archived ledger is
+    /// treated as invalid and falls through the chain.
     static func resolveWidgetLedger(
         from ledgers: [QianlaiLedger],
         storedId: String?
     ) -> QianlaiLedger? {
-        let candidates = ledgers.filter { !$0.isGuest }
-        return candidates.first { $0.id == storedId }
+        resolveFallbackChain(candidates: ledgers.filter { !$0.isGuest }, storedId: storedId)
+    }
+
+    /// The chain both resolvers share: the stored choice when still valid —
+    /// existing AND active, so a ledger archived elsewhere never
+    /// re-activates from a persisted id — then the default active ledger,
+    /// the first active one, and finally anything at all.
+    private static func resolveFallbackChain(
+        candidates: [QianlaiLedger],
+        storedId: String?
+    ) -> QianlaiLedger? {
+        candidates.first { $0.id == storedId && $0.isActive }
             ?? candidates.first { $0.isDefault && $0.isActive }
             ?? candidates.first { $0.isActive }
             ?? candidates.first

@@ -164,5 +164,21 @@ final class WidgetDataStoreTests: XCTestCase {
             WidgetDataStore.resolveActiveLedger(from: ledgers, storedId: "gone")?.id,
             "default"
         )
+        // A stored id whose ledger archived elsewhere is treated as
+        // invalid — a read-only ledger must not re-activate from the
+        // persisted id; the chain falls to the default active one.
+        XCTAssertEqual(
+            WidgetDataStore.resolveActiveLedger(from: ledgers, storedId: "archived")?.id,
+            "default"
+        )
+        XCTAssertEqual(
+            WidgetDataStore.resolveWidgetLedger(from: ledgers, storedId: "archived")?.id,
+            "default"
+        )
+        // The archived last resort survives when nothing active exists.
+        XCTAssertEqual(
+            WidgetDataStore.resolveActiveLedger(from: [archived], storedId: "archived")?.id,
+            "archived"
+        )
     }
 }

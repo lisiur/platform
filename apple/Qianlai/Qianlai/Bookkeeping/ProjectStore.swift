@@ -160,19 +160,36 @@ final class ProjectStore {
         projectsByLedger[ledgerId] ?? []
     }
 
+    /// Active projects from the same cache — the list every entry-targeting
+    /// surface offers, since the server refuses writes into archived ones.
+    /// Surfaces that must see archived projects too (the management lists,
+    /// the project page's read-only history) use `projects(for:)`.
+    func activeProjects(for ledgerId: String) -> [QianlaiProject] {
+        projects(for: ledgerId).filter(\.isActive)
+    }
+
     /// The project currently claiming scope in `ledger`: an explicit
     /// selection resolves against that ledger's cached list for any role;
     /// guest ledgers additionally fall back to the auto-picked first
     /// project, since their members default to project scope. Full-role
     /// ledgers default to ledger-wide scope (nil) until a project is
     /// explicitly selected.
+    ///
+    /// Archived projects never claim scope — the server refuses every
+    /// write into them, so a selection that turned archived after being
+    /// stored (cold start, another device) degrades to ledger-wide scope,
+    /// and a guest ledger falls through to its first active project. The
+    /// stale id stays stored: unarchiving restores the scope on the next
+    /// resolution.
     func scopedProject(in ledgerId: String, isGuestLedger: Bool) -> QianlaiProject? {
         let projects = projects(for: ledgerId)
-        if let selectedProjectId, let project = projects.first(where: { $0.id == selectedProjectId }) {
+        if let selectedProjectId,
+           let project = projects.first(where: { $0.id == selectedProjectId }),
+           project.isActive {
             return project
         }
         guard isGuestLedger else { return nil }
-        return projects.first
+        return projects.first { $0.isActive }
     }
 
     func select(_ id: String?) {

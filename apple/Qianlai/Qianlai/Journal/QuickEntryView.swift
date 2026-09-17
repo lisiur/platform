@@ -219,6 +219,30 @@ struct QuickEntryView: View {
         return appProjectStore.projects(for: ledger.id)
     }
 
+    /// The target picker's options: active projects only — the server
+    /// refuses every post into an archived one. An edit form whose entry
+    /// still lives in an archived project appends it so the Picker can
+    /// display the current selection instead of rendering blank; keeping
+    /// it selected fails the save with the server's archived message.
+    private var projectPickerOptions: [QianlaiProject] {
+        var options = ledgerProjects.filter(\.isActive)
+        if let projectId = draft.projectId,
+           let current = ledgerProjects.first(where: { $0.id == projectId }),
+           !current.isActive {
+            options.append(current)
+        }
+        return options
+    }
+
+    /// The project the draft targets when the switcher scope names none:
+    /// the guest auto-pin on a ledger whose projects have all archived.
+    /// The pin itself is kept deliberately — the payload names the archived
+    /// project, so the server's rejection stays accurate.
+    private var guestPinnedProject: QianlaiProject? {
+        guard let projectId = draft.projectId else { return nil }
+        return ledgerProjects.first(where: { $0.id == projectId })
+    }
+
     /// The project currently claiming scope in the ledger switcher — an
     /// explicit selection for any role, the auto-picked first project for
     /// guests. Non-nil fixes new entries to it in place of the picker.
@@ -1429,13 +1453,23 @@ struct QuickEntryView: View {
                     Text(scopedProject.name)
                         .foregroundStyle(.secondary)
                 }
+            } else if binding == nil, isGuest, let pinned = guestPinnedProject {
+                // Scope degraded to nil (this guest ledger's projects have
+                // all archived) but the draft still carries the auto-pinned
+                // project — name it, so the save's server rejection ("This
+                // project is archived") has a visible subject instead of a
+                // form missing its project row entirely.
+                LabeledContent(L10n.string("quick.project", defaultValue: "Project")) {
+                    Text(pinned.name)
+                        .foregroundStyle(.secondary)
+                }
             } else if !isGuest, !ledgerProjects.isEmpty {
                 Picker(L10n.string("quick.project", defaultValue: "Project"), selection: Binding(
                     get: { draft.projectId ?? "" },
                     set: { draft.projectId = $0.isEmpty ? nil : $0 }
                 )) {
                     Text(L10n.string("projects.none", defaultValue: "No project")).tag("")
-                    ForEach(ledgerProjects) { project in
+                    ForEach(projectPickerOptions) { project in
                         Text(project.name).tag(project.id)
                     }
                 }
@@ -2050,7 +2084,11 @@ struct QuickEntryView: View {
     /// pick the category and the amount. With multiple projects the scoped
     /// default below takes over instead — guests auto-claim the first
     /// project, so the draft is still pinned rather than left unassigned
-    /// (validated server-side too).
+    /// (validated server-side too). The count deliberately ignores
+    /// `isActive`: when the only project has archived, pinning it keeps
+    /// the payload named so the save fails with the server's accurate
+    /// "This project is archived" — the project row above names the
+    /// subject (`guestPinnedProject`).
     private func applyGuestProjectDefault() {
         guard isGuest, draft.projectId == nil, ledgerProjects.count == 1 else { return }
         draft.projectId = ledgerProjects[0].id
