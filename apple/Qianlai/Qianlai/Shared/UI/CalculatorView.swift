@@ -256,6 +256,8 @@ struct CalculatorEngine {
 struct CalculatorView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
     @Environment(AccentSettings.self) private var accentSettings
+    @Environment(RimSettings.self) private var rimSettings
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var engine: CalculatorEngine
     @State private var keyPressCount = 0
 
@@ -335,6 +337,22 @@ struct CalculatorView: View {
             ? L10n.string("calculator.error", defaultValue: "Error") : nil
     }
 
+    /// The keys'/display's glass rim, inset within the fill — the system
+    /// sheet's edge treatment, not a drawn outline: a specular highlight
+    /// concentrated at the top edge fading down (dark mode's visible part),
+    /// plus a whisper of shadow along the bottom edge for light mode,
+    /// where the white highlight vanishes against the light fills. The
+    /// surface-filled pieces carry it everywhere; the accent-filled keys
+    /// (operations, commit) carry their own color and never take it.
+    /// Strength follows the theme page's 边框高光 setting; zero draws none.
+    private var surfaceBorderStroke: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .strokeBorder(
+                LinearGradient.glassRim(intensity: rimSettings.intensity, colorScheme: colorScheme),
+                lineWidth: 1
+            )
+    }
+
     /// Pending-operation formula hugging the trailing big live total (or
     /// error text) on one row, presented as a card on the host's canvas —
     /// the same surface the grouped form's sections use, so the display
@@ -361,6 +379,7 @@ struct CalculatorView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(backgroundSettings.cardSurface)
         )
+        .overlay { if rimSettings.intensity > 0 { surfaceBorderStroke } }
     }
 
     /// The big line — the currency symbol leading the live total in the
@@ -469,15 +488,12 @@ struct CalculatorView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Text(label)
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-                .foregroundStyle(role.foreground(accent: accent))
-                .frame(maxWidth: .infinity, minHeight: height)
-                .background(
-                    role.background(backgroundSettings, accent: accent),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .contentShape(Rectangle())
+            keyChrome(
+                Text(label)
+                    .font(.system(.title2, design: .rounded, weight: .semibold)),
+                role: role,
+                height: height
+            )
         }
         .buttonStyle(KeyPressStyle())
     }
@@ -490,22 +506,50 @@ struct CalculatorView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.medium))
-                .foregroundStyle(role.foreground(accent: accent))
-                .frame(maxWidth: .infinity, minHeight: height)
-                .background(
-                    role.background(backgroundSettings, accent: accent),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .contentShape(Rectangle())
+            keyChrome(
+                Image(systemName: systemImage)
+                    .font(.title3.weight(.medium)),
+                role: role,
+                height: height
+            )
         }
         .buttonStyle(KeyPressStyle())
         .accessibilityLabel(Text(accessibilityLabel))
     }
 
+    /// The key's shared chrome — role foreground, fill, glass rim, and
+    /// touch shape — stated once for the text and symbol builders.
+    private func keyChrome(
+        _ label: some View,
+        role: KeyRole,
+        height: CGFloat
+    ) -> some View {
+        label
+            .foregroundStyle(role.foreground(accent: accent))
+            .frame(maxWidth: .infinity, minHeight: height)
+            .background(
+                role.background(backgroundSettings, accent: accent),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay { if role.isSurfaceFilled && rimSettings.intensity > 0 { surfaceBorderStroke } }
+            .contentShape(Rectangle())
+    }
+
     private enum KeyRole {
         case function, digit, operation, commit
+
+        /// The role's fill family, stated once: accent-tinted roles
+        /// (operations, commit) color themselves from the accent and never
+        /// take the glass rim; surface-relative roles (function, digit)
+        /// always do.
+        var isAccentFilled: Bool {
+            switch self {
+            case .operation, .commit: true
+            case .function, .digit: false
+            }
+        }
+
+        var isSurfaceFilled: Bool { !isAccentFilled }
 
         func foreground(accent: Color) -> Color {
             switch self {

@@ -41,6 +41,11 @@ struct BudgetSettingsView: View {
     /// The excluded-categories picker sheet.
     @State private var isShowingExcluded = false
 
+    /// Screenshot harness only (`BudgetSettingsDemoScreen`): the editor the
+    /// page auto-opens shortly after appearing, so the sheet can be
+    /// captured without driving the UI. Nil in production.
+    var autoOpenEditor: AmountEditorTarget? = nil
+
     private var ledgerId: String? { ledgerStore.activeLedger?.id }
 
     /// The settings page edits the current year — budgets are year-scoped.
@@ -87,6 +92,13 @@ struct BudgetSettingsView: View {
             guard let ledgerId, loadedLedgerId != ledgerId else { return }
             loadedLedgerId = ledgerId
             await store.load(ledgerId: ledgerId, year: settingsYear)
+        }
+        .task {
+            // Harness auto-open: waits out the page's appear transition,
+            // then runs the real open path (engine seed included).
+            guard let autoOpenEditor else { return }
+            try? await Task.sleep(for: .seconds(0.8))
+            openAmountEditor(autoOpenEditor)
         }
     }
 

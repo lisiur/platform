@@ -24,7 +24,7 @@ final class BudgetStore {
         // settings so the settings page renders amounts, a pinned month,
         // and an exclusion count offline (`load` is flag-guarded too — a
         // failed fetch would wipe this seed with `try?`).
-        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-settings") {
             settings = BudgetSettings(
                 year: YearMonth.current.year,
                 cents: 300_000,
@@ -43,7 +43,7 @@ final class BudgetStore {
         #if DEBUG
         // Screenshot harness: keep the seeded settings — the demo has no
         // backend, and this method's `try?` would wipe the seed on failure.
-        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") { return }
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-settings") { return }
         #endif
         isLoading = true
         defer { isLoading = false }

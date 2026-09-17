@@ -134,6 +134,7 @@ struct BudgetCardView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(backgroundSettings.cardSurface)
         )
+        .glassRim(cornerRadius: 20)
     }
 
     private var dailyAvailableCents: Int {

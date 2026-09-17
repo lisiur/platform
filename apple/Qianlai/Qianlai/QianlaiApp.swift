@@ -19,6 +19,7 @@ struct QianlaiApp: App {
     @State private var backgroundSettings = BackgroundSettings()
     @State private var appearanceSettings = AppearanceSettings()
     @State private var accentSettings = AccentSettings()
+    @State private var rimSettings = RimSettings()
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -33,14 +34,21 @@ struct QianlaiApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             Group {
-                if ProcessInfo.processInfo.arguments.contains("--ui-demo-location-picker") {
+                if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-location-picker") {
                     LocationPickerSheet(initialLocation: nil) { _ in }
-                } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-category-picker") {
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-category-picker") {
                     CategoryPickerDemo()
-                } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-quick-entry") {
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
                     QuickEntryDemoScreen()
-                } else if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-settings") {
                     BudgetSettingsDemoScreen()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-theme") {
+                    // Theme page without login/backend: verifies the 边框高光
+                    // section and the background controls offline.
+                    BackgroundSettingsView()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-rim-settings") {
+                    // Border highlight sub-page offline harness.
+                    NavigationStack { RimSettingsView() }
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -66,6 +74,7 @@ struct QianlaiApp: App {
             .environment(backgroundSettings)
             .environment(appearanceSettings)
             .environment(accentSettings)
+            .environment(rimSettings)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
@@ -107,14 +116,26 @@ struct QianlaiApp: App {
     }
 }
 
+/// Screenshot-harness launch flags (`--ui-demo-*`) gate demo rendering at
+/// runtime — one door for the stringly-typed checks.
+extension ProcessInfo {
+    func hasLaunchFlag(_ flag: String) -> Bool {
+        arguments.contains(flag)
+    }
+}
+
 /// Screenshot harness for the budget settings page (`--ui-demo-budget-settings`):
 /// renders the real `BudgetSettingsView`, whose own `BudgetStore` seeds its
 /// settings from the flag; `LedgerStore` seeds the demo CNY ledger so the
-/// amounts render with the currency symbol. No login or backend.
+/// amounts render with the currency symbol. No login or backend. Adding
+/// `--ui-demo-budget-editor` also auto-opens the year-amount editor sheet.
 private struct BudgetSettingsDemoScreen: View {
     var body: some View {
         NavigationStack {
-            BudgetSettingsView()
+            BudgetSettingsView(
+                autoOpenEditor: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-editor")
+                    ? .year : nil
+            )
         }
     }
 }

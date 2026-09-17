@@ -139,6 +139,59 @@ extension Color {
     }
 }
 
+/// The glass rim shared by the self-drawn surfaces — the calculator's
+/// display/keys and the stat-card family: a specular highlight
+/// concentrated at the top edge fading down (dark mode's visible part),
+/// plus a whisper of shadow along the bottom edge for light mode, where
+/// the white highlight vanishes against the light fills. `intensity` is
+/// the theme page's 边框高光 value; zero means off (callers skip drawing).
+extension LinearGradient {
+    static func glassRim(intensity: Double, colorScheme: ColorScheme) -> LinearGradient {
+        LinearGradient(
+            stops: colorScheme == .dark
+                ? [
+                    .init(color: .white.opacity(intensity), location: 0),
+                    .init(color: .white.opacity(intensity * 0.25), location: 1),
+                ]
+                : [
+                    .init(color: .white.opacity(min(1, intensity * 2.3)), location: 0),
+                    .init(color: .white.opacity(intensity * 0.25), location: 0.5),
+                    .init(color: .black.opacity(intensity * 0.3), location: 1),
+                ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+}
+
+/// The rim as an overlay for self-drawn cards — the corner radius must
+/// match the card fill's own rounded rectangle.
+struct GlassRimModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @Environment(RimSettings.self) private var rimSettings
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if rimSettings.intensity > 0 {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient.glassRim(intensity: rimSettings.intensity, colorScheme: colorScheme),
+                        lineWidth: 1
+                    )
+            }
+        }
+    }
+}
+
+extension View {
+    /// Outlines the view's rounded-rect bounds with the themed glass rim.
+    func glassRim(cornerRadius: CGFloat) -> some View {
+        modifier(GlassRimModifier(cornerRadius: cornerRadius))
+    }
+}
+
 /// Icon + label + tabular amount, used by the dashboard and real-accounts
 /// totals rows. A `currency` ISO code prefixes the amount with its symbol;
 /// leave it nil on surfaces without a single currency (cross-ledger totals).
@@ -201,6 +254,7 @@ struct StatCard: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(backgroundSettings.cardSurface)
         )
+        .glassRim(cornerRadius: 20)
     }
 }
 
@@ -533,7 +587,7 @@ private struct AppBackgroundCanvasModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if backgroundSettings.isActive, let image = backgroundSettings.image {
+        if backgroundSettings.isActive, let image = backgroundSettings.activeImage {
             content
                 .scrollContentBackground(.hidden)
                 .background {

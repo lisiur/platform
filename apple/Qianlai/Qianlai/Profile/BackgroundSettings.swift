@@ -7,18 +7,28 @@ import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Global background-image customization, stored on this device only: a
-/// photo-library pick is downsampled and re-encoded to JPEG in Documents,
-/// while the dim level, card opacity, and applied preset live in
-/// UserDefaults. Nothing syncs to the server. The background shows exactly
-/// when an image exists — there is no separate enable switch.
+/// Global background-image customization, stored on this device only.
+/// Two file slots on disk:
+///
+/// - `activeFileURL` is the wallpaper currently shown on screen. Picked
+///   photos and rendered presets both write here; one or the other owns
+///   the slot at any moment.
+/// - `photoFileURL` is the picked photo's permanent home. It is never
+///   overwritten by a preset selection, so the wallpaper picker's "my
+///   photo" tile can keep showing the last-picked thumbnail even while
+///   a preset is currently the active background. An enable switch
+///   (`enabledKey`) hides the background without touching either slot.
+///   Nothing syncs to the server. The dim level, card opacity, active
+///   preset, and enable flag live in UserDefaults.
 @MainActor @Observable
 final class BackgroundSettings {
     static let defaults = UserDefaults.standard
     static let dimKey = "app.backgroundImage.dim"
     static let cardOpacityKey = "app.backgroundImage.cardOpacity"
     static let presetKey = "app.backgroundImage.preset"
-    static let fileURL = URL.documentsDirectory.appendingPathComponent("background-image.jpg")
+    static let enabledKey = "app.backgroundImage.enabled"
+    static let activeFileURL = URL.documentsDirectory.appendingPathComponent("background-image.jpg")
+    static let photoFileURL = URL.documentsDirectory.appendingPathComponent("background-photo.jpg")
 
     /// Fullscreen render headroom: the tallest current phone is 2868px.
     nonisolated static let maxDimension: CGFloat = 2868
@@ -27,12 +37,27 @@ final class BackgroundSettings {
     nonisolated static let cardOpacityRange: ClosedRange<Double> = 0.3...1.0
     nonisolated static let defaultCardOpacity: Double = 0.75
 
+    /// The picked custom photo. Survives preset selections — the "my
+    /// photo" tile in the wallpaper picker reads this directly, so it
+    /// always shows the last-picked thumbnail even when a preset is
+    /// currently the active background. Mirrors `photoFileURL`.
     private(set) var image: UIImage?
     private(set) var dim: Double
     private(set) var cardOpacity: Double
-    /// Set when the current background came from a preset; a photo pick
-    /// or removal clears it.
+    /// The wallpaper currently shown on screen: the picked photo when
+    /// it owns the slot, else the rendered preset, else nothing.
+    /// Mirrors `activeFileURL`.
+    private(set) var activeImage: UIImage?
+    /// Set when the active slot came from a preset; a photo pick or a
+    /// photo removal (when the photo was active) clears it.
     private(set) var selectedPresetID: String?
+    /// Whether the wallpaper feature is on. Toggling off only hides the
+    /// background — the photo file, the active slot, and the preset
+    /// selection all survive for the next enable. Toggling on with an
+    /// empty active slot applies the first built-in preset, so the
+    /// switch never yields an "on but blank" state. Defaults to off:
+    /// the wallpaper only shows after the user enables it.
+    private(set) var enabled: Bool
 
     init() {
         if let stored = Self.defaults.object(forKey: Self.dimKey) as? Double,
@@ -55,11 +80,42 @@ final class BackgroundSettings {
         } else {
             selectedPresetID = nil
         }
-        image = UIImage(contentsOfFile: Self.fileURL.path)
+        enabled = (Self.defaults.object(forKey: Self.enabledKey) as? Bool) ?? false
+        image = UIImage(contentsOfFile: Self.photoFileURL.path)
+        // Migration for installs that pre-date the photo-slot split:
+        // before, a picked photo and the active wallpaper shared one
+        // file, so applying a preset overwrote the photo. If we find
+        // an active wallpaper with no preset tag and no photo slot
+        // yet, that file is a legacy picked photo — copy it into the
+        // new slot so the user doesn't lose it on the first run after
+        // this change.
+        if image == nil,
+           selectedPresetID == nil,
+           FileManager.default.fileExists(atPath: Self.activeFileURL.path),
+           let legacy = UIImage(contentsOfFile: Self.activeFileURL.path)
+        {
+            try? FileManager.default.copyItem(at: Self.activeFileURL, to: Self.photoFileURL)
+            image = legacy
+        }
+        activeImage = UIImage(contentsOfFile: Self.activeFileURL.path)
     }
 
-    /// A background shows exactly while an image exists.
-    var isActive: Bool { image != nil }
+    /// A background shows exactly while the switch is on and an active
+    /// wallpaper exists.
+    var isActive: Bool { enabled && activeImage != nil }
+
+    /// Enables or disables the wallpaper feature. Turning it on with an
+    /// empty active slot — first use, or after the wallpaper was
+    /// removed — applies the first built-in preset so the switch never
+    /// yields an "on but blank" state; throws only if that default
+    /// preset fails to render.
+    func setEnabled(_ value: Bool) throws {
+        enabled = value
+        Self.defaults.set(value, forKey: Self.enabledKey)
+        if value, activeImage == nil, let first = BackgroundPresetCatalog.all.first {
+            try applyPreset(first)
+        }
+    }
 
     /// Screen points, resolved lazily (the window scene is connected by
     /// first render) and cached — the pinned wallpaper layer never
@@ -81,34 +137,60 @@ final class BackgroundSettings {
         Self.defaults.set(cardOpacity, forKey: Self.cardOpacityKey)
     }
 
-    /// Downsamples and stores the picked photo. Picking one is an explicit
-    /// intent to show it, and replaces any applied preset.
+    /// Downsamples and stores the picked photo. Picking one is an
+    /// explicit intent to show it: both slots update, and any preset
+    /// selection clears. The photo slot is written first so a failed
+    /// active-slot write still leaves the picked photo recoverable
+    /// for the next attempt.
     func setPhoto(_ data: Data) throws {
         guard let jpeg = Self.downsampledJPEG(data) else {
             throw BackgroundError.cannotProcess
         }
-        try storeJPEG(jpeg)
+        try jpeg.write(to: Self.photoFileURL, options: .atomic)
+        try storeActive(jpeg)
+        guard let photo = UIImage(contentsOfFile: Self.photoFileURL.path) else {
+            throw BackgroundError.cannotProcess
+        }
+        image = photo
         clearSelectedPreset()
     }
 
-    /// Renders the preset at screen resolution, stores it like a picked
-    /// photo, and remembers the selection for the picker's highlight.
+    /// Renders the preset at screen resolution, stores it in the active
+    /// slot, and remembers the selection for the picker's highlight.
+    /// The photo slot is untouched — the picked photo stays available
+    /// even while this preset is showing on screen.
     func applyPreset(_ preset: BackgroundPreset) throws {
         let rendered = BackgroundPresetCatalog.render(preset, size: Self.sharedScreenSize)
         guard let jpeg = rendered.jpegData(compressionQuality: 0.75) else {
             throw BackgroundError.cannotProcess
         }
-        try storeJPEG(jpeg)
+        try storeActive(jpeg)
         selectedPresetID = preset.id
         Self.defaults.set(preset.id, forKey: Self.presetKey)
     }
 
-    /// Removes the photo; the dim and card-opacity levels stay for the
-    /// next one.
-    func clearPhoto() {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        image = nil
+    /// Re-selects the already-picked photo as the active wallpaper after
+    /// a preset took the slot — the wallpaper tile's first tap in its
+    /// two-phase interaction. The photo bytes are copied into the active
+    /// slot (no re-encode) and the preset selection clears. No-op when
+    /// nothing has been picked yet.
+    func selectPhoto() throws {
+        guard image != nil else { return }
+        try storeActive(Data(contentsOf: Self.photoFileURL))
         clearSelectedPreset()
+    }
+
+    /// Removes the picked photo. The dim and card-opacity levels stay
+    /// for the next one. If the photo was the active wallpaper, the
+    /// active slot goes with it (the on-disk JPEG would be stale); if
+    /// a preset is currently active, the active slot is left alone.
+    func clearPhoto() {
+        try? FileManager.default.removeItem(at: Self.photoFileURL)
+        image = nil
+        if selectedPresetID == nil {
+            try? FileManager.default.removeItem(at: Self.activeFileURL)
+            activeImage = nil
+        }
     }
 
     enum BackgroundError: LocalizedError {
@@ -125,14 +207,15 @@ final class BackgroundSettings {
         }
     }
 
-    /// The one write path for the wallpaper file: atomic write, then
-    /// reload from disk so `image` always mirrors what was stored.
-    private func storeJPEG(_ jpeg: Data) throws {
-        try jpeg.write(to: Self.fileURL, options: .atomic)
-        guard let stored = UIImage(contentsOfFile: Self.fileURL.path) else {
+    /// One write path for the active wallpaper file: atomic write,
+    /// then reload from disk so `activeImage` always mirrors what was
+    /// stored.
+    private func storeActive(_ jpeg: Data) throws {
+        try jpeg.write(to: Self.activeFileURL, options: .atomic)
+        guard let stored = UIImage(contentsOfFile: Self.activeFileURL.path) else {
             throw BackgroundError.cannotProcess
         }
-        image = stored
+        activeImage = stored
     }
 
     private func clearSelectedPreset() {

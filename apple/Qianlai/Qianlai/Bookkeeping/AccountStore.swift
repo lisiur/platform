@@ -27,7 +27,7 @@ final class AccountStore {
         #if DEBUG
         // Screenshot harness: pre-seed the sample chart so the quick-entry
         // grid renders offline (the matching ledger id also skips `load`).
-        if ProcessInfo.processInfo.arguments.contains("--ui-demo-quick-entry") {
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
             seedForDemo(Self.demoAccounts)
         }
         #endif

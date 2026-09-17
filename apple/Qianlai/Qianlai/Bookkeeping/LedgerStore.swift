@@ -42,7 +42,7 @@ final class LedgerStore {
         // ledger so the budget settings page renders its amounts with the
         // currency symbol; BudgetStore seeds its page data for the same
         // flag. Init assignment skips the didSet — nothing persists.
-        if ProcessInfo.processInfo.arguments.contains("--ui-demo-budget-settings") {
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-settings") {
             let demo = QianlaiLedger(
                 id: "demo-ledger",
                 ownerId: "demo-owner",

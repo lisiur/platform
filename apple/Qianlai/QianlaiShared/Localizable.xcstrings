@@ -6849,6 +6849,23 @@
         }
       }
     },
+    "profile.theme.appearance.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外观"
+          }
+        }
+      }
+    },
     "profile.theme.cannotProcess" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6917,36 +6934,19 @@
         }
       }
     },
-    "profile.theme.footer" : {
+    "profile.theme.enable" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pick a photo to show behind your lists. Stored on this device only."
+            "value" : "Enable Wallpaper"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择一张照片作为列表背景，仅保存在本机。"
-          }
-        }
-      }
-    },
-    "profile.theme.pick" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose Photo"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择照片"
+            "value" : "启用壁纸"
           }
         }
       }
@@ -7212,13 +7212,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Presets"
+            "value" : "Wallpaper"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "预设"
+            "value" : "壁纸"
+          }
+        }
+      }
+    },
+    "profile.theme.myPhoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Photo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的照片"
           }
         }
       }
@@ -7240,19 +7257,70 @@
         }
       }
     },
-    "profile.theme.show" : {
+    "profile.theme.rim" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show Background"
+            "value" : "Border Highlight"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示背景"
+            "value" : "边框高光"
+          }
+        }
+      }
+    },
+    "profile.theme.rim.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strength of the highlight on the cards. Set to zero to turn it off."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片的边框高光强度，调到 0 关闭。"
+          }
+        }
+      }
+    },
+    "profile.theme.rim.preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览"
+          }
+        }
+      }
+    },
+    "profile.theme.rim.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Border Highlight"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "边框高光"
           }
         }
       }
