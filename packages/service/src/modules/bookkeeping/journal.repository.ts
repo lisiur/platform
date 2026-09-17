@@ -781,12 +781,15 @@ export const journalRepository = {
   },
 
   /**
-   * Every activity entry of the ledger in the window with the shape the
-   * yearly budget aggregate needs: the date (month bucketing), the entry's
+   * Every entry of the ledger in the window with the shape the yearly
+   * budget aggregate needs: the date (month bucketing), the entry's
    * budget flag, and its raw lines (expense lines form the two budget
    * pools). Income/transfer entries come through with empty expense value —
-   * they still mark their month as recorded. Same ledger-activity
-   * visibility as the dashboard's month statement.
+   * they still mark their month as recorded. Deliberately NOT
+   * `ledgerActivityWhere`: the budget answers for real spending regardless
+   * of the creator's `countsInLedger` opt-out (a top-up-card payment kept
+   * out of income/expense still spent real money this month), so
+   * `excludedFromBudget` is the only per-entry budget opt-out.
    */
   listBudgetActivity(
     ledgerId: string,
@@ -796,7 +799,6 @@ export const journalRepository = {
     return tx.journalEntry.findMany({
       where: {
         ledgerId,
-        ...ledgerActivityWhere,
         ...dateWindowWhere(window),
       },
       select: {

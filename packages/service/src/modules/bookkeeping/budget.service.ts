@@ -20,9 +20,11 @@ import { ledgerRepository } from "./ledger.repository";
  * the year row is the only off-switch. Two pools per month:
  * `countedCents` (expense value the budget answers for) and
  * `excludedCents` (planned big charges marked "excluded from budget" at
- * posting time). Only ledger-activity entries feed the pools — a
- * countsInLedger opt-out (a repayment already expensed at purchase) is not
- * new spending. Income and transfers never count.
+ * posting time). The two counting flags are INDEPENDENT: every entry in
+ * the window feeds the pools — a `countsInLedger` opt-out (a top-up-card
+ * payment whose money left at funding time) keeps the entry out of
+ * income/expense stats but not out of the budget, so `excludedFromBudget`
+ * is the only per-entry budget opt-out. Income and transfers never count.
  */
 
 /** Per-entry budget input produced by `journalRepository.listBudgetActivity`. */
