@@ -102,7 +102,6 @@ struct ProjectEntriesDetailView: View {
             emptyMessage: emptyMessage,
             showsPostHint: false,
             amountSection: settlementAmountSection,
-            alwaysShowsPayer: true,
             topContent: settlementSummary
         )
         .environment(entryStore)

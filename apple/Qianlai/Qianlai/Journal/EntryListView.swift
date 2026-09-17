@@ -32,9 +32,6 @@ struct EntryListView: View {
     /// drill-downs: the member's share, the entry total, their paid line).
     /// Nil renders the standard headline.
     var amountSection: ((JournalEntry) -> EntryAmountSection?)?
-    /// Project-surface switch: rows always name the payer ("由 X 付款"),
-    /// even when they recorded the entry themselves. See `EntryRow`.
-    var alwaysShowsPayer = false
     /// Ledger-wide switch: project entries carry the ledger members'
     /// combined share (分摊/分账) beneath their headline — the settlement
     /// drill-down's right-column look, with the figure the stat cards
@@ -50,7 +47,6 @@ struct EntryListView: View {
         emptyMessage: String,
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
-        alwaysShowsPayer: Bool = false,
         topContent: AnyView? = nil,
         showsProjectShare: Bool = false
     ) {
@@ -58,7 +54,6 @@ struct EntryListView: View {
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
         self.amountSection = amountSection
-        self.alwaysShowsPayer = alwaysShowsPayer
         self.topContent = topContent
         self.showsProjectShare = showsProjectShare
     }
@@ -182,7 +177,6 @@ struct EntryListView: View {
             entry: entry,
             currency: ledger.currency,
             amountSection: amountSection?(entry),
-            alwaysShowsPayer: alwaysShowsPayer,
             showsProjectShare: showsProjectShare
         )
             .background {
@@ -293,9 +287,6 @@ struct EntryRow: View {
     /// Custom right-hand column replacing the standard headline (settlement
     /// drill-downs); nil renders the entry's own amount.
     var amountSection: EntryAmountSection?
-    /// Project-surface switch: always name the payer ("由 X 付款"), even
-    /// when they recorded the entry themselves.
-    var alwaysShowsPayer = false
     /// Ledger-wide switch: a project entry's amount column also carries the
     /// 分摊/分账 caption — the ledger members' combined share (what the
     /// stat cards count from this entry), rendered with the settlement
@@ -546,32 +537,17 @@ struct EntryRow: View {
         return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
-    /// The meta caption's person slot. Ledger surfaces name the payer only
-    /// when they differ from the creator, else the plain creator name —
-    /// project surfaces (`alwaysShowsPayer`) always call the person out,
-    /// whoever recorded the entry: 由 X 付款 on expenses, 由 X 收款 on
-    /// income (the money flows to them).
+    /// The meta caption's person slot. Every surface names the payer —
+    /// 由 X 付款 on expenses, 由 X 收款 on income (the money flows to
+    /// them) — even when they recorded the entry themselves.
     private var payerCaption: String? {
-        if alwaysShowsPayer {
-            let format = categoryLine?.account.type == .income
-                ? L10n.string("journal.receivedByFormat", defaultValue: "Received by %@")
-                : L10n.string("journal.paidByFormat", defaultValue: "Paid by %@")
-            if let payerName = entry.paidBy?.name ?? entry.createdBy?.name, !payerName.isEmpty {
-                return String(format: format, payerName)
-            }
+        let format = categoryLine?.account.type == .income
+            ? L10n.string("journal.receivedByFormat", defaultValue: "Received by %@")
+            : L10n.string("journal.paidByFormat", defaultValue: "Paid by %@")
+        guard let payerName = entry.paidBy?.name ?? entry.createdBy?.name, !payerName.isEmpty else {
             return nil
         }
-        if entry.paidById != entry.createdById,
-           let paidByName = entry.paidBy?.name, !paidByName.isEmpty {
-            return String(
-                format: L10n.string("journal.paidByFormat", defaultValue: "Paid by %@"),
-                paidByName
-            )
-        }
-        if let creatorName = entry.createdBy?.name, !creatorName.isEmpty {
-            return creatorName
-        }
-        return nil
+        return String(format: format, payerName)
     }
 
     private var title: String {

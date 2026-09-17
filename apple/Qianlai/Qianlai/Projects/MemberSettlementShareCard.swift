@@ -251,8 +251,8 @@ struct MemberSettlementShareCard: View {
             ?? L10n.string("quick.kind.transfer", defaultValue: "Transfer")
     }
 
-    /// Project surfaces always name the payer: 由 X 付款 on expenses, 由 X
-    /// 收款 on income. Mirrors EntryRow's alwaysShowsPayer branch.
+    /// Names the payer: 由 X 付款 on expenses, 由 X 收款 on income.
+    /// Mirrors EntryRow's payerCaption.
     private func payerCaption(of entry: JournalEntry) -> String? {
         let income = categoryLine(of: entry)?.account.type == .income
         let format = income
