@@ -15,7 +15,11 @@ import SwiftUI
 /// "days left" means anything.
 struct BudgetCardView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
-    @State private var showYearDetail = false
+    /// Push flag for the yearly breakdown, owned by DashboardView: the
+    /// `navigationDestination` registration must sit outside the entry
+    /// list's lazy row this card renders in (a registration inside a List
+    /// is ignored in a future release), so the card only raises the flag.
+    @Binding var isYearDetailPresented: Bool
 
     let month: BudgetMonthSummary
     let year: BudgetYear?
@@ -95,7 +99,7 @@ struct BudgetCardView: View {
                 // whole header row tap-to-navigate; the button keeps the
                 // gesture on the annual line only.
                 Button {
-                    showYearDetail = true
+                    isYearDetailPresented = true
                 } label: {
                     HStack(spacing: 4) {
                         Text(year.annualStatusLabel)
@@ -122,9 +126,6 @@ struct BudgetCardView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 6)
                 .accessibilityHint(L10n.string("budget.yearDetail", defaultValue: "Yearly breakdown"))
-                .navigationDestination(isPresented: $showYearDetail) {
-                    BudgetYearDetailView()
-                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

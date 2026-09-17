@@ -28,6 +28,11 @@ struct DashboardView: View {
     @State private var isShowingNewProject = false
     @State private var isShowingJoin = false
     @State private var isShowingLedgerManager = false
+    /// Push flag for the budget card's yearly breakdown. Owned here, not in
+    /// BudgetCardView, so the `navigationDestination` registration below sits
+    /// on the page — outside the entry list's lazy rows — per the
+    /// navigationDestination contract.
+    @State private var isShowingYearDetail = false
     /// Month the cards and the entry list summarize; stepped with the
     /// chevrons in the month header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
@@ -243,6 +248,14 @@ struct DashboardView: View {
                 collaborationMenu
             }
             #endif
+        }
+        // Budget card's yearly breakdown, registered on the page rather than
+        // inside the card: the card renders in the entry list's lazy row, and
+        // a navigationDestination inside a List is ignored in a future
+        // release — the registration must stay visible to the stack at all
+        // times, so the card only raises the flag.
+        .navigationDestination(isPresented: $isShowingYearDetail) {
+            BudgetYearDetailView()
         }
         .task(id: dashboardTaskKey) {
             // In project scope the detail view drives its own loading, so
@@ -502,6 +515,7 @@ struct DashboardView: View {
             // never even fetch it, since the report endpoint 403s them).
             if let budget = store.budget, let month = budget.month {
                 BudgetCardView(
+                    isYearDetailPresented: $isShowingYearDetail,
                     month: month,
                     year: budget.year,
                     currency: ledgerStore.activeLedger?.currency ?? budget.currency,
