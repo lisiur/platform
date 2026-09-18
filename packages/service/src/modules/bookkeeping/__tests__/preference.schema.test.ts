@@ -16,7 +16,9 @@ describe("quickEntryDataSchema", () => {
     // Chip order is user data: the stored arrangement must round-trip in
     // the sent order, not the field enum's canonical order.
     const sent = ["budget", "memo", "countsInLedger", "time"];
-    const parsed = quickEntryDataSchema.parse({ quickEntry: { chipFields: sent } });
+    const parsed = quickEntryDataSchema.parse({
+      quickEntry: { chipFields: sent },
+    });
     expect(parsed.quickEntry.chipFields).toEqual(sent);
   });
 
@@ -24,7 +26,9 @@ describe("quickEntryDataSchema", () => {
     const parsed = quickEntryDataSchema.parse({
       quickEntry: { chipFields: [...QUICK_ENTRY_CHIP_FIELDS] },
     });
-    expect(parsed.quickEntry.chipFields).toHaveLength(QUICK_ENTRY_CHIP_FIELDS.length);
+    expect(parsed.quickEntry.chipFields).toHaveLength(
+      QUICK_ENTRY_CHIP_FIELDS.length,
+    );
   });
 
   it("rejects unknown fields, duplicates, and over-long arrangements", () => {
@@ -32,7 +36,9 @@ describe("quickEntryDataSchema", () => {
       quickEntryDataSchema.parse({ quickEntry: { chipFields: ["dragon"] } }),
     ).toThrow();
     expect(() =>
-      quickEntryDataSchema.parse({ quickEntry: { chipFields: ["memo", "memo"] } }),
+      quickEntryDataSchema.parse({
+        quickEntry: { chipFields: ["memo", "memo"] },
+      }),
     ).toThrow();
     expect(() =>
       quickEntryDataSchema.parse({
