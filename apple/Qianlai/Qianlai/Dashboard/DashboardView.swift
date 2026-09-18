@@ -35,18 +35,18 @@ struct DashboardView: View {
     /// Month the cards summarize; stepped with the chevrons in the month
     /// header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
-    /// Target of the dashboard's drill-down sheet — the tapped figure's
+    /// Target of the dashboard's drill-down — the tapped figure's
     /// filter (kind + optional category drill) plus the ledger snapshot it
-    /// drills into. nil = sheet closed.
+    /// drills into. nil = drill-down popped.
     @State private var statDetailTarget: StatDetailTarget?
 
     /// The dashboard's drill-down item. The ledger is captured at tap time
-    /// (every tap path requires an active ledger), so the sheet can never
-    /// present target-less, and a scope change mid-presentation keeps
-    /// operating on the captured snapshot. `id` covers every filter axis the
-    /// tap can carry so a quick re-tap of the same legend row re-presents
-    /// cleanly (the sheet's identity flips).
-    private struct StatDetailTarget: Identifiable {
+    /// (every tap path requires an active ledger), so the drill-down can
+    /// never mount target-less, and a scope change mid-push keeps
+    /// operating on the captured snapshot. `id` covers every filter axis
+    /// the tap can carry so a quick re-tap of the same legend row re-pushes
+    /// cleanly (the item's identity flips).
+    private struct StatDetailTarget: Identifiable, Hashable {
         let ledger: QianlaiLedger
         let filter: JournalDrillDown
 
@@ -305,11 +305,16 @@ struct DashboardView: View {
             }
         }
         // The stat card's drill-downs: the selected month's journal
-        // filtered to the tapped figure. The window is the month header's
-        // `selectedMonth` — NOT the payload's echoed `dashboard.month`,
-        // which is a UTC bucket and can read one month early east of UTC.
-        .sheet(item: $statDetailTarget) { target in
-            StatKindDetailSheet(ledger: target.ledger, filter: target.filter, month: selectedMonth)
+        // filtered to the tapped figure, PUSHED rather than sheet-mounted.
+        // The window is the month header's `selectedMonth` — NOT the
+        // payload's echoed `dashboard.month`, which is a UTC bucket and can
+        // read one month early east of UTC. Push, not sheet: a searchable
+        // sheet below the edit cover's sub-presentation remounts the
+        // cover's content on every presentation edge (iOS 26 quirk — the
+        // full story on StatKindDetailView); a push adds no presentation
+        // host, so this chain matches the journal tab's.
+        .navigationDestination(item: $statDetailTarget) { target in
+            StatKindDetailView(ledger: target.ledger, filter: target.filter, month: selectedMonth)
         }
     }
 
