@@ -178,13 +178,16 @@ nonisolated enum AppDates {
 
     /// First-to-last day of the LOCAL month containing `date`, for
     /// month-wide entry windows (the dashboard).
-    static func monthWindow(containing date: Date = Date()) -> (from: Date, to: Date) {
+    static func monthWindow(containing date: Date = Date()) -> MonthWindow {
         let calendar = Calendar.current
         guard let interval = calendar.dateInterval(of: .month, for: date) else {
             let start = calendar.startOfDay(for: date)
-            return (start, start)
+            return MonthWindow(from: start, to: start)
         }
-        return (interval.start, interval.end.addingTimeInterval(-0.001))
+        return MonthWindow(
+            from: interval.start,
+            to: interval.end.addingTimeInterval(-0.001)
+        )
     }
 
     /// Timestamp display (createdAt etc.) in the viewer's local timezone.

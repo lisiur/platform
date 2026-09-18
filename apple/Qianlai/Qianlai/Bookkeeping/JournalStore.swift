@@ -517,17 +517,14 @@ final class JournalStore {
     /// Batched window write: suppresses the per-key didSet storms so both
     /// bounds commit with at most one scheduled reload — or none, when the
     /// caller (the dashboard task) fetches immediately after instead.
-    func setWindow(from: Date?, to: Date?) {
+    /// Takes a `MonthWindow` — the dashboard's month-summary range, the
+    /// journal's month tab, and the drill-down sheet's fixed window all
+    /// share that struct so the call site stays one value, not two.
+    func setWindow(_ window: MonthWindow) {
         suppressReload = true
-        fromDate = from
-        toDate = to
+        fromDate = window.from
+        toDate = window.to
         suppressReload = false
-    }
-
-    /// The labeled form's twin for an `AppDates.monthWindow` pair, so the
-    /// window stays bundled at the call site.
-    func setWindow(_ window: (from: Date, to: Date)) {
-        setWindow(from: window.from, to: window.to)
     }
 
     /// Refreshes the per-day income/expense totals the date-section headers

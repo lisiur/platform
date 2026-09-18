@@ -34,7 +34,7 @@ struct CategoryBreakdownCard: View {
     /// card owns the rest of the flow).
     var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
 
-    @State private var side: Side = .expense
+    @State private var side: QuickEntryKind = .expense
     /// Slice granularity: the parent rollup (一级分类 — the default) or
     /// every leaf as posted (全部).
     @State private var level: Level
@@ -53,36 +53,19 @@ struct CategoryBreakdownCard: View {
         }
     }
 
+    /// The picker's only kinds — the donut's composition is by category,
+    /// and transfers don't carry a category line so they'd render empty.
+    /// `QuickEntryKind` already owns `label` + `icon`, so the picker can
+    /// use them straight; this static is the one place that lists the
+    /// picker-relevant subset.
+    private static let sides: [QuickEntryKind] = [.expense, .income]
+
     init(summary: CategorySummaryResponse, currency: String?, locale: Locale, initialLevel: Level = .parent, onSelectCategory: ((JournalDrillDown) -> Void)? = nil) {
         self.summary = summary
         self.currency = currency
         self.locale = locale
         self.onSelectCategory = onSelectCategory
         _level = State(initialValue: initialLevel)
-    }
-
-    enum Side: String, CaseIterable, Identifiable {
-        case expense
-        case income
-
-        var id: String { rawValue }
-
-        var label: String {
-            switch self {
-            case .expense: L10n.string("quick.kind.expense", defaultValue: "Expense")
-            case .income: L10n.string("quick.kind.income", defaultValue: "Income")
-            }
-        }
-
-        /// The QuickEntryKind this side drills into — case names line up
-        /// by design so the legend row's drill target carries the right
-        /// kind without a string-keyed map.
-        var kind: QuickEntryKind {
-            switch self {
-            case .expense: .expense
-            case .income: .income
-            }
-        }
     }
 
     /// Categorical palette, deliberately clear of the income-red /
@@ -133,7 +116,7 @@ struct CategoryBreakdownCard: View {
                 segmentedPicker(
                     L10n.string("dashboard.compositionCard.sideA11y", defaultValue: "Income or expense"),
                     selection: $side,
-                    options: Side.allCases,
+                    options: Self.sides,
                     label: \.label
                 )
             }
@@ -202,7 +185,7 @@ struct CategoryBreakdownCard: View {
 
     @ViewBuilder
     private func legendRow(_ index: Int, _ row: CategoryAmountRow) -> some View {
-        let (drillAccountId, drillParentAccountId) = drillTarget(for: row, level: level)
+        let drill = drillTarget(for: row, level: level)
         let figures = HStack(spacing: 8) {
             // Color cue — the donut slice palette by row index. Stays
             // alongside the icon badge: palette = which slice this row is,
@@ -232,23 +215,8 @@ struct CategoryBreakdownCard: View {
         .padding(.vertical, 5)
         Group {
             if let onSelectCategory,
-               drillAccountId != nil || drillParentAccountId != nil {
-                figures
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        onSelectCategory(
-                            JournalDrillDown(
-                                kind: side.kind,
-                                accountId: drillAccountId,
-                                parentAccountId: drillParentAccountId,
-                                // Carried in the title's "时间 · <label>" slot.
-                                // Bucket = parent for 一级 rolls, leaf for 全部.
-                                categoryLabel: row.displayName
-                            )
-                        )
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityAddTraits(.isButton)
+               drill.accountId != nil || drill.parentAccountId != nil {
+                figures.statTapTarget { onSelectCategory(drill) }
             } else {
                 figures
             }
@@ -259,13 +227,27 @@ struct CategoryBreakdownCard: View {
     /// rollup row scopes to its parent (so the server's rollup filter
     /// runs). Leaves with their own non-null `parentAccountId` still drill
     /// by the leaf — the parent would over-fetch — so leaf + parent is
-    /// the leaf-only drill.
-    private func drillTarget(for row: CategoryAmountRow, level: Level)
-        -> (accountId: String?, parentAccountId: String?) {
+    /// the leaf-only drill. Returns the full `JournalDrillDown` so the
+    /// legend row passes the same shape the sheet renders, with kind +
+    /// label filled in here (the only fields a row alone can't supply).
+    private func drillTarget(for row: CategoryAmountRow, level: Level) -> JournalDrillDown {
+        let accountId: String?
+        let parentAccountId: String?
         if level == .leaf {
-            return (row.accountId, nil)
+            accountId = row.accountId
+            parentAccountId = nil
+        } else {
+            accountId = nil
+            parentAccountId = row.parentAccountId ?? (row.accountId.isEmpty ? nil : row.accountId)
         }
-        return (nil, row.parentAccountId ?? (row.accountId.isEmpty ? nil : row.accountId))
+        return JournalDrillDown(
+            kind: side,
+            accountId: accountId,
+            parentAccountId: parentAccountId,
+            // Bucket = parent for 一级 rolls, leaf for 全部; the sheet
+            // carries this in the title's "时间 · <label>" slot.
+            categoryLabel: row.displayName
+        )
     }
 
     /// The legend row's leading icon badge: emoji when the category has
@@ -277,7 +259,7 @@ struct CategoryBreakdownCard: View {
                 Text(icon)
                     .font(.footnote)
             } else {
-                Image(systemName: side == .income ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                Image(systemName: side.icon)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -304,13 +286,14 @@ struct CategoryBreakdownCard: View {
     /// Rolls leaf rows up one level: children merge into their parent's
     /// bucket, keyed on the parent's real account id when known so a drill-
     /// down through the legend row stays precise (the donut can't
-    /// distinguish same-named parents anyway, but the drill can). Falls back
-    /// to `parentCode ?? parentName ?? code ?? name ?? accountId` for
-    /// legacy summaries whose parent join omits the id, so the donut's
-    /// bucketing never changes for older payloads. Amounts sum from the
-    /// RAW rows first, then non-positive buckets drop, matching the leaf
-    /// view's can't-draw-a-negative rule. Amount-descending, stable on
-    /// ties (first-seen order). Pure so the rollup stays unit-testable.
+    /// distinguish same-named parents anyway, but the drill can). Falls
+    /// back to `parentCode ?? parentName ?? row.accountId` when the parent
+    /// join omits the id, so the donut's bucketing never changes for
+    /// older payloads and parent-less leaves still get a self-bucket.
+    /// Amounts sum from the RAW rows first, then non-positive buckets
+    /// drop, matching the leaf view's can't-draw-a-negative rule.
+    /// Amount-descending, stable on ties (first-seen order). Pure so the
+    /// rollup stays unit-testable.
     nonisolated static func levelOneRows(_ base: [CategoryAmountRow]) -> [CategoryAmountRow] {
         var order: [String] = []
         var buckets: [String: (sum: Int, head: CategoryAmountRow)] = [:]
@@ -318,13 +301,17 @@ struct CategoryBreakdownCard: View {
             let key = row.parentAccountId
                 ?? row.parentCode
                 ?? row.parentName
-                ?? row.code
-                ?? row.name
                 ?? row.accountId
             let isChild = row.parentAccountId != nil
                 || row.parentCode != nil
                 || row.parentName != nil
             let head = CategoryAmountRow(
+                // Rollup rows synthesize an id from the parent pair so the
+                // drill path's `parentAccountId` filter hits the real bucket
+                // when the join omits the id, a synthetic code/name when
+                // legacy data lacks one — `drillTarget` only consults this
+                // when `parentAccountId` is nil, so an older rollup's drill
+                // shows zero rows (no false-positive matches).
                 accountId: row.parentAccountId ?? key,
                 name: isChild ? row.parentName : row.name,
                 code: isChild ? row.parentCode : row.code,
@@ -403,7 +390,7 @@ struct CategoryBreakdownCard: View {
         let maxLabelWidth = size.width / 2 - (elbowRadius + horizontalRun + 2 * labelPad)
 
         // Which half of the ring the label hangs off. Distinct from the
-        // expense/income `Side` — a slice of either can sit either side.
+        // expense/income `QuickEntryKind` — a slice of either can sit either side.
         enum RadialSide {
             case left
             case right

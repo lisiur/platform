@@ -291,10 +291,13 @@ private func statTitleLine(_ label: String, showsDisclosure: Bool) -> some View 
     }
 }
 
-/// The stat card's drill-down wrapper: whole-module hit area on a plain
-/// tap gesture — a Button's style pipeline re-tints its label content,
-/// and the module must keep the exact colors it renders when inert —
-/// plus one combined VoiceOver element carrying the button trait.
+/// The whole-area tap-target wrapper: a Button's style pipeline re-tints
+/// its label content, and the host must keep the exact colors it renders
+/// when inert — so the tap ships as a plain gesture, with the
+/// accessibility overlay (combined VoiceOver element + button trait)
+/// layered on top. Used by the stat card's headline and by the
+/// composition card's legend rows, both of which need a whole-region hit
+/// area that's silent in color but active in a11y.
 private struct StatTapTargetModifier: ViewModifier {
     let action: () -> Void
 
@@ -308,7 +311,7 @@ private struct StatTapTargetModifier: ViewModifier {
 }
 
 extension View {
-    fileprivate func statTapTarget(action: @escaping () -> Void) -> some View {
+    func statTapTarget(action: @escaping () -> Void) -> some View {
         modifier(StatTapTargetModifier(action: action))
     }
 }
