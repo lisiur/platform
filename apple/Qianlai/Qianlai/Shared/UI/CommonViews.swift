@@ -345,6 +345,25 @@ struct EmptyStateView: View {
     }
 }
 
+/// The chart cards' segmented-picker idiom: the title doubles as the
+/// accessibility label (`labelsHidden` hides only the visible one) and
+/// `fixedSize` keeps the control hugging its segments.
+func segmentedPicker<T: Hashable & Identifiable>(
+    _ a11yTitle: String,
+    selection: Binding<T>,
+    options: [T],
+    label: @escaping (T) -> String
+) -> some View {
+    Picker(a11yTitle, selection: selection) {
+        ForEach(options) { candidate in
+            Text(label(candidate)).tag(candidate)
+        }
+    }
+    .pickerStyle(.segmented)
+    .labelsHidden()
+    .fixedSize()
+}
+
 /// The dashboard chart cards' shared header badge: a 34×34 accent-tinted
 /// rounded square behind the card's symbol.
 struct ChartCardBadge: View {

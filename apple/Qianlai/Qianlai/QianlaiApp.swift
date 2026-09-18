@@ -49,6 +49,10 @@ struct QianlaiApp: App {
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-rim-settings") {
                     // Border highlight sub-page offline harness.
                     NavigationStack { RimSettingsView() }
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-composition-card") {
+                    CompositionCardDemo()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-card") {
+                    TrendCardDemo()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -172,6 +176,115 @@ private struct QuickEntryDemoScreen: View {
         shared: false
         )
     }()
+}
+
+/// Shared chrome for the two chart-card demos: the card top-anchored on
+/// a padded full canvas.
+private struct ChartCardDemoCanvas<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(spacing: 16) {
+            content
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// Screenshot harness for the dashboard's composition card
+/// (`--ui-demo-composition-card`, add `--ui-demo-composition-all` to pin
+/// the 全部 leaf view; the card defaults to the 一级分类 rollup): a
+/// month-shaped category summary with a parent tree, a top-level leaf,
+/// and offsetting/zero rows — enough slices to exercise the leader
+/// lines' per-side stacking and the rollup. The card's own pickers
+/// switch side/level live. No login or backend.
+private struct CompositionCardDemo: View {
+    var body: some View {
+        ChartCardDemoCanvas {
+            CategoryBreakdownCard(
+                summary: Self.summary,
+                currency: "CNY",
+                locale: Locale(identifier: "zh-Hans"),
+                initialLevel: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-composition-all")
+                    ? .leaf : .parent
+            )
+        }
+    }
+
+    static let summary = CategorySummaryResponse(
+        expense: [
+            row("lunch", name: "午餐", parentCode: "food", cents: 21_000),
+            row("breakfast", name: "早餐", parentCode: "food", cents: 12_000),
+            row("snacks", name: "零食饮料", parentCode: "food", cents: 8_000),
+            row("fuel", name: "加油", parentCode: "transport", cents: 15_000),
+            row("subway", name: "地铁公交", parentCode: "transport", cents: 6_000),
+            row("utilities", name: "房租水电", parentCode: "housing", cents: 30_000),
+            row("digital", name: "数码", cents: 45_000),
+            row("refund", name: "退款", parentName: "数码", cents: -2_000),
+            row("apparel", name: "衣服鞋帽", cents: 9_900),
+            row("topup", name: "话费", cents: 5_000),
+            row("voided", name: "撤账", cents: 0),
+        ],
+        income: [
+            row("salary", name: "工资", parentCode: "payroll", cents: 200_000),
+            row("interest", name: "理财收益", cents: 50_000),
+            row("redpacket", name: "红包", cents: 8_800),
+        ]
+    )
+
+    private static func row(
+        _ accountId: String,
+        name: String,
+        parentName: String? = nil,
+        parentCode: String? = nil,
+        cents: Int
+    ) -> CategoryAmountRow {
+        CategoryAmountRow(
+            accountId: accountId,
+            name: name,
+            code: nil,
+            parentName: parentName,
+            parentCode: parentCode,
+            amountCents: cents
+        )
+    }
+}
+
+/// Screenshot harness for the dashboard's month trend card
+/// (`--ui-demo-trend-card`; add `--ui-demo-trend-income` /
+/// `--ui-demo-trend-net` to pin the 收入 / 结余 tab instead of the
+/// default 支出): a month of daily totals with an income spike and mostly
+/// income-free days, so the net tab's sign coloring (红涨绿跌) shows at a
+/// glance. The card's own tab and style picker switch live. No login or
+/// backend.
+private struct TrendCardDemo: View {
+    var body: some View {
+        ChartCardDemoCanvas {
+            MonthTrendChartCard(
+                days: Self.days,
+                currency: "CNY",
+                locale: Locale(identifier: "zh-Hans"),
+                initialMetric: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-income")
+                    ? .income
+                    : ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-net") ? .net : .expense
+            )
+        }
+    }
+
+    static let days: [DayIncomeExpense] = (1...30).map { day in
+        // Income spikes ~9x the daily expense band: on the shared
+        // both-sides scale they crush the expense bars into slivers, so
+        // the single-series re-aim is visible at a glance.
+        let incomeCents = [3, 13, 23].contains(day) ? 180_000 : ([7, 17, 27].contains(day) ? 12_000 : 0)
+        let expenseCents = 8_000 + (day * 37 % 190) * 1_000
+        return DayIncomeExpense(
+            day: String(format: "2026-09-%02d", day),
+            incomeCents: incomeCents,
+            expenseCents: expenseCents
+        )
+    }
 }
 
 /// Screenshot harness for the quick-entry category picker sheet: mirrors the

@@ -50,3 +50,98 @@ final class DashboardChartCardTests: XCTestCase {
         XCTAssertNil(MonthTrendChartCard.dayDate("2026-09-17T10:00:00Z"))
     }
 }
+
+/// The composition card's 一级 rollup: leaves merge into their parent's
+/// bucket, top-level leaves keep their own, offsetting corrections net
+/// into the parent (and non-positive buckets drop), ordering is
+/// amount-descending and stable on ties.
+final class CompositionCardLevelTests: XCTestCase {
+    private func row(
+        _ accountId: String,
+        name: String? = nil,
+        code: String? = nil,
+        parentName: String? = nil,
+        parentCode: String? = nil,
+        cents: Int
+    ) -> CategoryAmountRow {
+        CategoryAmountRow(
+            accountId: accountId,
+            name: name,
+            code: code,
+            parentName: parentName,
+            parentCode: parentCode,
+            amountCents: cents
+        )
+    }
+
+    func testMergesLeavesUnderParentAndResolvesParentName() {
+        let rows = [
+            row("lunch", name: "午餐", parentCode: "food", cents: 210),
+            row("dinner", name: "晚餐", parentCode: "food", cents: 100),
+        ]
+        let merged = CategoryBreakdownCard.levelOneRows(rows)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].amountCents, 310)
+        // The bucket renders as the parent — the same code → catalog
+        // resolution the leaf rows' parent captions use.
+        XCTAssertEqual(merged[0].displayName, CategoryAmountRow(accountId: "food", name: nil, code: "food", parentName: nil, parentCode: nil, amountCents: 0).displayName)
+        XCTAssertEqual(merged[0].parentDisplayName, nil)
+    }
+
+    func testParentRowMergesIntoItsChildrensBucket() {
+        // A parent's own direct line (not postable through the app's
+        // pickers, so hypothetical) nets with its children — the bucket
+        // key is the shared identity (code), not any row's accountId.
+        let rows = [
+            row("lunch", name: "午餐", parentCode: "food", cents: 210),
+            row("food-own", code: "food", cents: 50),
+        ]
+        let merged = CategoryBreakdownCard.levelOneRows(rows)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].amountCents, 260)
+        XCTAssertEqual(merged[0].displayName, CategoryAmountRow(accountId: "food", name: nil, code: "food", parentName: nil, parentCode: nil, amountCents: 0).displayName)
+    }
+
+    func testTopLevelLeafKeepsItsOwnBucket() {
+        // Buckets key on code/name (the only parent identity children
+        // carry), so a top-level leaf's bucket id is its code or name —
+        // and same-named top-level leaves share one slice, which the pie
+        // couldn't distinguish anyway.
+        let rows = [
+            row("apparel-1", code: "apparel", cents: 99),
+            row("custom", name: "宠物", cents: 40),
+        ]
+        let merged = CategoryBreakdownCard.levelOneRows(rows)
+        XCTAssertEqual(merged.map(\.accountId), ["apparel", "宠物"])
+        XCTAssertEqual(merged[0].amountCents, 99)
+        XCTAssertEqual(merged[1].displayName, "宠物")
+    }
+
+    func testCorrectionsNetIntoParentAndEmptyBucketsDrop() {
+        let rows = [
+            row("digital", name: "数码", cents: 300),
+            row("refund", name: "退款", parentName: "数码", cents: -100),
+            row("void", name: "撤账", parentName: "清空", cents: -50),
+            row("zero", name: "零头", parentName: "归零", cents: 0),
+        ]
+        let merged = CategoryBreakdownCard.levelOneRows(rows)
+        // 数码 nets to 200 and stays; 清空/归零 go non-positive and drop.
+        XCTAssertEqual(merged.map(\.accountId), ["数码"])
+        XCTAssertEqual(merged[0].amountCents, 200)
+    }
+
+    func testOrdersByAmountDescendingStableOnTies() {
+        let rows = [
+            row("a-food", name: "a", parentCode: "food", cents: 100),
+            row("first-leaf", code: "apparel", cents: 50),
+            row("b-food", name: "b", parentCode: "food", cents: 200),
+            row("second-leaf", code: "housing", cents: 50),
+        ]
+        let merged = CategoryBreakdownCard.levelOneRows(rows)
+        // Both food leaves share the one parent bucket (300).
+        XCTAssertEqual(merged.map(\.amountCents), [300, 50, 50])
+        // Equal amounts keep first-seen order (Swift's sort is not stable;
+        // the tiebreak indexes first appearance).
+        XCTAssertEqual(merged.suffix(2).map(\.accountId), ["apparel", "housing"])
+    }
+}

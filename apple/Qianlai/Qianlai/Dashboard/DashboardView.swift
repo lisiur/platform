@@ -7,12 +7,11 @@
 
 import SwiftUI
 
-/// Overview of the active ledger: a pull-down system search field (the
-/// category picker's drawer search, querying the displayed month only), a
-/// scrolling month summary — month header, budget card, and the expense
-/// card carrying the income/net figures inside it — that travels with the
-/// month's entries on the same shared entry list the Journal uses,
-/// limited to a month window instead of exposing every filter.
+/// Overview of the active ledger: a scrolling month summary — month
+/// header, budget card, the expense card carrying the income/net figures
+/// inside it, and the two chart cards (month trend, composition) — for the
+/// selected month. The entries list that used to ride beneath the summary
+/// lives on the Journal tab only; this page summarizes, it doesn't list.
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard
@@ -30,21 +29,12 @@ struct DashboardView: View {
     @State private var isShowingLedgerManager = false
     /// Push flag for the budget card's yearly breakdown. Owned here, not in
     /// BudgetCardView, so the `navigationDestination` registration below sits
-    /// on the page — outside the entry list's lazy rows — per the
+    /// on the page rather than inside a lazy container, per the
     /// navigationDestination contract.
     @State private var isShowingYearDetail = false
-    /// Month the cards and the entry list summarize; stepped with the
-    /// chevrons in the month header, capped at the current month.
+    /// Month the cards summarize; stepped with the chevrons in the month
+    /// header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
-    /// Month-window entry store; a local instance (injected below) so its
-    /// filter window never clashes with the Journal tab's root store.
-    @State private var entryStore = JournalStore()
-    /// System search field (pull-down drawer, like the category picker's):
-    /// hidden until pulled down, expands over the title when focused.
-    /// Writes go straight to the month store, whose reload task already
-    /// coalesces keystrokes — and whose request keeps the month window,
-    /// so it only ever searches the displayed month.
-    @State private var searchField = ""
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -142,7 +132,7 @@ struct DashboardView: View {
     /// settling matters — the loading-window early return below must be
     /// retried once `ProjectStore.load` finishes without producing a
     /// project (guest with zero projects), or the dashboard would never
-    /// fetch entries/stats for that ledger.
+    /// fetch stats for that ledger.
     private var dashboardTaskKey: String {
         let ledgerId = ledgerStore.activeLedger?.id ?? "none"
         let projectId = activeProject?.id ?? "none"
@@ -154,39 +144,14 @@ struct DashboardView: View {
             if ledgerStore.isLoading, ledgerStore.ledgers.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let ledger = ledgerStore.activeLedger {
+            } else if ledgerStore.activeLedger != nil {
                 if let project = activeProject {
                     ProjectDetailView(projectId: project.id, hidesNavigationTitle: true)
                 } else if isProjectScopeLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    EntryListView(
-                        ledger: ledger,
-                        emptyMessage: L10n.string(
-                            "dashboard.noEntriesThisMonth",
-                            defaultValue: "No entries this month yet"
-                        ),
-                        topContent: AnyView(monthSummary),
-                        // This mount only renders in ledger scope (project
-                        // scope swaps to ProjectDetailView above).
-                        showsProjectShare: true
-                    )
-                    #if os(iOS)
-                    // Pull-down drawer search like the category picker's:
-                    // hidden until the list is pulled down, and it takes
-                    // over the page top (title included) while focused.
-                    .searchable(
-                        text: $searchField,
-                        placement: .navigationBarDrawer(displayMode: .automatic),
-                        prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
-                    )
-                    #else
-                    .searchable(
-                        text: $searchField,
-                        prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
-                    )
-                    #endif
+                    dashboardSummary
                 }
             } else {
                 VStack(spacing: 28) {
@@ -216,7 +181,6 @@ struct DashboardView: View {
                 }
             }
         }
-        .environment(entryStore)
         // Large title like the assets page's, not the tab-chrome inline
         // style. Names the active scope: the project in project scope
         // (ProjectDetailView sets no title of its own, so this shows
@@ -264,36 +228,24 @@ struct DashboardView: View {
             // settles, so a skip during the loading window is retried
             // after it resolves.
             if showsProjectDetail { return }
-            guard let ledger = ledgerStore.activeLedger else { return }
-            // Month and window writes go through the silent setters: this
-            // task fetches immediately below, so the didSet-driven
-            // debounced reloads would only duplicate the requests.
+            guard let ledger = ledgerStore.activeLedger, !ledger.isGuest else { return }
+            // Month writes go through the silent setter: this task fetches
+            // immediately below, so the didSet-driven debounced reload
+            // would only duplicate the request.
             //
             // The ledger-wide report endpoints require viewer+ and always
-            // 403 guests, so guests fetch only the (guest-scoped) entry
-            // list — their stats live in the project detail view.
-            if !ledger.isGuest {
-                store.setDashboardMonthSilently(selectedMonth)
-                await store.load(ledgerId: ledger.id)
-            }
-            let window = AppDates.monthWindow(containing: selectedMonth.start)
-            entryStore.setWindow(from: window.from, to: window.to)
-            await entryStore.load(ledgerId: ledger.id)
+            // 403 guests, so guests fetch nothing here — their stats live
+            // in the project detail view.
+            store.setDashboardMonthSilently(selectedMonth)
+            await store.load(ledgerId: ledger.id)
         }
         .onChange(of: selectedMonth) { _, month in
-            // Window writes schedule the entries reload; dashboardMonth's
-            // didSet schedules the dashboard reload (skipped for guests —
-            // the report endpoint 403s for them).
+            // dashboardMonth's didSet schedules the debounced dashboard
+            // reload (skipped for guests — the report endpoint 403s them).
             if showsProjectDetail { return }
             if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
                 store.dashboardMonth = month
             }
-            let window = AppDates.monthWindow(containing: month.start)
-            entryStore.fromDate = window.from
-            entryStore.toDate = window.to
-        }
-        .onChange(of: searchField) { _, newValue in
-            entryStore.searchQuery = newValue
         }
         .refreshable {
             if showsProjectDetail {
@@ -302,15 +254,6 @@ struct DashboardView: View {
             }
             if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
                 await store.loadDashboard()
-            }
-            await entryStore.reload()
-        }
-        // A post/update/delete elsewhere (quick-entry sheet, Journal tab)
-        // bumps this; this page's private entry store is invisible to those
-        // callers, so it refetches itself here.
-        .onChange(of: store.journalEpoch) { _, _ in
-            if !showsProjectDetail {
-                Task { await entryStore.reload() }
             }
         }
         .sheet(isPresented: $isShowingLedgerForm) {
@@ -379,86 +322,6 @@ struct DashboardView: View {
         }
     }
 
-    /// Month-list ordering menu, pinned to the month header's trailing
-    /// edge. Writes go to the month store whose sort change schedules the
-    /// reload; the flat/grouped row rendering follows the same state inside
-    /// EntryListView. The amount orders carry their on-state as Toggles —
-    /// UIKit's own selection-state channel, so the checkmark renders in
-    /// the menu's trailing state column on every OS build. The hand-drawn
-    /// `Label(title, systemImage:)` this replaces is placed per-build by
-    /// SwiftUI: the 26.5 simulator gave it a column while the device build
-    /// drew it inline against the title.
-    private var sortMenu: some View {
-        Menu {
-            // The default `.date` stays a plain Button and never carries
-            // the checkmark — it's the list's natural state, so only a
-            // deviation from it gets marked, which a selection Picker
-            // (always marking its selection) can't express.
-            Button {
-                entryStore.sort = .date
-            } label: {
-                Text(L10n.string("dashboard.sortDefault", defaultValue: "Default"))
-            }
-            Toggle(
-                L10n.string("dashboard.sortAmountDesc", defaultValue: "Amount: high to low"),
-                isOn: sortActiveBinding(.amountDescending)
-            )
-            Toggle(
-                L10n.string("dashboard.sortAmountAsc", defaultValue: "Amount: low to high"),
-                isOn: sortActiveBinding(.amountAscending)
-            )
-        } label: {
-            // Tint mirrors the filter chip: black at the default order,
-            // accent while a non-default sort is in effect.
-            CircleIcon(
-                systemName: "arrow.up.arrow.down",
-                isActive: entryStore.sort != .date
-            )
-        }
-        .accessibilityLabel(L10n.string("dashboard.sort", defaultValue: "Sort"))
-    }
-
-    /// Radio-style on-state for one amount order: on only while `sort` is
-    /// that order, and writes only ever turn an order ON — tapping the
-    /// already-active row just closes the menu with the selection intact.
-    private func sortActiveBinding(_ sort: JournalStore.EntrySort) -> Binding<Bool> {
-        Binding(
-            get: { entryStore.sort == sort },
-            set: { if $0 { entryStore.sort = sort } }
-        )
-    }
-
-    /// Month-list kind filter menu, left of the sort menu on the month
-    /// header's trailing edge. Writes go to the month store whose kind
-    /// change schedules the reload. A Picker (the quick-entry payer menu's
-    /// construction) hands the options to UIKit, whose selection state
-    /// draws the checkmark in the trailing state column on every OS build
-    /// — the active kind, unfiltered All included, carries it exactly as
-    /// the old hand-drawn markup did where that rendered correctly.
-    private var filterMenu: some View {
-        @Bindable var entryStore = entryStore
-        return Menu {
-            Picker(L10n.string("dashboard.filter", defaultValue: "Filter"), selection: $entryStore.kind) {
-                Text(L10n.string("dashboard.filterAll", defaultValue: "All"))
-                    .tag(nil as QuickEntryKind?)
-                Text(L10n.string("quick.kind.expense", defaultValue: "Expense"))
-                    .tag(QuickEntryKind.expense as QuickEntryKind?)
-                Text(L10n.string("quick.kind.income", defaultValue: "Income"))
-                    .tag(QuickEntryKind.income as QuickEntryKind?)
-                Text(L10n.string("quick.kind.transfer", defaultValue: "Transfer"))
-                    .tag(QuickEntryKind.transfer as QuickEntryKind?)
-            }
-        } label: {
-            // Activity is conveyed by tint alone, never a swapped
-            // symbol (the Journal's filter button).
-            CircleIcon(
-                systemName: "line.3.horizontal.decrease",
-                isActive: entryStore.kind != nil
-            )
-        }
-        .accessibilityLabel(L10n.string("dashboard.filter", defaultValue: "Filter"))
-    }
-
     /// Mirrors the projects list's create gate exactly: the project form
     /// posts into the active ledger, so it needs one, active, with the
     /// caller at editor or above.
@@ -467,13 +330,27 @@ struct DashboardView: View {
         return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
-    /// The month header + expense card, mounted as the entry list's first
-    /// scrolling row (row background/insets cleared by EntryListView) so
-    /// it travels with the records instead of staying pinned.
+    /// The month summary stands alone on the page — one chrome-free list
+    /// row so the cards keep the inset-grouped metrics they were tuned
+    /// against (horizontal margins from the list itself, wallpaper behind),
+    /// the same row chrome `EntryListView` gave the summary when it rode
+    /// above the records.
+    private var dashboardSummary: some View {
+        List {
+            monthSummary
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+        }
+        .appBackgroundCanvas()
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    /// Month header, budget card, stat card, and the two chart cards.
     private var monthSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Arrows hug the title as one leading group; the filter and
-            // sort menus occupy the trailing space.
+            // Arrows hug the title; nothing trails the header anymore —
+            // the filter/sort menus acted on the removed entry list.
             HStack(spacing: 8) {
                 Button {
                     selectedMonth = selectedMonth.previous
@@ -493,10 +370,6 @@ struct DashboardView: View {
                 .buttonStyle(.borderless)
                 .disabled(selectedMonth >= YearMonth.current)
                 Spacer()
-                filterMenu
-                    .buttonStyle(.borderless)
-                sortMenu
-                    .buttonStyle(.borderless)
             }
             // The expense card spans the summary's width; the chrome-less
             // rows above and below it are inset a little instead.
@@ -539,9 +412,9 @@ struct DashboardView: View {
                 )
             }
         }
-        // Horizontal margins come from the inset-grouped list itself, so
-        // the summary lines up with the day cards below; vertical padding
-        // spaces it off the pinned search bar and the first card.
+        // Horizontal margins come from the inset-grouped list itself;
+        // vertical padding spaces the summary off the screen edges under
+        // the large title.
         .padding(.vertical, 8)
     }
 }

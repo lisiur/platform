@@ -2993,6 +2993,57 @@
         }
       }
     },
+    "dashboard.compositionCard.levelA11y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category level"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类层级"
+          }
+        }
+      }
+    },
+    "dashboard.compositionCard.levelLeaf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        }
+      }
+    },
+    "dashboard.compositionCard.levelParent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top-level"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一级分类"
+          }
+        }
+      }
+    },
     "dashboard.compositionCard.sideA11y" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3044,40 +3095,6 @@
         }
       }
     },
-    "dashboard.filter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filter"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "筛选"
-          }
-        }
-      }
-    },
-    "dashboard.filterAll" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部"
-          }
-        }
-      }
-    },
     "dashboard.joinViaQrcode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3091,23 +3108,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "扫码加入"
-          }
-        }
-      }
-    },
-    "dashboard.noEntriesThisMonth" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No entries this month yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月还没有记录"
           }
         }
       }
@@ -3129,74 +3129,6 @@
         }
       }
     },
-    "dashboard.sort" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sort"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "排序"
-          }
-        }
-      }
-    },
-    "dashboard.sortAmountAsc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amount: low to high"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "金额从低到高"
-          }
-        }
-      }
-    },
-    "dashboard.sortAmountDesc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amount: high to low"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "金额从高到低"
-          }
-        }
-      }
-    },
-    "dashboard.sortDefault" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Default"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "默认"
-          }
-        }
-      }
-    },
     "dashboard.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3214,53 +3146,36 @@
         }
       }
     },
-    "dashboard.trendCard.scopeA11y" : {
+    "dashboard.trendCard.metricA11y" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chart series"
+            "value" : "Income, expense or net"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "图表系列"
+            "value" : "收入、支出或结余"
           }
         }
       }
     },
-    "dashboard.trendCard.scopeBoth" : {
+    "dashboard.trendCard.metricNet" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Income & Expense"
+            "value" : "Net"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "收入与支出"
-          }
-        }
-      }
-    },
-    "dashboard.trendCard.scopeExpenseOnly" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expense Only"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅支出"
+            "value" : "结余"
           }
         }
       }
@@ -3316,19 +3231,53 @@
         }
       }
     },
-    "dashboard.trendCard.title" : {
+    "dashboard.trendCard.titleExpense" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Income & Expense"
+            "value" : "Expense Chart"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本月收支"
+            "value" : "支出统计图"
+          }
+        }
+      }
+    },
+    "dashboard.trendCard.titleIncome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Income Chart"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收入统计图"
+          }
+        }
+      }
+    },
+    "dashboard.trendCard.titleNet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net Chart"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "结余统计图"
           }
         }
       }
@@ -9979,9 +9928,6 @@
           }
         }
       }
-    },
-    "series" : {
-
     },
     "status.archived" : {
       "extractionState" : "manual",
