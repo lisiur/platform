@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "(%@)" : {
+
+    },
     "%@" : {
 
     },
@@ -1493,6 +1496,9 @@
         }
       }
     },
+    "amount" : {
+
+    },
     "api.error.decoding" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2970,23 +2976,6 @@
         }
       }
     },
-    "dashboard.filter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filter"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "筛选"
-          }
-        }
-      }
-    },
     "dashboard.charts.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3051,6 +3040,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "合计"
+          }
+        }
+      }
+    },
+    "dashboard.filter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筛选"
           }
         }
       }
@@ -3326,6 +3332,9 @@
           }
         }
       }
+    },
+    "day" : {
+
     },
     "filters.all" : {
       "extractionState" : "manual",
@@ -4414,23 +4423,6 @@
         }
       }
     },
-    "journal.parentContext" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "· %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "· %@"
-          }
-        }
-      }
-    },
     "journal.openEntry" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4461,6 +4453,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "由%@付款"
+          }
+        }
+      }
+    },
+    "journal.parentContext" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
           }
         }
       }
@@ -7138,6 +7147,23 @@
         }
       }
     },
+    "profile.theme.myPhoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Photo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的照片"
+          }
+        }
+      }
+    },
     "profile.theme.preset.aurora" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7406,23 +7432,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "壁纸"
-          }
-        }
-      }
-    },
-    "profile.theme.myPhoto" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My Photo"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我的照片"
           }
         }
       }
@@ -9970,6 +9979,9 @@
           }
         }
       }
+    },
+    "series" : {
+
     },
     "status.archived" : {
       "extractionState" : "manual",
