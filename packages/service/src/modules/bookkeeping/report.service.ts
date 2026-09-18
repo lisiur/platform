@@ -94,7 +94,8 @@ export type AttributedLine = ShareLine & {
     id: string;
     name: string | null;
     code: string | null;
-    parent: { name: string | null; code: string | null } | null;
+    icon: string | null;
+    parent: { id: string; name: string | null; code: string | null } | null;
   };
 };
 
@@ -606,6 +607,8 @@ export function memberShareCategorySummary(
           code: f.account.code,
           parentName: f.account.parent?.name ?? null,
           parentCode: f.account.parent?.code ?? null,
+          parentAccountId: f.account.parent?.id ?? null,
+          icon: f.account.icon ?? null,
           amountCents: f.cents,
         });
       }

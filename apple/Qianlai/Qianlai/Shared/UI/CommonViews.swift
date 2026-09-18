@@ -197,6 +197,9 @@ extension View {
 /// leave it nil on surfaces without a single currency (cross-ledger totals).
 /// An optional `footer` renders as a second row inside the same card
 /// chrome, under the headline (the dashboard's income/net columns).
+/// An optional `action` turns the card into a drill-down control: a small
+/// chevron rides the title line and taps anywhere on the card's figures
+/// run the action; nil keeps the inert figure.
 struct StatCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
@@ -206,6 +209,7 @@ struct StatCard: View {
     var currency: String?
     var tone: Tone = .default
     var footer: AnyView? = nil
+    var action: (() -> Void)? = nil
 
     enum Tone {
         case `default`, positive, negative
@@ -221,29 +225,7 @@ struct StatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.accentColor.opacity(0.12))
-                        )
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(label)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Text(value.map { Money.format($0, currency: currency) } ?? "—")
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundStyle(tone.color ?? Color.primary)
-                        .lineLimit(1)
-                }
-            }
+            headline
             if let footer {
                 footer
             }
@@ -256,6 +238,79 @@ struct StatCard: View {
         )
         .glassRim(cornerRadius: 20)
     }
+
+    /// The headline row — identical styling to the inert rendering, the
+    /// gray chevron aside. `action` attaches as a plain tap gesture, not a
+    /// Button: the button pipeline re-tints its label content, and this
+    /// module must keep the exact colors it renders when inert.
+    @ViewBuilder
+    private var headline: some View {
+        let row = HStack(spacing: 12) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                statTitleLine(label, showsDisclosure: action != nil)
+                Text(value.map { Money.format($0, currency: currency) } ?? "—")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(tone.color ?? Color.primary)
+                    .lineLimit(1)
+            }
+        }
+        if let action {
+            row.statTapTarget(action: action)
+        } else {
+            row
+        }
+    }
+}
+
+/// The stat module's title line: the caption label with the drill-down
+/// chevron riding inline after it when the module is tappable.
+private func statTitleLine(_ label: String, showsDisclosure: Bool) -> some View {
+    HStack(spacing: 4) {
+        Text(label)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        if showsDisclosure {
+            // Disclosure rides inline in the title's own .secondary gray
+            // so the inert/tappable figure never differs in color.
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// The stat card's drill-down wrapper: whole-module hit area on a plain
+/// tap gesture — a Button's style pipeline re-tints its label content,
+/// and the module must keep the exact colors it renders when inert —
+/// plus one combined VoiceOver element carrying the button trait.
+private struct StatTapTargetModifier: ViewModifier {
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .contentShape(Rectangle())
+            .onTapGesture(perform: action)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+    }
+}
+
+extension View {
+    fileprivate func statTapTarget(action: @escaping () -> Void) -> some View {
+        modifier(StatTapTargetModifier(action: action))
+    }
 }
 
 /// The expense card with the income and net figures inside it — the
@@ -267,6 +322,11 @@ struct StatSummaryBlock: View {
     /// The window's ledger-wide totals; nil renders placeholders.
     let month: DashboardMonth?
     var currency: String?
+    /// The dashboard's drill-downs: a non-nil action makes the expense
+    /// hero / income column a tappable control with a trailing chevron.
+    /// The journal's own stat card passes nothing and stays inert.
+    var expenseAction: (() -> Void)? = nil
+    var incomeAction: (() -> Void)? = nil
 
     var body: some View {
         StatCard(
@@ -281,7 +341,8 @@ struct StatSummaryBlock: View {
                         L10n.string("account.type.income", defaultValue: "Income"),
                         value: month?.totalIncome,
                         tone: .positive,
-                        alignment: .leading
+                        alignment: .leading,
+                        action: incomeAction
                     )
                     column(
                         L10n.string("common.net", defaultValue: "Net"),
@@ -295,30 +356,40 @@ struct StatSummaryBlock: View {
                 // The budget card insets its inner stat rows the same way,
                 // so the stacked cards' figures align.
                 .padding(.horizontal, 6)
-            )
+            ),
+            action: expenseAction
         )
     }
 
     /// One stats column: caption label above the tone-colored semibold
     /// figure. Income hugs the card's leading edge, net its trailing edge;
     /// each column still claims an equal share so a long amount can only
-    /// truncate its own column, never push its neighbor off the card.
+    /// truncate its own column, never push its neighbor off the card. With
+    /// an `action` the title line gains the disclosure chevron and the
+    /// whole column becomes one tap target — a plain gesture like the
+    /// headline, so the figures keep their inert colors.
+    @ViewBuilder
     private func column(
         _ label: String,
         value: Double?,
         tone: StatCard.Tone,
-        alignment: HorizontalAlignment
+        alignment: HorizontalAlignment,
+        action: (() -> Void)? = nil
     ) -> some View {
-        VStack(alignment: alignment, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+        let figures = VStack(alignment: alignment, spacing: 2) {
+            statTitleLine(label, showsDisclosure: action != nil)
             Text(value.map { Money.format($0, currency: currency) } ?? "—")
                 .font(.caption.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(tone.color ?? Color.primary)
                 .lineLimit(1)
+        }
+        Group {
+            if let action {
+                figures.statTapTarget(action: action)
+            } else {
+                figures
+            }
         }
         .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
     }

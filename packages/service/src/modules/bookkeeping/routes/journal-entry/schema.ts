@@ -174,6 +174,10 @@ export const listEntriesQuerySchema = paginationQuerySchema
       description:
         "Only entries with a line against this account id (category drill-down).",
     }),
+    parentAccountId: z.string().optional().openapi({
+      description:
+        "Only entries with a line against an account under this parent account id, or against the parent itself (top-level category rollup drill-down).",
+    }),
     accountType: z.enum(ACCOUNT_TYPES).optional().openapi({
       description:
         "Only entries with a line against an account of this type (statement flow drill-down: expense vs income totals).",

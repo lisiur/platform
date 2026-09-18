@@ -35,6 +35,25 @@ struct DashboardView: View {
     /// Month the cards summarize; stepped with the chevrons in the month
     /// header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
+    /// Target of the dashboard's drill-down sheet — the tapped figure's
+    /// filter (kind + optional category drill) plus the ledger snapshot it
+    /// drills into. nil = sheet closed.
+    @State private var statDetailTarget: StatDetailTarget?
+
+    /// The dashboard's drill-down item. The ledger is captured at tap time
+    /// (every tap path requires an active ledger), so the sheet can never
+    /// present target-less, and a scope change mid-presentation keeps
+    /// operating on the captured snapshot. `id` covers every filter axis the
+    /// tap can carry so a quick re-tap of the same legend row re-presents
+    /// cleanly (the sheet's identity flips).
+    private struct StatDetailTarget: Identifiable {
+        let ledger: QianlaiLedger
+        let filter: JournalDrillDown
+
+        var id: String {
+            "\(ledger.id)|\(filter.kind.rawValue)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
+        }
+    }
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -285,6 +304,13 @@ struct DashboardView: View {
                 LedgersView(expandGuestLedgers: ledgerStore.activeLedger?.isGuest ?? false)
             }
         }
+        // The stat card's drill-downs: the selected month's journal
+        // filtered to the tapped figure. The window is the month header's
+        // `selectedMonth` — NOT the payload's echoed `dashboard.month`,
+        // which is a UTC bucket and can read one month early east of UTC.
+        .sheet(item: $statDetailTarget) { target in
+            StatKindDetailSheet(ledger: target.ledger, filter: target.filter, month: selectedMonth)
+        }
     }
 
     /// Top-right collaboration menu: create a ledger (any signed-in user
@@ -328,6 +354,23 @@ struct DashboardView: View {
     private var canCreateProject: Bool {
         guard let ledger = ledgerStore.activeLedger else { return false }
         return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
+    }
+
+    /// Opens the dashboard's drill-down sheet, capturing the active ledger
+    /// snapshot — without an active ledger there is nothing to drill into,
+    /// and the sheet must never present target-less. `categoryLabel`, when
+    /// set, swaps the sheet title to "时间 · 分类" instead of the kind.
+    private func openStatDetail(kind: QuickEntryKind, accountId: String? = nil, parentAccountId: String? = nil, categoryLabel: String? = nil) {
+        guard let ledger = ledgerStore.activeLedger else { return }
+        statDetailTarget = StatDetailTarget(
+            ledger: ledger,
+            filter: JournalDrillDown(
+                kind: kind,
+                accountId: accountId,
+                parentAccountId: parentAccountId,
+                categoryLabel: categoryLabel
+            )
+        )
     }
 
     /// The month summary stands alone on the page — one chrome-free list
@@ -390,7 +433,12 @@ struct DashboardView: View {
             }
             StatSummaryBlock(
                 month: store.dashboard?.month,
-                currency: ledgerStore.activeLedger?.currency
+                currency: ledgerStore.activeLedger?.currency,
+                // The two figures drill into their kind's entries for the
+                // month on screen; the journal's own card passes no actions
+                // and stays inert.
+                expenseAction: { openStatDetail(kind: .expense) },
+                incomeAction: { openStatDetail(kind: .income) }
             )
             // The chart cards ride the same month the stat card summarizes
             // (both fetch alongside the dashboard), so stepping months
@@ -408,7 +456,15 @@ struct DashboardView: View {
                 CategoryBreakdownCard(
                     summary: summary,
                     currency: ledgerStore.activeLedger?.currency,
-                    locale: locale
+                    locale: locale,
+                    onSelectCategory: { drill in
+                        openStatDetail(
+                            kind: drill.kind,
+                            accountId: drill.accountId,
+                            parentAccountId: drill.parentAccountId,
+                            categoryLabel: drill.categoryLabel
+                        )
+                    }
                 )
             }
         }

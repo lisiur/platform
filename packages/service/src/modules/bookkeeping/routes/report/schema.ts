@@ -236,6 +236,16 @@ export const categoryAmountRowSchema = z
     code: z.string().nullable().openapi({ example: "food" }),
     parentName: z.string().nullable().openapi({ example: null }),
     parentCode: z.string().nullable().openapi({ example: "food" }),
+    parentAccountId: z.string().nullable().openapi({
+      example: null,
+      description:
+        "The parent account's id when the category sits under one — the key for the list endpoint's parentAccountId rollup drill-down.",
+    }),
+    icon: z.string().nullable().openapi({
+      example: null,
+      description:
+        "Emoji or icon name for the leaf account, surfaced as the legend row badge. Rollup rows carry the first leaf's icon so the badge still renders.",
+    }),
     amountCents: z.number().int().openapi({ example: 12000 }),
   })
   .openapi("QianlaiCategoryAmountRow");

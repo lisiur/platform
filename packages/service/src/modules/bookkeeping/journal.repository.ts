@@ -15,6 +15,12 @@ export type EntryWindow = {
   projectId?: string;
   /** Restrict to entries with a line against this account (category drill-down). */
   accountId?: string;
+  /**
+   * Restrict to entries with a line against an account under this parent
+   * account id, or against the parent itself (top-level category rollup
+   * drill-down — the composition card's 一级分类 buckets).
+   */
+  parentAccountId?: string;
   /** Restrict to entries with a line against an account of this type (statement flow drill-down). */
   accountType?: AccountType;
   /**
@@ -258,11 +264,22 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
         }
       : {}),
     ...(window.projectId ? { projectId: window.projectId } : {}),
-    ...(window.accountId || window.accountType
+    ...(window.accountId || window.parentAccountId || window.accountType
       ? {
           lines: {
             some: {
               ...(window.accountId ? { accountId: window.accountId } : {}),
+              // The parent branch matches lines against the parent itself
+              // (a top-level leaf posts against it directly) plus every
+              // child — the rollup bucket's exact membership.
+              ...(window.parentAccountId
+                ? {
+                    OR: [
+                      { accountId: window.parentAccountId },
+                      { account: { parentId: window.parentAccountId } },
+                    ],
+                  }
+                : {}),
               ...(window.accountType
                 ? { account: { type: window.accountType } }
                 : {}),
@@ -398,7 +415,11 @@ export type DailySummaryLine = {
  * One category's activity total in integer cents for the composition chart.
  * `name`/`code` mirror the statement rows so clients render seeded
  * categories' localized labels from the code; the parent pair joins one
- * level up for the same-named-leaf disambiguation the journal rows use.
+ * level up for the same-named-leaf disambiguation the journal rows use,
+ * and `parentAccountId` lets clients drill a top-level rollup bucket
+ * (the list endpoint's parentAccountId filter). `icon` is the leaf's own
+ * emoji/glyph (clients render the legend's badge from it); rollup rows
+ * carry their first leaf's icon so the legend still shows a glyph.
  */
 export type CategoryAmountRow = {
   accountId: string;
@@ -406,6 +427,8 @@ export type CategoryAmountRow = {
   code: string | null;
   parentName: string | null;
   parentCode: string | null;
+  parentAccountId: string | null;
+  icon: string | null;
   amountCents: number;
 };
 
@@ -424,7 +447,8 @@ export type CategorySummaryLine = {
     name: string | null;
     code: string | null;
     type: AccountType;
-    parent: { name: string | null; code: string | null } | null;
+    icon: string | null;
+    parent: { id: string; name: string | null; code: string | null } | null;
   };
 };
 
@@ -531,6 +555,8 @@ export function categorySummaryFromLines(
         code: line.account.code,
         parentName: line.account.parent?.name ?? null,
         parentCode: line.account.parent?.code ?? null,
+        parentAccountId: line.account.parent?.id ?? null,
+        icon: line.account.icon ?? null,
         amountCents,
       });
     }
@@ -682,7 +708,8 @@ export const journalRepository = {
               name: true,
               code: true,
               type: true,
-              parent: { select: { name: true, code: true } },
+              icon: true,
+              parent: { select: { id: true, name: true, code: true } },
             },
           },
         },
@@ -1060,7 +1087,8 @@ export const journalRepository = {
                 name: true,
                 code: true,
                 type: true,
-                parent: { select: { name: true, code: true } },
+                icon: true,
+                parent: { select: { id: true, name: true, code: true } },
               },
             },
           },

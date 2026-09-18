@@ -259,7 +259,8 @@ describe("categorySummaryFromLines", () => {
     extra?: {
       name?: string | null;
       code?: string | null;
-      parent?: { name: string | null; code: string | null } | null;
+      icon?: string | null;
+      parent?: { id?: string; name: string | null; code: string | null } | null;
     },
   ) {
     return {
@@ -270,16 +271,19 @@ describe("categorySummaryFromLines", () => {
         name: extra?.name ?? null,
         code: extra?.code ?? null,
         type,
-        parent: extra?.parent ?? null,
+        icon: extra?.icon ?? null,
+        parent: extra?.parent
+          ? { id: extra.parent.id ?? "acc-parent", ...extra.parent }
+          : null,
       },
     };
   }
 
   it("splits expense debit-net and income credit-net per account, skipping transfers", () => {
     const summary = categorySummaryFromLines([
-      line("acc-food", "expense", 35, 0, { code: "food" }),
-      line("acc-salary", "income", 0, 50, { code: "salary" }),
-      line("acc-pocket", "asset", 20, 0, { code: "pocket" }),
+      line("acc-food", "expense", 35, 0, { code: "food", icon: "🍔" }),
+      line("acc-salary", "income", 0, 50, { code: "salary", icon: "💰" }),
+      line("acc-pocket", "asset", 20, 0, { code: "pocket", icon: "💳" }),
     ]);
     expect(summary.expense).toEqual([
       {
@@ -288,6 +292,8 @@ describe("categorySummaryFromLines", () => {
         code: "food",
         parentName: null,
         parentCode: null,
+        parentAccountId: null,
+        icon: "🍔",
         amountCents: 3500,
       },
     ]);
@@ -298,20 +304,24 @@ describe("categorySummaryFromLines", () => {
         code: "salary",
         parentName: null,
         parentCode: null,
+        parentAccountId: null,
+        icon: "💰",
         amountCents: 5000,
       },
     ]);
   });
 
   it("aggregates an account's lines and carries the parent pair through", () => {
-    const parent = { name: null, code: "food" };
+    const parent = { id: "acc-food-parent", name: null, code: "food" };
     const summary = categorySummaryFromLines([
       line("acc-groceries", "expense", 30, 0, {
         name: "Groceries",
+        icon: "🛒",
         parent,
       }),
       line("acc-groceries", "expense", 12, 0, {
         name: "Groceries",
+        icon: "🛒",
         parent,
       }),
     ]);
@@ -322,6 +332,8 @@ describe("categorySummaryFromLines", () => {
         code: null,
         parentName: null,
         parentCode: "food",
+        parentAccountId: "acc-food-parent",
+        icon: "🛒",
         amountCents: 4200,
       },
     ]);
@@ -329,8 +341,8 @@ describe("categorySummaryFromLines", () => {
 
   it("lets contra entries reduce their side and keeps the row", () => {
     const summary = categorySummaryFromLines([
-      line("acc-food", "expense", 30, 0, { code: "food" }),
-      line("acc-food", "expense", 0, 5, { code: "food" }),
+      line("acc-food", "expense", 30, 0, { code: "food", icon: "🍔" }),
+      line("acc-food", "expense", 0, 5, { code: "food", icon: "🍔" }),
     ]);
     expect(summary.expense).toEqual([
       {
@@ -339,6 +351,8 @@ describe("categorySummaryFromLines", () => {
         code: "food",
         parentName: null,
         parentCode: null,
+        parentAccountId: null,
+        icon: "🍔",
         amountCents: 2500,
       },
     ]);
@@ -346,7 +360,7 @@ describe("categorySummaryFromLines", () => {
 
   it("keeps zero-net accounts — the aggregation stays faithful, display filters", () => {
     const summary = categorySummaryFromLines([
-      line("acc-food", "expense", 30, 30, { code: "food" }),
+      line("acc-food", "expense", 30, 30, { code: "food", icon: "🍔" }),
     ]);
     expect(summary.expense).toEqual([
       {
@@ -355,6 +369,8 @@ describe("categorySummaryFromLines", () => {
         code: "food",
         parentName: null,
         parentCode: null,
+        parentAccountId: null,
+        icon: "🍔",
         amountCents: 0,
       },
     ]);
@@ -534,7 +550,21 @@ describe("sumLinesByCategory", () => {
       name: true,
       code: true,
       type: true,
-      parent: { select: { name: true, code: true } },
+      parent: { select: { id: true, name: true, code: true } },
+    });
+  });
+
+  it("translates a parentAccountId window into the rollup line filter — the parent itself plus its children", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByCategory(
+      "led-1",
+      { parentAccountId: "acc-food" },
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry.lines).toMatchObject({
+      some: {
+        OR: [{ accountId: "acc-food" }, { account: { parentId: "acc-food" } }],
+      },
     });
   });
 });

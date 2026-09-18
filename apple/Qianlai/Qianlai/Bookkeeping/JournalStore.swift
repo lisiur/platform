@@ -79,6 +79,10 @@ final class JournalStore {
     var projectFilterId: String? { didSet { guard !suppressReload, oldValue != projectFilterId else { return }; scheduleReload() } }
     /// Category drill-down: only entries with a line against this account.
     var accountId: String? { didSet { guard !suppressReload, oldValue != accountId else { return }; scheduleReload() } }
+    /// Top-level category rollup drill-down: only entries with a line
+    /// against this account id OR against an account under it (the
+    /// composition card's 一级分类 buckets).
+    var parentAccountId: String? { didSet { guard !suppressReload, oldValue != parentAccountId else { return }; scheduleReload() } }
     /// Statement flow drill-down: only entries with a line against an
     /// account of this type (expense vs income totals).
     var accountType: String? { didSet { guard !suppressReload, oldValue != accountType else { return }; scheduleReload() } }
@@ -501,6 +505,7 @@ final class JournalStore {
         // A scoped page keeps its scope; an unscoped one drops the pick.
         if projectFilterId != scopeProjectId { projectFilterId = scopeProjectId }
         if accountId != nil { accountId = nil }
+        if parentAccountId != nil { parentAccountId = nil }
         if accountType != nil { accountType = nil }
         if memberUserId != nil { memberUserId = nil }
         if kind != nil { kind = nil }
@@ -517,6 +522,12 @@ final class JournalStore {
         fromDate = from
         toDate = to
         suppressReload = false
+    }
+
+    /// The labeled form's twin for an `AppDates.monthWindow` pair, so the
+    /// window stays bundled at the call site.
+    func setWindow(_ window: (from: Date, to: Date)) {
+        setWindow(from: window.from, to: window.to)
     }
 
     /// Refreshes the per-day income/expense totals the date-section headers
@@ -696,6 +707,9 @@ final class JournalStore {
         var participantUserId: String?
         var projectId: String?
         var accountId: String?
+        /// Top-level rollup drill-down: entries against this parent OR any
+        /// of its children.
+        var parentAccountId: String?
         var accountType: String?
         var memberUserId: String?
         var kind: QuickEntryKind?
@@ -720,6 +734,7 @@ final class JournalStore {
                 ("participantUserId", participantUserId),
                 ("projectId", projectId),
                 ("accountId", accountId),
+                ("parentAccountId", parentAccountId),
                 ("accountType", accountType),
                 ("memberUserId", memberUserId),
                 ("kind", kind?.rawValue),
@@ -736,6 +751,7 @@ final class JournalStore {
             participantUserId: participantUserId,
             projectId: projectFilterId,
             accountId: accountId,
+            parentAccountId: parentAccountId,
             accountType: accountType,
             memberUserId: memberUserId,
             kind: kind

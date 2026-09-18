@@ -1044,6 +1044,14 @@ struct CategoryAmountRow: Codable, Equatable, Identifiable {
     var code: String?
     var parentName: String?
     var parentCode: String?
+    /// The parent account's id when the category sits under one — the
+    /// key for the list endpoint's parentAccountId rollup drill-down. nil
+    /// for top-level categories.
+    var parentAccountId: String?
+    /// Emoji or icon name for the leaf — surfaced as the composition
+    /// card's legend row badge. Rollup rows carry their first leaf's
+    /// icon so the badge still renders.
+    var icon: String?
     var amountCents: Int
 
     var id: String { accountId }

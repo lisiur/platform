@@ -28,6 +28,11 @@ struct CategoryBreakdownCard: View {
     /// Threaded locale — the percentage labels must follow the in-app
     /// language override, not the device language.
     let locale: Locale
+    /// One legend row's tap drills into its kind's entries: a leaf row
+    /// scopes to the leaf account, a parent rollup row scopes to the
+    /// parent account. nil disables drilling (the page that mounted the
+    /// card owns the rest of the flow).
+    var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
 
     @State private var side: Side = .expense
     /// Slice granularity: the parent rollup (一级分类 — the default) or
@@ -48,10 +53,11 @@ struct CategoryBreakdownCard: View {
         }
     }
 
-    init(summary: CategorySummaryResponse, currency: String?, locale: Locale, initialLevel: Level = .parent) {
+    init(summary: CategorySummaryResponse, currency: String?, locale: Locale, initialLevel: Level = .parent, onSelectCategory: ((JournalDrillDown) -> Void)? = nil) {
         self.summary = summary
         self.currency = currency
         self.locale = locale
+        self.onSelectCategory = onSelectCategory
         _level = State(initialValue: initialLevel)
     }
 
@@ -65,6 +71,16 @@ struct CategoryBreakdownCard: View {
             switch self {
             case .expense: L10n.string("quick.kind.expense", defaultValue: "Expense")
             case .income: L10n.string("quick.kind.income", defaultValue: "Income")
+            }
+        }
+
+        /// The QuickEntryKind this side drills into — case names line up
+        /// by design so the legend row's drill target carries the right
+        /// kind without a string-keyed map.
+        var kind: QuickEntryKind {
+            switch self {
+            case .expense: .expense
+            case .income: .income
             }
         }
     }
@@ -184,11 +200,18 @@ struct CategoryBreakdownCard: View {
         }
     }
 
+    @ViewBuilder
     private func legendRow(_ index: Int, _ row: CategoryAmountRow) -> some View {
-        HStack(spacing: 8) {
+        let (drillAccountId, drillParentAccountId) = drillTarget(for: row, level: level)
+        let figures = HStack(spacing: 8) {
+            // Color cue — the donut slice palette by row index. Stays
+            // alongside the icon badge: palette = which slice this row is,
+            // icon = which category. Without the dot the eye can't map
+            // legend → donut slice at a glance.
             Circle()
                 .fill(Self.color(index))
                 .frame(width: 8, height: 8)
+            legendIconBadge(for: row)
             Text(row.displayName)
                 .font(.subheadline)
                 .lineLimit(1)
@@ -204,9 +227,62 @@ struct CategoryBreakdownCard: View {
             Text(percent(row.amountCents))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(minWidth: 34, alignment: .trailing)
+                .frame(minWidth: 53, alignment: .trailing)
         }
         .padding(.vertical, 5)
+        Group {
+            if let onSelectCategory,
+               drillAccountId != nil || drillParentAccountId != nil {
+                figures
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onSelectCategory(
+                            JournalDrillDown(
+                                kind: side.kind,
+                                accountId: drillAccountId,
+                                parentAccountId: drillParentAccountId,
+                                // Carried in the title's "时间 · <label>" slot.
+                                // Bucket = parent for 一级 rolls, leaf for 全部.
+                                categoryLabel: row.displayName
+                            )
+                        )
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isButton)
+            } else {
+                figures
+            }
+        }
+    }
+
+    /// What a legend row drills into: a leaf row scopes to its account, a
+    /// rollup row scopes to its parent (so the server's rollup filter
+    /// runs). Leaves with their own non-null `parentAccountId` still drill
+    /// by the leaf — the parent would over-fetch — so leaf + parent is
+    /// the leaf-only drill.
+    private func drillTarget(for row: CategoryAmountRow, level: Level)
+        -> (accountId: String?, parentAccountId: String?) {
+        if level == .leaf {
+            return (row.accountId, nil)
+        }
+        return (nil, row.parentAccountId ?? (row.accountId.isEmpty ? nil : row.accountId))
+    }
+
+    /// The legend row's leading icon badge: emoji when the category has
+    /// one, the side's SF Symbol otherwise. The color cue lives in the
+    /// row's separate dot; this is purely the category glyph.
+    private func legendIconBadge(for row: CategoryAmountRow) -> some View {
+        Group {
+            if let icon = row.icon, !icon.isEmpty {
+                Text(icon)
+                    .font(.footnote)
+            } else {
+                Image(systemName: side == .income ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 20, height: 20)
     }
 
     private func percent(_ cents: Int) -> String {
@@ -226,28 +302,35 @@ struct CategoryBreakdownCard: View {
     // MARK: - Level rollup (一级)
 
     /// Rolls leaf rows up one level: children merge into their parent's
-    /// bucket, and the parent identity is only ever a code or a name (the
-    /// report carries no parent id), so every bucket keys on
-    /// `parentCode ?? parentName ?? code ?? name ?? accountId`. That means
-    /// a top-level leaf stands alone keyed by its own code/name — and an
-    /// offsetting correction under that name nets into it — while two
-    /// same-named buckets share one slice, which the donut couldn't
-    /// distinguish anyway. Amounts sum from the RAW rows first, then
-    /// non-positive buckets drop, matching the leaf view's
-    /// can't-draw-a-negative rule. Amount-descending, stable on ties
-    /// (first-seen order). Pure so the rollup stays unit-testable.
+    /// bucket, keyed on the parent's real account id when known so a drill-
+    /// down through the legend row stays precise (the donut can't
+    /// distinguish same-named parents anyway, but the drill can). Falls back
+    /// to `parentCode ?? parentName ?? code ?? name ?? accountId` for
+    /// legacy summaries whose parent join omits the id, so the donut's
+    /// bucketing never changes for older payloads. Amounts sum from the
+    /// RAW rows first, then non-positive buckets drop, matching the leaf
+    /// view's can't-draw-a-negative rule. Amount-descending, stable on
+    /// ties (first-seen order). Pure so the rollup stays unit-testable.
     nonisolated static func levelOneRows(_ base: [CategoryAmountRow]) -> [CategoryAmountRow] {
         var order: [String] = []
         var buckets: [String: (sum: Int, head: CategoryAmountRow)] = [:]
         for row in base {
-            let key = row.parentCode ?? row.parentName ?? row.code ?? row.name ?? row.accountId
-            let isChild = row.parentCode != nil || row.parentName != nil
+            let key = row.parentAccountId
+                ?? row.parentCode
+                ?? row.parentName
+                ?? row.code
+                ?? row.name
+                ?? row.accountId
+            let isChild = row.parentAccountId != nil
+                || row.parentCode != nil
+                || row.parentName != nil
             let head = CategoryAmountRow(
-                accountId: key,
+                accountId: row.parentAccountId ?? key,
                 name: isChild ? row.parentName : row.name,
                 code: isChild ? row.parentCode : row.code,
                 parentName: nil,
                 parentCode: nil,
+                parentAccountId: nil,
                 amountCents: row.amountCents
             )
             if var bucket = buckets[key] {

@@ -103,27 +103,8 @@ struct JournalView: View {
             scheduleSummaryReload()
         }
         // Auto-collapsing drawer search (the dashboard's): hidden until the
-        // list is pulled down, expands over the title while focused. Bound
-        // straight to the store — its 200ms coalescing reload is the
-        // debounce, and the filter sheet's Clear updates the field for free.
-        #if os(iOS)
-        .searchable(
-            text: Binding(
-                get: { store.searchQuery },
-                set: { store.searchQuery = $0 }
-            ),
-            placement: .navigationBarDrawer(displayMode: .automatic),
-            prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
-        )
-        #else
-        .searchable(
-            text: Binding(
-                get: { store.searchQuery },
-                set: { store.searchQuery = $0 }
-            ),
-            prompt: Text(L10n.string("journal.search.placeholder", defaultValue: "Search…"))
-        )
-        #endif
+        // list is pulled down, expands over the title while focused.
+        .journalSearchable(store, alwaysVisible: false)
         .refreshable {
             await store.reload()
         }

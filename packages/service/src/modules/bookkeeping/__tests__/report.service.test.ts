@@ -480,7 +480,8 @@ function statEntry(
       accountId: string;
       name?: string | null;
       code?: string | null;
-      parent?: { name: string | null; code: string | null } | null;
+      icon?: string | null;
+      parent?: { id?: string; name: string | null; code: string | null } | null;
       debit: number;
       credit: number;
       type?: string;
@@ -499,8 +500,11 @@ function statEntry(
         id: line.accountId,
         name: line.name ?? null,
         code: line.code ?? null,
+        icon: line.icon ?? null,
         type: line.type ?? "expense",
-        parent: line.parent ?? null,
+        parent: line.parent
+          ? { id: line.parent.id ?? `parent-of-${line.accountId}`, ...line.parent }
+          : null,
       },
     })),
     participants: (overrides.participants ?? ["user-a"]).map((userId) => ({
@@ -607,7 +611,8 @@ describe("categorySummary (shareMode=members)", () => {
           {
             accountId: "acc-food",
             name: "Groceries",
-            parent: { name: null, code: "food" },
+            icon: "🛒",
+            parent: { id: "acc-food-parent", name: null, code: "food" },
             debit: 100,
             credit: 0,
           },
@@ -620,7 +625,8 @@ describe("categorySummary (shareMode=members)", () => {
           {
             accountId: "acc-food",
             name: "Groceries",
-            parent: { name: null, code: "food" },
+            icon: "🛒",
+            parent: { id: "acc-food-parent", name: null, code: "food" },
             debit: 40,
             credit: 0,
           },
@@ -638,6 +644,8 @@ describe("categorySummary (shareMode=members)", () => {
         code: null,
         parentName: null,
         parentCode: "food",
+        parentAccountId: "acc-food-parent",
+        icon: "🛒",
         amountCents: 9000,
       },
     ]);
