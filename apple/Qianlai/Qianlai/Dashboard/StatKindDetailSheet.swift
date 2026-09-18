@@ -58,9 +58,10 @@ struct StatKindDetailSheet: View {
                 showsProjectShare: true
             )
             .environment(store)
-            .refreshable {
-                await store.reload()
-            }
+            // No .refreshable here on purpose: the refresh control swallows
+            // the list's top pull gesture, so the sheet would never dismiss
+            // by pulling down. The .task below reloads on open; swipe
+            // actions keep the cards behind in sync.
             // Title, search, and the close button all live INSIDE the
             // NavigationStack — attached outside it, the navigation bar
             // never collects them (the close button silently vanished
