@@ -1304,7 +1304,7 @@ const builtInJobTemplates = [
   {
     name: "job-instance-sweep",
     type: "job-instance-sweep",
-    description: "Delete completed/failed job instances older than 30 days",
+    description: "Delete completed/failed job instances older than 3 days",
     cronExpression: "0 3 * * *",
   },
   {
@@ -1316,7 +1316,7 @@ const builtInJobTemplates = [
   {
     name: "operation-log-sweep",
     type: "operation-log-sweep",
-    description: "Delete operation logs older than 30 days",
+    description: "Delete operation logs older than 1 day",
     cronExpression: "15 3 * * *",
   },
   {

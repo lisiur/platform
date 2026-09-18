@@ -1,7 +1,7 @@
 import { prisma } from "#lib/db";
 import type { JobHandler } from "#lib/queues/job.types";
 
-const RETENTION_DAYS = 30;
+const RETENTION_DAYS = 1;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 5000;
 

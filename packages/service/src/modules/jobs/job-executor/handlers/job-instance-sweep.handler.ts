@@ -1,7 +1,7 @@
 import type { JobHandler } from "#lib/queues/job.types";
 import { jobInstanceRepository } from "#modules/jobs/job-instance.repository";
 
-const RETENTION_DAYS = 30;
+const RETENTION_DAYS = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const jobInstanceSweepHandler: JobHandler = async () => {
