@@ -27,6 +27,18 @@ function row(
   };
 }
 
+/** A transaction client whose journalLine.findMany records its where — the
+ *  line aggregations' filter surface is `entryFilterWhere`'s output, so
+ *  capturing the where (and the select) is the whole assertion surface.
+ *  Shared by the day-summary and category-summary describes. */
+function capturingTx() {
+  const findMany = vi.fn().mockResolvedValue([]);
+  return {
+    findMany,
+    tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
+  };
+}
+
 describe("orderByAmount", () => {
   it("orders descending by the summed line debits", () => {
     const rows = [
@@ -381,17 +393,6 @@ describe("categorySummaryFromLines", () => {
 });
 
 describe("sumLinesByDay", () => {
-  /** A transaction client whose journalLine.findMany records its where —
-   *  the aggregation's filter surface is `entryFilterWhere`'s output, so
-   *  capturing the where is the whole assertion surface. */
-  function capturingTx() {
-    const findMany = vi.fn().mockResolvedValue([]);
-    return {
-      findMany,
-      tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
-    };
-  }
-
   it("applies the ledger-activity predicate for ledger-wide windows — stats never count the creator's opt-outs", async () => {
     const { tx, findMany } = capturingTx();
     await journalRepository.sumLinesByDay("led-1", {}, 480, tx);
@@ -462,17 +463,6 @@ describe("sumLinesByDay", () => {
 });
 
 describe("sumLinesByCategory", () => {
-  /** Same capturing client as the day summary's — the aggregation's filter
-   *  surface is `entryFilterWhere`'s output, so capturing the where (and
-   *  the account payload in the select) is the whole assertion surface. */
-  function capturingTx() {
-    const findMany = vi.fn().mockResolvedValue([]);
-    return {
-      findMany,
-      tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
-    };
-  }
-
   it("applies the same ledger-activity predicate as the day summary", async () => {
     const { tx, findMany } = capturingTx();
     await journalRepository.sumLinesByCategory("led-1", {}, tx);

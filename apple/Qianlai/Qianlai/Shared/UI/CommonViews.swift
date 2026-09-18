@@ -345,6 +345,41 @@ struct EmptyStateView: View {
     }
 }
 
+/// The dashboard chart cards' shared header badge: a 34×34 accent-tinted
+/// rounded square behind the card's symbol.
+struct ChartCardBadge: View {
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17))
+            .foregroundStyle(Color.accentColor)
+            .frame(width: 34, height: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.12))
+            )
+    }
+}
+
+/// The dashboard chart cards' shared empty month state.
+struct ChartCardEmpty: View {
+    let systemName: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: systemName)
+                .font(.title3)
+                .foregroundStyle(.tertiary)
+            Text(L10n.string("dashboard.charts.empty", defaultValue: "No data this month"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 30)
+    }
+}
+
 /// Inline error with a retry button for failed loads.
 struct ErrorRetryView: View {
     let message: String

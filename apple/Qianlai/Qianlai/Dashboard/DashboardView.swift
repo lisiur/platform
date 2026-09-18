@@ -519,6 +519,25 @@ struct DashboardView: View {
                 month: store.dashboard?.month,
                 currency: ledgerStore.activeLedger?.currency
             )
+            // The chart cards ride the same month the stat card summarizes
+            // (both fetch alongside the dashboard), so stepping months
+            // re-aims all three together. Guests never fetch the reports
+            // (403), so their nil payloads keep the cards hidden — the
+            // stat card's gate, expressed through data.
+            if let daily = store.dailySummary {
+                MonthTrendChartCard(
+                    days: daily,
+                    currency: ledgerStore.activeLedger?.currency,
+                    locale: locale
+                )
+            }
+            if let summary = store.categorySummary {
+                CategoryBreakdownCard(
+                    summary: summary,
+                    currency: ledgerStore.activeLedger?.currency,
+                    locale: locale
+                )
+            }
         }
         // Horizontal margins come from the inset-grouped list itself, so
         // the summary lines up with the day cards below; vertical padding

@@ -170,7 +170,7 @@ export const dailySummaryQuerySchema = z
   })
   .openapi("QianlaiDailySummaryQuery");
 
-export const categorySummaryRowSchema = z
+export const categoryAmountRowSchema = z
   .object({
     accountId: z.string().openapi({ example: "clx1234567890" }),
     name: z.string().nullable().openapi({ example: null }),
@@ -183,8 +183,8 @@ export const categorySummaryRowSchema = z
 
 export const categorySummaryResponseSchema = z
   .object({
-    expense: categorySummaryRowSchema.array(),
-    income: categorySummaryRowSchema.array(),
+    expense: categoryAmountRowSchema.array(),
+    income: categoryAmountRowSchema.array(),
   })
   .openapi("QianlaiCategorySummaryResponse");
 

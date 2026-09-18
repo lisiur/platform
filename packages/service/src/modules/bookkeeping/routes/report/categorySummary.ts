@@ -46,15 +46,8 @@ export const categorySummaryRoute = defineOpenAPIRoute({
       query.projectId,
     );
     const summary = await categorySummary(ledgerId, {
-      from: query.from,
-      to: query.to,
-      q: query.q,
-      participantUserId: query.participantUserId,
+      ...query,
       projectId,
-      accountId: query.accountId,
-      accountType: query.accountType,
-      kind: query.kind,
-      memberUserId: query.memberUserId,
       scopeProjectIds,
     });
     return c.json(summary, 200);

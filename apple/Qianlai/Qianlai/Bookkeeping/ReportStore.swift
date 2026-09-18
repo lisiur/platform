@@ -25,6 +25,16 @@ final class ReportStore {
     /// feeds the quick entry's toggle default (`excludedAccountIds`).
     private(set) var budget: BudgetReport?
 
+    /// The dashboard month's chart payloads: per-day income/expense (the
+    /// trend card) and per-category totals (the composition card). Both are
+    /// the line-level accounting split — they reconcile with each other and
+    /// with the journal's day headers, deliberately not with the share-based
+    /// stat card above them. Keep-previous on failure like the dashboard
+    /// cards; a ledger switch drops them (stale charts from another ledger
+    /// are worse than blank ones).
+    private(set) var dailySummary: [DayIncomeExpense]?
+    private(set) var categorySummary: CategorySummaryResponse?
+
     /// Month the dashboard cards summarize; nil follows the current month
     /// (server default). Writing it schedules a coalesced dashboard reload,
     /// so `refreshAfterPosting` re-summarizes the month on screen.
@@ -97,8 +107,11 @@ final class ReportStore {
             // Never let another ledger's budget card survive a switch whose
             // fresh fetch fails — hiding beats cross-ledger numbers. (The
             // dashboard keeps its keep-previous semantics; the budget card
-            // has no back-compat to honor.)
+            // has no back-compat to honor.) The chart cards ride the same
+            // rule: their keep-previous must never span a ledger switch.
             budget = nil
+            dailySummary = nil
+            categorySummary = nil
         }
         async let dash: () = loadDashboard()
         if ledgerChanged {
@@ -150,10 +163,16 @@ final class ReportStore {
             async let budgetReport: () = loadBudgetReport(
                 ledgerId: ledgerId, month: month
             )
+            async let dayTotals: () = loadDailySummary(
+                ledgerId: ledgerId, month: month
+            )
+            async let categories: () = loadCategorySummary(
+                ledgerId: ledgerId, month: month
+            )
             // If the dashboard fetch throws, the catch keeps the previous
-            // values — the budget may or may not have landed, same
-            // keep-previous semantics either way.
-            _ = try await (dash, budgetReport)
+            // values — the budget and charts may or may not have landed,
+            // same keep-previous semantics either way.
+            _ = try await (dash, budgetReport, dayTotals, categories)
         } catch {
             // Keep whatever was loaded; the retry button reloads.
         }
@@ -202,6 +221,47 @@ final class ReportStore {
             ledgerId: ledgerId,
             month: dashboardMonth ?? AppDates.currentYearMonth
         )
+    }
+
+    /// One daily-summary fetch for the trend card, over the dashboard
+    /// month's local window. Keep-previous on failure, like the dashboard
+    /// cards. Guests 403 nothing here — the endpoint is guest-tier — but
+    /// the card still gates on the stat card's visibility.
+    private func loadDailySummary(ledgerId: String, month: YearMonth) async {
+        let window = AppDates.monthWindow(containing: month.start)
+        let query = ApiQuery.build([
+            ("from", ApiQuery.iso(window.from)),
+            ("to", ApiQuery.iso(window.to)),
+            ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+        ])
+        do {
+            let response: DailySummaryResponse = try await client.request(
+                "GET",
+                "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary\(query)"
+            )
+            dailySummary = response.days
+        } catch {
+            // Keep the previous month's data; the next reload retries.
+        }
+    }
+
+    /// One category-summary fetch for the composition card — the same
+    /// line-level split as the daily summary keyed per account, so the two
+    /// charts reconcile. Same window and keep-previous semantics.
+    private func loadCategorySummary(ledgerId: String, month: YearMonth) async {
+        let window = AppDates.monthWindow(containing: month.start)
+        let query = ApiQuery.build([
+            ("from", ApiQuery.iso(window.from)),
+            ("to", ApiQuery.iso(window.to)),
+        ])
+        do {
+            categorySummary = try await client.request(
+                "GET",
+                "bookkeeping/ledgers/\(ledgerId)/reports/category-summary\(query)"
+            )
+        } catch {
+            // Keep the previous month's data; the next reload retries.
+        }
     }
 
     /// One-shot share-based summary for an explicit window (the journal's
