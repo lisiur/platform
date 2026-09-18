@@ -241,10 +241,15 @@ export const categoryAmountRowSchema = z
       description:
         "The parent account's id when the category sits under one — the key for the list endpoint's parentAccountId rollup drill-down.",
     }),
+    parentIcon: z.string().nullable().openapi({
+      example: null,
+      description:
+        "The parent account's own icon — the composition rollup badge's primary source (a top-level category renders its own glyph, not a child's).",
+    }),
     icon: z.string().nullable().openapi({
       example: null,
       description:
-        "Emoji or icon name for the leaf account, surfaced as the legend row badge. Rollup rows carry the first leaf's icon so the badge still renders.",
+        "Emoji or icon name for the leaf account, surfaced as the legend row badge. The rollup badge falls back to the first leaf's icon when the parent carries none.",
     }),
     amountCents: z.number().int().openapi({ example: 12000 }),
   })

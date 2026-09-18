@@ -481,7 +481,12 @@ function statEntry(
       name?: string | null;
       code?: string | null;
       icon?: string | null;
-      parent?: { id?: string; name: string | null; code: string | null } | null;
+      parent?: {
+        id?: string;
+        name: string | null;
+        code: string | null;
+        icon?: string | null;
+      } | null;
       debit: number;
       credit: number;
       type?: string;
@@ -612,7 +617,12 @@ describe("categorySummary (shareMode=members)", () => {
             accountId: "acc-food",
             name: "Groceries",
             icon: "🛒",
-            parent: { id: "acc-food-parent", name: null, code: "food" },
+            parent: {
+              id: "acc-food-parent",
+              name: null,
+              code: "food",
+              icon: "🍜",
+            },
             debit: 100,
             credit: 0,
           },
@@ -626,7 +636,12 @@ describe("categorySummary (shareMode=members)", () => {
             accountId: "acc-food",
             name: "Groceries",
             icon: "🛒",
-            parent: { id: "acc-food-parent", name: null, code: "food" },
+            parent: {
+              id: "acc-food-parent",
+              name: null,
+              code: "food",
+              icon: "🍜",
+            },
             debit: 40,
             credit: 0,
           },
@@ -645,6 +660,7 @@ describe("categorySummary (shareMode=members)", () => {
         parentName: null,
         parentCode: "food",
         parentAccountId: "acc-food-parent",
+        parentIcon: "🍜",
         icon: "🛒",
         amountCents: 9000,
       },

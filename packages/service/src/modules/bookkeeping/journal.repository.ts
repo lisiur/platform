@@ -428,6 +428,9 @@ export type CategoryAmountRow = {
   parentName: string | null;
   parentCode: string | null;
   parentAccountId: string | null;
+  /** The parent account's own icon — the composition rollup badge's
+   *  primary source (一级分类 renders its own glyph, not a child's). */
+  parentIcon: string | null;
   icon: string | null;
   amountCents: number;
 };
@@ -448,7 +451,12 @@ export type CategorySummaryLine = {
     code: string | null;
     type: AccountType;
     icon: string | null;
-    parent: { id: string; name: string | null; code: string | null } | null;
+    parent: {
+      id: string;
+      name: string | null;
+      code: string | null;
+      icon: string | null;
+    } | null;
   };
 };
 
@@ -556,6 +564,7 @@ export function categorySummaryFromLines(
         parentName: line.account.parent?.name ?? null,
         parentCode: line.account.parent?.code ?? null,
         parentAccountId: line.account.parent?.id ?? null,
+        parentIcon: line.account.parent?.icon ?? null,
         icon: line.account.icon ?? null,
         amountCents,
       });
@@ -709,7 +718,9 @@ export const journalRepository = {
               code: true,
               type: true,
               icon: true,
-              parent: { select: { id: true, name: true, code: true } },
+              parent: {
+                select: { id: true, name: true, code: true, icon: true },
+              },
             },
           },
         },
@@ -1088,7 +1099,9 @@ export const journalRepository = {
                 code: true,
                 type: true,
                 icon: true,
-                parent: { select: { id: true, name: true, code: true } },
+                parent: {
+                  select: { id: true, name: true, code: true, icon: true },
+                },
               },
             },
           },

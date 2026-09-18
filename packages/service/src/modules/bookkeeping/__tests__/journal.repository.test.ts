@@ -260,7 +260,12 @@ describe("categorySummaryFromLines", () => {
       name?: string | null;
       code?: string | null;
       icon?: string | null;
-      parent?: { id?: string; name: string | null; code: string | null } | null;
+      parent?: {
+        id?: string;
+        name: string | null;
+        code: string | null;
+        icon?: string | null;
+      } | null;
     },
   ) {
     return {
@@ -273,7 +278,11 @@ describe("categorySummaryFromLines", () => {
         type,
         icon: extra?.icon ?? null,
         parent: extra?.parent
-          ? { id: extra.parent.id ?? "acc-parent", ...extra.parent }
+          ? {
+              id: extra.parent.id ?? "acc-parent",
+              icon: null,
+              ...extra.parent,
+            }
           : null,
       },
     };
@@ -293,6 +302,7 @@ describe("categorySummaryFromLines", () => {
         parentName: null,
         parentCode: null,
         parentAccountId: null,
+        parentIcon: null,
         icon: "🍔",
         amountCents: 3500,
       },
@@ -305,6 +315,7 @@ describe("categorySummaryFromLines", () => {
         parentName: null,
         parentCode: null,
         parentAccountId: null,
+        parentIcon: null,
         icon: "💰",
         amountCents: 5000,
       },
@@ -312,7 +323,12 @@ describe("categorySummaryFromLines", () => {
   });
 
   it("aggregates an account's lines and carries the parent pair through", () => {
-    const parent = { id: "acc-food-parent", name: null, code: "food" };
+    const parent = {
+      id: "acc-food-parent",
+      name: null,
+      code: "food",
+      icon: "🍜",
+    };
     const summary = categorySummaryFromLines([
       line("acc-groceries", "expense", 30, 0, {
         name: "Groceries",
@@ -333,6 +349,7 @@ describe("categorySummaryFromLines", () => {
         parentName: null,
         parentCode: "food",
         parentAccountId: "acc-food-parent",
+        parentIcon: "🍜",
         icon: "🛒",
         amountCents: 4200,
       },
@@ -352,6 +369,7 @@ describe("categorySummaryFromLines", () => {
         parentName: null,
         parentCode: null,
         parentAccountId: null,
+        parentIcon: null,
         icon: "🍔",
         amountCents: 2500,
       },
@@ -370,6 +388,7 @@ describe("categorySummaryFromLines", () => {
         parentName: null,
         parentCode: null,
         parentAccountId: null,
+        parentIcon: null,
         icon: "🍔",
         amountCents: 0,
       },

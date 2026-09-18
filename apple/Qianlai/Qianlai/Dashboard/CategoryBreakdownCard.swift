@@ -250,21 +250,34 @@ struct CategoryBreakdownCard: View {
         )
     }
 
-    /// The legend row's leading icon badge: emoji when the category has
-    /// one, the side's SF Symbol otherwise. The color cue lives in the
-    /// row's separate dot; this is purely the category glyph.
+    /// The legend row's leading icon badge, matching the journal card's
+    /// category badge structure: the category's emoji (the side's SF Symbol
+    /// when unset), with the parent's emoji as a small badge overlaid in
+    /// the bottom-trailing corner so same-named leaves under different
+    /// parents read as distinct — same composition, scaled to the legend's
+    /// 20pt badge. The color cue lives in the row's separate dot.
     private func legendIconBadge(for row: CategoryAmountRow) -> some View {
-        Group {
-            if let icon = row.icon, !icon.isEmpty {
-                Text(icon)
-                    .font(.footnote)
-            } else {
-                Image(systemName: side.icon)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if let icon = row.icon, !icon.isEmpty {
+                    Text(icon)
+                        .font(.footnote)
+                } else {
+                    Image(systemName: side.icon)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 20, height: 20)
+            if let parentIcon = row.parentIcon, !parentIcon.isEmpty {
+                Text(parentIcon)
+                    .font(.system(size: 8))
+                    .frame(width: 12, height: 12)
+                    .background(Circle().fill(Color.primary.opacity(0.06)))
+                    .accessibilityHidden(true)
             }
         }
-        .frame(width: 20, height: 20)
+        .frame(width: 24, height: 20, alignment: .leading)
     }
 
     private func percent(_ cents: Int) -> String {
@@ -292,11 +305,15 @@ struct CategoryBreakdownCard: View {
     /// older payloads and parent-less leaves still get a self-bucket.
     /// Amounts sum from the RAW rows first, then non-positive buckets
     /// drop, matching the leaf view's can't-draw-a-negative rule.
+    /// Badge icon: a merged bucket shows the parent account's own
+    /// `parentIcon` (一级分类用自己的一级图标), falling back to the first
+    /// child's icon when the payload predates `parentIcon` or the parent
+    /// carries none; a self-bucket (top-level leaf) keeps its own icon.
     /// Amount-descending, stable on ties (first-seen order). Pure so the
     /// rollup stays unit-testable.
     nonisolated static func levelOneRows(_ base: [CategoryAmountRow]) -> [CategoryAmountRow] {
         var order: [String] = []
-        var buckets: [String: (sum: Int, head: CategoryAmountRow)] = [:]
+        var buckets: [String: (sum: Int, head: CategoryAmountRow, icon: String?)] = [:]
         for row in base {
             let key = row.parentAccountId
                 ?? row.parentCode
@@ -318,14 +335,19 @@ struct CategoryBreakdownCard: View {
                 parentName: nil,
                 parentCode: nil,
                 parentAccountId: nil,
+                icon: nil,
                 amountCents: row.amountCents
             )
+            // The bucket's badge icon: the parent's own glyph when the row
+            // is a child (first child wins the fallback), the row's own
+            // glyph when it IS the top-level category.
+            let badgeIcon = isChild ? (row.parentIcon ?? row.icon) : row.icon
             if var bucket = buckets[key] {
                 bucket.sum += row.amountCents
                 buckets[key] = bucket
             } else {
                 order.append(key)
-                buckets[key] = (row.amountCents, head)
+                buckets[key] = (row.amountCents, head, badgeIcon)
             }
         }
         return order.indices.compactMap { index -> (index: Int, row: CategoryAmountRow)? in
@@ -333,6 +355,7 @@ struct CategoryBreakdownCard: View {
             guard let bucket = buckets[key], bucket.sum > 0 else { return nil }
             var row = bucket.head
             row.amountCents = bucket.sum
+            row.icon = bucket.icon
             return (index, row)
         }
         .sorted {

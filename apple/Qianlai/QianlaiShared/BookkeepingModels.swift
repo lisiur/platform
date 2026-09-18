@@ -1048,9 +1048,11 @@ struct CategoryAmountRow: Codable, Equatable, Identifiable {
     /// key for the list endpoint's parentAccountId rollup drill-down. nil
     /// for top-level categories.
     var parentAccountId: String?
-    /// Emoji or icon name for the leaf — surfaced as the composition
-    /// card's legend row badge. Rollup rows carry their first leaf's
-    /// icon so the badge still renders.
+    /// The parent account's own icon — the composition rollup badge's
+    /// primary source (一级分类 renders its own glyph, not a child's).
+    var parentIcon: String?
+    /// Emoji or icon name for the leaf — the leaf badge's own glyph and
+    /// the rollup's fallback when the parent carries no icon.
     var icon: String?
     var amountCents: Int
 
