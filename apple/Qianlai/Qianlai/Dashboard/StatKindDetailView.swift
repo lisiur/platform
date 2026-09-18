@@ -65,12 +65,13 @@ struct StatKindDetailView: View {
             showsProjectShare: true
         )
         .environment(store)
-        // Still no .refreshable — the choice predates the push mount, where
-        // its old justification (the refresh control swallowed the sheet's
-        // pull-to-dismiss) no longer applies; the pushed statement pages do
-        // carry one. The .task below reloads on open; swipe actions keep
-        // the cards behind in sync. Restore alongside
-        // ProjectEntriesDetailView if top-pull refresh is wanted here.
+        // Pull-to-refresh is back: the drop was a sheet-mount accommodation
+        // (the refresh control swallowed the sheet's top pull-to-dismiss),
+        // and the push has no such gesture to protect — same shape as the
+        // pushed statement pages.
+        .refreshable {
+            await store.reload()
+        }
         // The title and the search field must live INSIDE the enclosing
         // NavigationStack's pushed content — attached outside it, the
         // navigation bar never collects them.
