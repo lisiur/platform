@@ -10,12 +10,12 @@ import SwiftUI
 
 /// The dashboard's composition card: the selected month's per-category
 /// totals as a donut with a full legend beneath, switchable between the
-/// expense and income sides. The data is the category-summary report — the
-/// daily summary's line-level accounting split keyed per account, so it
-/// reconciles with the trend card beside it. A pie can't draw a
-/// non-positive slice: zero/negative nets (offsetting corrections) stay out
-/// of both the donut and the legend, and the center total is the sum of
-/// what's actually shown.
+/// expense and income sides. The data is the category-summary report at
+/// the `members` share mode — the trend card's member-share split keyed
+/// per account, so it reconciles with the trend card beside it and with
+/// the stat card above. A pie can't draw a non-positive slice: zero/
+/// negative nets (offsetting corrections) stay out of both the donut and
+/// the legend, and the center total is the sum of what's actually shown.
 struct CategoryBreakdownCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 

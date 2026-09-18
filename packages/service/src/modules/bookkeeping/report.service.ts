@@ -1,9 +1,15 @@
 import type { Prisma } from "#generated/prisma/client";
 import { accountRepository } from "./account.repository";
-import type { AccountType, LedgerRole } from "./domain";
+import type { AccountType, LedgerRole, StatShareMode } from "./domain";
 import {
+  type CategoryAmountRow,
+  type CategorySummary,
+  categorySideOf,
+  type DailySummaryRow,
   type EntryWindow,
   journalRepository,
+  localDayKey,
+  orderCategoryRows,
   type SumLinesWindow,
 } from "./journal.repository";
 import { ledgerMemberRepository } from "./ledger-member.repository";
@@ -80,6 +86,17 @@ export interface ShareEntry {
   lines: ShareLine[];
   participants: Array<{ userId: string }>;
 }
+
+/** Line shape returned by `listActivityEntriesWithLines` — the share
+ *  statement's payload plus the category row's account fields. */
+export type AttributedLine = ShareLine & {
+  account: ShareLine["account"] & {
+    id: string;
+    name: string | null;
+    code: string | null;
+    parent: { name: string | null; code: string | null } | null;
+  };
+};
 
 /** A line's flow amount in integer cents, signed per statement convention:
  * expense lines positive (debit − credit), income lines positive on the
@@ -171,14 +188,63 @@ export function memberSharesCents(
 }
 
 /**
+ * The attribution core behind every share-based surface (statement, daily
+ * summary, category summary): each entry's share from `shareOf` is
+ * distributed across its nonzero flow lines proportionally (rounded to
+ * cents), then the per-entry rounding drift is absorbed by the entry's
+ * dominant line — so Σ expense slices − Σ income slices equals the entry's
+ * share exactly, and any grouping of the slices (per account, per day)
+ * reconciles with the stat card over the same window. Entries whose share
+ * is zero (all non-member splits) contribute nothing.
+ */
+function attributedEntryFlows<L extends ShareLine>(
+  entries: Array<ShareEntry & { date: Date; lines: L[] }>,
+  shareOf: (entry: ShareEntry) => number,
+): Array<{
+  date: Date;
+  flows: Array<{ accountId: string; account: L["account"]; cents: number }>;
+}> {
+  const result: Array<{
+    date: Date;
+    flows: Array<{ accountId: string; account: L["account"]; cents: number }>;
+  }> = [];
+  for (const entry of entries) {
+    const share = shareOf(entry);
+    if (share === 0) continue;
+    const value = entryValueCents(entry.lines);
+    const flows = entry.lines
+      .map((line) => ({ line, cents: lineFlowCents(line) }))
+      .filter((f) => f.cents !== 0);
+    const attributed = flows.map((f) => ({
+      accountId: f.line.accountId,
+      account: f.line.account,
+      cents: value === 0 ? 0 : Math.round((f.cents * share) / value),
+    }));
+    // The attribution invariant: Σ expense attributed − Σ income attributed
+    // equals the entry's share of the entry's value. Any per-line rounding
+    // drift is absorbed by the entry's dominant line so it holds exactly.
+    const net = attributed.reduce(
+      (acc, f) => acc + (f.account.type === "income" ? -f.cents : f.cents),
+      0,
+    );
+    const drift = share - net;
+    if (drift !== 0 && attributed.length > 0) {
+      const dominant = attributed.reduce((a, b) =>
+        Math.abs(a.cents) >= Math.abs(b.cents) ? a : b,
+      );
+      dominant.cents += drift;
+    }
+    result.push({ date: entry.date, flows: attributed });
+  }
+  return result;
+}
+
+/**
  * Per-account sums of the given per-entry share over the entries, feeding
- * `buildStatementRows`. Each line is attributed its share/value fraction
- * (rounded to cents), then the per-entry rounding drift is absorbed by the
- * entry's largest line so Σ attributed − Σ income attributed equals the
- * entry's share exactly.
+ * `buildStatementRows`.
  */
 function shareSumsByAccount(
-  entries: ShareEntry[],
+  entries: Array<ShareEntry & { date: Date }>,
   shareOf: (entry: ShareEntry) => number,
 ) {
   const sums: AccountSums = new Map();
@@ -192,36 +258,12 @@ function shareSumsByAccount(
     current.credit += incomeCents;
     sums.set(accountId, current);
   };
-  for (const entry of entries) {
-    const share = shareOf(entry);
-    if (share === 0) continue;
-    const value = entryValueCents(entry.lines);
-    const flows = entry.lines
-      .map((line) => ({ line, cents: lineFlowCents(line) }))
-      .filter((f) => f.cents !== 0);
-    const attributed = flows.map((f) => ({
-      ...f,
-      cents: value === 0 ? 0 : Math.round((f.cents * share) / value),
-    }));
-    // The attribution invariant: Σ expense attributed − Σ income attributed
-    // equals the entry's share of the entry's value. Any per-line rounding
-    // drift is absorbed by the entry's dominant line so it holds exactly.
-    const net = attributed.reduce(
-      (acc, f) => acc + (f.line.account.type === "income" ? -f.cents : f.cents),
-      0,
-    );
-    const drift = share - net;
-    if (drift !== 0 && attributed.length > 0) {
-      const dominant = attributed.reduce((a, b) =>
-        Math.abs(a.cents) >= Math.abs(b.cents) ? a : b,
-      );
-      dominant.cents += drift;
-    }
-    for (const f of attributed) {
-      if (f.line.account.type === "income") {
-        add(f.line.accountId, 0, f.cents);
+  for (const { flows } of attributedEntryFlows(entries, shareOf)) {
+    for (const f of flows) {
+      if (f.account.type === "income") {
+        add(f.accountId, 0, f.cents);
       } else {
-        add(f.line.accountId, f.cents, 0);
+        add(f.accountId, f.cents, 0);
       }
     }
   }
@@ -481,35 +523,141 @@ function buildStatementRows(
   };
 }
 
-/**
- * Per-day gross income/expense over the journal's filter surface — the
- * figure behind the journal's day-section headers and the month calendar
- * view. Line-level accounting split (the income statement's semantics,
- * NOT the share-based statement): transfers count toward neither side.
- * Days bucket under the requester's fixed UTC offset so an entry lands on
- * the local day it was entered on, on any device (the budget report's tz
- * contract). The window type omits `includeExcluded` — stats count the
- * ledger's activity set (kept-in member entries + guest posts) and drop
- * only the creator's own opt-outs, unless the query is project-scoped.
- */
-export function dailySummary(
-  ledgerId: string,
-  window: Omit<EntryWindow, "includeExcluded">,
+/** The stat endpoints' window: the journal list's filter surface plus the
+ *  aggregation's numerator. "members" = the ledger's actual spend (each
+ *  entry split across its participants, only ledger members' slices
+ *  counted — the stat card's figure); "line" = raw journal lines, every
+ *  debit/credit counted. No default: every caller declares its scope's
+ *  contract (iOS picks members in ledger scope, line in project scope). */
+export type StatWindow = EntryWindow & { shareMode: StatShareMode };
+
+/** The members-mode inputs both stat endpoints reduce: the window's entries
+ *  with their attributed lines, plus the ledger's member set — the split
+ *  set whose slices count. */
+async function memberShareInputs(ledgerId: string, window: EntryWindow) {
+  const [entries, members] = await Promise.all([
+    journalRepository.listActivityEntriesWithLines(ledgerId, window),
+    ledgerMemberRepository.listByLedger(ledgerId),
+  ]);
+  return {
+    entries,
+    memberUserIds: new Set(members.map((m) => m.userId)),
+  };
+}
+
+/** The daily summary's share-based twin: each entry's member share is
+ *  attributed across its flow lines (the statement invariant) and each
+ *  slice lands on the entry's LOCAL day (the same `localDayKey` the
+ *  line-level split uses). A slice the split gives to a non-member never
+ *  lands, so the day totals reconcile with the stat card over the same
+ *  window — the family's actual spend per day. */
+export function memberShareDailySummary(
+  entries: Array<ShareEntry & { date: Date; lines: AttributedLine[] }>,
+  memberUserIds: ReadonlySet<string>,
   tzOffsetMinutes: number,
-) {
+): DailySummaryRow[] {
+  const days = new Map<string, DailySummaryRow>();
+  for (const { date, flows } of attributedEntryFlows(entries, (entry) =>
+    memberSharesCents(entry, memberUserIds),
+  )) {
+    const day = localDayKey(date, tzOffsetMinutes);
+    let row = days.get(day);
+    if (!row) {
+      row = { day, incomeCents: 0, expenseCents: 0 };
+      days.set(day, row);
+    }
+    for (const f of flows) {
+      if (f.account.type === "expense") {
+        row.expenseCents += f.cents;
+      } else if (f.account.type === "income") {
+        row.incomeCents += f.cents;
+      }
+    }
+  }
+  return [...days.values()].sort((a, b) => (a.day < b.day ? 1 : -1));
+}
+
+/** The category summary's share-based twin: the daily summary's member
+ *  shares keyed per account instead of per day, so the composition chart
+ *  reconciles with the trend chart beside it and with the stat card. An
+ *  account only an outsider's slices touched never appears — their spending
+ *  falls out of the family's books. */
+export function memberShareCategorySummary(
+  entries: Array<ShareEntry & { date: Date; lines: AttributedLine[] }>,
+  memberUserIds: ReadonlySet<string>,
+): CategorySummary {
+  const buckets: Record<
+    "expense" | "income",
+    Map<string, CategoryAmountRow>
+  > = { expense: new Map(), income: new Map() };
+  for (const { flows } of attributedEntryFlows(entries, (entry) =>
+    memberSharesCents(entry, memberUserIds),
+  )) {
+    for (const f of flows) {
+      const side = categorySideOf(f.account.type);
+      if (!side) continue;
+      const existing = buckets[side].get(f.account.id);
+      if (existing) {
+        existing.amountCents += f.cents;
+      } else {
+        buckets[side].set(f.account.id, {
+          accountId: f.account.id,
+          name: f.account.name,
+          code: f.account.code,
+          parentName: f.account.parent?.name ?? null,
+          parentCode: f.account.parent?.code ?? null,
+          amountCents: f.cents,
+        });
+      }
+    }
+  }
+  return {
+    expense: orderCategoryRows(buckets.expense.values()),
+    income: orderCategoryRows(buckets.income.values()),
+  };
+}
+
+/**
+ * Per-day income/expense over the journal's filter surface — the figure
+ * behind the journal's day-section headers, the month calendar view, and
+ * the dashboard's trend card. `shareMode` picks the numerator: "line" is
+ * the line-level accounting split (expense lines' debit-net feeds expense,
+ * income lines' credit-net feeds income, transfers count toward neither);
+ * "members" is the participant-split member share. Days bucket under the
+ * requester's fixed UTC offset so an entry lands on the local day it was
+ * entered on, on any device (the budget report's tz contract).
+ */
+export async function dailySummary(
+  ledgerId: string,
+  window: StatWindow,
+  tzOffsetMinutes: number,
+): Promise<DailySummaryRow[]> {
+  if (window.shareMode === "members") {
+    const { entries, memberUserIds } = await memberShareInputs(
+      ledgerId,
+      window,
+    );
+    return memberShareDailySummary(entries, memberUserIds, tzOffsetMinutes);
+  }
   return journalRepository.sumLinesByDay(ledgerId, window, tzOffsetMinutes);
 }
 
 /**
- * Per-category gross income/expense behind the composition chart — the
- * daily summary's line-level accounting split (NOT the share-based
- * statement) keyed per account, over the journal's filter surface, so the
- * pie reconciles with the trend chart beside it. Amounts are integer
- * cents; see `categorySummaryFromLines` for the row semantics.
+ * Per-category income/expense behind the composition chart — the daily
+ * summary's `shareMode` numerator keyed per account, so the pie reconciles
+ * with the trend chart beside it when they share a mode. Amounts are
+ * integer cents.
  */
-export function categorySummary(
+export async function categorySummary(
   ledgerId: string,
-  window: Omit<EntryWindow, "includeExcluded">,
-) {
+  window: StatWindow,
+): Promise<CategorySummary> {
+  if (window.shareMode === "members") {
+    const { entries, memberUserIds } = await memberShareInputs(
+      ledgerId,
+      window,
+    );
+    return memberShareCategorySummary(entries, memberUserIds);
+  }
   return journalRepository.sumLinesByCategory(ledgerId, window);
 }

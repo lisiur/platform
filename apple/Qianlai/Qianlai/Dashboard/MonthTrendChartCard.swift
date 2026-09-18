@@ -10,9 +10,11 @@ import SwiftUI
 
 /// The dashboard's month trend card: the selected month's per-day
 /// income/expense as a grouped bar chart, switchable to a line. The data is
-/// the daily-summary report's line-level accounting split — the same figure
-/// the journal's day headers render, deliberately not the share-based stat
-/// card's, so both charts on this page reconcile with the list beneath them.
+/// the daily-summary report at the `members` share mode — each entry split
+/// across its participants, only ledger members' slices counted — the same
+/// figure the stat card summarizes and the journal's day headers render,
+/// so both charts on this page reconcile with the stat card and the list
+/// beneath them.
 struct MonthTrendChartCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 

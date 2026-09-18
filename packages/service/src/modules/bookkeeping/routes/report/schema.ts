@@ -1,5 +1,10 @@
 import { z } from "@hono/zod-openapi";
-import { ACCOUNT_TYPES, ENTRY_KINDS, LEDGER_ROLES } from "../../domain";
+import {
+  ACCOUNT_TYPES,
+  ENTRY_KINDS,
+  LEDGER_ROLES,
+  STAT_SHARE_MODES,
+} from "../../domain";
 import { journalEntrySchema } from "../journal-entry/schema";
 
 export const trialBalanceRowSchema = z
@@ -147,10 +152,31 @@ export const dailySummaryResponseSchema = z
   .openapi("QianlaiDailySummaryResponse");
 
 // The journal list's filter surface minus list mechanics (pagination,
-// ordering) and `includeExcluded` — these summaries are stats, and stats
-// count the ledger's activity set, never the creator's opt-outs. The
-// daily summary adds the tz offset its day bucketing needs; the category
-// summary has no day buckets.
+// ordering) — these summaries are stats, and stats honor the activity
+// predicate's defaults plus three caller-controlled flags:
+//   - shareMode (REQUIRED): the aggregation's numerator. "members" splits
+//     each entry across its participant set and counts only the ledger
+//     members' slices, so the result is the family's actual spend (the
+//     figure the dashboard's stat card summarizes). "line" sums raw
+//     journal lines (the income statement's semantics) — every debit/
+//     credit counts, project outsiders included. Required because every
+//     caller must declare its scope's contract; iOS picks members in
+//     ledger scope and line in project scope, so the dashboard charts
+//     and the stat card reconcile in one scope, and the project's books
+//     stay raw in the other.
+//   - includeExcluded (default false): whether to also return entries
+//     the creator opted out of the ledger's surfaces (countsInLedger =
+//     false). When false, the ledger-activity predicate scopes the entry
+//     set (members' kept-in entries + guest posts). When true, every
+//     entry of the ledger passes through, like the journal list does
+//     with its own includeExcluded flag.
+//   - includeBudgetExcluded (default true): whether to include entries
+//     the per-entry budget flag (excludedFromBudget) marks off. The
+//     ledger's bookkeeping views default to including them (a top-up
+//     card payment kept out of budget still spent real money this month);
+//     budget-only callers flip this false. Distinct from the activity
+//     predicate — that one targets the creator's opt-out, this one
+//     targets the budget opt-out.
 const statFilterFields = {
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -163,9 +189,42 @@ const statFilterFields = {
   memberUserId: z.string().optional(),
 };
 
+const statViewFields = {
+  shareMode: z.enum(STAT_SHARE_MODES).openapi({
+    description:
+      'The aggregation\'s numerator. "members" splits each entry across its participant set and counts only the ledger members\' slices (the dashboard stat card\'s figure); "line" sums raw journal lines.',
+  }),
+  // Boolean query flags follow the journal list's includeExcluded idiom —
+  // an explicit "true"/"false" enum, never boolean coercion (query strings
+  // coerce "false" to true). Absent means the documented default.
+  includeExcluded: z.enum(["true", "false"]).optional().openapi({
+    description:
+      "Also return entries the creator opted out of the ledger's surfaces (countsInLedger=false). Default false — the ledger-activity predicate scopes the entry set.",
+  }),
+  includeBudgetExcluded: z.enum(["true", "false"]).optional().openapi({
+    description:
+      "Include entries the per-entry budget flag marks off (excludedFromBudget=true). Default true — bookkeeping views don't drop budget opt-outs.",
+  }),
+};
+
+/** The two view flags resolved to booleans with their defaults applied —
+ *  the one place both stat handlers turn the wire's "true"/"false" strings
+ *  into flags (includeExcluded off, includeBudgetExcluded on when absent),
+ *  so the defaults can't drift between the endpoints. */
+export function statViewFlags(query: {
+  includeExcluded?: "true" | "false";
+  includeBudgetExcluded?: "true" | "false";
+}) {
+  return {
+    includeExcluded: query.includeExcluded === "true",
+    includeBudgetExcluded: query.includeBudgetExcluded !== "false",
+  };
+}
+
 export const dailySummaryQuerySchema = z
   .object({
     ...statFilterFields,
+    ...statViewFields,
     tzOffsetMinutes: z.coerce.number().int().min(-840).max(840).default(0),
   })
   .openapi("QianlaiDailySummaryQuery");
@@ -191,5 +250,6 @@ export const categorySummaryResponseSchema = z
 export const categorySummaryQuerySchema = z
   .object({
     ...statFilterFields,
+    ...statViewFields,
   })
   .openapi("QianlaiCategorySummaryQuery");

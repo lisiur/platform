@@ -1,20 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("#lib/db", () => ({
+  prisma: {},
+}));
+
 vi.mock("../account.repository", () => ({
   accountRepository: {
     listByLedger: vi.fn(),
   },
 }));
 
-vi.mock("../journal.repository", () => ({
-  journalRepository: {
-    listRecent: vi.fn(),
-    sumLinesByAccount: vi.fn(),
-    listShareEntries: vi.fn(),
-    listActivityEntries: vi.fn(),
-    listTaggedEntries: vi.fn(),
-  },
-}));
+vi.mock("../journal.repository", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../journal.repository")>();
+  return {
+    journalRepository: {
+      listRecent: vi.fn(),
+      sumLinesByAccount: vi.fn(),
+      sumLinesByDay: vi.fn(),
+      sumLinesByCategory: vi.fn(),
+      listShareEntries: vi.fn(),
+      listActivityEntries: vi.fn(),
+      listActivityEntriesWithLines: vi.fn(),
+      listTaggedEntries: vi.fn(),
+    },
+    // The pure aggregation helpers report.service re-uses for the
+    // share-based stat paths — the real ones, so day bucketing, side
+    // mapping, and row ordering behave exactly as shipped.
+    categorySideOf: actual.categorySideOf,
+    localDayKey: actual.localDayKey,
+    orderCategoryRows: actual.orderCategoryRows,
+  };
+});
 
 vi.mock("../ledger-member.repository", () => ({
   ledgerMemberRepository: {
@@ -32,7 +48,13 @@ import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
 import { ledgerMemberRepository } from "../ledger-member.repository";
 import { projectMemberRepository } from "../project-member.repository";
-import { dashboard, incomeStatement, memberTurnover } from "../report.service";
+import {
+  categorySummary,
+  dailySummary,
+  dashboard,
+  incomeStatement,
+  memberTurnover,
+} from "../report.service";
 
 const mockAccountRepo = accountRepository as unknown as {
   listByLedger: ReturnType<typeof vi.fn>;
@@ -40,8 +62,11 @@ const mockAccountRepo = accountRepository as unknown as {
 const mockJournalRepo = journalRepository as unknown as {
   listRecent: ReturnType<typeof vi.fn>;
   sumLinesByAccount: ReturnType<typeof vi.fn>;
+  sumLinesByDay: ReturnType<typeof vi.fn>;
+  sumLinesByCategory: ReturnType<typeof vi.fn>;
   listShareEntries: ReturnType<typeof vi.fn>;
   listActivityEntries: ReturnType<typeof vi.fn>;
+  listActivityEntriesWithLines: ReturnType<typeof vi.fn>;
   listTaggedEntries: ReturnType<typeof vi.fn>;
 };
 const mockMemberRepo = ledgerMemberRepository as unknown as {
@@ -114,8 +139,14 @@ beforeEach(() => {
   ]);
   mockJournalRepo.listRecent.mockResolvedValue([]);
   mockJournalRepo.sumLinesByAccount.mockResolvedValue([]);
+  mockJournalRepo.sumLinesByDay.mockResolvedValue([]);
+  mockJournalRepo.sumLinesByCategory.mockResolvedValue({
+    expense: [],
+    income: [],
+  });
   mockJournalRepo.listShareEntries.mockResolvedValue([]);
   mockJournalRepo.listActivityEntries.mockResolvedValue([]);
+  mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([]);
   // The dashboard's member set: who counts as "family" in the split.
   mockMemberRepo.listByLedger.mockResolvedValue([
     { id: "m-a", userId: "user-a", role: "owner" },
@@ -433,5 +464,221 @@ describe("memberTurnover", () => {
       turnover: 30,
     });
     expect(totals).toEqual({ entries: 1, turnover: 90 });
+  });
+});
+
+/** A stat-path entry: the date the day bucketing reads and lines carrying
+ *  the full account payload (id/name/code/parent), as
+ *  `listActivityEntriesWithLines` returns them. Plain numbers stand in for
+ *  Prisma Decimal. The member roster in beforeEach is user-a/user-b —
+ *  user-out/user-guest hold no ledger row. */
+function statEntry(
+  overrides: {
+    date?: Date;
+    paidById?: string | null;
+    lines?: Array<{
+      accountId: string;
+      name?: string | null;
+      code?: string | null;
+      parent?: { name: string | null; code: string | null } | null;
+      debit: number;
+      credit: number;
+      type?: string;
+    }>;
+    participants?: string[];
+  } = {},
+) {
+  return {
+    date: overrides.date ?? new Date("2026-09-17T10:00:00Z"),
+    paidById: overrides.paidById !== undefined ? overrides.paidById : "user-a",
+    lines: (overrides.lines ?? []).map((line) => ({
+      accountId: line.accountId,
+      debit: line.debit,
+      credit: line.credit,
+      account: {
+        id: line.accountId,
+        name: line.name ?? null,
+        code: line.code ?? null,
+        type: line.type ?? "expense",
+        parent: line.parent ?? null,
+      },
+    })),
+    participants: (overrides.participants ?? ["user-a"]).map((userId) => ({
+      userId,
+    })),
+  };
+}
+
+describe("dailySummary (shareMode=members)", () => {
+  it("lands only the members' slices on the entry's LOCAL day", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      // ¥100 across a member and an outsider, dated 20:00 UTC — UTC+8
+      // buckets it on the 18th, and only the member's ¥50 lands.
+      statEntry({
+        date: new Date("2026-09-17T20:00:00Z"),
+        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
+        participants: ["user-a", "user-out"],
+      }),
+    ]);
+
+    const days = await dailySummary("led-1", { shareMode: "members" }, 480);
+
+    expect(mockJournalRepo.listActivityEntriesWithLines).toHaveBeenCalledWith(
+      "led-1",
+      { shareMode: "members" },
+    );
+    expect(days).toEqual([
+      { day: "2026-09-18", incomeCents: 0, expenseCents: 5000 },
+    ]);
+  });
+
+  it("drops outsiders-only entries — they are not the family's spend", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      statEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 60, credit: 0 }],
+        participants: ["user-out", "user-guest"],
+      }),
+      statEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 40, credit: 0 }],
+        participants: [],
+      }),
+    ]);
+
+    const days = await dailySummary("led-1", { shareMode: "members" }, 0);
+
+    expect(days).toEqual([]);
+  });
+
+  it("splits income and expense sides and skips transfer lines", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      // Salary 90 shared by two members → both slices count, income 90;
+      // food 60 untagged and member-paid → expense 60 in full; the pocket
+      // transfer feeds neither.
+      statEntry({
+        paidById: "user-b",
+        lines: [
+          { accountId: "acc-salary", debit: 0, credit: 90, type: "income" },
+        ],
+        participants: ["user-a", "user-b"],
+      }),
+      statEntry({
+        lines: [
+          { accountId: "acc-food", debit: 60, credit: 0 },
+          { accountId: "acc-pocket", debit: 60, credit: 0, type: "asset" },
+        ],
+        participants: [],
+      }),
+    ]);
+
+    const days = await dailySummary("led-1", { shareMode: "members" }, 0);
+
+    expect(days).toEqual([
+      { day: "2026-09-17", incomeCents: 9000, expenseCents: 6000 },
+    ]);
+  });
+
+  it("routes shareMode=line to the line-level aggregation", async () => {
+    mockJournalRepo.sumLinesByDay.mockResolvedValue([
+      { day: "2026-09-17", incomeCents: 0, expenseCents: 10000 },
+    ]);
+
+    const days = await dailySummary("led-1", { shareMode: "line" }, 480);
+
+    expect(mockJournalRepo.listActivityEntriesWithLines).not.toHaveBeenCalled();
+    expect(mockJournalRepo.sumLinesByDay).toHaveBeenCalledWith(
+      "led-1",
+      { shareMode: "line" },
+      480,
+    );
+    expect(days).toEqual([
+      { day: "2026-09-17", incomeCents: 0, expenseCents: 10000 },
+    ]);
+  });
+});
+
+describe("categorySummary (shareMode=members)", () => {
+  it("aggregates member slices per account, carrying the parent pair", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      // ¥100 across a member and an outsider → ¥50 of food counts.
+      statEntry({
+        lines: [
+          {
+            accountId: "acc-food",
+            name: "Groceries",
+            parent: { name: null, code: "food" },
+            debit: 100,
+            credit: 0,
+          },
+        ],
+        participants: ["user-a", "user-out"],
+      }),
+      // ¥40 across two members → all of it counts, same account.
+      statEntry({
+        lines: [
+          {
+            accountId: "acc-food",
+            name: "Groceries",
+            parent: { name: null, code: "food" },
+            debit: 40,
+            credit: 0,
+          },
+        ],
+        participants: ["user-a", "user-b"],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", { shareMode: "members" });
+
+    expect(summary.expense).toEqual([
+      {
+        accountId: "acc-food",
+        name: "Groceries",
+        code: null,
+        parentName: null,
+        parentCode: "food",
+        amountCents: 9000,
+      },
+    ]);
+    expect(summary.income).toEqual([]);
+  });
+
+  it("omits accounts only outsiders' slices touched", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      statEntry({
+        paidById: "user-out",
+        lines: [{ accountId: "acc-food", debit: 60, credit: 0 }],
+        participants: ["user-out", "user-guest"],
+      }),
+      // A mixed entry still counts the member's slice of the SAME account.
+      statEntry({
+        lines: [
+          { accountId: "acc-salary", debit: 0, credit: 80, type: "income" },
+        ],
+        participants: ["user-a", "user-out"],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", { shareMode: "members" });
+
+    expect(summary.expense).toEqual([]);
+    expect(summary.income.map((row) => row.accountId)).toEqual(["acc-salary"]);
+    expect(summary.income[0].amountCents).toBe(4000);
+  });
+
+  it("routes shareMode=line to the line-level aggregation", async () => {
+    mockJournalRepo.sumLinesByCategory.mockResolvedValue({
+      expense: [],
+      income: [],
+    });
+
+    const summary = await categorySummary("led-1", { shareMode: "line" });
+
+    expect(mockJournalRepo.listActivityEntriesWithLines).not.toHaveBeenCalled();
+    expect(mockJournalRepo.sumLinesByCategory).toHaveBeenCalledWith("led-1", {
+      shareMode: "line",
+    });
+    expect(summary).toEqual({ expense: [], income: [] });
   });
 });

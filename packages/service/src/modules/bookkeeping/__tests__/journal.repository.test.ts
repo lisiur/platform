@@ -402,6 +402,39 @@ describe("sumLinesByDay", () => {
     });
   });
 
+  it("keeps budget-excluded entries by default — bookkeeping views count them", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay("led-1", {}, 480, tx);
+    expect(
+      findMany.mock.calls[0][0].where.entry.excludedFromBudget,
+    ).toBeUndefined();
+  });
+
+  it("drops the per-entry budget opt-outs only when the caller asks", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { includeBudgetExcluded: false },
+      480,
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry).toMatchObject({
+      ledgerId: "led-1",
+      excludedFromBudget: false,
+    });
+  });
+
+  it("includeExcluded=true widens past the activity predicate", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { includeExcluded: true },
+      480,
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry.OR).toBeUndefined();
+  });
+
   it("drops the activity predicate for project-scoped windows — a project's books count everything", async () => {
     const { tx, findMany } = capturingTx();
     await journalRepository.sumLinesByDay(
@@ -469,6 +502,19 @@ describe("sumLinesByCategory", () => {
     expect(findMany.mock.calls[0][0].where.entry).toMatchObject({
       ledgerId: "led-1",
       OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
+  });
+
+  it("honors the budget flag the same way the day summary does", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByCategory(
+      "led-1",
+      { includeBudgetExcluded: false },
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry).toMatchObject({
+      ledgerId: "led-1",
+      excludedFromBudget: false,
     });
   });
 

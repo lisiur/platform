@@ -26,12 +26,14 @@ final class ReportStore {
     private(set) var budget: BudgetReport?
 
     /// The dashboard month's chart payloads: per-day income/expense (the
-    /// trend card) and per-category totals (the composition card). Both are
-    /// the line-level accounting split — they reconcile with each other and
-    /// with the journal's day headers, deliberately not with the share-based
-    /// stat card above them. Keep-previous on failure like the dashboard
-    /// cards; a ledger switch drops them (stale charts from another ledger
-    /// are worse than blank ones).
+    /// trend card) and per-category totals (the composition card). Both
+    /// fetch at the `members` share mode — each entry split across its
+    /// participants, only ledger members' slices counted — so they
+    /// reconcile with the share-based stat card above them and, through the
+    /// day headers' own members-mode requests, with the journal list
+    /// beneath. Keep-previous on failure like the dashboard cards; a ledger
+    /// switch drops them (stale charts from another ledger are worse than
+    /// blank ones).
     private(set) var dailySummary: [DayIncomeExpense]?
     private(set) var categorySummary: CategorySummaryResponse?
 
@@ -224,14 +226,16 @@ final class ReportStore {
     }
 
     /// One daily-summary fetch for the trend card, over the dashboard
-    /// month's local window. Keep-previous on failure, like the dashboard
-    /// cards. Guests 403 nothing here — the endpoint is guest-tier — but
-    /// the card still gates on the stat card's visibility.
+    /// month's local window at the `members` share mode — the ledger
+    /// scope's numerator, matching the stat card. Keep-previous on failure,
+    /// like the dashboard cards. Guests 403 nothing here — the endpoint is
+    /// guest-tier — but the card still gates on the stat card's visibility.
     private func loadDailySummary(ledgerId: String, month: YearMonth) async {
         let window = AppDates.monthWindow(containing: month.start)
         let query = ApiQuery.build([
             ("from", ApiQuery.iso(window.from)),
             ("to", ApiQuery.iso(window.to)),
+            ("shareMode", ReportShareMode.members.rawValue),
             ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
         ])
         do {
@@ -245,14 +249,15 @@ final class ReportStore {
         }
     }
 
-    /// One category-summary fetch for the composition card — the same
-    /// line-level split as the daily summary keyed per account, so the two
-    /// charts reconcile. Same window and keep-previous semantics.
+    /// One category-summary fetch for the composition card — the daily
+    /// summary's `members` numerator keyed per account, so the two charts
+    /// and the stat card reconcile. Same window and keep-previous semantics.
     private func loadCategorySummary(ledgerId: String, month: YearMonth) async {
         let window = AppDates.monthWindow(containing: month.start)
         let query = ApiQuery.build([
             ("from", ApiQuery.iso(window.from)),
             ("to", ApiQuery.iso(window.to)),
+            ("shareMode", ReportShareMode.members.rawValue),
         ])
         do {
             categorySummary = try await client.request(

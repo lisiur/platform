@@ -17,6 +17,16 @@ export const ENTRY_KINDS = ["expense", "income", "transfer"] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 /**
+ * The stat endpoints' (daily-summary, category-summary) aggregation
+ * numerators (`shareMode` query parameter — required, no server default):
+ * "members" splits each entry across its participant set and counts only
+ * the ledger members' slices (the stat card's figure); "line" sums raw
+ * journal lines. iOS picks members in ledger scope, line in project scope.
+ */
+export const STAT_SHARE_MODES = ["line", "members"] as const;
+export type StatShareMode = (typeof STAT_SHARE_MODES)[number];
+
+/**
  * Account types a RealAccount (owner-private master of a real-world
  * asset/liability) can represent — and whose BookAccount pockets may link to
  * one. Income/expense/equity are ledger-local by design.

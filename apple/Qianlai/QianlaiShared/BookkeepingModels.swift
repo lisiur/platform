@@ -1006,8 +1006,20 @@ struct EntriesResponse: Codable {
     var total: Int
 }
 
+/// The daily/category summary reports' aggregation numerator (`shareMode`
+/// query parameter — required, the server has no default). `members`
+/// splits each entry across its participant set and counts only the
+/// ledger members' slices — the stat card's figure, the family's actual
+/// spend. `line` sums raw journal lines — the accounting split, every
+/// participant counts. The ruling: a ledger's stats speak members, a
+/// project's books speak line.
+nonisolated enum ReportShareMode: String {
+    case line
+    case members
+}
+
 /// One LOCAL day's income/expense totals in integer cents, from the
-/// daily-summary report — the line-level accounting split (transfers in
+/// daily-summary report — the requested `shareMode` split (transfers in
 /// neither), over the same filtered entry set the list shows. `day` is the
 /// "yyyy-MM-dd" the server bucketed under the request's tz offset: key on
 /// the string, never re-parse it into a Date (that would timezone-shift).
@@ -1022,7 +1034,7 @@ struct DailySummaryResponse: Codable {
 }
 
 /// One category's activity total in integer cents, from the category-summary
-/// report — the daily summary's line-level accounting split keyed per
+/// report — the daily summary's requested `shareMode` split keyed per
 /// account. `name`/`code` mirror the statement rows so `displayName` renders
 /// seeded categories' localized labels from the code; the parent pair is the
 /// one-level join the journal rows carry, for same-named-leaf captions.

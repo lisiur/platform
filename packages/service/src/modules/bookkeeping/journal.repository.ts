@@ -39,6 +39,13 @@ export type EntryWindow = {
    * entries.
    */
   includeExcluded?: boolean;
+  /**
+   * Whether to include entries the per-entry budget flag marks off
+   * (`excludedFromBudget = true`). Defaults to true at the route/schema
+   * level — the ledger's bookkeeping views don't drop budget opt-outs;
+   * only budget-only callers flip this false.
+   */
+  includeBudgetExcluded?: boolean;
 };
 
 /**
@@ -94,9 +101,11 @@ function dateWindowWhere(window: {
   };
 }
 
-/** The share-statement entry shape: payer, typed lines, participant ids —
- *  everything the split math reads, nothing else. */
+/** The share-statement entry shape: date (day bucketing in the shared
+ *  attribution core), payer, typed lines, participant ids — everything the
+ *  split math reads, nothing else. */
 const shareEntrySelect = {
+  date: true,
   paidById: true,
   lines: {
     select: {
@@ -234,6 +243,12 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     // books always show all of their entries — settlement depends on them —
     // so the filter is skipped whenever the query is pinned to project(s).
     ...(!projectScoped && !window.includeExcluded ? ledgerActivityWhere : {}),
+    // The per-entry budget opt-out drops only when the caller asks — the
+    // route-level default keeps budget-excluded entries in (bookkeeping
+    // views count them; only budget-flavored callers flip this).
+    ...(window.includeBudgetExcluded === false
+      ? { excludedFromBudget: false as const }
+      : {}),
     ...(window.from || window.to
       ? {
           date: {
@@ -414,6 +429,21 @@ export type CategorySummaryLine = {
 };
 
 /**
+ * The "yyyy-MM-dd" LOCAL day of an instant under a fixed UTC offset —
+ * ((date + offset) floored to a UTC day). The one day-bucketing rule every
+ * summary shares, line-level and share-based alike, so a day means the same
+ * thing on both sides of a shareMode switch.
+ */
+export function localDayKey(date: Date, tzOffsetMinutes: number): string {
+  const offsetMs = tzOffsetMinutes * 60_000;
+  return new Date(
+    Math.floor((date.getTime() + offsetMs) / 86_400_000) * 86_400_000,
+  )
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
  * Pure day aggregation behind `sumLinesByDay`: lines land on the LOCAL day
  * of their entry ((date + offset) floored to a UTC day, then keyed as
  * "yyyy-MM-dd"), and each line feeds exactly one side of the split — the
@@ -425,15 +455,9 @@ export function dailySummaryFromLines(
   lines: DailySummaryLine[],
   tzOffsetMinutes: number,
 ): DailySummaryRow[] {
-  const offsetMs = tzOffsetMinutes * 60_000;
   const days = new Map<string, DailySummaryRow>();
   for (const line of lines) {
-    const day = new Date(
-      Math.floor((line.entry.date.getTime() + offsetMs) / 86_400_000) *
-        86_400_000,
-    )
-      .toISOString()
-      .slice(0, 10);
+    const day = localDayKey(line.entry.date, tzOffsetMinutes);
     let row = days.get(day);
     if (!row) {
       row = { day, incomeCents: 0, expenseCents: 0 };
@@ -448,6 +472,28 @@ export function dailySummaryFromLines(
     }
   }
   return [...days.values()].sort((a, b) => (a.day < b.day ? 1 : -1));
+}
+
+/** Category-row ordering shared by both aggregation modes: amount
+ *  descending with a code/name/id tiebreak so palette assignment stays
+ *  deterministic across reloads. */
+export function orderCategoryRows(
+  rows: Iterable<CategoryAmountRow>,
+): CategoryAmountRow[] {
+  const keyOf = (row: CategoryAmountRow) =>
+    row.code ?? row.name ?? row.accountId;
+  return [...rows].sort(
+    (a, b) =>
+      b.amountCents - a.amountCents ||
+      (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0),
+  );
+}
+
+/** The summary side an account type feeds — null for balance-sheet lines
+ *  (transfers count toward neither). The one side-map every aggregator
+ *  shares, line-level and share-based alike. */
+export function categorySideOf(type: string): "expense" | "income" | null {
+  return type === "expense" ? "expense" : type === "income" ? "income" : null;
 }
 
 /**
@@ -470,12 +516,7 @@ export function categorySummaryFromLines(
     Map<string, CategoryAmountRow>
   > = { expense: new Map(), income: new Map() };
   for (const line of lines) {
-    const side =
-      line.account.type === "expense"
-        ? "expense"
-        : line.account.type === "income"
-          ? "income"
-          : null;
+    const side = categorySideOf(line.account.type);
     if (!side) continue;
     const debit = Math.round(Number(line.debit) * 100);
     const credit = Math.round(Number(line.credit) * 100);
@@ -494,17 +535,9 @@ export function categorySummaryFromLines(
       });
     }
   }
-  const keyOf = (row: CategoryAmountRow) =>
-    row.code ?? row.name ?? row.accountId;
-  const orderRows = (rows: Iterable<CategoryAmountRow>) =>
-    [...rows].sort(
-      (a, b) =>
-        b.amountCents - a.amountCents ||
-        (keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0),
-    );
   return {
-    expense: orderRows(buckets.expense.values()),
-    income: orderRows(buckets.income.values()),
+    expense: orderCategoryRows(buckets.expense.values()),
+    income: orderCategoryRows(buckets.income.values()),
   };
 }
 
@@ -596,15 +629,14 @@ export const journalRepository = {
    * Per-day income/expense totals over `entryFilterWhere`'s exact set —
    * the journal list's whole filter surface, so day-section headers and
    * the month calendar aggregate precisely what the list shows. The window
-   * deliberately omits `includeExcluded`: these are ledger-wide STATS, and
-   * stats never count the creator's opt-outs — the ledger-activity
-   * predicate stays on unless the query is project-scoped (a project's
-   * books count everything, like the list does). Splitting and day
-   * bucketing live in `dailySummaryFromLines`.
+   * is the caller's contract: the route's defaults (includeExcluded off,
+   * includeBudgetExcluded on) reproduce the ledger-activity stats set, and
+   * a project-scoped query counts everything, like the list does. Splitting
+   * and day bucketing live in `dailySummaryFromLines`.
    */
   sumLinesByDay(
     ledgerId: string,
-    window: Omit<EntryWindow, "includeExcluded">,
+    window: EntryWindow,
     tzOffsetMinutes: number,
     tx: Prisma.TransactionClient = prisma,
   ): Promise<DailySummaryRow[]> {
@@ -626,16 +658,16 @@ export const journalRepository = {
   },
 
   /**
-   * Per-category activity totals over `entryFilterWhere`'s exact set — the
-   * same entry set (and guest project clamping) as the journal list and the
-   * daily summary, so the composition chart reconciles with the trend chart
-   * beside it. The window deliberately omits `includeExcluded`, for the
-   * same reason `sumLinesByDay`'s does: these are ledger-wide STATS.
-   * Splitting and account grouping live in `categorySummaryFromLines`.
+   * Per-category activity totals over `entryFilterWhere`'s exact set —
+   * the same entry set (and guest project clamping) as the journal list
+   * and the daily summary, so the composition chart reconciles with the
+   * trend chart beside it. The window is the caller's contract, matching
+   * `sumLinesByDay`'s. Splitting and account grouping live in
+   * `categorySummaryFromLines`.
    */
   sumLinesByCategory(
     ledgerId: string,
-    window: Omit<EntryWindow, "includeExcluded">,
+    window: EntryWindow,
     tx: Prisma.TransactionClient = prisma,
   ): Promise<CategorySummary> {
     return tx.journalLine
@@ -994,6 +1026,47 @@ export const journalRepository = {
         ...dateWindowWhere(window),
       },
       select: shareEntrySelect,
+    });
+  },
+
+  /**
+   * Every entry matching the full `entryFilterWhere` surface — all list
+   * filters plus the include flags — in the shape the share-based stat
+   * endpoints need: the date (day bucketing), the payer, the participant
+   * set (the split set), and lines carrying the account's category payload
+   * (per-account attribution). Where `listActivityEntries` fixes the
+   * ledger-activity set for the statement, this one threads the caller's
+   * window, so a share-mode summary covers exactly the entry set its
+   * line-mode twin would.
+   */
+  listActivityEntriesWithLines(
+    ledgerId: string,
+    window: EntryWindow = {},
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.journalEntry.findMany({
+      where: entryFilterWhere(ledgerId, window),
+      select: {
+        date: true,
+        paidById: true,
+        lines: {
+          select: {
+            accountId: true,
+            debit: true,
+            credit: true,
+            account: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                type: true,
+                parent: { select: { name: true, code: true } },
+              },
+            },
+          },
+        },
+        participants: { select: { userId: true } },
+      },
     });
   },
 

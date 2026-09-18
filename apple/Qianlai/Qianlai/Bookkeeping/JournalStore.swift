@@ -700,6 +700,15 @@ final class JournalStore {
         var memberUserId: String?
         var kind: QuickEntryKind?
 
+        /// The aggregation's numerator the daily summary must pass
+        /// explicitly (the endpoint has no default). The ruling: a ledger's
+        /// stats speak `members` — each entry split across its participants,
+        /// only ledger members' slices counted, the stat card's figure —
+        /// while a project's books speak `line` (raw line sums, every
+        /// participant counts). Derived from the project filter so every
+        /// mount picks its scope's mode without a per-call-site decision.
+        var shareMode: ReportShareMode { projectId == nil ? .members : .line }
+
         /// The wire pairs both requests send — the trim and the local
         /// end-of-day conversion included, so the two endpoints encode
         /// identical values for identical store state.
@@ -734,15 +743,17 @@ final class JournalStore {
     }
 
     /// The daily-summary request's query: the shared filter pairs plus the
-    /// tz offset that keys each entry to the LOCAL day it was entered on
-    /// (the budget report's contract). No list mechanics and no
-    /// `includeExcluded` — the endpoint is a stat, and stats count the
-    /// ledger's activity set. An opted-out entry stays listed (marked
-    /// 不计入收支) but its amounts stay out of every day total, matching
-    /// the month stat card.
+    /// scope-derived `shareMode` (no server default — every caller declares
+    /// its numerator) and the tz offset that keys each entry to the LOCAL
+    /// day it was entered on (the budget report's contract). No list
+    /// mechanics and no `includeExcluded` — the endpoint is a stat, and the
+    /// route's defaults keep stats on the ledger's activity set. An
+    /// opted-out entry stays listed (marked 不计入收支) but its amounts stay
+    /// out of every day total, matching the month stat card.
     private static func dailySummaryQuery(filters: Filters) -> String {
         ApiQuery.build(
             filters.queryPairs + [
+                ("shareMode", filters.shareMode.rawValue),
                 ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
             ]
         )
