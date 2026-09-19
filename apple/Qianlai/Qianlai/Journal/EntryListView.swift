@@ -165,29 +165,35 @@ struct EntryListView: View {
         }
     }
 
-    /// The day-section header: the formatted date on the left, the day's
-    /// income/expense on the right when the daily summary knows the day.
-    /// Only non-zero sides render — a pure-transfer day shows the date
-    /// alone — and colors follow the stat-card convention (income red,
-    /// expense green), not the entry-row accent.
+    /// The day-section header: the formatted date plus weekday on the
+    /// left, the day's income/expense stacked on the right when the daily
+    /// summary knows the day. Only non-zero sides render — a pure-transfer
+    /// day shows the date alone — and colors follow the stat-card
+    /// convention (income red, expense green), not the entry-row accent.
     private func dayHeader(_ group: (day: Date, entries: [JournalEntry])) -> some View {
         HStack(spacing: 8) {
-            Text(AppDates.formatEntryDay(group.day, locale: locale))
+            HStack(spacing: 6) {
+                Text(AppDates.formatEntryDay(group.day, locale: locale))
+                Text(AppDates.formatEntryWeekday(group.day, locale: locale))
+                    .foregroundStyle(.secondary)
+            }
             Spacer(minLength: 12)
             if let totals = store.dayTotals[JournalStore.dayKey(group.day)] {
-                if totals.incomeCents != 0 {
-                    dayTotal(
-                        L10n.string("account.type.income", defaultValue: "Income"),
-                        cents: totals.incomeCents,
-                        color: .income
-                    )
-                }
-                if totals.expenseCents != 0 {
-                    dayTotal(
-                        L10n.string("account.type.expense", defaultValue: "Expense"),
-                        cents: totals.expenseCents,
-                        color: .expense
-                    )
+                VStack(alignment: .trailing, spacing: 2) {
+                    if totals.incomeCents != 0 {
+                        dayTotal(
+                            L10n.string("account.type.income", defaultValue: "Income"),
+                            cents: totals.incomeCents,
+                            color: .income
+                        )
+                    }
+                    if totals.expenseCents != 0 {
+                        dayTotal(
+                            L10n.string("account.type.expense", defaultValue: "Expense"),
+                            cents: totals.expenseCents,
+                            color: .expense
+                        )
+                    }
                 }
             }
         }

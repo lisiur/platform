@@ -19,7 +19,8 @@ import SwiftUI
 /// the trend card beside it and with the stat card above. A pie can't
 /// draw a non-positive slice: zero/negative nets (offsetting
 /// corrections) stay out of both the donut and the legend, and the
-/// center total is the sum of what's actually shown.
+/// center total is the sum of what's actually shown. Tapping a slice
+/// drills like its legend row — same `drillTarget`, same gating.
 struct CategoryBreakdownCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
@@ -168,9 +169,29 @@ struct CategoryBreakdownCard: View {
                     .font(.callout.weight(.bold).monospacedDigit())
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                    // The budget is the ring hole, not the frame: tighter
-                    // padding keeps the figure inside the donut's eye.
-                    .padding(.horizontal, 26)
+                // The budget is the ring hole, not the frame: tighter
+                // padding keeps the figure inside the donut's eye.
+                .padding(.horizontal, 26)
+            }
+        }
+        // Slice taps drill like the legend rows: the ring is the square
+        // frame the pie centers in, so a local point maps straight to a
+        // slice — the radius gates the hole (the total's zone) and the
+        // rim exterior, the angle walks the same spans `drawCallouts`
+        // draws. VoiceOver gets the same drill as one activate action
+        // per slice (see the accessibilityChildren below).
+        .contentShape(.rect)
+        .onTapGesture(coordinateSpace: .local) { point in
+            guard let onSelectCategory,
+                  let index = Self.sliceIndex(at: point, rows: rows) else { return }
+            drillSlice(at: index)
+        }
+        .accessibilityChildren {
+            ForEach(rows.indices, id: \.self) { index in
+                Text(verbatim: rows[index].displayName)
+                    .accessibilityAction {
+                        drillSlice(at: index)
+                    }
             }
         }
     }
@@ -214,12 +235,22 @@ struct CategoryBreakdownCard: View {
         }
         .padding(.vertical, 5)
         Group {
-            if let onSelectCategory,
-               drill.accountId != nil || drill.parentAccountId != nil {
+            if let onSelectCategory, drill.scopesAccount {
                 figures.statTapTarget { onSelectCategory(drill) }
             } else {
                 figures
             }
+        }
+    }
+
+    /// Fires a slice's drill — the shared tail of the ring tap gesture
+    /// and the VoiceOver per-slice actions. Inert when the row can't
+    /// resolve an account filter, the same gate the legend rows apply.
+    private func drillSlice(at index: Int) {
+        guard let onSelectCategory else { return }
+        let drill = drillTarget(for: rows[index], level: level)
+        if drill.scopesAccount {
+            onSelectCategory(drill)
         }
     }
 
@@ -366,16 +397,69 @@ struct CategoryBreakdownCard: View {
         .map(\.row)
     }
 
+    // MARK: - Slice tap hit-testing
+
+    /// Walks the ring's slice spans clockwise from 12 o'clock, handing
+    /// each row's (index, start, end) angle in radians — the one place
+    /// that knows how `SectorMark` lays slices out; `sliceIndex` (tap →
+    /// slice) and `drawCallouts` (slice → label) both derive from it so
+    /// they can't disagree. No-op on an all-non-positive month (nothing
+    /// is drawn).
+    nonisolated static func eachSpan(
+        _ rows: [CategoryAmountRow],
+        _ body: (Int, Double, Double) -> Void
+    ) {
+        let total = rows.reduce(0) { $0 + $1.amountCents }
+        guard total > 0 else { return }
+        var start = 0.0
+        for (index, row) in rows.enumerated() {
+            let span = Double(row.amountCents) / Double(total) * 2 * .pi
+            body(index, start, span)
+            start += span
+        }
+    }
+
+    /// The slice under a tap in the ring's square frame, or nil when the
+    /// point falls in the hole (the total's zone), past the rim, or
+    /// nothing is drawn. Same geometry the ring and callouts draw: the
+    /// pie centers in the square frame with the fixed radii, and sectors
+    /// run clockwise from 12 o'clock in data order, walked by `eachSpan`.
+    /// Pure so the mapping stays unit-testable.
+    nonisolated static func sliceIndex(at point: CGPoint, rows: [CategoryAmountRow]) -> Int? {
+        let center = CGPoint(x: donutSide / 2, y: donutSide / 2)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        let radius = (dx * dx + dy * dy).squareRoot()
+        guard radius >= innerRadius, radius <= outerRadius else { return nil }
+        let total = rows.reduce(0) { $0 + $1.amountCents }
+        guard total > 0 else { return nil }
+        var angle = atan2(dx, -dy)
+        if angle < 0 { angle += 2 * .pi }
+        // The normalization lands [0, 2π], and the 2π endpoint IS 12
+        // o'clock — a hair-negative x there (the Double sin of 2π isn't
+        // 0) must resolve to the first slice, not the last.
+        if angle >= 2 * .pi { angle = 0 }
+        var hit: Int?
+        eachSpan(rows) { index, start, span in
+            guard hit == nil, angle < start + span else { return }
+            hit = index
+        }
+        // A hair-overshoot past the final span (float) is the seam —
+        // the last slice.
+        return hit ?? (rows.isEmpty ? nil : rows.count - 1)
+    }
+
     // MARK: - Leader-line callouts
 
     /// Callout geometry, in points: the ring draws with these same fixed
     /// radii (`SectorMark` centers the pie in its square frame), the
     /// leader lines run radially from just outside the rim to a bend,
     /// then out to the label. The region is the ring plus the margin the
-    /// stacked labels live in.
-    private static let donutSide: CGFloat = 132
-    private static let outerRadius: CGFloat = donutSide / 2
-    private static let innerRadius: CGFloat = outerRadius * 0.618
+    /// stacked labels live in. The three ring constants are nonisolated
+    /// so the nonisolated `sliceIndex` (and its tests) can read them.
+    nonisolated private static let donutSide: CGFloat = 132
+    nonisolated private static let outerRadius: CGFloat = donutSide / 2
+    nonisolated private static let innerRadius: CGFloat = outerRadius * 0.618
     private static let calloutRegionHeight: CGFloat = 196
     private static let edgeGap: CGFloat = 4
     private static let elbowRadius: CGFloat = outerRadius + 14
@@ -433,11 +517,9 @@ struct CategoryBreakdownCard: View {
             var hasLine: Bool
         }
         var callouts: [Callout] = []
-        var cumulative = 0.0
-        for (index, row) in rows.enumerated() {
-            let span = Double(row.amountCents) / Double(total) * 2 * .pi
-            let mid = cumulative + span / 2
-            cumulative += span
+        eachSpan(rows) { index, start, span in
+            let row = rows[index]
+            let mid = start + span / 2
             callouts.append(
                 Callout(
                     midAngle: mid,

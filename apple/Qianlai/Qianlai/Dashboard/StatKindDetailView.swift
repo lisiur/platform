@@ -7,17 +7,24 @@
 
 import SwiftUI
 
-/// One dashboard drill-down's filter shape: kind (expense or income)
-/// plus an optional category drill-down (a leaf account, or a top-level
-/// parent for a 一级分类 rollup bucket). nil filters describe the same
-/// "by kind, no category" view the stat card's first iteration opened.
-/// `categoryLabel`, when set, swaps the title to "时间 · 分类"
-/// instead of "时间 · 支出/收入".
+/// One dashboard drill-down's filter shape: an optional kind (expense or
+/// income) plus an optional category drill-down (a leaf account, or a
+/// top-level parent for a 一级分类 rollup bucket). A nil kind describes the
+/// calendar card's day drill — every entry of the day, transfers included.
+/// `categoryLabel`, when set, swaps the title to "时间 · 分类" instead of
+/// "时间 · 支出/收入".
 struct JournalDrillDown: Hashable {
-    var kind: QuickEntryKind
+    var kind: QuickEntryKind?
     var accountId: String?
     var parentAccountId: String?
     var categoryLabel: String?
+
+    /// Whether the filter resolves an account axis (leaf or parent) —
+    /// the composition card's drill gate: a row that can't scope an
+    /// account stays inert rather than opening a month-wide view.
+    var scopesAccount: Bool {
+        accountId != nil || parentAccountId != nil
+    }
 }
 
 /// The dashboard's drill-down PAGE — the journal of the selected month,
@@ -25,8 +32,11 @@ struct JournalDrillDown: Hashable {
 /// - the stat card's expense hero / income column (no category scope)
 /// - the composition card's leaf rows (a single `accountId`)
 /// - the composition card's top-level rollup rows (a single `parentAccountId`)
+/// - the calendar card's day cells and the trend card's readout bubble
+///   (`day` set): that LOCAL day alone, all kinds or the caller's kind,
+///   instead of the month window
 /// Reuses the journal page's shared entry list (EntryListView) with a
-/// private store pre-filtered to the month window and filter — the rows
+/// private store pre-filtered to the window and filter — the rows
 /// carry the journal page's day headers, pagination, and swipe
 /// edit/delete. Swipe actions bump the shared report epoch so the cards
 /// behind re-summarize live.
@@ -44,8 +54,13 @@ struct StatKindDetailView: View {
 
     let ledger: QianlaiLedger
     let filter: JournalDrillDown
-    /// The dashboard month the card summarizes — the page's fixed window.
+    /// The dashboard month the card summarizes — the page's fixed window
+    /// (also the fallback context when only `day` drills).
     let month: YearMonth
+    /// When set, the page windows to this single LOCAL day instead of the
+    /// month; `filter.kind` still scopes within the day when set (the
+    /// calendar drills all kinds, the trend card drills its metric).
+    var day: Date? = nil
 
     /// Private entry store, injected below so the rows act on this
     /// list without clashing with the Journal tab's root store. Configured
@@ -72,15 +87,21 @@ struct StatKindDetailView: View {
         .refreshable {
             await store.reload()
         }
-        // The title and the search field must live INSIDE the enclosing
-        // NavigationStack's pushed content — attached outside it, the
-        // navigation bar never collects them.
+        // The title must live INSIDE the enclosing NavigationStack's pushed
+        // content — attached outside it, the navigation bar never collects
+        // it. No searchable here: the field's system glass background only
+        // engages after the push transition, flashing a bare field for the
+        // first frames, and a one-page keyword filter wasn't worth it.
         .navigationTitle(Text(title))
         .inlineNavigationBarTitle()
-        // Keyword filter, pinned always-visible in the nav bar's drawer.
-        .journalSearchable(store, alwaysVisible: true)
         .task {
-            store.setWindow(AppDates.monthWindow(containing: month.start))
+            if let day {
+                // One LOCAL day, midnight through end-of-day.
+                let start = Calendar.current.startOfDay(for: day)
+                store.setWindow(MonthWindow(from: start, to: AppDates.localEndOfDay(start)))
+            } else {
+                store.setWindow(AppDates.monthWindow(containing: month.start))
+            }
             store.kind = filter.kind
             store.accountId = filter.accountId
             store.parentAccountId = filter.parentAccountId
@@ -90,13 +111,26 @@ struct StatKindDetailView: View {
 
     /// "Sep 2026 · Expense" / "Sep 2026 · 餐饮" — the dashboard's selected
     /// month plus either the kind (no category drill) or the tapped
-    /// category label. The category label is carried by the filter, so the
-    /// page never looks it up by id.
+    /// category label; the category label is carried by the filter, so the
+    /// page never looks it up by id. Day drills replace the head with the
+    /// full date ("2026年9月21日" / "Sep 21, 2026"), the same medium date
+    /// the journal's day headers render, plus the kind when the drill
+    /// scopes one (the calendar's all-kinds drill shows the date alone).
     private var title: String {
+        if let day {
+            let head = AppDates.formatEntryDay(day, locale: locale)
+            if let kind = filter.kind {
+                return "\(head) · \(kind.label)"
+            }
+            return head
+        }
         let head = AppDates.formatMonthTitle(month, locale: locale)
         if let category = filter.categoryLabel {
             return "\(head) · \(category)"
         }
-        return "\(head) · \(filter.kind.label)"
+        if let kind = filter.kind {
+            return "\(head) · \(kind.label)"
+        }
+        return head
     }
 }

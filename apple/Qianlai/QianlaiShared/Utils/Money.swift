@@ -138,6 +138,16 @@ nonisolated enum AppDates {
         return formatter.string(from: date)
     }
 
+    /// Weekday beside a day-group header's date ("周六", "Sat") — same
+    /// locale threading as `formatEntryDay`.
+    static func formatEntryWeekday(_ date: Date, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("E")
+        return formatter.string(from: date)
+    }
+
     /// Dashboard month title, localized per the given locale ("Aug 2026",
     /// "2026年8月") — dashboard months are the viewer's local months.
     static func formatMonthTitle(_ month: YearMonth, locale: Locale) -> String {

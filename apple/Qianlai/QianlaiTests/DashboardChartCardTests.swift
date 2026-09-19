@@ -187,3 +187,111 @@ final class CompositionCardLevelTests: XCTestCase {
         XCTAssertEqual(merged.suffix(2).map(\.accountId), ["first-leaf", "second-leaf"])
     }
 }
+
+/// The donut's slice hit-testing: a tap point in the ring's square frame
+/// maps to the slice whose clockwise-from-12-o'clock span contains it —
+/// the same cumulative walk the callout canvas draws — while points in
+/// the hole (the total's zone) or past the rim find nothing.
+final class CompositionCardSliceHitTests: XCTestCase {
+    private func rows(_ amounts: [Int]) -> [CategoryAmountRow] {
+        amounts.enumerated().map { index, cents in
+            CategoryAmountRow(
+                accountId: "acct-\(index)",
+                name: nil,
+                code: nil,
+                parentName: nil,
+                parentCode: nil,
+                parentAccountId: nil,
+                parentIcon: nil,
+                icon: nil,
+                amountCents: cents
+            )
+        }
+    }
+
+    /// A point at `fraction` of the full clockwise turn from 12 o'clock,
+    /// `radius` points from the pie's center — the square frame's center,
+    /// donutSide 132 / 2 = 66, mirroring the card's fixed geometry.
+    private func point(turn fraction: Double, radius: CGFloat = 60) -> CGPoint {
+        let center = CGPoint(x: 66, y: 66)
+        let angle = fraction * 2 * .pi
+        return CGPoint(
+            x: center.x + CGFloat(sin(angle)) * radius,
+            y: center.y - CGFloat(cos(angle)) * radius
+        )
+    }
+
+    func testMapsTapToSliceByClockwiseAngle() {
+        // 210:100:10 of 320 → spans of 0.65625 / 0.3125 / 0.03125 of the
+        // turn; taps land inside the span they belong to.
+        let amounts = rows([210, 100, 10])
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.1), rows: amounts), 0)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.6), rows: amounts), 0)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.8), rows: amounts), 1)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.9), rows: amounts), 1)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.975), rows: amounts), 2)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.99), rows: amounts), 2)
+        // The full turn round-trips to 12 o'clock — the first slice.
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 1.0), rows: amounts), 0)
+    }
+
+    func testHoleAndRimExteriorFindNoSlice() {
+        // The hole holds the total label; the frame corners hold nothing.
+        // Radii straddle the ring: inner ≈ 40.8, outer = 66.
+        let amounts = rows([300])
+        XCTAssertNil(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.25, radius: 20), rows: amounts))
+        XCTAssertNil(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.25, radius: 75), rows: amounts))
+    }
+
+    func testSingleSliceCoversTheWholeTurn() {
+        // One slice spans everything; the last-index fallback absorbs the
+        // float overshoot at the 2π seam.
+        let amounts = rows([999])
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.5), rows: amounts), 0)
+        XCTAssertEqual(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.999), rows: amounts), 0)
+    }
+
+    func testZeroOrNegativeTotalsFindNoSlice() {
+        // A pie can't draw a non-positive slice — with nothing drawn
+        // there is nothing to hit.
+        XCTAssertNil(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.1), rows: rows([0])))
+        XCTAssertNil(CategoryBreakdownCard.sliceIndex(at: point(turn: 0.1), rows: rows([-5])))
+    }
+}
+
+/// The trend card's sticky-readout default: the bubble opens on today
+/// when the displayed month is the current one — regardless of whether
+/// today has data (¥0 is the truthful read; the full-month series makes
+/// every day a target) — else on the month's last day. Pure rule,
+/// pinned here.
+final class TrendCardDefaultSelectionTests: XCTestCase {
+    func testCurrentMonthPicksToday() {
+        XCTAssertEqual(
+            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 19, daysInMonth: 30),
+            19
+        )
+    }
+
+    func testTodayAppliesEvenWithoutData() {
+        // Day 1 with no entries yet still reads — as ¥0.
+        XCTAssertEqual(
+            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 1, daysInMonth: 30),
+            1
+        )
+    }
+
+    func testOtherMonthsDefaultToTheLastDay() {
+        XCTAssertEqual(
+            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: nil, daysInMonth: 30),
+            30
+        )
+        XCTAssertEqual(
+            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: nil, daysInMonth: 28),
+            28
+        )
+    }
+
+    func testEmptyMonthFindsNothing() {
+        XCTAssertNil(MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 19, daysInMonth: 0))
+    }
+}

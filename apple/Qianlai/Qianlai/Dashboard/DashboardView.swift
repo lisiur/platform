@@ -43,15 +43,20 @@ struct DashboardView: View {
     /// The dashboard's drill-down item. The ledger is captured at tap time
     /// (every tap path requires an active ledger), so the drill-down can
     /// never mount target-less, and a scope change mid-push keeps
-    /// operating on the captured snapshot. `id` covers every filter axis
-    /// the tap can carry so a quick re-tap of the same legend row re-pushes
+    /// operating on the captured snapshot. `day`, when set, drills the
+    /// calendar card's single day (all kinds); otherwise the filter's
+    /// kind/category axes drive the month view. `id` covers every filter
+    /// axis the tap can carry so a quick re-tap of the same figure re-pushes
     /// cleanly (the item's identity flips).
     private struct StatDetailTarget: Identifiable, Hashable {
         let ledger: QianlaiLedger
         let filter: JournalDrillDown
+        let day: Date?
 
         var id: String {
-            "\(ledger.id)|\(filter.kind.rawValue)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
+            let dayKey = day.map { String($0.timeIntervalSince1970) } ?? "-"
+            let kindKey = filter.kind?.rawValue ?? "all"
+            return "\(ledger.id)|\(dayKey)|\(kindKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
         }
     }
 
@@ -314,7 +319,7 @@ struct DashboardView: View {
         // full story on StatKindDetailView); a push adds no presentation
         // host, so this chain matches the journal tab's.
         .navigationDestination(item: $statDetailTarget) { target in
-            StatKindDetailView(ledger: target.ledger, filter: target.filter, month: selectedMonth)
+            StatKindDetailView(ledger: target.ledger, filter: target.filter, month: selectedMonth, day: target.day)
         }
     }
 
@@ -361,21 +366,32 @@ struct DashboardView: View {
         return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
-    /// Opens the dashboard's drill-down sheet, capturing the active ledger
-    /// snapshot — without an active ledger there is nothing to drill into,
-    /// and the sheet must never present target-less. `categoryLabel`, when
-    /// set, swaps the sheet title to "时间 · 分类" instead of the kind.
-    private func openStatDetail(kind: QuickEntryKind, accountId: String? = nil, parentAccountId: String? = nil, categoryLabel: String? = nil) {
+    /// Opens a month drill for one kind (the stat card's expense hero /
+    /// income column).
+    private func openStatDetail(kind: QuickEntryKind) {
+        openStatDetail(JournalDrillDown(kind: kind))
+    }
+
+    /// Opens a drill-down, capturing the active ledger snapshot — without
+    /// an active ledger there is nothing to drill into, and the page must
+    /// never present target-less. `categoryLabel`, when set, swaps the
+    /// page title to "时间 · 分类" instead of the kind. `day`, when set,
+    /// windows to that single LOCAL day (the calendar card's cell and the
+    /// trend card's bubble) instead of the month.
+    private func openStatDetail(_ drill: JournalDrillDown, day: Date? = nil) {
         guard let ledger = ledgerStore.activeLedger else { return }
         statDetailTarget = StatDetailTarget(
             ledger: ledger,
-            filter: JournalDrillDown(
-                kind: kind,
-                accountId: accountId,
-                parentAccountId: parentAccountId,
-                categoryLabel: categoryLabel
-            )
+            filter: drill,
+            day: day
         )
+    }
+
+    /// Opens a day drill: that LOCAL day's entries — all kinds by
+    /// default (the calendar card), or one kind when the caller scopes
+    /// it (the trend card's metric bubble; 结余 passes nil = all kinds).
+    private func openDayDetail(_ day: Date, kind: QuickEntryKind? = nil) {
+        openStatDetail(JournalDrillDown(kind: kind), day: day)
     }
 
     /// The month summary stands alone on the page — one chrome-free list
@@ -445,6 +461,19 @@ struct DashboardView: View {
                 expenseAction: { openStatDetail(kind: .expense) },
                 incomeAction: { openStatDetail(kind: .income) }
             )
+            // The month calendar rides the trend card's fetch: the same
+            // daily-summary members numerator, keyed per LOCAL day. The
+            // grid follows the header's selected month like every other
+            // card here, so stepping months re-aims it together with them;
+            // a day-cell tap drills into that day's journal.
+            if let daily = store.dailySummary {
+                MonthCalendarCard(
+                    days: daily,
+                    month: selectedMonth,
+                    locale: locale,
+                    onSelectDay: { openDayDetail($0) }
+                )
+            }
             // The chart cards ride the same month the stat card summarizes
             // (both fetch alongside the dashboard), so stepping months
             // re-aims all three together. Guests never fetch the reports
@@ -454,7 +483,10 @@ struct DashboardView: View {
                 MonthTrendChartCard(
                     days: daily,
                     currency: ledgerStore.activeLedger?.currency,
-                    locale: locale
+                    locale: locale,
+                    // The readout bubble drills into its day's journal —
+                    // the metric scopes the kind (结余 = all kinds).
+                    onSelectDay: { day, kind in openDayDetail(day, kind: kind) }
                 )
             }
             if let summary = store.categorySummary {
@@ -462,14 +494,7 @@ struct DashboardView: View {
                     summary: summary,
                     currency: ledgerStore.activeLedger?.currency,
                     locale: locale,
-                    onSelectCategory: { drill in
-                        openStatDetail(
-                            kind: drill.kind,
-                            accountId: drill.accountId,
-                            parentAccountId: drill.parentAccountId,
-                            categoryLabel: drill.categoryLabel
-                        )
-                    }
+                    onSelectCategory: { openStatDetail($0) }
                 )
             }
         }

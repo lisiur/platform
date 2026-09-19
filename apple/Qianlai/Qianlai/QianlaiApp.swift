@@ -53,6 +53,8 @@ struct QianlaiApp: App {
                     CompositionCardDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-card") {
                     TrendCardDemo()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-calendar-card") {
+                    CalendarCardDemo()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -283,6 +285,35 @@ private struct TrendCardDemo: View {
             day: String(format: "2026-09-%02d", day),
             incomeCents: incomeCents,
             expenseCents: expenseCents
+        )
+    }
+}
+
+/// Screenshot harness for the dashboard's month calendar card
+/// (`--ui-demo-calendar-card`): the CURRENT month's grid — so the 农历
+/// labels and today's accent dot render against real dates — with an
+/// expense most days, an income-only day (the −0 expense placeholder),
+/// a six-figure income day (the 万 compact), and one absent day (lunar
+/// label plus blank income slot). No login or backend.
+private struct CalendarCardDemo: View {
+    var body: some View {
+        ChartCardDemoCanvas {
+            MonthCalendarCard(
+                days: Self.days,
+                month: AppDates.currentYearMonth,
+                locale: Locale(identifier: "zh-Hans")
+            )
+        }
+    }
+
+    static let days: [DayIncomeExpense] = (1...28).filter { $0 != 21 }.map { day in
+        DayIncomeExpense(
+            day: String(
+                format: "%04d-%02d-%02d",
+                AppDates.currentYearMonth.year, AppDates.currentYearMonth.month, day
+            ),
+            incomeCents: day == 5 ? 1_280_000 : (day == 15 ? 9_900 : 0),
+            expenseCents: day == 15 ? 0 : 8_000 + (day * 37 % 190) * 1_000
         )
     }
 }
