@@ -3322,13 +3322,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No data this month"
+            "value" : "No data"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "本月暂无数据"
+            "value" : "暂无数据"
           }
         }
       }
@@ -4912,6 +4912,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认"
+          }
+        }
+      }
+    },
+    "journal.stats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图表"
           }
         }
       }

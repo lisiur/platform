@@ -132,10 +132,11 @@ struct ContentView: View {
                 ForEach(visibleTabs, id: \.self) { tab in
                     Tab(tab.label, systemImage: tab.icon, value: tab) {
                         NavigationStack {
-                            tabPage(tab)
+                            page(tab)
                                 .modifier(AppTabTitleChrome(tab: tab))
                                 .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
                         }
+                        .modifier(ToastHostModifier())
                     }
                 }
                 // The quick-entry pill's role is version-split: iOS 26
@@ -354,21 +355,27 @@ struct ContentView: View {
         }
     }
 
-    /// Page content plus the shared toast host. Mounted per-tab (inside the
-    /// stack's safe area) so the capsule floats just above the tab bar,
-    /// matching Yulai's lightweight toast placement.
-    @ViewBuilder
-    private func tabPage(_ tab: AppTab) -> some View {
-        page(tab)
-            .overlay(alignment: .bottom) {
-                ToastOverlay()
-            }
-    }
-
     private var currentTab: some View {
         NavigationStack {
-            tabPage(tab)
+            page(tab)
                 .navigationTitle(Text(tab.label))
+        }
+        .modifier(ToastHostModifier())
+    }
+}
+
+
+/// The toast host wraps a tab's whole NavigationStack, not its root page:
+/// a push takes the root (and any overlay on it) out of the appeared
+/// subtrees, which used to hold toasts raised on pushed pages (e.g.
+/// category create) until the next page switch. The stack container
+/// itself never disappears on push, so the capsule shows immediately.
+/// Shared by both platforms' tab hosts (the iOS TabView loop and the
+/// macOS custom bar's current-tab view).
+private struct ToastHostModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .bottom) {
+            ToastOverlay()
         }
     }
 }

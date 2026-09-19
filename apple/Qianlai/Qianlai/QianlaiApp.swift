@@ -254,7 +254,7 @@ private struct CompositionCardDemo: View {
     }
 }
 
-/// Screenshot harness for the dashboard's month trend card
+/// Screenshot harness for the stats component's trend card
 /// (`--ui-demo-trend-card`; add `--ui-demo-trend-income` /
 /// `--ui-demo-trend-net` to pin the 收入 / 结余 tab instead of the
 /// default 支出): a month of daily totals with an income spike and mostly
@@ -264,8 +264,9 @@ private struct CompositionCardDemo: View {
 private struct TrendCardDemo: View {
     var body: some View {
         ChartCardDemoCanvas {
-            MonthTrendChartCard(
+            TrendChartCard(
                 days: Self.days,
+                window: Self.window,
                 currency: "CNY",
                 locale: Locale(identifier: "zh-Hans"),
                 initialMetric: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-income")
@@ -275,6 +276,11 @@ private struct TrendCardDemo: View {
         }
     }
 
+    /// The current month as the demo's window — day keys derive from it,
+    /// so the chart stays populated in any month.
+    static let month = AppDates.currentYearMonth
+    static var window: MonthWindow { AppDates.monthWindow(containing: month.start) }
+
     static let days: [DayIncomeExpense] = (1...30).map { day in
         // Income spikes ~9x the daily expense band: on the shared
         // both-sides scale they crush the expense bars into slivers, so
@@ -282,7 +288,7 @@ private struct TrendCardDemo: View {
         let incomeCents = [3, 13, 23].contains(day) ? 180_000 : ([7, 17, 27].contains(day) ? 12_000 : 0)
         let expenseCents = 8_000 + (day * 37 % 190) * 1_000
         return DayIncomeExpense(
-            day: String(format: "2026-09-%02d", day),
+            day: String(format: "%04d-%02d-%02d", month.year, month.month, day),
             incomeCents: incomeCents,
             expenseCents: expenseCents
         )

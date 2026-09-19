@@ -8,46 +8,29 @@
 import XCTest
 @testable import Qianlai
 
-/// The trend card's day-bucket parsing: the daily-summary's "yyyy-MM-dd" is
-/// a LOCAL day key the server bucketed under the request's tz offset, so
-/// the parse must land on that calendar day's midnight in the CURRENT
-/// calendar — never a UTC-instant round-trip, which would shift buckets east
-/// of UTC. Everything else on the chart cards is Swift Charts rendering.
+/// The trend card's day keying: a window day looks its amounts up by the
+/// daily-summary's exact "yyyy-MM-dd" string, built from LOCAL calendar
+/// components — never a UTC-instant round-trip, which would shift buckets
+/// east of UTC. Keying by string (not a parsed date or a day-of-month
+/// number) is also what keeps a keep-previous payload from another window
+/// from mis-mapping onto same-numbered days. Everything else on the chart
+/// cards is Swift Charts rendering.
 final class DashboardChartCardTests: XCTestCase {
-    private func components(of date: Date) -> DateComponents {
-        Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-    }
-
-    func testParsesBucketToLocalMidnight() throws {
-        let date = try XCTUnwrap(MonthTrendChartCard.dayDate("2026-09-17"))
-        let parts = components(of: date)
-        XCTAssertEqual(parts.year, 2026)
-        XCTAssertEqual(parts.month, 9)
-        XCTAssertEqual(parts.day, 17)
-        XCTAssertEqual(parts.hour, 0)
-        XCTAssertEqual(parts.minute, 0)
-        XCTAssertEqual(parts.second, 0)
-    }
-
-    func testParseRoundTripsAcrossEveryMonthBoundary() {
+    func testKeysRoundTripEveryBoundary() throws {
+        let calendar = Calendar.current
         for month in 1...12 {
-            let key = String(format: "2026-%02d-01", month)
-            let date = MonthTrendChartCard.dayDate(key)
-            XCTAssertNotNil(date, key)
-            let parts = components(of: date!)
-            XCTAssertEqual(parts.year, 2026, key)
-            XCTAssertEqual(parts.month, month, key)
-            XCTAssertEqual(parts.day, 1, key)
+            let date = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: month, day: 1)))
+            XCTAssertEqual(TrendChartCard.dayKey(date), String(format: "2026-%02d-01", month))
         }
+        let yearEnd = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 12, day: 31)))
+        XCTAssertEqual(TrendChartCard.dayKey(yearEnd), "2026-12-31")
     }
 
-    func testRejectsMalformedKeys() {
-        XCTAssertNil(MonthTrendChartCard.dayDate(""))
-        XCTAssertNil(MonthTrendChartCard.dayDate("2026-09"))
-        XCTAssertNil(MonthTrendChartCard.dayDate("not-a-day"))
-        // The header keys' format has no time component — a stray ISO
-        // instant must not sneak through.
-        XCTAssertNil(MonthTrendChartCard.dayDate("2026-09-17T10:00:00Z"))
+    func testKeyMatchesTheServerBucketShape() throws {
+        // The key format is fixed-width — single-digit months/days pad
+        // with zeros so the dictionary lookup hits the payload's keys.
+        let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 7)))
+        XCTAssertEqual(TrendChartCard.dayKey(date), "2026-03-07")
     }
 }
 
@@ -260,14 +243,14 @@ final class CompositionCardSliceHitTests: XCTestCase {
 }
 
 /// The trend card's sticky-readout default: the bubble opens on today
-/// when the displayed month is the current one — regardless of whether
-/// today has data (¥0 is the truthful read; the full-month series makes
-/// every day a target) — else on the month's last day. Pure rule,
+/// when the displayed window contains it — regardless of whether
+/// today has data (¥0 is the truthful read; the full-window series makes
+/// every day a target) — else on the window's last day. Pure rule,
 /// pinned here.
 final class TrendCardDefaultSelectionTests: XCTestCase {
-    func testCurrentMonthPicksToday() {
+    func testCurrentWindowPicksToday() {
         XCTAssertEqual(
-            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 19, daysInMonth: 30),
+            TrendChartCard.defaultSelectionDayIndex(todayIndex: 19, dayCount: 30),
             19
         )
     }
@@ -275,23 +258,23 @@ final class TrendCardDefaultSelectionTests: XCTestCase {
     func testTodayAppliesEvenWithoutData() {
         // Day 1 with no entries yet still reads — as ¥0.
         XCTAssertEqual(
-            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 1, daysInMonth: 30),
+            TrendChartCard.defaultSelectionDayIndex(todayIndex: 1, dayCount: 30),
             1
         )
     }
 
-    func testOtherMonthsDefaultToTheLastDay() {
+    func testOtherWindowsDefaultToTheLastDay() {
         XCTAssertEqual(
-            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: nil, daysInMonth: 30),
+            TrendChartCard.defaultSelectionDayIndex(todayIndex: nil, dayCount: 30),
             30
         )
         XCTAssertEqual(
-            MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: nil, daysInMonth: 28),
+            TrendChartCard.defaultSelectionDayIndex(todayIndex: nil, dayCount: 28),
             28
         )
     }
 
-    func testEmptyMonthFindsNothing() {
-        XCTAssertNil(MonthTrendChartCard.defaultSelectionDayNumber(todayDayNumber: 19, daysInMonth: 0))
+    func testEmptyWindowFindsNothing() {
+        XCTAssertNil(TrendChartCard.defaultSelectionDayIndex(todayIndex: 19, dayCount: 0))
     }
 }

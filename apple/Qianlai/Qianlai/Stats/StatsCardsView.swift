@@ -1,0 +1,153 @@
+//
+//  StatsCardsView.swift
+//  Qianlai
+//
+//  Created by Lisiur Day on 2026/9/19.
+//
+
+import SwiftUI
+
+/// The reusable stats component: a window's overview stat block, month
+/// calendar, trend chart, and composition chart, stacked in the
+/// dashboard's card rhythm for ANY local date range. The dashboard mounts
+/// it for the selected month; the future journal stats page mounts the
+/// same component for a week or custom range.
+///
+/// Data: the component drives an injected `StatsStore` — one instance per
+/// mounted surface, so a stats page pushed above the dashboard tab can
+/// never overwrite the tab's payloads (the drill-down's private
+/// `JournalStore` rule). It fetches on mount, window change, and every
+/// appearance, and re-fetches when the shared report epoch bumps (a
+/// swipe edit in a drill page below re-summarizes the cards live — the
+/// journal page's own stat card follows the same epoch). Guests 403 every
+/// report endpoint, so hosts pass `isReportingEnabled: false` and the
+/// cards render their placeholder/empty states — the gate stays
+/// expressed through data.
+///
+/// Drills: the callbacks are the component's whole exit — the host owns
+/// the navigation (the dashboard pushes `StatKindDetailView`). nil keeps
+/// a surface inert (the screenshot harness).
+struct StatsCardsView: View {
+    /// The shared report epoch — read only for the live-refresh bump.
+    /// Optional so the component can mount outside the app's store
+    /// environment (the harness); nil just skips the epoch refresh.
+    @Environment(ReportStore.self) private var reportStore: ReportStore?
+    @Environment(\.locale) private var locale
+
+    /// The windowed payloads. Caller-owned so a host can reach in (the
+    /// dashboard's pull-to-refresh reloads the same store the cards read).
+    let store: StatsStore
+    let ledgerId: String
+    var currency: String?
+    /// false skips every fetch — guests' report endpoints 403.
+    var isReportingEnabled = true
+    /// The LOCAL window the cards summarize. A window that is exactly one
+    /// natural month additionally mounts the calendar card; wider ranges
+    /// hide it (a calendar grid is month-shaped).
+    let window: MonthWindow
+    /// The stat block's kind drills (expense hero / income column).
+    var expenseAction: (() -> Void)? = nil
+    var incomeAction: (() -> Void)? = nil
+    /// A day drill — the calendar's cell (all kinds) and the trend
+    /// card's readout bubble (the metric's kind, 结余 = nil). The calendar
+    /// passes the same callback with a nil kind.
+    var onSelectDay: ((Date, QuickEntryKind?) -> Void)? = nil
+    /// A composition row/slice drill (kind + account axes + label).
+    var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
+
+    /// The task key: ledger plus window bounds. Reacting to the window —
+    /// not just the ledger — is what re-aims the cards when the host
+    /// steps its month/range.
+    private var loadKey: String {
+        "\(ledgerId)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)"
+    }
+
+    /// The calendar card's month when the window is exactly one natural
+    /// LOCAL month — nil for any wider, narrower, or shifted window.
+    private var calendarMonth: YearMonth? {
+        window.singleMonth
+    }
+
+    /// The previous load key this identity saw — nil until the first
+    /// load, so mounts and same-key re-appearances are distinguishable
+    /// from real window changes (which debounce).
+    @State private var lastLoadKey: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            StatSummaryBlock(
+                totals: store.overview?.month,
+                currency: currency,
+                expenseAction: expenseAction,
+                incomeAction: incomeAction
+            )
+            if let calendarMonth, let daily = store.daily {
+                MonthCalendarCard(
+                    days: daily,
+                    month: calendarMonth,
+                    locale: locale,
+                    onSelectDay: { onSelectDay?($0, nil) }
+                )
+            }
+            if let daily = store.daily {
+                TrendChartCard(
+                    days: daily,
+                    window: window,
+                    currency: currency,
+                    locale: locale,
+                    onSelectDay: { onSelectDay?($0, $1) }
+                )
+            }
+            if let categories = store.categories {
+                CategoryBreakdownCard(
+                    summary: categories,
+                    currency: currency,
+                    locale: locale,
+                    onSelectCategory: { onSelectCategory?($0) }
+                )
+            }
+        }
+        .task(id: loadKey) {
+            // Window changes debounce (`ReloadDebounce.interval` — the old
+            // dashboard reload's coalescing) so rapid month steps fire one
+            // fetch for the landing window instead of one per intermediate;
+            // the task restart on the next step cancels the pending sleep.
+            // Mounts and same-key re-appearances fetch immediately.
+            let stepped = lastLoadKey != nil && lastLoadKey != loadKey
+            lastLoadKey = loadKey
+            guard isReportingEnabled else { return }
+            if stepped {
+                try? await Task.sleep(for: ReloadDebounce.interval)
+                guard !Task.isCancelled else { return }
+            }
+            await store.load(ledgerId: ledgerId, window: window)
+        }
+        // A post/update/delete anywhere bumps the shared epoch — refetch
+        // so the cards re-summarize live under the user's finger.
+        .onChange(of: reportStore?.journalEpoch ?? 0) {
+            guard isReportingEnabled else { return }
+            Task { await store.load(ledgerId: ledgerId, window: window) }
+        }
+        // Liveness for the posting path's snapshot dedupe: while mounted
+        // and fetching, this surface owns the snapshot republish for its
+        // window (the epoch onChange above fires on every post), so the
+        // post path skips its own dashboard fetch. A lazy list row
+        // scrolled off-screen unregisters, which only ever costs the
+        // dedupe — never a missing publish.
+        .onAppear {
+            guard isReportingEnabled else { return }
+            StatsSurfaceWatch.register(ledgerId: ledgerId, window: window)
+        }
+        .onDisappear {
+            guard isReportingEnabled else { return }
+            StatsSurfaceWatch.unregister(ledgerId: ledgerId, window: window)
+        }
+        // onAppear doesn't re-fire when the host steps the month in place —
+        // re-seat the registration from the old window to the new one.
+        .onChange(of: window) { old, new in
+            guard isReportingEnabled else { return }
+            StatsSurfaceWatch.unregister(ledgerId: ledgerId, window: old)
+            StatsSurfaceWatch.register(ledgerId: ledgerId, window: new)
+        }
+    }
+}

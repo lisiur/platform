@@ -1,5 +1,5 @@
 //
-//  MonthTrendChartCard.swift
+//  TrendChartCard.swift
 //  Qianlai
 //
 //  Created by Lisiur Day on 2026/9/17.
@@ -8,16 +8,19 @@
 import Charts
 import SwiftUI
 
-/// The dashboard's month trend card: the selected month's per-day bars
+/// The stats component's trend card: the window's per-day bars
 /// (switchable to a line) under a metric tab — 收入 / 支出 / 结余, the net
 /// being per-day income − expense. One series owns the whole chart at a
 /// time (the tab is the legend), so the y-scale always fits that metric's
-/// own range. The data is the daily-summary report at the `members` share
-/// mode — each entry split across its participants, only ledger members'
-/// slices counted — the same figures the stat card summarizes and the
-/// journal's day headers render; the net tab's sum reconciles with the
-/// stat card's 净额. Net marks follow the stat card's sign convention:
-/// negative green (绿跌), non-negative red (红涨).
+/// own range. The window is any LOCAL date range — the dashboard passes a
+/// month, the journal's stats page may pass a week or a custom range (a
+/// year's worth of days draws one bar per day; a coarser bucketing is a
+/// future concern). The data is the daily-summary report at the `members`
+/// share mode — each entry split across its participants, only ledger
+/// members' slices counted — the same figures the stat card summarizes
+/// and the journal's day headers render; the net tab's sum reconciles
+/// with the stat card's 净额. Net marks follow the stat card's sign
+/// convention: negative green (绿跌), non-negative red (红涨).
 ///
 /// Pressing the chart scrubs: `chartXSelection`'s transient selection —
 /// live while the finger is down — drops a hairline on the pressed day,
@@ -25,15 +28,21 @@ import SwiftUI
 /// the band the chart runs above its plot. On release the tooltip and
 /// hairline STAY on the last pressed day (a sticky `activeDay`) so the
 /// readout band never snaps empty; before the first press the bubble
-/// defaults to today in the displayed month, or the displayed month's
-/// last day in a past month. The selection rides the chart's own data
+/// defaults to today when the displayed window contains it, else the
+/// window's last day. The selection rides the chart's own data
 /// coordinates (same band-center anchor as the bars, so it can't
 /// drift); the bubble and the hand-drawn axis are chartOverlay +
 /// ChartProxy positioning.
-struct MonthTrendChartCard: View {
+struct TrendChartCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
     let days: [DayIncomeExpense]
+    /// The LOCAL window the card charts — every day from `from` through
+    /// `to` becomes a bar slot, whatever the data covers. Passed, never
+    /// inferred from the data: a keep-previous payload from the previous
+    /// window then simply finds no day keys and reads as zeros until the
+    /// reload lands (keying by the data's own span would mis-map it).
+    let window: MonthWindow
     var currency: String?
     /// Threaded locale — the axis labels must follow the in-app language
     /// override, not the device language.
@@ -67,12 +76,14 @@ struct MonthTrendChartCard: View {
 
     init(
         days: [DayIncomeExpense],
+        window: MonthWindow,
         currency: String?,
         locale: Locale,
         initialMetric: TrendMetric = .expense,
         onSelectDay: ((Date, QuickEntryKind?) -> Void)? = nil
     ) {
         self.days = days
+        self.window = window
         self.currency = currency
         self.locale = locale
         self.onSelectDay = onSelectDay
@@ -144,45 +155,48 @@ struct MonthTrendChartCard: View {
         var id: TimeInterval { date.timeIntervalSince1970 }
     }
 
-    /// Every day of the displayed month, ascending — data days carry
-    /// their figure, the rest read as ¥0 (no transactions). The full
-    /// month is the scrubbing domain: any day has a readout, so the
-    /// finger and the sticky bubble never fall off the data. Zero bars
-    /// draw at zero height; the line style dips through them, which is
-    /// the truthful read of a no-activity day.
+    /// Every day of the window, ascending — data days carry their
+    /// figure, the rest read as ¥0 (no transactions). The full window is
+    /// the scrubbing domain: any day has a readout, so the finger and
+    /// the sticky bubble never fall off the data. Zero bars draw at zero
+    /// height; the line style dips through them, which is the truthful
+    /// read of a no-activity day. Amounts key on the daily-summary's own
+    /// "yyyy-MM-dd" string — never a day-of-month number, which would
+    /// mis-map a keep-previous payload from another window onto
+    /// same-numbered days.
     private var points: [TrendPoint] {
-        guard let start = dataMonthStart, daysInMonth > 0 else { return [] }
+        guard dayCount > 0 else { return [] }
         let calendar = Calendar.current
         let amountsByDay = Dictionary(
-            days.compactMap { row -> (Int, Int)? in
-                guard let date = Self.dayDate(row.day) else { return nil }
+            days.map { (row: DayIncomeExpense) -> (String, Int) in
                 let cents: Int = switch metric {
                 case .income: row.incomeCents
                 case .expense: row.expenseCents
                 case .net: row.incomeCents - row.expenseCents
                 }
-                return (calendar.component(.day, from: date), cents)
+                return (row.day, cents)
             },
             uniquingKeysWith: { first, _ in first }
         )
-        return (1...daysInMonth).compactMap { dayNumber in
-            guard let date = calendar.date(byAdding: .day, value: dayNumber - 1, to: start) else { return nil }
-            return TrendPoint(date: date, amount: Double(amountsByDay[dayNumber] ?? 0) / 100)
+        return (0..<dayCount).compactMap { index in
+            guard let date = calendar.date(byAdding: .day, value: index, to: windowStart) else { return nil }
+            return TrendPoint(date: date, amount: Double(amountsByDay[Self.dayKey(date)] ?? 0) / 100)
         }
     }
 
-    /// The data's month, normalized to its first midnight. (The full-
-    /// month `points` start on this same day, so this is also the chart
-    /// domain's leading edge.)
-    private var dataMonthStart: Date? {
-        guard let first = days.compactMap({ Self.dayDate($0.day) }).min() else { return nil }
-        return Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: first))
+    /// The window's geometry, all LOCAL calendar: the first day's
+    /// midnight, the last day's midnight (`to` is an end-of-day bound),
+    /// and the inclusive day count — 0 when the window is degenerate.
+    private var windowStart: Date {
+        Calendar.current.startOfDay(for: window.from)
     }
 
-    /// Days in the displayed month — 0 when nothing is loaded.
-    private var daysInMonth: Int {
-        guard let start = dataMonthStart else { return 0 }
-        return Calendar.current.range(of: .day, in: .month, for: start)?.count ?? 0
+    private var windowLastDay: Date {
+        Calendar.current.startOfDay(for: window.to)
+    }
+
+    private var dayCount: Int {
+        (Calendar.current.dateComponents([.day], from: windowStart, to: windowLastDay).day ?? -1) + 1
     }
 
     var body: some View {
@@ -202,7 +216,7 @@ struct MonthTrendChartCard: View {
         )
         .glassRim(cornerRadius: 20)
         // The sticky readout: capture each pressed day — every day of
-        // the month carries a figure now, so any of them sticks. The
+        // the window carries a figure now, so any of them sticks. The
         // release itself arrives as a nil (the gesture clears its
         // binding) and must NOT overwrite the sticky day.
         .onChange(of: selectedDay) { _, day in
@@ -210,7 +224,9 @@ struct MonthTrendChartCard: View {
                 activeDay = day
             }
         }
-        .onChange(of: dataMonthStart) { _, _ in
+        .onChange(of: window) { _, _ in
+            // A stepped window re-aims the sticky readout at its default
+            // day — the pressed day belonged to the old domain.
             activeDay = nil
         }
     }
@@ -248,7 +264,7 @@ struct MonthTrendChartCard: View {
 
     private var chart: some View {
         Group {
-            if let domain = monthDomain {
+            if let domain = windowDomain {
                 chartCore.chartXScale(domain: domain)
             } else {
                 chartCore
@@ -273,7 +289,7 @@ struct MonthTrendChartCard: View {
     }
 
     /// The chart's marks and axes. The caller pins the x scale to the
-    /// whole month (`.chartXScale`) so both styles share one scale —
+    /// whole window (`.chartXScale`) so both styles share one scale —
     /// switching bar↔line can't shift positions — and days without
     /// entries read as gaps.
     private var chartCore: some View {
@@ -377,7 +393,7 @@ struct MonthTrendChartCard: View {
 
     /// The axis ticks: while the finger is down, only the pressed day
     /// (at its band-center instant); otherwise the sparse every-7th-day
-    /// ticks. The released state keeps the sparse month orientation —
+    /// ticks. The released state keeps the sparse window orientation —
     /// the sticky day is marked by the hairline and the bubble instead.
     private var axisTickDates: [Date] {
         if let selectedDay, let pressed = point(on: selectedDay) {
@@ -386,32 +402,29 @@ struct MonthTrendChartCard: View {
         return sparseTickDates
     }
 
-    /// The x scale covers the WHOLE month the data belongs to — not just
-    /// the days with entries — so both styles share one axis and empty
-    /// days read as gaps. The range is that month's first midnight
-    /// through the next month's first midnight (the last bar's band
-    /// ends exactly there).
-    private var monthDomain: ClosedRange<Date>? {
-        guard let start = dataMonthStart,
-              let end = Calendar.current.date(byAdding: .month, value: 1, to: start)
+    /// The x scale covers the WHOLE window — not just the days with
+    /// entries — so both styles share one axis and empty days read as
+    /// gaps. The range is the first day's midnight through the day after
+    /// the last (the last bar's band ends exactly there).
+    private var windowDomain: ClosedRange<Date>? {
+        guard dayCount > 0,
+              let end = Calendar.current.date(byAdding: .day, value: dayCount, to: windowStart)
         else { return nil }
-        return start...end
+        return windowStart...end
     }
 
-    /// The unpressed x ticks: every 7th day of the month, each expressed
+    /// The unpressed x ticks: every 7th day of the window, each expressed
     /// at its band-center instant. Automatic date ticks sit on day
     /// boundaries — the band's left edge — so their labels land in the
     /// gaps BETWEEN bars; ticking at the band centers makes each label
     /// center exactly under its bar / line point.
     private var sparseTickDates: [Date] {
-        guard let start = dataMonthStart, daysInMonth > 0 else { return [] }
+        guard dayCount > 0 else { return [] }
         let calendar = Calendar.current
-        return (1...daysInMonth)
-            .filter { $0 % 7 == 0 }
-            .compactMap { day -> Date? in
-                guard let dayStart = calendar.date(byAdding: .day, value: day - 1, to: start) else { return nil }
-                return bandCenter(dayStart)
-            }
+        return (0..<dayCount)
+            .filter { ($0 + 1) % 7 == 0 }
+            .compactMap { calendar.date(byAdding: .day, value: $0, to: windowStart) }
+            .map { bandCenter($0) }
     }
 
     /// The band-center anchor. Unit-day bars span their whole day, so a
@@ -429,7 +442,7 @@ struct MonthTrendChartCard: View {
     }
 
     /// The data point whose figure the card surfaces: the pressed day
-    /// while scrubbing (any day of the month — gaps read as ¥0), the
+    /// while scrubbing (any day of the window — gaps read as ¥0), the
     /// last pressed day after the finger lifts, and the default day
     /// before the first press.
     private var displayedPoint: TrendPoint? {
@@ -442,26 +455,26 @@ struct MonthTrendChartCard: View {
         points.first { Calendar.current.isDate(date, inSameDayAs: $0.date) }
     }
 
-    /// The load-time default: today when the displayed month is the
-    /// current one — regardless of whether today has entries (¥0 is the
-    /// truthful read) — else the month's last day. Pure so the rule
-    /// stays unit-testable.
-    nonisolated static func defaultSelectionDayNumber(todayDayNumber: Int?, daysInMonth: Int) -> Int? {
-        guard daysInMonth > 0 else { return nil }
-        return todayDayNumber ?? daysInMonth
+    /// The load-time default: today when the displayed window contains
+    /// it — regardless of whether today has entries (¥0 is the truthful
+    /// read) — else the window's last day. `todayIndex` is today's 1-based
+    /// index within the window, nil when today falls outside; pure so the
+    /// rule stays unit-testable.
+    nonisolated static func defaultSelectionDayIndex(todayIndex: Int?, dayCount: Int) -> Int? {
+        guard dayCount > 0 else { return nil }
+        return todayIndex ?? dayCount
     }
 
     private var defaultPoint: TrendPoint? {
-        guard let first = points.first else { return nil }
+        guard !points.isEmpty else { return nil }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let todayDayNumber = calendar.isDate(today, equalTo: first.date, toGranularity: .month)
-            ? calendar.component(.day, from: today)
-            : nil
-        guard let number = Self.defaultSelectionDayNumber(todayDayNumber: todayDayNumber, daysInMonth: points.count),
-              points.indices.contains(number - 1)
+        let offset = calendar.dateComponents([.day], from: windowStart, to: today).day ?? -1
+        let todayIndex = (0..<dayCount).contains(offset) ? offset + 1 : nil
+        guard let index = Self.defaultSelectionDayIndex(todayIndex: todayIndex, dayCount: dayCount),
+              points.indices.contains(index - 1)
         else { return nil }
-        return points[number - 1]
+        return points[index - 1]
     }
 
     /// The active day's tooltip: a material bubble living in the band
@@ -544,21 +557,16 @@ struct MonthTrendChartCard: View {
         )
     }
 
-    /// The daily-summary's "yyyy-MM-dd" is the LOCAL day the server
-    /// bucketed under the request's tz offset — parse it as local calendar
-    /// components, never as a UTC instant (that would timezone-shift the
-    /// bucket). Pure so the arithmetic stays unit-testable.
-    nonisolated static func dayDate(_ day: String) -> Date? {
-        let parts = day.split(separator: "-")
-        guard parts.count == 3,
-              let year = Int(parts[0]),
-              let month = Int(parts[1]),
-              let dayNumber = Int(parts[2])
-        else { return nil }
-        var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = dayNumber
-        return Calendar.current.date(from: components)
+    /// The LOCAL day key a window day looks its amounts up by — the same
+    /// "yyyy-MM-dd" shape the server buckets under the request's tz
+    /// offset, built from local calendar components (never a UTC-instant
+    /// round-trip, which would timezone-shift the bucket). Pure so the
+    /// keying stays unit-testable.
+    nonisolated static func dayKey(_ date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0, components.month ?? 0, components.day ?? 0
+        )
     }
 }

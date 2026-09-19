@@ -8,8 +8,8 @@
 import SwiftUI
 
 /// Overview of the active ledger: a scrolling month summary — month
-/// header, budget card, the expense card carrying the income/net figures
-/// inside it, and the two chart cards (month trend, composition) — for the
+/// header, budget card, then the reusable stats component (overview
+/// block, month calendar, trend chart, composition chart) for the
 /// selected month. The entries list that used to ride beneath the summary
 /// lives on the Journal tab only; this page summarizes, it doesn't list.
 ///
@@ -35,30 +35,15 @@ struct DashboardView: View {
     /// Month the cards summarize; stepped with the chevrons in the month
     /// header, capped at the current month.
     @State private var selectedMonth = YearMonth.current
+    /// The stats component's payloads (overview, daily, categories), one
+    /// windowed store for this surface. Caller-owned so the page's
+    /// pull-to-refresh reloads the same store the cards read.
+    @State private var statsStore = StatsStore()
     /// Target of the dashboard's drill-down — the tapped figure's
     /// filter (kind + optional category drill) plus the ledger snapshot it
-    /// drills into. nil = drill-down popped.
+    /// drills into. nil = drill-down popped. The payload type is shared
+    /// with the journal's chart page (see StatKindDetailView).
     @State private var statDetailTarget: StatDetailTarget?
-
-    /// The dashboard's drill-down item. The ledger is captured at tap time
-    /// (every tap path requires an active ledger), so the drill-down can
-    /// never mount target-less, and a scope change mid-push keeps
-    /// operating on the captured snapshot. `day`, when set, drills the
-    /// calendar card's single day (all kinds); otherwise the filter's
-    /// kind/category axes drive the month view. `id` covers every filter
-    /// axis the tap can carry so a quick re-tap of the same figure re-pushes
-    /// cleanly (the item's identity flips).
-    private struct StatDetailTarget: Identifiable, Hashable {
-        let ledger: QianlaiLedger
-        let filter: JournalDrillDown
-        let day: Date?
-
-        var id: String {
-            let dayKey = day.map { String($0.timeIntervalSince1970) } ?? "-"
-            let kindKey = filter.kind?.rawValue ?? "all"
-            return "\(ledger.id)|\(dayKey)|\(kindKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
-        }
-    }
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -168,14 +153,14 @@ struct DashboardView: View {
             if ledgerStore.isLoading, ledgerStore.ledgers.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if ledgerStore.activeLedger != nil {
+            } else if let ledger = ledgerStore.activeLedger {
                 if let project = activeProject {
                     ProjectDetailView(projectId: project.id, hidesNavigationTitle: true)
                 } else if isProjectScopeLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    dashboardSummary
+                    dashboardSummary(ledger)
                 }
             } else {
                 VStack(spacing: 28) {
@@ -255,20 +240,24 @@ struct DashboardView: View {
             guard let ledger = ledgerStore.activeLedger, !ledger.isGuest else { return }
             // Month writes go through the silent setter: this task fetches
             // immediately below, so the didSet-driven debounced reload
-            // would only duplicate the request.
+            // would only duplicate the request. This page's share of the
+            // fetch is the budget card (plus the ledger-change windowed
+            // preload); the stats component fetches its own payloads
+            // through `StatsStore`.
             //
             // The ledger-wide report endpoints require viewer+ and always
             // 403 guests, so guests fetch nothing here — their stats live
             // in the project detail view.
-            store.setDashboardMonthSilently(selectedMonth)
+            store.setBudgetMonthSilently(selectedMonth)
             await store.load(ledgerId: ledger.id)
         }
         .onChange(of: selectedMonth) { _, month in
-            // dashboardMonth's didSet schedules the debounced dashboard
-            // reload (skipped for guests — the report endpoint 403s them).
+            // budgetMonth's didSet schedules the debounced budget
+            // reload (skipped for guests — the report endpoint 403s
+            // them); the stats cards re-aim through their own task key.
             if showsProjectDetail { return }
             if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
-                store.dashboardMonth = month
+                store.budgetMonth = month
             }
         }
         .refreshable {
@@ -277,7 +266,11 @@ struct DashboardView: View {
                 return
             }
             if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
-                await store.loadDashboard()
+                async let budget: () = store.refreshBudget()
+                async let stats: () = statsStore.load(
+                    ledgerId: ledger.id, window: statsWindow
+                )
+                _ = await (budget, stats)
             }
         }
         .sheet(isPresented: $isShowingLedgerForm) {
@@ -319,7 +312,7 @@ struct DashboardView: View {
         // full story on StatKindDetailView); a push adds no presentation
         // host, so this chain matches the journal tab's.
         .navigationDestination(item: $statDetailTarget) { target in
-            StatKindDetailView(ledger: target.ledger, filter: target.filter, month: selectedMonth, day: target.day)
+            StatKindDetailView(ledger: target.ledger, filter: target.filter, window: statsWindow, day: target.day)
         }
     }
 
@@ -394,14 +387,21 @@ struct DashboardView: View {
         openStatDetail(JournalDrillDown(kind: kind), day: day)
     }
 
+    /// The month window the cards (and drill-downs) summarize — the
+    /// header's selected month as a `MonthWindow`, the same shape the
+    /// stats component and the drill page take.
+    private var statsWindow: MonthWindow {
+        AppDates.monthWindow(containing: selectedMonth.start)
+    }
+
     /// The month summary stands alone on the page — one chrome-free list
     /// row so the cards keep the inset-grouped metrics they were tuned
     /// against (horizontal margins from the list itself, wallpaper behind),
     /// the same row chrome `EntryListView` gave the summary when it rode
     /// above the records.
-    private var dashboardSummary: some View {
+    private func dashboardSummary(_ ledger: QianlaiLedger) -> some View {
         List {
-            monthSummary
+            monthSummary(ledger)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
@@ -410,8 +410,9 @@ struct DashboardView: View {
         .scrollBounceBehavior(.basedOnSize)
     }
 
-    /// Month header, budget card, stat card, and the two chart cards.
-    private var monthSummary: some View {
+    /// Month header, budget card, and the reusable stats component's four
+    /// cards (overview block, month calendar, trend chart, composition).
+    private func monthSummary(_ ledger: QianlaiLedger) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             // Arrows hug the title; nothing trails the header anymore —
             // the filter/sort menus acted on the removed entry list.
@@ -448,55 +449,45 @@ struct DashboardView: View {
                     isYearDetailPresented: $isShowingYearDetail,
                     month: month,
                     year: budget.year,
-                    currency: ledgerStore.activeLedger?.currency ?? budget.currency,
-                    isCurrentMonth: selectedMonth == YearMonth.current
+                    currency: ledger.currency,
+                    isCurrentMonth: selectedMonth == YearMonth.current,
+                    // The two budget figures drill like the stat block:
+                    // the selected month's EXPENSE entries on one side of
+                    // the per-entry budget flag — the exact set each
+                    // figure counts (the budget pools ignore the
+                    // creator's countsInLedger opt-out, and the list's
+                    // includeExcluded default is already true, so a
+                    // top-up-card payment kept out of income/expense
+                    // still drills here).
+                    spentAction: {
+                        openStatDetail(
+                            JournalDrillDown(kind: .expense, isBudgetExcluded: false)
+                        )
+                    },
+                    excludedAction: {
+                        openStatDetail(
+                            JournalDrillDown(kind: .expense, isBudgetExcluded: true)
+                        )
+                    }
                 )
             }
-            StatSummaryBlock(
-                month: store.dashboard?.month,
-                currency: ledgerStore.activeLedger?.currency,
-                // The two figures drill into their kind's entries for the
-                // month on screen; the journal's own card passes no actions
-                // and stays inert.
+            // The stats component: overview block, month calendar, trend
+            // chart, composition chart for the selected month. Guests pass
+            // isReportingEnabled: false — every report endpoint 403s them,
+            // so their cards stay in the placeholder/empty states the old
+            // nil payloads produced. The drills capture the active ledger
+            // and push `StatKindDetailView` (see the destination above).
+            StatsCardsView(
+                store: statsStore,
+                ledgerId: ledger.id,
+                currency: ledger.currency,
+                isReportingEnabled: !ledger.isGuest,
+                window: statsWindow,
                 expenseAction: { openStatDetail(kind: .expense) },
-                incomeAction: { openStatDetail(kind: .income) }
+                incomeAction: { openStatDetail(kind: .income) },
+                onSelectDay: { day, kind in openDayDetail(day, kind: kind) },
+                onSelectCategory: { openStatDetail($0) }
             )
-            // The month calendar rides the trend card's fetch: the same
-            // daily-summary members numerator, keyed per LOCAL day. The
-            // grid follows the header's selected month like every other
-            // card here, so stepping months re-aims it together with them;
-            // a day-cell tap drills into that day's journal.
-            if let daily = store.dailySummary {
-                MonthCalendarCard(
-                    days: daily,
-                    month: selectedMonth,
-                    locale: locale,
-                    onSelectDay: { openDayDetail($0) }
-                )
-            }
-            // The chart cards ride the same month the stat card summarizes
-            // (both fetch alongside the dashboard), so stepping months
-            // re-aims all three together. Guests never fetch the reports
-            // (403), so their nil payloads keep the cards hidden — the
-            // stat card's gate, expressed through data.
-            if let daily = store.dailySummary {
-                MonthTrendChartCard(
-                    days: daily,
-                    currency: ledgerStore.activeLedger?.currency,
-                    locale: locale,
-                    // The readout bubble drills into its day's journal —
-                    // the metric scopes the kind (结余 = all kinds).
-                    onSelectDay: { day, kind in openDayDetail(day, kind: kind) }
-                )
-            }
-            if let summary = store.categorySummary {
-                CategoryBreakdownCard(
-                    summary: summary,
-                    currency: ledgerStore.activeLedger?.currency,
-                    locale: locale,
-                    onSelectCategory: { openStatDetail($0) }
-                )
-            }
         }
         // Horizontal margins come from the inset-grouped list itself;
         // vertical padding spaces the summary off the screen edges under

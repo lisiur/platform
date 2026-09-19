@@ -186,6 +186,21 @@ nonisolated enum AppDates {
         return "\(dayFormatter.string(from: start)) – \(dayFormatter.string(from: end))"
     }
 
+    /// A window's title head: the month title when the window is exactly
+    /// one natural LOCAL month, else the week stepper's from–to rendering —
+    /// the stats surfaces' shared window label (a chart page's title, a
+    /// drill page's time head).
+    static func formatWindowTitle(_ window: MonthWindow, locale: Locale) -> String {
+        if let month = window.singleMonth {
+            return formatMonthTitle(month, locale: locale)
+        }
+        return formatWeekTitle(
+            start: Calendar.current.startOfDay(for: window.from),
+            end: Calendar.current.startOfDay(for: window.to),
+            locale: locale
+        )
+    }
+
     /// First-to-last day of the LOCAL month containing `date`, for
     /// month-wide entry windows (the dashboard).
     static func monthWindow(containing date: Date = Date()) -> MonthWindow {

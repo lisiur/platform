@@ -14,7 +14,8 @@ import SwiftUI
 /// showing the ledger's entry extent — a dashboard-style stat card
 /// summarizing the current window, the remaining filters (project,
 /// counted, participant) in a sheet, plus quick entry and delete. The
-/// dashboard is this page pinned to a month.
+/// page opens on the current week; the dashboard is this page pinned to
+/// a month.
 struct JournalView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var store
@@ -35,10 +36,32 @@ struct JournalView: View {
     /// Clear lands on All the same way); nil bounds still fall through to
     /// All.
     @State private var isRangePinned = false
+    /// Whether the session's opening default has landed: the page opens
+    /// on the current week, applied once on the first real load — the
+    /// window then belongs to the user, so an explicit All/range choice
+    /// survives later appearances and ledger switches the same way any
+    /// picked window does.
+    @State private var hasAppliedDefaultWindow = false
     /// Share-based totals for the current window (the stat card), fetched
     /// one-shot per window change — never the shared dashboard-cards state.
     @State private var windowSummary: Dashboard?
     @State private var summaryTask: Task<Void, Never>?
+    /// The chart page's push payload, captured at tap time — the list's
+    /// bounds keep moving behind a push, and the pushed page must describe
+    /// the window the user tapped on. nil = chart page popped.
+    @State private var statsTarget: StatsTarget?
+
+    /// The chart page's push payload: the ledger snapshot plus the
+    /// window. Distinct from the cards' drill payload (`StatDetailTarget`)
+    /// — this one carries the window instead of a filter.
+    private struct StatsTarget: Identifiable, Hashable {
+        let ledger: QianlaiLedger
+        let window: MonthWindow
+
+        var id: String {
+            "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)"
+        }
+    }
 
     var body: some View {
         Group {
@@ -63,8 +86,27 @@ struct JournalView: View {
             }
         }
         .navigationTitle(Text(L10n.string("journal.title", defaultValue: "Journal")))
+        .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .topBarTrailing) {
+                statsButton
+            }
+            #else
+            ToolbarItem(placement: .primaryAction) {
+                statsButton
+            }
+            #endif
+        }
+        // The chart page: the stats component for the tapped window. The
+        // registration lives on the page (never inside a lazy container,
+        // per the navigationDestination contract); the button only raises
+        // the payload.
+        .navigationDestination(item: $statsTarget) { target in
+            JournalStatsView(ledger: target.ledger, window: target.window)
+        }
         .task(id: ledgerStore.activeLedger?.id) {
             guard let id = ledgerStore.activeLedger?.id else { return }
+            applyDefaultWindowOnce()
             syncScopeFilter()
             await store.load(ledgerId: id)
             await memberStore.load(ledgerId: id, myUserId: nil)
@@ -208,6 +250,17 @@ struct JournalView: View {
         else { return false }
         return calendar.isDate(interval.start, inSameDayAs: from)
             && calendar.isDate(inclusiveEnd, inSameDayAs: to)
+    }
+
+    /// The opening window, written once per session before the first
+    /// load: the current week — the same writer a Week tap uses, so the
+    /// tab derives and the list fetches on it like any tab switch. A
+    /// window that already exists (a deep link that preset one) wins.
+    private func applyDefaultWindowOnce() {
+        guard !hasAppliedDefaultWindow else { return }
+        hasAppliedDefaultWindow = true
+        guard store.fromDate == nil, store.toDate == nil else { return }
+        setWeekWindow(containing: .now)
     }
 
     /// Inclusive week window per the viewer's calendar settings (first
@@ -381,7 +434,7 @@ struct JournalView: View {
             .padding(.horizontal, 6)
             if showsStats {
                 StatSummaryBlock(
-                    month: windowSummary?.month,
+                    totals: windowSummary?.month,
                     currency: ledgerStore.activeLedger?.currency
                 )
             }
@@ -397,6 +450,45 @@ struct JournalView: View {
     private var showsStats: Bool {
         guard let ledger = ledgerStore.activeLedger else { return false }
         return !ledger.isGuest && scopedProject == nil
+    }
+
+    /// The chart-page button (toolbar, trailing): opens the stats
+    /// component on the journal's active window. Same gate as the stat
+    /// card — the report endpoints 403 guests and the cards' ledger-wide
+    /// numerals would misdescribe a project-only list.
+    private var statsButton: some View {
+        Group {
+            if showsStats {
+                Button {
+                    guard let ledger = ledgerStore.activeLedger else { return }
+                    statsTarget = StatsTarget(ledger: ledger, window: statsWindow)
+                } label: {
+                    Image(systemName: "chart.bar")
+                }
+                .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
+            }
+        }
+    }
+
+    /// The window the chart page renders: the active bounds normalized to
+    /// the `MonthWindow` contract (from = the first day's midnight, to =
+    /// the last day's inclusive end — the week/year tabs write midnight
+    /// bounds while the month tab and the editors write end-of-day, and
+    /// the stats fetches pass `to` through raw). The All tab's nil bounds
+    /// mean the entry extent — the range editor's own seed rule — with
+    /// the current month as the fallback before the extent loads.
+    private var statsWindow: MonthWindow {
+        let calendar = Calendar.current
+        let from = store.fromDate
+            ?? store.entryBounds?.earliest
+            ?? AppDates.monthWindow(containing: .now).from
+        let to = store.toDate
+            ?? store.entryBounds?.latest
+            ?? AppDates.monthWindow(containing: .now).to
+        return MonthWindow(
+            from: calendar.startOfDay(for: from),
+            to: AppDates.localEndOfDay(to)
+        )
     }
 
     /// Refetches the window summary, debounced like the list's own reload

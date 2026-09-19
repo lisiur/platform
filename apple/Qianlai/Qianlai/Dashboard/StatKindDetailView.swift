@@ -12,12 +12,16 @@ import SwiftUI
 /// top-level parent for a 一级分类 rollup bucket). A nil kind describes the
 /// calendar card's day drill — every entry of the day, transfers included.
 /// `categoryLabel`, when set, swaps the title to "时间 · 分类" instead of
-/// "时间 · 支出/收入".
+/// "时间 · 支出/收入". `isBudgetExcluded`, when set, scopes the list to one
+/// side of the per-entry budget flag (the budget card's 日常已花 / 不计入预算
+/// columns — always carried with kind = .expense, the pools being
+/// expense-only) and swaps the title to "时间 · 日常已花/不计入预算".
 struct JournalDrillDown: Hashable {
     var kind: QuickEntryKind?
     var accountId: String?
     var parentAccountId: String?
     var categoryLabel: String?
+    var isBudgetExcluded: Bool?
 
     /// Whether the filter resolves an account axis (leaf or parent) —
     /// the composition card's drill gate: a row that can't scope an
@@ -27,14 +31,36 @@ struct JournalDrillDown: Hashable {
     }
 }
 
-/// The dashboard's drill-down PAGE — the journal of the selected month,
+/// One stats drill-down's push payload — the ledger snapshot captured at
+/// tap time (every tap path requires an active ledger, so the drill-down
+/// can never mount target-less, and a scope change mid-push keeps
+/// operating on the captured snapshot). `day`, when set, drills the
+/// calendar card's single day (all kinds); otherwise the filter's
+/// kind/category axes drive the window. `id` covers every filter axis the
+/// tap can carry so a quick re-tap of the same figure re-pushes cleanly
+/// (the item's identity flips). Shared by every stats host — the
+/// dashboard and the journal's chart page.
+struct StatDetailTarget: Identifiable, Hashable {
+    let ledger: QianlaiLedger
+    let filter: JournalDrillDown
+    let day: Date?
+
+    var id: String {
+        let dayKey = day.map { String($0.timeIntervalSince1970) } ?? "-"
+        let kindKey = filter.kind?.rawValue ?? "all"
+        let budgetKey = filter.isBudgetExcluded.map { $0 ? "excl" : "counted" } ?? "-"
+        return "\(ledger.id)|\(dayKey)|\(kindKey)|\(budgetKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
+    }
+}
+
+/// The stats drill-down PAGE — the journal of the summarized window,
 /// filtered to one of the stat card's surfaces:
 /// - the stat card's expense hero / income column (no category scope)
 /// - the composition card's leaf rows (a single `accountId`)
 /// - the composition card's top-level rollup rows (a single `parentAccountId`)
 /// - the calendar card's day cells and the trend card's readout bubble
 ///   (`day` set): that LOCAL day alone, all kinds or the caller's kind,
-///   instead of the month window
+///   instead of the window
 /// Reuses the journal page's shared entry list (EntryListView) with a
 /// private store pre-filtered to the window and filter — the rows
 /// carry the journal page's day headers, pagination, and swipe
@@ -54,9 +80,11 @@ struct StatKindDetailView: View {
 
     let ledger: QianlaiLedger
     let filter: JournalDrillDown
-    /// The dashboard month the card summarizes — the page's fixed window
-    /// (also the fallback context when only `day` drills).
-    let month: YearMonth
+    /// The window the tapped card summarizes — the page's fixed window
+    /// (also the fallback context when only `day` drills). Any local
+    /// range: the dashboard passes the selected month, a future journal
+    /// stats page passes its week/range.
+    let window: MonthWindow
     /// When set, the page windows to this single LOCAL day instead of the
     /// month; `filter.kind` still scopes within the day when set (the
     /// calendar drills all kinds, the trend card drills its metric).
@@ -92,30 +120,41 @@ struct StatKindDetailView: View {
         // it. No searchable here: the field's system glass background only
         // engages after the push transition, flashing a bare field for the
         // first frames, and a one-page keyword filter wasn't worth it.
+        //
+        // Large, not inline: the dashboard source page is large-titled, and
+        // an inline destination collapses the bar mid-push — the system
+        // compensates by scrolling the dashboard's list one large-title
+        // height (restored on pop), which reads as a phantom auto-scroll.
+        // Equal-height bars on both ends keep the push/pop offset-neutral.
         .navigationTitle(Text(title))
-        .inlineNavigationBarTitle()
+        .largeNavigationBarTitle()
         .task {
             if let day {
                 // One LOCAL day, midnight through end-of-day.
                 let start = Calendar.current.startOfDay(for: day)
                 store.setWindow(MonthWindow(from: start, to: AppDates.localEndOfDay(start)))
             } else {
-                store.setWindow(AppDates.monthWindow(containing: month.start))
+                store.setWindow(window)
             }
             store.kind = filter.kind
             store.accountId = filter.accountId
             store.parentAccountId = filter.parentAccountId
+            store.budgetExcluded = filter.isBudgetExcluded
             await store.load(ledgerId: ledger.id)
         }
     }
 
-    /// "Sep 2026 · Expense" / "Sep 2026 · 餐饮" — the dashboard's selected
-    /// month plus either the kind (no category drill) or the tapped
-    /// category label; the category label is carried by the filter, so the
-    /// page never looks it up by id. Day drills replace the head with the
-    /// full date ("2026年9月21日" / "Sep 21, 2026"), the same medium date
-    /// the journal's day headers render, plus the kind when the drill
-    /// scopes one (the calendar's all-kinds drill shows the date alone).
+    /// "Sep 2026 · Expense" / "Sep 2026 · 餐饮" — the summarized window
+    /// plus either the kind (no category drill) or the tapped category
+    /// label; the category label is carried by the filter, so the page
+    /// never looks it up by id. The budget card's drills title with the
+    /// tapped column's own label ("日常已花" / "不计入预算"), same rule.
+    /// Day drills replace the head with the full
+    /// date ("2026年9月21日" / "Sep 21, 2026"), the same medium date the
+    /// journal's day headers render, plus the kind when the drill scopes
+    /// one (the calendar's all-kinds drill shows the date alone). A
+    /// single-month window titles as that month; any other range falls
+    /// back to the week stepper's from–to rendering.
     private var title: String {
         if let day {
             let head = AppDates.formatEntryDay(day, locale: locale)
@@ -124,13 +163,24 @@ struct StatKindDetailView: View {
             }
             return head
         }
-        let head = AppDates.formatMonthTitle(month, locale: locale)
+        let head = AppDates.formatWindowTitle(window, locale: locale)
         if let category = filter.categoryLabel {
             return "\(head) · \(category)"
+        }
+        if let budgetExcluded = filter.isBudgetExcluded {
+            return "\(head) · \(budgetTitleLabel(excluded: budgetExcluded))"
         }
         if let kind = filter.kind {
             return "\(head) · \(kind.label)"
         }
         return head
+    }
+
+    /// The budget drill's title label — the budget card column the drill
+    /// opened from, so the page titles exactly like the tapped figure.
+    private func budgetTitleLabel(excluded: Bool) -> String {
+        excluded
+            ? L10n.string("budget.excluded", defaultValue: "Excluded")
+            : L10n.string("budget.spent", defaultValue: "Spent")
     }
 }

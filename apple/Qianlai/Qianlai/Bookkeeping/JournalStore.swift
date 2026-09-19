@@ -96,6 +96,12 @@ final class JournalStore {
     /// expense, otherwise an income line makes it income, otherwise it is
     /// a transfer. nil lists every kind.
     var kind: QuickEntryKind? { didSet { guard !suppressReload, oldValue != kind else { return }; scheduleReload() } }
+    /// Budget-flag drill axis (the budget card's two drill-downs): true
+    /// lists only entries marked 不计入预算, false only entries the budget
+    /// counts (日常已花). nil lists every entry — the ledger's default.
+    /// Always paired with `kind = .expense`: the budget pools are
+    /// expense-only, so the drill's rows reconcile with the tapped figure.
+    var budgetExcluded: Bool? { didSet { guard !suppressReload, oldValue != budgetExcluded else { return }; scheduleReload() } }
     /// Entry scope of the ledger-wide list: true (default) lists every
     /// activity entry — member kept-in, guest posts, and entries the
     /// creator opted out of the ledger's books (e.g. repayments); false
@@ -121,7 +127,7 @@ final class JournalStore {
         guard !suppressReload else { return }
         reloadTask?.cancel()
         reloadTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: ReloadDebounce.interval)
             guard !Task.isCancelled else { return }
             // Runs the fetch as THIS task's body — the slot keeps pointing
             // at it so a later change still cancels the in-flight request.
@@ -509,6 +515,7 @@ final class JournalStore {
         if accountType != nil { accountType = nil }
         if memberUserId != nil { memberUserId = nil }
         if kind != nil { kind = nil }
+        if budgetExcluded != nil { budgetExcluded = nil }
         if !includeExcluded { includeExcluded = true }
         suppressReload = false
         scheduleReload()
@@ -710,6 +717,9 @@ final class JournalStore {
         var accountType: String?
         var memberUserId: String?
         var kind: QuickEntryKind?
+        /// The budget-flag drill axis — both requests carry it so a day
+        /// header totals exactly the rows beneath it.
+        var budgetExcluded: Bool?
 
         /// The aggregation's numerator the daily summary must pass
         /// explicitly (the endpoint has no default). The ruling: a ledger's
@@ -735,6 +745,7 @@ final class JournalStore {
                 ("accountType", accountType),
                 ("memberUserId", memberUserId),
                 ("kind", kind?.rawValue),
+                ("excludedFromBudget", budgetExcluded.map { $0 ? "true" : "false" }),
             ]
         }
     }
@@ -751,7 +762,8 @@ final class JournalStore {
             parentAccountId: parentAccountId,
             accountType: accountType,
             memberUserId: memberUserId,
-            kind: kind
+            kind: kind,
+            budgetExcluded: budgetExcluded
         )
     }
 
@@ -759,15 +771,24 @@ final class JournalStore {
     /// scope-derived `shareMode` (no server default — every caller declares
     /// its numerator) and the tz offset that keys each entry to the LOCAL
     /// day it was entered on (the budget report's contract). No list
-    /// mechanics and no `includeExcluded` — the endpoint is a stat, and the
-    /// route's defaults keep stats on the ledger's activity set. An
-    /// opted-out entry stays listed (marked 不计入收支) but its amounts stay
-    /// out of every day total, matching the month stat card.
+    /// mechanics and — for the ordinary surfaces — no `includeExcluded`:
+    /// the endpoint is a stat, and the route's defaults keep stats on the
+    /// ledger's activity set. An opted-out entry stays listed (marked
+    /// 不计入收支) but its amounts stay out of every day total, matching
+    /// the month stat card.
+    ///
+    /// EXCEPTION — the budget-flag drill: its rows DO include creator
+    /// opt-outs (the budget pool counts them, and the list rides the
+    /// store's includeExcluded=true), so the day headers must too — or a
+    /// header would silently drop the very entries the tapped figure
+    /// counts. The flag rides only while the axis is set, leaving every
+    /// other surface's header contract untouched.
     private static func dailySummaryQuery(filters: Filters) -> String {
         ApiQuery.build(
             filters.queryPairs + [
                 ("shareMode", filters.shareMode.rawValue),
                 ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+                ("includeExcluded", filters.budgetExcluded != nil ? "true" : nil),
             ]
         )
     }

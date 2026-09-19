@@ -274,8 +274,9 @@ struct StatCard: View {
 }
 
 /// The stat module's title line: the caption label with the drill-down
-/// chevron riding inline after it when the module is tappable.
-private func statTitleLine(_ label: String, showsDisclosure: Bool) -> some View {
+/// chevron riding inline after it when the module is tappable. Shared by
+/// `StatCard` here and `StatSummaryBlock`'s columns in Stats/.
+func statTitleLine(_ label: String, showsDisclosure: Bool) -> some View {
     HStack(spacing: 4) {
         Text(label)
             .font(.caption)
@@ -313,88 +314,6 @@ private struct StatTapTargetModifier: ViewModifier {
 extension View {
     func statTapTarget(action: @escaping () -> Void) -> some View {
         modifier(StatTapTargetModifier(action: action))
-    }
-}
-
-/// The expense card with the income and net figures inside it — the
-/// dashboard's month summary block, reused wherever a window's ledger-wide
-/// totals render (the journal's stat card). The expense hero tops the card;
-/// income/net share a lower row of label-over-figure columns, the budget
-/// card's inner stat-row arrangement.
-struct StatSummaryBlock: View {
-    /// The window's ledger-wide totals; nil renders placeholders.
-    let month: DashboardMonth?
-    var currency: String?
-    /// The dashboard's drill-downs: a non-nil action makes the expense
-    /// hero / income column a tappable control with a trailing chevron.
-    /// The journal's own stat card passes nothing and stays inert.
-    var expenseAction: (() -> Void)? = nil
-    var incomeAction: (() -> Void)? = nil
-
-    var body: some View {
-        StatCard(
-            icon: "wallet.bifold",
-            label: L10n.string("account.type.expense", defaultValue: "Expense"),
-            value: month?.totalExpense,
-            currency: currency,
-            tone: .negative,
-            footer: AnyView(
-                HStack(spacing: 12) {
-                    column(
-                        L10n.string("account.type.income", defaultValue: "Income"),
-                        value: month?.totalIncome,
-                        tone: .positive,
-                        alignment: .leading,
-                        action: incomeAction
-                    )
-                    column(
-                        L10n.string("common.net", defaultValue: "Net"),
-                        value: month?.net,
-                        // Finance convention: negative net green (绿跌),
-                        // non-negative red (红涨).
-                        tone: (month?.net ?? 0) < 0 ? .negative : .positive,
-                        alignment: .trailing
-                    )
-                }
-                // The budget card insets its inner stat rows the same way,
-                // so the stacked cards' figures align.
-                .padding(.horizontal, 6)
-            ),
-            action: expenseAction
-        )
-    }
-
-    /// One stats column: caption label above the tone-colored semibold
-    /// figure. Income hugs the card's leading edge, net its trailing edge;
-    /// each column still claims an equal share so a long amount can only
-    /// truncate its own column, never push its neighbor off the card. With
-    /// an `action` the title line gains the disclosure chevron and the
-    /// whole column becomes one tap target — a plain gesture like the
-    /// headline, so the figures keep their inert colors.
-    @ViewBuilder
-    private func column(
-        _ label: String,
-        value: Double?,
-        tone: StatCard.Tone,
-        alignment: HorizontalAlignment,
-        action: (() -> Void)? = nil
-    ) -> some View {
-        let figures = VStack(alignment: alignment, spacing: 2) {
-            statTitleLine(label, showsDisclosure: action != nil)
-            Text(value.map { Money.format($0, currency: currency) } ?? "—")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(tone.color ?? Color.primary)
-                .lineLimit(1)
-        }
-        Group {
-            if let action {
-                figures.statTapTarget(action: action)
-            } else {
-                figures
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
     }
 }
 
@@ -455,7 +374,8 @@ struct ChartCardBadge: View {
     }
 }
 
-/// The dashboard chart cards' shared empty month state.
+/// The stats cards' shared empty state — the window fetched, nothing
+/// drew.
 struct ChartCardEmpty: View {
     let systemName: String
 
@@ -464,7 +384,7 @@ struct ChartCardEmpty: View {
             Image(systemName: systemName)
                 .font(.title3)
                 .foregroundStyle(.tertiary)
-            Text(L10n.string("dashboard.charts.empty", defaultValue: "No data this month"))
+            Text(L10n.string("dashboard.charts.empty", defaultValue: "No data"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -614,6 +534,16 @@ extension View {
     func inlineNavigationBarTitle() -> some View {
         #if os(iOS)
         self.navigationBarTitleDisplayMode(.inline)
+        #else
+        self
+        #endif
+    }
+
+    /// `.navigationBarTitleDisplayMode(.large)`, no-op where unavailable.
+    @ViewBuilder
+    func largeNavigationBarTitle() -> some View {
+        #if os(iOS)
+        self.navigationBarTitleDisplayMode(.large)
         #else
         self
         #endif

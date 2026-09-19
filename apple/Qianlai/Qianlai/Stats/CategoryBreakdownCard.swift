@@ -182,7 +182,7 @@ struct CategoryBreakdownCard: View {
         // per slice (see the accessibilityChildren below).
         .contentShape(.rect)
         .onTapGesture(coordinateSpace: .local) { point in
-            guard let onSelectCategory,
+            guard onSelectCategory != nil,
                   let index = Self.sliceIndex(at: point, rows: rows) else { return }
             drillSlice(at: index)
         }

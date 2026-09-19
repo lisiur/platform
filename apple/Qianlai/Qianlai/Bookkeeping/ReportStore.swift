@@ -8,62 +8,58 @@
 import Foundation
 import Observation
 
-/// Ledger reports: dashboard cards, trial balance, income statement, and
+/// Ledger reports: the budget card, trial balance, income statement, and
 /// member turnover, all scoped to the active ledger and an optional date
-/// window (from/to). The dashboard ignores the window (always month-to-date).
+/// window (from/to). The stats component's payloads (overview totals,
+/// daily summary, category summary) moved to `StatsStore` — one windowed
+/// instance per mounted stats surface.
 @MainActor
 @Observable
 final class ReportStore {
     let client = APIClient.shared
 
-    private(set) var dashboard: Dashboard?
-    private(set) var isLoadingDashboard = false
-
-    /// The budget card's payload for `dashboardMonth` — nil until the first
+    /// The budget card's payload for `budgetMonth` — nil until the first
     /// successful fetch, and stale-safe on failure (the last report stays
     /// published, matching the dashboard's keep-previous behavior). Also
     /// feeds the quick entry's toggle default (`excludedAccountIds`).
     private(set) var budget: BudgetReport?
 
-    /// The dashboard month's chart payloads: per-day income/expense (the
-    /// trend card) and per-category totals (the composition card). Both
-    /// fetch at the `members` share mode — each entry split across its
-    /// participants, only ledger members' slices counted — so they
-    /// reconcile with the share-based stat card above them and, through the
-    /// day headers' own members-mode requests, with the journal list
-    /// beneath. Keep-previous on failure like the dashboard cards; a ledger
-    /// switch drops them (stale charts from another ledger are worse than
-    /// blank ones).
-    private(set) var dailySummary: [DayIncomeExpense]?
-    private(set) var categorySummary: CategorySummaryResponse?
-
-    /// Month the dashboard cards summarize; nil follows the current month
-    /// (server default). Writing it schedules a coalesced dashboard reload,
-    /// so `refreshAfterPosting` re-summarizes the month on screen.
-    var dashboardMonth: YearMonth? {
+    /// Month the budget card summarizes; nil follows the current month
+    /// (server default). Writing it schedules a coalesced budget reload,
+    /// so `refreshAfterPosting` and the month stepper re-summarize the
+    /// budget on screen. (The stats cards re-aim through their own
+    /// `StatsStore` windows.)
+    var budgetMonth: YearMonth? {
         didSet {
             // Observable writes notify even when the value is unchanged;
             // without the guard every re-assignment would schedule another
-            // dashboard request.
-            guard dashboardMonth != oldValue else { return }
-            scheduleDashboardReload()
+            // budget request.
+            guard budgetMonth != oldValue else { return }
+            scheduleBudgetReload()
         }
     }
-    private var dashboardReloadTask: Task<Void, Never>?
+    private var budgetReloadTask: Task<Void, Never>?
+
+    /// The month every budget fetch in this store summarizes — nil
+    /// `budgetMonth` follows the current month. One fallback expression
+    /// so the fetch sites can't drift.
+    private var effectiveBudgetMonth: YearMonth {
+        budgetMonth ?? AppDates.currentYearMonth
+    }
 
     /// Writes the month without arming the didSet reload — the dashboard
     /// task fetches immediately after, so the debounced reload would only
     /// duplicate the request. Any pending debounced reload is cancelled for
     /// the same reason.
-    func setDashboardMonthSilently(_ month: YearMonth?) {
-        dashboardReloadTask?.cancel()
-        dashboardReloadTask = nil
-        dashboardMonth = month
+    func setBudgetMonthSilently(_ month: YearMonth?) {
+        budgetReloadTask?.cancel()
+        budgetReloadTask = nil
+        budgetMonth = month
     }
 
     /// Bumped by `refreshAfterPosting` after every post/update/delete so
-    /// surfaces holding their own entry store (the Dashboard's month list)
-    /// can refetch without sharing a `JournalStore` instance.
+    /// surfaces holding their own store (the stats cards' `StatsStore`,
+    /// the journal's stat card) can refetch without sharing state here.
     private(set) var journalEpoch = 0
 
     private(set) var trialBalance: TrialBalance?
@@ -75,7 +71,7 @@ final class ReportStore {
     private(set) var memberTurnover: MemberTurnover?
     private(set) var isLoadingTurnover = false
 
-    private(set) var ledgerId: String?
+    private var ledgerId: String?
 
     var fromDate: Date? { didSet { scheduleWindowedReload() } }
     var toDate: Date? { didSet { scheduleWindowedReload() } }
@@ -87,18 +83,19 @@ final class ReportStore {
     private func scheduleWindowedReload() {
         reloadTask?.cancel()
         reloadTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: ReloadDebounce.interval)
             guard !Task.isCancelled else { return }
             await reloadWindowed()
         }
     }
 
-    private func scheduleDashboardReload() {
-        dashboardReloadTask?.cancel()
-        dashboardReloadTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
-            await loadDashboard()
+    /// Coalesces budget month writes into one budget fetch.
+    private func scheduleBudgetReload() {
+        budgetReloadTask?.cancel()
+        budgetReloadTask = Task {
+            try? await Task.sleep(for: ReloadDebounce.interval)
+            guard !Task.isCancelled, let ledgerId else { return }
+            await loadBudgetReport(ledgerId: ledgerId, month: effectiveBudgetMonth)
         }
     }
 
@@ -109,20 +106,19 @@ final class ReportStore {
             // Never let another ledger's budget card survive a switch whose
             // fresh fetch fails — hiding beats cross-ledger numbers. (The
             // dashboard keeps its keep-previous semantics; the budget card
-            // has no back-compat to honor.) The chart cards ride the same
-            // rule: their keep-previous must never span a ledger switch.
+            // has no back-compat to honor.)
             budget = nil
-            dailySummary = nil
-            categorySummary = nil
-        }
-        async let dash: () = loadDashboard()
-        if ledgerChanged {
             async let trial: () = loadTrialBalance()
             async let statement: () = loadIncomeStatement()
             async let turnover: () = loadMemberTurnover()
-            _ = await (dash, trial, statement, turnover)
+            async let budget: () = loadBudgetReport(
+                ledgerId: ledgerId, month: effectiveBudgetMonth
+            )
+            _ = await (trial, statement, turnover, budget)
         } else {
-            await dash
+            await loadBudgetReport(
+                ledgerId: ledgerId, month: effectiveBudgetMonth
+            )
         }
     }
 
@@ -134,70 +130,42 @@ final class ReportStore {
         _ = await (trial, statement, turnover)
     }
 
-    /// Refreshes every surface a posting can change: the dashboard cards
-    /// (always month-to-date) and the windowed reports.
+    /// Refreshes every surface a posting can change: the budget card (the
+    /// dashboard's month-to-date spend), the windowed reports, and the
+    /// widget's month snapshot. The stats cards ride the `journalEpoch`
+    /// bump — they hold their own `StatsStore` and refetch on its change.
     func refreshAfterPosting() async {
         journalEpoch += 1
-        async let dash: () = loadDashboard()
-        async let windowed: () = reloadWindowed()
-        _ = await (dash, windowed)
-    }
-
-    func loadDashboard() async {
-        guard let ledgerId else { return }
-        isLoadingDashboard = true
-        defer { isLoadingDashboard = false }
-        do {
-            // Range filter with explicit UTC instants — the caller owns the
-            // timezone math, same as the windowed reports.
-            let window = dashboardMonth.map { AppDates.monthWindow(containing: $0.start) }
-            let query = ApiQuery.build([
-                ("from", window.map { ApiQuery.iso($0.from) }),
-                ("to", window.map { ApiQuery.iso($0.to) }),
-            ])
-            // The budget card follows the dashboard's month exactly: the
-            // server buckets by natural month under the device's offset, so
-            // it needs year/month/offset instead of the dashboard's
-            // from/to instants (which parse as UTC and mislabel local
-            // month starts east of UTC).
-            let month = dashboardMonth ?? AppDates.currentYearMonth
-            async let dash: () = fetchDashboard(ledgerId, query)
-            async let budgetReport: () = loadBudgetReport(
-                ledgerId: ledgerId, month: month
-            )
-            async let dayTotals: () = loadDailySummary(
-                ledgerId: ledgerId, month: month
-            )
-            async let categories: () = loadCategorySummary(
-                ledgerId: ledgerId, month: month
-            )
-            // If the dashboard fetch throws, the catch keeps the previous
-            // values — the budget and charts may or may not have landed,
-            // same keep-previous semantics either way.
-            _ = try await (dash, budgetReport, dayTotals, categories)
-        } catch {
-            // Keep whatever was loaded; the retry button reloads.
+        guard let ledgerId else {
+            await reloadWindowed()
+            return
         }
+        async let budget: () = loadBudgetReport(
+            ledgerId: ledgerId, month: effectiveBudgetMonth
+        )
+        async let windowed: () = reloadWindowed()
+        async let snapshot: () = refreshWidgetSnapshot(ledgerId: ledgerId)
+        _ = await (budget, windowed, snapshot)
     }
 
-    private func fetchDashboard(_ ledgerId: String, _ query: String) async throws {
-        dashboard = try await client.request(
+    /// The widget snapshot's post-path refresh. The stats cards only
+    /// republish when mounted, but a post from the journal before the
+    /// dashboard's first visit this session must still hand the widget
+    /// fresh month-to-date totals — the old `loadDashboard` did this on
+    /// every post. One dashboard fetch over the CURRENT month's window;
+    /// the publisher no-ops for any other window (which this can't be).
+    /// Skipped when a live stats surface is aimed at exactly this window:
+    /// it refetches on the epoch bump this post raised and republishes
+    /// the snapshot itself, so a second fetch would only duplicate the
+    /// request (see `StatsSurfaceWatch`).
+    private func refreshWidgetSnapshot(ledgerId: String) async {
+        let window = AppDates.monthWindow(containing: Date())
+        guard !StatsSurfaceWatch.isLive(ledgerId: ledgerId, window: window) else { return }
+        if let dashboard: Dashboard = try? await client.request(
             "GET",
-            "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"
-        )
-        // Publish the widget snapshot only when the fetched dashboard is
-        // the current month — the widget always shows month-to-date, and
-        // a user browsing an older month must not overwrite it.
-        if dashboardMonth == nil || dashboardMonth == AppDates.currentYearMonth,
-           let dashboard {
-            WidgetDataStore.saveSnapshot(
-                WidgetSnapshot(
-                    ledgerId: ledgerId,
-                    dashboard: dashboard,
-                    month: dashboardMonth ?? AppDates.currentYearMonth
-                )
-            )
-            WidgetSync.reloadTimelines()
+            ReportPaths.dashboard(ledgerId: ledgerId, window: window)
+        ) {
+            WidgetSnapshotSync.publishIfCurrentMonth(dashboard, ledgerId: ledgerId, window: window)
         }
     }
 
@@ -221,59 +189,15 @@ final class ReportStore {
         guard let ledgerId else { return }
         await loadBudgetReport(
             ledgerId: ledgerId,
-            month: dashboardMonth ?? AppDates.currentYearMonth
+            month: effectiveBudgetMonth
         )
-    }
-
-    /// One daily-summary fetch for the trend card, over the dashboard
-    /// month's local window at the `members` share mode — the ledger
-    /// scope's numerator, matching the stat card. Keep-previous on failure,
-    /// like the dashboard cards. Guests 403 nothing here — the endpoint is
-    /// guest-tier — but the card still gates on the stat card's visibility.
-    private func loadDailySummary(ledgerId: String, month: YearMonth) async {
-        let window = AppDates.monthWindow(containing: month.start)
-        let query = ApiQuery.build([
-            ("from", ApiQuery.iso(window.from)),
-            ("to", ApiQuery.iso(window.to)),
-            ("shareMode", ReportShareMode.members.rawValue),
-            ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
-        ])
-        do {
-            let response: DailySummaryResponse = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary\(query)"
-            )
-            dailySummary = response.days
-        } catch {
-            // Keep the previous month's data; the next reload retries.
-        }
-    }
-
-    /// One category-summary fetch for the composition card — the daily
-    /// summary's `members` numerator keyed per account, so the two charts
-    /// and the stat card reconcile. Same window and keep-previous semantics.
-    private func loadCategorySummary(ledgerId: String, month: YearMonth) async {
-        let window = AppDates.monthWindow(containing: month.start)
-        let query = ApiQuery.build([
-            ("from", ApiQuery.iso(window.from)),
-            ("to", ApiQuery.iso(window.to)),
-            ("shareMode", ReportShareMode.members.rawValue),
-        ])
-        do {
-            categorySummary = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/category-summary\(query)"
-            )
-        } catch {
-            // Keep the previous month's data; the next reload retries.
-        }
     }
 
     /// One-shot share-based summary for an explicit window (the journal's
     /// stat card): the dashboard endpoint takes from/to like the windowed
-    /// reports, but nothing here touches the dashboard cards' published
-    /// month state. nil on failure — guests 403 (callers gate the card),
-    /// and a failed fetch just keeps the previous totals.
+    /// reports, but nothing here touches the published state. nil on
+    /// failure — guests 403 (callers gate the card), and a failed fetch
+    /// just keeps the previous totals.
     func windowSummary(from: Date, to: Date) async -> Dashboard? {
         guard let ledgerId else { return nil }
         let query = ApiQuery.build([
