@@ -271,3 +271,26 @@ export function accountCodesMatchingLabel(query: string): string[] {
     )
     .map(([code]) => code);
 }
+
+/**
+ * Boolean query flags across the journal endpoints follow the list's
+ * includeExcluded idiom — an explicit "true"/"false" enum, never boolean
+ * coercion (query strings coerce "false" to true). Two resolution shapes
+ * share that wire form, kept as named helpers so each call site states
+ * which semantics it means:
+ *
+ * - `queryFlag`: a default-off view flag — absent reads false. The list
+ *   route's includeExcluded and the stat endpoints' view flags.
+ * - `triStateQueryFlag`: a filter axis where absent means "no filtering",
+ *   and "false" is itself a meaningful filter. The budget-flag drill
+ *   (excludedFromBudget) — the only axis of this shape today.
+ */
+export function queryFlag(value: "true" | "false" | undefined): boolean {
+  return value === "true";
+}
+
+export function triStateQueryFlag(
+  value: "true" | "false" | undefined,
+): boolean | undefined {
+  return value === undefined ? undefined : value === "true";
+}

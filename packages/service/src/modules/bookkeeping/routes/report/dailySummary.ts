@@ -8,6 +8,7 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { dailySummary } from "../../report.service";
+import { triStateQueryFlag } from "../../domain";
 import {
   dailySummaryQuerySchema,
   dailySummaryResponseSchema,
@@ -23,7 +24,7 @@ export const dailySummaryRoute = defineOpenAPIRoute({
     tags: ["QianlaiReport"],
     summary: "Per-day income vs expense totals",
     description:
-      "Each local day's gross income and expense in integer cents over the journal's filter surface — the same entry set (and guest project clamping) as the entry list, so the journal's day-section headers reconcile with the rows beneath them. The aggregation's numerator is `shareMode`: \"line\" sums raw journal lines (the income statement's semantics, expense lines' debit-net feeds expense, income lines' credit-net feeds income, transfers count toward neither); \"members\" splits each entry across its participant set and counts only the ledger members' slices, so non-ledger-member portions of split entries fall out — the same figure the dashboard's stat card summarizes. Days bucket under tzOffsetMinutes (east of UTC, the budget report's contract), and guests are clamped to their projects like the list is. `includeExcluded` widens the entry set past the ledger-activity predicate; `includeBudgetExcluded=false` removes entries the per-entry budget flag marks off.",
+      "Each local day's gross income and expense in integer cents over the journal's filter surface — the same entry set (and guest project clamping) as the entry list, so the journal's day-section headers reconcile with the rows beneath them. The aggregation's numerator is `shareMode`: \"line\" sums raw journal lines (the income statement's semantics, expense lines' debit-net feeds expense, income lines' credit-net feeds income, transfers count toward neither); \"members\" splits each entry across its participant set and counts only the ledger members' slices, so non-ledger-member portions of split entries fall out — the same figure the dashboard's stat card summarizes. Days bucket under tzOffsetMinutes (east of UTC, the budget report's contract), and guests are clamped to their projects like the list is. `includeExcluded` widens the entry set past the ledger-activity predicate; `includeBudgetExcluded=false` removes entries the per-entry budget flag marks off; `excludedFromBudget` scopes the set to one side of that flag (the budget card's drill-downs).",
     request: {
       params: ledgerIdParamSchema,
       query: dailySummaryQuerySchema,
@@ -58,6 +59,7 @@ export const dailySummaryRoute = defineOpenAPIRoute({
         accountType: query.accountType,
         kind: query.kind,
         memberUserId: query.memberUserId,
+        excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
         scopeProjectIds,
         shareMode: query.shareMode,
         ...statViewFlags(query),

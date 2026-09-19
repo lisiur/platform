@@ -6,6 +6,7 @@ import {
   okResponseFn,
   unauthorizedResponse,
 } from "#lib/openapi";
+import { queryFlag, triStateQueryFlag } from "../../domain";
 import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { listEntries } from "../../journal.service";
 import {
@@ -23,7 +24,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
     tags: ["QianlaiJournal"],
     summary: "List journal entries",
     description:
-      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely. Ledger-wide listing shows the ledger's activity — every member entry the creator kept in plus every guest post (guest entries feed the share-based statement, so they stay visible and drillable here) — and excludes only entries the creator opted out via countsInLedger=false unless includeExcluded=true. Project-scoped queries always include every entry of the project.",
+      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely. Ledger-wide listing shows the ledger's activity — every member entry the creator kept in plus every guest post (guest entries feed the share-based statement, so they stay visible and drillable here) — and excludes only entries the creator opted out via countsInLedger=false unless includeExcluded=true. Project-scoped queries always include every entry of the project. excludedFromBudget scopes the set to one side of the per-entry budget flag (the budget card's two drill-downs).",
     request: {
       params: ledgerIdParamSchema,
       query: listEntriesQuerySchema,
@@ -65,7 +66,8 @@ export const listEntriesRoute = defineOpenAPIRoute({
         kind: query.kind,
         memberUserId: query.memberUserId,
         scopeProjectIds,
-        includeExcluded: query.includeExcluded === "true" || undefined,
+        includeExcluded: queryFlag(query.includeExcluded),
+        excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
         sort: query.sort,
         order: query.order,
       },

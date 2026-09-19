@@ -52,6 +52,14 @@ export type EntryWindow = {
    * only budget-only callers flip this false.
    */
   includeBudgetExcluded?: boolean;
+  /**
+   * Filter to one side of the budget flag: true = only entries marked
+   * "不计入预算" (the budget card's excluded pool), false = only entries
+   * the budget counts (the 日常已花 pool). Undefined keeps every entry —
+   * the drill-down axis; distinct from `includeBudgetExcluded`, which is
+   * a set-wide view toggle with no per-side scoping.
+   */
+  excludedFromBudget?: boolean;
 };
 
 /**
@@ -203,6 +211,20 @@ const entryInclude = {
 } as const satisfies Prisma.JournalEntryInclude;
 
 function entryFilterWhere(ledgerId: string, window: EntryWindow) {
+  // The two budget-flag modes are mutually exclusive: the view toggle
+  // (includeBudgetExcluded) drops the excluded side wholesale, the drill
+  // axis (excludedFromBudget) scopes to ONE side. Combined they are either
+  // nonsense (counted ∧ excluded = ∅) or redundant — and both spread onto
+  // the same Prisma key below, so a combined call would silently let the
+  // drill axis override the toggle. Fail loud instead.
+  if (
+    window.includeBudgetExcluded === false &&
+    window.excludedFromBudget !== undefined
+  ) {
+    throw new Error(
+      "entryFilterWhere: includeBudgetExcluded and excludedFromBudget are mutually exclusive budget-flag modes",
+    );
+  }
   const projectScoped = Boolean(window.projectId || window.scopeProjectIds);
   // Seeded categories store name = null — clients render their label from
   // `code`, so the raw name/code contains-matches only ever hit the English
@@ -255,6 +277,12 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     ...(window.includeBudgetExcluded === false
       ? { excludedFromBudget: false as const }
       : {}),
+    // The budget flag as a drill axis: an explicit boolean scopes the set
+    // to one side of the flag (the budget card's two drill-downs); absent
+    // keeps the whole set, like the view toggle above.
+    ...(window.excludedFromBudget === undefined
+      ? {}
+      : { excludedFromBudget: window.excludedFromBudget }),
     ...(window.from || window.to
       ? {
           date: {

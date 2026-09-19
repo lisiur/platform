@@ -459,6 +459,20 @@ describe("sumLinesByDay", () => {
     });
   });
 
+  it.each([
+    [true, "only the entries marked 不计入预算"],
+    [false, "only the entries the budget counts (日常已花)"],
+  ])("scopes to excludedFromBudget=%s — the budget card's drill lists %s", async (axis) => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { excludedFromBudget: axis },
+      480,
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry.excludedFromBudget).toBe(axis);
+  });
+
   it("includeExcluded=true widens past the activity predicate", async () => {
     const { tx, findMany } = capturingTx();
     await journalRepository.sumLinesByDay(

@@ -194,6 +194,10 @@ export const listEntriesQuerySchema = paginationQuerySchema
       description:
         "Also return entries the creator opted out of the ledger's surfaces (countsInLedger=false). Ignored when projectId is set — a project's books always show all of its entries.",
     }),
+    excludedFromBudget: z.enum(["true", "false"]).optional().openapi({
+      description:
+        "Filter to one side of the per-entry budget flag: true lists only entries marked excluded from budget (the budget card's 不计入预算 pool), false only entries the budget counts (日常已花). Absent lists every entry.",
+    }),
     sort: z.enum(["date", "amount"]).optional().openapi({
       description:
         "List ordering. Defaults to date (newest first). amount orders by each entry's gross total — the sum of its lines' debits, the figure clients render as the entry amount.",

@@ -8,6 +8,7 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { categorySummary } from "../../report.service";
+import { triStateQueryFlag } from "../../domain";
 import {
   categorySummaryQuerySchema,
   categorySummaryResponseSchema,
@@ -56,6 +57,7 @@ export const categorySummaryRoute = defineOpenAPIRoute({
       accountType: query.accountType,
       kind: query.kind,
       memberUserId: query.memberUserId,
+      excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
       scopeProjectIds,
       shareMode: query.shareMode,
       ...statViewFlags(query),

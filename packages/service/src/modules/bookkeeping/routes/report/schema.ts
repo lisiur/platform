@@ -3,6 +3,7 @@ import {
   ACCOUNT_TYPES,
   ENTRY_KINDS,
   LEDGER_ROLES,
+  queryFlag,
   STAT_SHARE_MODES,
 } from "../../domain";
 import { journalEntrySchema } from "../journal-entry/schema";
@@ -177,6 +178,12 @@ export const dailySummaryResponseSchema = z
 //     budget-only callers flip this false. Distinct from the activity
 //     predicate — that one targets the creator's opt-out, this one
 //     targets the budget opt-out.
+//   - excludedFromBudget (default unset): the budget flag as a DRILL
+//     axis, scoping the set to one side of the flag (true = only the
+//     不计入预算 entries, false = only what the budget counts). The
+//     budget card's two drill-downs pair it with kind=expense so the
+//     drilled entries and their day headers reconcile with the tapped
+//     figure.
 const statFilterFields = {
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -187,6 +194,7 @@ const statFilterFields = {
   accountType: z.enum(ACCOUNT_TYPES).optional(),
   kind: z.enum(ENTRY_KINDS).optional(),
   memberUserId: z.string().optional(),
+  excludedFromBudget: z.enum(["true", "false"]).optional(),
 };
 
 const statViewFields = {
@@ -216,7 +224,7 @@ export function statViewFlags(query: {
   includeBudgetExcluded?: "true" | "false";
 }) {
   return {
-    includeExcluded: query.includeExcluded === "true",
+    includeExcluded: queryFlag(query.includeExcluded),
     includeBudgetExcluded: query.includeBudgetExcluded !== "false",
   };
 }
