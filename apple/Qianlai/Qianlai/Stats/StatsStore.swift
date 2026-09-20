@@ -55,7 +55,10 @@ final class StatsStore {
     /// `.task(id:)` calls this on mount, window change, and appearance —
     /// re-fetching on every appearance is the dashboard's established
     /// refresh rhythm, and `.task`'s restart coalesces rapid window
-    /// stepping the way the old debounced reload did.
+    /// stepping the way the old debounced reload did. A cold surface first
+    /// hydrates the nil payloads from the snapshot cache, so a remounted
+    /// stats page paints last-known figures instead of placeholders while
+    /// the fetches below silently correct them.
     func load(ledgerId: String, window: MonthWindow) async {
         let ledgerChanged = self.ledgerId != ledgerId
         if ledgerChanged {
@@ -65,12 +68,75 @@ final class StatsStore {
         }
         self.ledgerId = ledgerId
         self.window = window
+        hydrate(ledgerId: ledgerId, window: window)
         isLoading = true
         defer { isLoading = false }
         async let overview: () = loadOverview(ledgerId: ledgerId, window: window)
         async let daily: () = loadDaily(ledgerId: ledgerId, window: window)
         async let categories: () = loadCategories(ledgerId: ledgerId, window: window)
         _ = await (overview, daily, categories)
+    }
+
+    // MARK: snapshot cache
+
+    /// The stats component's snapshot-cache binding — namespace and schema
+    /// version live here, not at every call site. Bump `schema` when
+    /// `StatsSnapshot`'s shape changes incompatibly.
+    private static let cache = SnapshotCache.namespace("stats", schema: 1)
+
+    /// The stats payloads as one cache record.
+    private struct StatsSnapshot: Codable {
+        var overview: Dashboard? = nil
+        var daily: [DayIncomeExpense]? = nil
+        var categories: CategorySummaryResponse? = nil
+    }
+
+    /// The cache key: ledger + window bounds. The stats component speaks a
+    /// fixed share mode (`members`) and no other query dimensions, so the
+    /// window is the whole signature.
+    private static func snapshotKey(ledgerId: String, window: MonthWindow) -> String {
+        SnapshotCache.makeKey([
+            ledgerId,
+            SnapshotCache.epochOrAll(window.from),
+            SnapshotCache.epochOrAll(window.to),
+        ])
+    }
+
+    /// Fills only the payload fields that are nil — a cold mount hydrates
+    /// everything, a re-appearance after a partial failure tops up just the
+    /// gap. The record for a window only ever holds data fetched FOR that
+    /// window (each fetch merges its own result), so a keep-previous
+    /// failure can't bleed one window's figures into another's key. Never
+    /// publishes the widget snapshot: that duty belongs to real fetches
+    /// (`loadOverview`), a cache hit must not pose as one. Surfaces that
+    /// never fetch (guests) never reach `load`, so they never hydrate.
+    private func hydrate(ledgerId: String, window: MonthWindow) {
+        guard overview == nil || daily == nil || categories == nil else { return }
+        guard
+            let snapshot: StatsSnapshot = Self.cache.read(
+                key: Self.snapshotKey(ledgerId: ledgerId, window: window),
+                as: StatsSnapshot.self
+            )
+        else { return }
+        if overview == nil, let cached = snapshot.overview { self.overview = cached }
+        if daily == nil, let cached = snapshot.daily { self.daily = cached }
+        if categories == nil, let cached = snapshot.categories { self.categories = cached }
+    }
+
+    /// Merges one fetch's payload into the window's cached record.
+    /// Read-modify-write with no await in between: the three concurrent
+    /// fetches serialize on the MainActor, so neither merge can drop the
+    /// others' fields. A fetch that failed simply never calls this — the
+    /// record keeps that field's last-known-good value.
+    private func mergeIntoCache(
+        ledgerId: String,
+        window: MonthWindow,
+        update: (inout StatsSnapshot) -> Void
+    ) {
+        let key = Self.snapshotKey(ledgerId: ledgerId, window: window)
+        var snapshot = Self.cache.read(key: key, as: StatsSnapshot.self) ?? StatsSnapshot()
+        update(&snapshot)
+        Self.cache.write(key: key, payload: snapshot)
     }
 
     /// The three fetches' shared shape. The window bounds come from
@@ -107,6 +173,7 @@ final class StatsStore {
         ) { (dashboard: Dashboard) in
             overview = dashboard
             WidgetSnapshotSync.publishIfCurrentMonth(dashboard, ledgerId: ledgerId, window: window)
+            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.overview = dashboard }
         }
     }
 
@@ -121,6 +188,7 @@ final class StatsStore {
             ]
         ) { (response: DailySummaryResponse) in
             daily = response.days
+            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.daily = response.days }
         }
     }
 
@@ -133,6 +201,7 @@ final class StatsStore {
             query: [("shareMode", ReportShareMode.members.rawValue)]
         ) { (summary: CategorySummaryResponse) in
             categories = summary
+            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.categories = summary }
         }
     }
 

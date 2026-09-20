@@ -17,6 +17,19 @@ final class ProjectStore {
 
     private static let selectedProjectKey = "qianlai.selectedProjectId"
 
+    /// The snapshot-cache binding. Two key shapes under one namespace:
+    /// `listKey` (per-ledger project lists) and `reportKey` (per-project
+    /// reports). Pure key builders so tests can pin them.
+    private static let cache = SnapshotCache.namespace("projects", schema: 1)
+
+    nonisolated static func listKey(ledgerId: String) -> String {
+        SnapshotCache.makeKey(["list", ledgerId])
+    }
+
+    nonisolated static func reportKey(ledgerId: String, projectId: String) -> String {
+        SnapshotCache.makeKey(["report", ledgerId, projectId])
+    }
+
     private let defaults: UserDefaults
 
     private(set) var projects: [QianlaiProject] = []
@@ -93,11 +106,16 @@ final class ProjectStore {
             isLoading = false
             inFlightLoads[ledgerId] = nil
         }
+        // A cold app answers the scope question from its cached list first —
+        // the dashboard's project-vs-ledger decision can't wait on the
+        // network. The fetch below still runs and silently corrects.
+        hydrateProjects(ledgerId: ledgerId)
         do {
             let projects = try await fetch(ledgerId: ledgerId)
             self.projects = projects
             projectsByLedger[ledgerId] = projects
             loadError = nil
+            Self.cache.write(key: Self.listKey(ledgerId: ledgerId), payload: projects)
             if let selectedProjectId, !projects.contains(where: { $0.id == selectedProjectId }) {
                 setSelectedProjectId(nil)
             }
@@ -108,6 +126,29 @@ final class ProjectStore {
         // The scope-resolution window closes either way — a failed load
         // leaves the cache empty, but waiting longer would only stall the
         // dashboard's project-vs-ledger decision.
+        resolvedLedgerIds.insert(ledgerId)
+    }
+
+    /// Publishes the cached list for `ledgerId` when this session hasn't
+    /// resolved the ledger yet: fills the per-ledger cache and the
+    /// active-ledger mirror, re-validates the persisted selection against
+    /// the cached rows (a project deleted while away drops here, the same
+    /// validation the fetch path applies), and marks the ledger resolved so
+    /// scope readers never see a loading window. Skipped once resolved —
+    /// fresher in-session data must never be rolled back. Does not touch
+    /// the widget mirror: that stays the network path's duty.
+    private func hydrateProjects(ledgerId: String) {
+        guard !resolvedLedgerIds.contains(ledgerId),
+              projectsByLedger[ledgerId] == nil,
+              let cached: [QianlaiProject] = Self.cache.read(
+                  key: Self.listKey(ledgerId: ledgerId), as: [QianlaiProject].self
+              )
+        else { return }
+        projectsByLedger[ledgerId] = cached
+        projects = cached
+        if let selectedProjectId, !cached.contains(where: { $0.id == selectedProjectId }) {
+            setSelectedProjectId(nil)
+        }
         resolvedLedgerIds.insert(ledgerId)
     }
 
@@ -124,6 +165,7 @@ final class ProjectStore {
               let projects = try? await fetch(ledgerId: ledgerId)
         else { return }
         projectsByLedger[ledgerId] = projects
+        Self.cache.write(key: Self.listKey(ledgerId: ledgerId), payload: projects)
         resolvedLedgerIds.insert(ledgerId)
     }
 
@@ -135,6 +177,7 @@ final class ProjectStore {
     func refresh(ledgerId: String) async {
         guard let projects = try? await fetch(ledgerId: ledgerId) else { return }
         projectsByLedger[ledgerId] = projects
+        Self.cache.write(key: Self.listKey(ledgerId: ledgerId), payload: projects)
         resolvedLedgerIds.insert(ledgerId)
     }
 
@@ -229,6 +272,14 @@ final class ProjectStore {
 
     func loadReport(ledgerId: String, projectId: String) async {
         let path = "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/report"
+        let key = Self.reportKey(ledgerId: ledgerId, projectId: projectId)
+        // A cold project page paints its cached report first; the fetch
+        // below silently corrects it. Only nil is filled — a published
+        // report (even another project's, mid-switch) is never rolled back.
+        if report == nil,
+           let cached: ProjectReport = Self.cache.read(key: key, as: ProjectReport.self) {
+            report = cached
+        }
         let requestID = UUID()
         reportRequestID = requestID
         reportLoadTask?.cancel()
@@ -247,6 +298,7 @@ final class ProjectStore {
         switch result {
         case .success(let loaded):
             report = loaded
+            Self.cache.write(key: key, payload: loaded)
             // Keep the summary widget's project-mode fallback fresh — only
             // when the loaded report is the currently mirrored scope.
             if WidgetDataStore.loadScopedProject()?.id == loaded.project.id {

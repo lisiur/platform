@@ -17,6 +17,11 @@ import Observation
 final class LedgerStore {
     private static let activeLedgerKey = "qianlai.activeLedgerId"
 
+    /// The snapshot-cache binding for the ledger list — one key per
+    /// account, so no query signature to speak of.
+    private static let cache = SnapshotCache.namespace("ledgers", schema: 1)
+    private static let cacheKey = "all"
+
     let client = APIClient.shared
 
     private(set) var ledgers: [QianlaiLedger] = []
@@ -91,10 +96,22 @@ final class LedgerStore {
             isLoading = false
             hasLoaded = true
         }
+        // A cold app paints its cached ledger list first: activeLedger
+        // resolves from the persisted id and the dashboard renders
+        // last-known content while the fetch below silently corrects it.
+        // `hasLoaded` stays false — it means "the first NETWORK load
+        // settled" (the deep-link quick-add retry gate and the launch
+        // title's restored-scope window both read it), and a cached render
+        // is not that.
+        if ledgers.isEmpty,
+           let cached: [QianlaiLedger] = Self.cache.read(key: Self.cacheKey, as: [QianlaiLedger].self) {
+            ledgers = cached
+        }
         do {
             let response: LedgersResponse = try await client.request("GET", "bookkeeping/ledgers")
             ledgers = response.ledgers
             loadError = nil
+            Self.cache.write(key: Self.cacheKey, payload: ledgers)
             // The resolved active ledger may differ from the persisted id
             // (deleted ledger, first launch) — the widget mirror has to
             // follow, and a stale widget timeline should refresh now.

@@ -230,7 +230,7 @@ nonisolated enum AppDates {
 
 /// Builds percent-encoded query strings for `APIClient` paths, which accept
 /// `path?key=value&…` and forward the raw query to URLComponents.
-enum ApiQuery {
+nonisolated enum ApiQuery {
     static func encode(_ value: String) -> String {
         value.addingPercentEncoding(
             withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))

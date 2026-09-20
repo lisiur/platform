@@ -10,7 +10,7 @@ import Observation
 
 /// The ledger's entry date extent under the current filters — the All
 /// tab's from/to display.
-struct EntryDateBounds: Equatable {
+struct EntryDateBounds: Equatable, Codable {
     let earliest: Date
     let latest: Date
 }
@@ -170,6 +170,10 @@ final class JournalStore {
         reloadTask?.cancel()
         reloadTask = nil
         guard let ledgerId else { return }
+        // Captured up front, the same rule performReload follows: the
+        // persist must describe the query these requests were built from,
+        // not whatever the filters say by the time the last page lands.
+        let snapshotKey = currentSnapshotKey
         let plan = Self.windowReloadPlan(
             loadedCount: entries.count,
             pageSize: Self.pageSize,
@@ -202,6 +206,7 @@ final class JournalStore {
         if total != latestTotal { total = latestTotal }
         if loadError != nil { loadError = nil }
         refreshSidecars()
+        persistSnapshot(snapshotKey: snapshotKey)
     }
 
     /// Immediate page-1 reset for content-changing paths: a fresh post
@@ -230,16 +235,19 @@ final class JournalStore {
         to: Date?,
         sort: EntrySort,
         dateAscending: Bool = false,
-        includingSearch: Bool = true
+        includingSearch: Bool = true,
+        filters: Filters? = nil
     ) async throws -> EntriesResponse {
         // The day-slice and extent callers override the window (or drop the
-        // transient search) — everything else is the store's live filter.
-        var filters = currentFilters
-        filters.from = from
-        filters.to = to
-        if !includingSearch { filters.q = "" }
+        // transient search) — everything else is the store's live filter,
+        // unless the caller captured its filter state up front (the
+        // sidecar tasks build their request beside their cache key).
+        var resolvedFilters = filters ?? currentFilters
+        resolvedFilters.from = from
+        resolvedFilters.to = to
+        if !includingSearch { resolvedFilters.q = "" }
         let query = Self.listQuery(
-            filters: filters,
+            filters: resolvedFilters,
             limit: limit,
             offset: offset,
             includeExcluded: includeExcluded,
@@ -252,12 +260,122 @@ final class JournalStore {
         )
     }
 
+    // MARK: snapshot cache
+
+    /// The store's snapshot-cache binding — namespace and schema version
+    /// live here, not at every call site. Bump `schema` when
+    /// `JournalSnapshot`'s shape changes incompatibly.
+    private static let cache = SnapshotCache.namespace("journal", schema: 1)
+
+    /// The cold-load render seed: page 1 of the filtered list plus the
+    /// sidecars the rows render beside. Pagination is deliberately absent —
+    /// a remounted page starts at the top anyway, and `loadMore` refills
+    /// the tail on scroll. Rows persist from confirmed list fetches
+    /// (`persistSnapshot`); the sidecars merge at their own completion
+    /// under the key their request was built from, so each field in the
+    /// record always describes the query its fetch carried.
+    private struct JournalSnapshot: Codable {
+        var entries: [JournalEntry] = []
+        var total = 0
+        var dayTotals: [String: DayIncomeExpense] = [:]
+        var entryBounds: EntryDateBounds? = nil
+    }
+
+    /// The snapshot's identity: the ledger plus the full query signature
+    /// the list request would carry — filter pairs in their wire encoding
+    /// (so a key can never disagree with the request it mirrors), the
+    /// ordering, and the ledger-wide escape hatch. A drill-down's hard
+    /// scope rides inside the project filter pair (the mount folds
+    /// `scopeProjectId` into it), so no separate segment. Pure and
+    /// nonisolated for tests.
+    nonisolated static func snapshotKey(
+        ledgerId: String,
+        queryPairs: [(String, String?)],
+        sort: EntrySort,
+        includeExcluded: Bool
+    ) -> String {
+        let tokens = sortQueryTokens(sort)
+        let sortSegment = tokens.order.map { "\(tokens.name ?? "date")-\($0)" } ?? tokens.name ?? "date"
+        return SnapshotCache.makeKey([
+            ledgerId,
+            ApiQuery.build(queryPairs),
+            sortSegment,
+            includeExcluded ? "includeExcluded=true" : "includeExcluded=false",
+        ])
+    }
+
+    private var currentSnapshotKey: String {
+        Self.snapshotKey(
+            ledgerId: ledgerId ?? "",
+            queryPairs: currentFilters.queryPairs,
+            sort: sort,
+            includeExcluded: includeExcluded
+        )
+    }
+
+    /// Publishes the cached snapshot as the cold surface's first render —
+    /// rows, total, day headers, and extent all at once, then
+    /// `hasLoadedOnce = true` so the fetch that follows stays silent
+    /// (warm-refresh semantics) instead of announcing a first load over
+    /// content already on screen. Only ever called before the first
+    /// successful fetch (`performReload`'s cold branch): afterwards,
+    /// fresher published data must never be rolled back. A hit does not
+    /// republish the widget snapshot — that is a real-fetch duty
+    /// (`WidgetSnapshotSync`), a hydrated render is not one.
+    private func hydrateFromSnapshot(snapshotKey: String) {
+        guard
+            let snapshot: JournalSnapshot = Self.cache.read(
+                key: snapshotKey, as: JournalSnapshot.self
+            )
+        else { return }
+        if entries != snapshot.entries { entries = snapshot.entries }
+        if total != snapshot.total { total = snapshot.total }
+        if dayTotals != snapshot.dayTotals { dayTotals = snapshot.dayTotals }
+        if entryBounds != snapshot.entryBounds { entryBounds = snapshot.entryBounds }
+        hasLoadedOnce = true
+    }
+
+    /// Merges one payload piece into the cached record for `snapshotKey`.
+    /// Read-modify-write with no await in between: every writer runs on the
+    /// MainActor, so concurrent merges can't drop each other's fields.
+    private func mergeIntoCache(
+        snapshotKey: String,
+        update: (inout JournalSnapshot) -> Void
+    ) {
+        var snapshot = Self.cache.read(key: snapshotKey, as: JournalSnapshot.self) ?? JournalSnapshot()
+        update(&snapshot)
+        Self.cache.write(key: snapshotKey, payload: snapshot)
+    }
+
+    /// Records the freshly fetched page 1 + total under this fetch's query
+    /// signature. Called only from confirmed successful fetches — the
+    /// optimistic delete's local mutation never lands here, so a failed
+    /// sync can't poison the cache (the next reload rewrites it).
+    private func persistSnapshot(snapshotKey: String) {
+        mergeIntoCache(snapshotKey: snapshotKey) {
+            $0.entries = Array(entries.prefix(Self.pageSize))
+            $0.total = total
+        }
+    }
+
     /// The fetch itself. Never cancels the calling task: when it runs as
     /// the debounced task's body, cancelling the slot's task would cancel
     /// the request mid-flight (which surfaced as a network error on every
     /// filter change until the user tapped retry).
     private func performReload() async {
         guard let ledgerId else { return }
+        // The snapshot key is captured before the fetch: the hydrate read
+        // and the success persist must both describe the query this fetch
+        // was built from, even while the visible filters move mid-flight
+        // (the debounced reload refetches under the new signature anyway).
+        let snapshotKey = currentSnapshotKey
+        // A cold surface renders its cached snapshot first: the page paints
+        // last-known rows instead of flashing the empty state, and the
+        // fetch below silently corrects them. A cache miss falls through
+        // to the spinner-then-rows first load.
+        if !hasLoadedOnce {
+            hydrateFromSnapshot(snapshotKey: snapshotKey)
+        }
         // Warm refreshes (pull-to-refresh, post/edit/delete reloads) stay
         // silent: the refresh control already signals the activity. Every
         // @Observable write notifies even when the value is unchanged, and
@@ -284,6 +402,7 @@ final class JournalStore {
             if loadError != nil { loadError = nil }
             if !hasLoadedOnce { hasLoadedOnce = true }
             refreshSidecars()
+            persistSnapshot(snapshotKey: snapshotKey)
         } catch {
             guard self.ledgerId == ledgerId else { return }
             // A cancelled fetch is a superseded one — a newer reload owns
@@ -293,7 +412,13 @@ final class JournalStore {
             // fetch cancelled by a superseding reload surfaces wrapped.
             if let apiError = error as? APIError, case .transport(let urlError) = apiError,
                urlError.code == .cancelled { return }
-            if !entries.isEmpty { entries = [] }
+            // A surface with content — fetched or hydrated — keeps it on a
+            // failed refresh, the same keep-previous rule the sidecars and
+            // the stats component follow: the rows on screen are still the
+            // best known state, and the next reload (filter change, retry,
+            // appearance) retries silently. Only an empty surface — nothing
+            // fetched, nothing cached — announces the failure.
+            guard entries.isEmpty else { return }
             if total != 0 { total = 0 }
             if loadError != error.localizedDescription {
                 loadError = error.localizedDescription
@@ -542,11 +667,15 @@ final class JournalStore {
     /// and a failure keeps the previous totals for the next reload to retry.
     func refreshDayTotals() {
         guard let ledgerId else { return }
+        // Built at the capture point, beside the key: the request AND the
+        // key it merges under must describe the same filters, even if the
+        // visible filters move before the task body runs.
+        let snapshotKey = currentSnapshotKey
+        let summaryPath = "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary"
+            + Self.dailySummaryQuery(filters: currentFilters)
         dayTotalsTask?.cancel()
         dayTotalsTask = Task {
             do {
-                let summaryPath = "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary"
-                    + Self.dailySummaryQuery(filters: currentFilters)
                 let response: DailySummaryResponse = try await client.request(
                     "GET",
                     summaryPath
@@ -556,6 +685,7 @@ final class JournalStore {
                     uniqueKeysWithValues: response.days.map { ($0.day, $0) }
                 )
                 if dayTotals != map { dayTotals = map }
+                mergeIntoCache(snapshotKey: snapshotKey) { $0.dayTotals = map }
             } catch {
                 // Keep the previous totals; the next reload retries.
             }
@@ -577,6 +707,10 @@ final class JournalStore {
     /// postings elsewhere; the list rendering never awaits it.
     func refreshBounds() {
         guard let ledgerId else { return }
+        // Built at the capture point, beside the key — same rule as
+        // refreshDayTotals.
+        let snapshotKey = currentSnapshotKey
+        let snapshotFilters = currentFilters
         boundsTask?.cancel()
         boundsTask = Task {
             do {
@@ -593,7 +727,8 @@ final class JournalStore {
                     to: nil,
                     sort: .date,
                     dateAscending: true,
-                    includingSearch: false
+                    includingSearch: false,
+                    filters: snapshotFilters
                 )
                 let newest: EntriesResponse = try await fetchEntries(
                     ledgerId: ledgerId,
@@ -602,13 +737,15 @@ final class JournalStore {
                     from: nil,
                     to: nil,
                     sort: .date,
-                    includingSearch: false
+                    includingSearch: false,
+                    filters: snapshotFilters
                 )
                 guard self.ledgerId == ledgerId, !Task.isCancelled else { return }
                 if let earliest = oldest.entries.first?.date,
-                   let latest = newest.entries.first?.date,
-                   entryBounds != EntryDateBounds(earliest: earliest, latest: latest) {
-                    entryBounds = EntryDateBounds(earliest: earliest, latest: latest)
+                   let latest = newest.entries.first?.date {
+                    let bounds = EntryDateBounds(earliest: earliest, latest: latest)
+                    if entryBounds != bounds { entryBounds = bounds }
+                    mergeIntoCache(snapshotKey: snapshotKey) { $0.entryBounds = bounds }
                 }
             } catch {
                 // Keep the previous extent; the next reload retries.
@@ -793,6 +930,19 @@ final class JournalStore {
         )
     }
 
+    /// The wire tokens an `EntrySort` maps to — the single encoding both
+    /// the list request (`sort`/`order` params) and the snapshot key's
+    /// ordering segment derive from, so the two can't drift. Pure and
+    /// nonisolated; pattern matching because the enum's `Equatable` is
+    /// MainActor-isolated.
+    nonisolated static func sortQueryTokens(_ sort: EntrySort) -> (name: String?, order: String?) {
+        switch sort {
+        case .date: return (nil, nil)
+        case .amountDescending: return ("amount", "desc")
+        case .amountAscending: return ("amount", "asc")
+        }
+    }
+
     /// The list request's query: the shared filter pairs plus the list's
     /// own mechanics — pagination, the ledger-wide escape hatch, and
     /// ordering (`dateAscending` feeds only the extent's oldest-first read).
@@ -804,13 +954,14 @@ final class JournalStore {
         sort: EntrySort,
         dateAscending: Bool
     ) -> String {
-        ApiQuery.build(
+        let tokens = sortQueryTokens(sort)
+        return ApiQuery.build(
             filters.queryPairs + [
                 ("limit", String(limit)),
                 ("offset", String(offset)),
                 ("includeExcluded", includeExcluded ? "true" : nil),
-                ("sort", sort == .date ? nil : "amount"),
-                ("order", sort == .amountAscending ? "asc" : sort == .amountDescending ? "desc" : dateAscending ? "asc" : nil),
+                ("sort", tokens.name),
+                ("order", tokens.order ?? (dateAscending ? "asc" : nil)),
             ]
         )
     }

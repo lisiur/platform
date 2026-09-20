@@ -74,8 +74,24 @@ final class AuthManager {
 
     /// True while a stored session token is being validated on launch. The
     /// login screen waits for this to become false so a valid restore lands
-    /// on the home view instead of flashing the login form.
+    /// on the home view instead of flashing the login form. With a cached
+    /// session (see `restoreSession`) the home view wins the gate before
+    /// this flag matters — the flag then only steers the no-cache path.
     private(set) var isRestoringSession: Bool
+
+    /// The snapshot-cache binding for the optimistic-restore seed — one
+    /// key per install (the keychain holds a single token; sign-out sweeps
+    /// the whole cache).
+    private static let cache = SnapshotCache.namespace("auth", schema: 1)
+    private static let sessionKey = "session"
+
+    /// The pieces of a validated session the app's first frame gates on.
+    /// The session token itself deliberately stays out — the keychain is
+    /// its only home, and rotation is the network validation's business.
+    private struct CachedSession: Codable {
+        var user: User
+        var permissions: [String]
+    }
 
     var isLoggedIn: Bool {
         currentUser != nil
@@ -170,6 +186,22 @@ final class AuthManager {
         defer { isRestoringSession = false }
         guard client.sessionToken != nil, currentUser == nil else { return }
 
+        // Optimistic restore: a cached validated session publishes the user
+        // immediately, so `isLoggedIn` wins the app root's gate and the
+        // home view paints this frame — with every store's snapshot cache
+        // hydrating behind it — instead of spinning on the round-trip below.
+        // The get-session keeps running as the silent validator: it corrects
+        // drifted profiles/permissions (and rotated tokens), and a rejected
+        // token lands in `clearSession`, which drops the optimistic user and
+        // the root gate falls through to the login screen. No cache (first
+        // launch after install, or after a fresh login that never restored)
+        // falls through to the classic spinner-while-validating path.
+        if let cached: CachedSession = Self.cache.read(key: Self.sessionKey, as: CachedSession.self) {
+            currentUser = cached.user
+            permissions = cached.permissions
+            isOnboardingPending = cached.user.isOnboardingPending
+        }
+
         let data: Data
         do {
             (data, _) = try await client.send("GET", "auth/get-session")
@@ -208,6 +240,12 @@ final class AuthManager {
         currentUser = user
         permissions = info.permissions ?? []
         isOnboardingPending = user.isOnboardingPending
+        // Server-confirmed session — seed the next cold start's optimistic
+        // restore.
+        Self.cache.write(
+            key: Self.sessionKey,
+            payload: CachedSession(user: user, permissions: permissions)
+        )
     }
 
     func loginWithBiometrics() async throws {
@@ -248,6 +286,13 @@ final class AuthManager {
     /// session round-trip.
     func applyUser(_ user: User) {
         currentUser = user
+        // The edit already landed server-side — refresh the optimistic-
+        // restore seed so the next cold start doesn't flash the old profile
+        // for a beat before the validation corrects it.
+        Self.cache.write(
+            key: Self.sessionKey,
+            payload: CachedSession(user: user, permissions: permissions)
+        )
     }
 
     private func signOutOnServer() async {
@@ -265,6 +310,9 @@ final class AuthManager {
         // No session, nothing for the widget to show.
         WidgetDataStore.clearAll()
         WidgetSync.reloadTimelines()
+        // The render-seed snapshots describe the signed-out account's
+        // ledgers — the next sign-in must start cold, not on stale rows.
+        SnapshotCache.clearAll()
     }
 
     private func acceptSession(_ response: SignInResponse) {
@@ -280,7 +328,10 @@ final class AuthManager {
         let response: UserMutationResponse = try await client.request(
             "POST", "auth/complete-onboarding"
         )
-        currentUser = response.user
+        // applyUser also refreshes the optimistic-restore seed — without
+        // it, the first cold start after onboarding would flash the
+        // onboarding guide until get-session corrected the flag.
+        applyUser(response.user)
         isOnboardingPending = response.user.isOnboardingPending
     }
 

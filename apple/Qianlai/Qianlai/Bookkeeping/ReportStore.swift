@@ -18,6 +18,57 @@ import Observation
 final class ReportStore {
     let client = APIClient.shared
 
+    /// The snapshot-cache binding — every report payload persists under
+    /// its own query signature (see the key builders below), so a window
+    /// or month change can never read another window's record.
+    private static let cache = SnapshotCache.namespace("reports", schema: 1)
+
+    /// The budget record's key: ledger + summarized month. Pure and
+    /// nonisolated for tests.
+    nonisolated static func budgetKey(ledgerId: String, month: YearMonth) -> String {
+        SnapshotCache.makeKey(["budget", ledgerId, String(month.year), String(month.month)])
+    }
+
+    /// A windowed report's key: ledger + the exact window the request
+    /// carries (nil bounds = the all-time request). Pure and nonisolated
+    /// for tests.
+    nonisolated static func windowKey(
+        _ name: String, ledgerId: String, from: Date?, to: Date?
+    ) -> String {
+        SnapshotCache.makeKey([
+            name,
+            ledgerId,
+            SnapshotCache.epochOrAll(from),
+            SnapshotCache.epochOrAll(to),
+        ])
+    }
+
+    /// The one cached-report load: hydrate the surface from `key` when
+    /// empty, fetch, publish, persist on success, clear on failure — the
+    /// four report loads share this shape, and `assign`/`clear` touch the
+    /// caller's own property. Failure clears, the reports' established
+    /// semantics; a cold surface paints its cached report first and the
+    /// fetch silently corrects it.
+    private func loadCached<P: Codable>(
+        path: String,
+        key: String,
+        as type: P.Type,
+        isEmpty: () -> Bool,
+        assign: (P) -> Void,
+        clear: () -> Void
+    ) async {
+        if isEmpty(), let cached: P = Self.cache.read(key: key, as: type) {
+            assign(cached)
+        }
+        do {
+            let loaded: P = try await client.request("GET", path)
+            assign(loaded)
+            Self.cache.write(key: key, payload: loaded)
+        } catch {
+            clear()
+        }
+    }
+
     /// The budget card's payload for `budgetMonth` — nil until the first
     /// successful fetch, and stale-safe on failure (the last report stays
     /// published, matching the dashboard's keep-previous behavior). Also
@@ -169,17 +220,20 @@ final class ReportStore {
         }
     }
 
-    /// One budget report fetch; a failure keeps the previous report (guests
-    /// 403 — callers gate the card the same way as the dashboard).
+    /// One budget report fetch; a failure clears the card (guests 403 —
+    /// callers gate the card the same way as the dashboard).
     private func loadBudgetReport(ledgerId: String, month: YearMonth) async {
-        let query = ApiQuery.build([
-            ("year", String(month.year)),
-            ("month", String(month.month)),
-            ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
-        ])
-        budget = try? await client.request(
-            "GET",
-            "bookkeeping/ledgers/\(ledgerId)/reports/budget\(query)"
+        await loadCached(
+            path: "bookkeeping/ledgers/\(ledgerId)/reports/budget" + ApiQuery.build([
+                ("year", String(month.year)),
+                ("month", String(month.month)),
+                ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+            ]),
+            key: Self.budgetKey(ledgerId: ledgerId, month: month),
+            as: BudgetReport.self,
+            isEmpty: { budget == nil },
+            assign: { budget = $0 },
+            clear: { budget = nil }
         )
     }
 
@@ -214,52 +268,49 @@ final class ReportStore {
         guard let ledgerId else { return }
         isLoadingTrialBalance = true
         defer { isLoadingTrialBalance = false }
-        do {
-            let query = ApiQuery.build([
+        await loadCached(
+            path: "bookkeeping/ledgers/\(ledgerId)/reports/trial-balance" + ApiQuery.build([
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
-            ])
-            trialBalance = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/trial-balance\(query)"
-            )
-        } catch {
-            trialBalance = nil
-        }
+            ]),
+            key: Self.windowKey("trial", ledgerId: ledgerId, from: nil, to: toDate),
+            as: TrialBalance.self,
+            isEmpty: { trialBalance == nil },
+            assign: { trialBalance = $0 },
+            clear: { trialBalance = nil }
+        )
     }
 
     func loadIncomeStatement() async {
         guard let ledgerId else { return }
         isLoadingStatement = true
         defer { isLoadingStatement = false }
-        do {
-            let query = ApiQuery.build([
+        await loadCached(
+            path: "bookkeeping/ledgers/\(ledgerId)/reports/income-statement" + ApiQuery.build([
                 ("from", fromDate.map { ApiQuery.iso($0) }),
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
-            ])
-            incomeStatement = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/income-statement\(query)"
-            )
-        } catch {
-            incomeStatement = nil
-        }
+            ]),
+            key: Self.windowKey("statement", ledgerId: ledgerId, from: fromDate, to: toDate),
+            as: IncomeStatement.self,
+            isEmpty: { incomeStatement == nil },
+            assign: { incomeStatement = $0 },
+            clear: { incomeStatement = nil }
+        )
     }
 
     func loadMemberTurnover() async {
         guard let ledgerId else { return }
         isLoadingTurnover = true
         defer { isLoadingTurnover = false }
-        do {
-            let query = ApiQuery.build([
+        await loadCached(
+            path: "bookkeeping/ledgers/\(ledgerId)/reports/member-turnover" + ApiQuery.build([
                 ("from", fromDate.map { ApiQuery.iso($0) }),
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
-            ])
-            memberTurnover = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/reports/member-turnover\(query)"
-            )
-        } catch {
-            memberTurnover = nil
-        }
+            ]),
+            key: Self.windowKey("turnover", ledgerId: ledgerId, from: fromDate, to: toDate),
+            as: MemberTurnover.self,
+            isEmpty: { memberTurnover == nil },
+            assign: { memberTurnover = $0 },
+            clear: { memberTurnover = nil }
+        )
     }
 }

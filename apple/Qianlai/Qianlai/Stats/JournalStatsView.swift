@@ -41,7 +41,12 @@ struct JournalStatsView: View {
             )
             // The dashboard summary's chrome: one list row so the cards
             // keep their inset-grouped metrics (horizontal margins from
-            // the list itself, wallpaper behind).
+            // the list itself, wallpaper behind). The vertical padding is
+            // load-bearing: iOS 26 clips row content to the section's
+            // rounded corners, so a card flush at the row top loses its
+            // rim to the corner mask — the dashboard's summary VStack
+            // carries the same 8pt for the same reason.
+            .padding(.vertical, 8)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
