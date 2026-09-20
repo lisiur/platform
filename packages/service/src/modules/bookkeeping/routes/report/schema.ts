@@ -82,13 +82,6 @@ export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
 });
 
-export const dashboardQuerySchema = z
-  .object({
-    from: z.coerce.date().optional(),
-    to: z.coerce.date().optional(),
-  })
-  .openapi("QianlaiDashboardQuery");
-
 export const incomeStatementQuerySchema = z
   .object({
     from: z.coerce.date().optional(),
@@ -202,11 +195,7 @@ const statFilterFields = {
   excludedFromBudget: z.enum(["true", "false"]).optional(),
 };
 
-const statViewFields = {
-  shareMode: z.enum(STAT_SHARE_MODES).openapi({
-    description:
-      'The aggregation\'s numerator. "members" splits each entry across its participant set and counts only the ledger members\' slices (the dashboard stat card\'s figure); "line" sums raw journal lines.',
-  }),
+const statViewFlagFields = {
   // Boolean query flags follow the journal list's includeExcluded idiom —
   // an explicit "true"/"false" enum, never boolean coercion (query strings
   // coerce "false" to true). Absent means the documented default.
@@ -218,6 +207,14 @@ const statViewFields = {
     description:
       "Include entries the per-entry budget flag marks off (excludedFromBudget=true). Default true — bookkeeping views don't drop budget opt-outs.",
   }),
+};
+
+const statViewFields = {
+  shareMode: z.enum(STAT_SHARE_MODES).openapi({
+    description:
+      'The aggregation\'s numerator. "members" splits each entry across its participant set and counts only the ledger members\' slices (the dashboard stat card\'s figure); "line" sums raw journal lines.',
+  }),
+  ...statViewFlagFields,
 };
 
 /** The two view flags resolved to booleans with their defaults applied —
@@ -279,6 +276,19 @@ export const dailySummaryQuerySchema = statQuerySchema
     tzOffsetMinutes: z.coerce.number().int().min(-840).max(840).default(0),
   })
   .openapi("QianlaiDailySummaryQuery");
+
+export const dashboardQuerySchema = z
+  .object({
+    ...statFilterFields,
+    ...statViewFlagFields,
+    // Defaulted, unlike the other stat routes' required shareMode: the
+    // dashboard tab's callers omit it, and the ledger dashboard's
+    // statement has always spoken members. A project-filtered caller (the
+    // journal chart page) asks for line to reconcile with the raw-books
+    // numerators its daily/category cards ride.
+    shareMode: z.enum(STAT_SHARE_MODES).default("members"),
+  })
+  .openapi("QianlaiDashboardQuery");
 
 export const categoryAmountRowSchema = z
   .object({

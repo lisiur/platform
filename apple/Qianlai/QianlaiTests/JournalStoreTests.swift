@@ -237,4 +237,50 @@ final class JournalStoreTests: XCTestCase {
         let singleDigit = day(2026, 3, 5)
         XCTAssertEqual(JournalStore.dayKey(singleDigit), "2026-03-05")
     }
+
+    // MARK: syncScopeProjection
+
+    /// The chart-page round-trip: a pushed page's return re-runs the
+    /// journal page's `.task`, re-invoking the projection with unchanged
+    /// inputs — the signature guard must leave a manual project filter
+    /// (the funnel sheet's ledger-wide pick) alone.
+    @MainActor
+    func testScopeProjectionRerunWithUnchangedInputsKeepsManualProjectFilter() {
+        let store = JournalStore()
+        store.syncScopeProjection(ledgerId: "led-1", scopeProjectId: nil)
+        store.projectFilterId = "prj-a"
+
+        store.syncScopeProjection(ledgerId: "led-1", scopeProjectId: nil)
+
+        XCTAssertEqual(store.projectFilterId, "prj-a")
+    }
+
+    /// A ledger switch moves the signature even when neither ledger is
+    /// scoped — the old ledger's manual pick is meaningless in the new
+    /// ledger (the sheet would render a blank row over a filtered list).
+    @MainActor
+    func testScopeProjectionLedgerSwitchClearsTheOldLedgersManualPick() {
+        let store = JournalStore()
+        store.syncScopeProjection(ledgerId: "led-1", scopeProjectId: nil)
+        store.projectFilterId = "prj-a"
+
+        store.syncScopeProjection(ledgerId: "led-2", scopeProjectId: nil)
+
+        XCTAssertNil(store.projectFilterId)
+        XCTAssertNil(store.scopeProjectId)
+    }
+
+    /// Scope engaged then lifted: the projection forces the filter onto
+    /// the scope and lifts it with the scope.
+    @MainActor
+    func testScopeProjectionAppliesAndFollowsScope() {
+        let store = JournalStore()
+
+        store.syncScopeProjection(ledgerId: "led-1", scopeProjectId: "prj-s")
+        XCTAssertEqual(store.scopeProjectId, "prj-s")
+        XCTAssertEqual(store.projectFilterId, "prj-s")
+
+        store.syncScopeProjection(ledgerId: "led-1", scopeProjectId: nil)
+        XCTAssertNil(store.projectFilterId)
+    }
 }

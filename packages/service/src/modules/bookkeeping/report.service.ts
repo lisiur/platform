@@ -412,12 +412,50 @@ export async function memberTurnover(
   };
 }
 
+/** Per-account raw debit/credit sums over the entries' lines — the
+ *  income-statement numerator (shareMode=line), so a project-filtered
+ *  chart page's statement speaks the project's raw books while the
+ *  default members mode keeps the family's split. Accumulates integer
+ *  cents like `shareSumsByAccount` and returns yuan-scale decimals, the
+ *  same unit `sumsByAccount` returns. */
+function lineSumsByAccount(entries: Array<{ lines: AttributedLine[] }>) {
+  const sums: AccountSums = new Map();
+  for (const entry of entries) {
+    for (const line of entry.lines) {
+      const current = sums.get(line.accountId) ?? { debit: 0, credit: 0 };
+      current.debit += Math.round(Number(line.debit) * 100);
+      current.credit += Math.round(Number(line.credit) * 100);
+      sums.set(line.accountId, current);
+    }
+  }
+  // Cents → yuan (integer cents, exact).
+  for (const [accountId, s] of sums) {
+    sums.set(accountId, {
+      debit: s.debit / 100,
+      credit: s.credit / 100,
+    });
+  }
+  return sums;
+}
+
+/**
+ * The ledger-wide dashboard: net worth, the window's behavioral statement,
+ * and the recent-activity feed. Beyond the window the caller may carry the
+ * journal's stat filter surface (see `statWindowArgs`) — a filtered chart
+ * page's totals then describe exactly the rows its list shows. The
+ * numerator follows `shareMode` (default members, the ledger's own
+ * caliber); net worth and the account sums stay accounting-true whatever
+ * the filters say.
+ */
 export async function dashboard(
   ledgerId: string,
   viewerRole: LedgerRole = "viewer",
   now = new Date(),
-  window: { from?: Date; to?: Date } = {},
+  window: Omit<StatWindow, "shareMode"> & {
+    shareMode?: StatShareMode;
+  } = {},
 ) {
+  const statWindow = { ...window, shareMode: window.shareMode ?? "members" };
   // The month window arrives as explicit UTC instants (mirrors the other
   // report endpoints — the caller owns the timezone math). Defaults to the
   // current UTC month: entry dates are stored at UTC midnight, so a
@@ -433,23 +471,28 @@ export async function dashboard(
     );
 
   const accounts = await accountRepository.listByLedger(ledgerId);
+  // The materialized window (explicit bounds for the caller's
+  // current-month default) carries the filters into the statement read.
+  const boundedWindow = { ...statWindow, from: monthStart, to: monthEnd };
+  // Recent entries scope to the filters but NOT the date bounds: the feed
+  // is "the 5 most recent entries of the filtered set, all-time" — the
+  // dashboard tab's shipped semantics, preserved whatever month it
+  // summarizes (month-bounding the feed would empty it early in a month).
+  const { from: _feedFrom, to: _feedTo, ...recentWindow } = statWindow;
   const [allTimeSums, monthEntries, members, recentEntries] = await Promise.all(
     [
       // Net worth stays accounting-true — the money really moved.
       sumsByAccount(ledgerId),
-      // Behavioral month statement: the ledger members' actual shares. Each
-      // entry splits across its participant set and only the members' slices
-      // sum in — project outsiders (no roster row) drop out of the split, so
-      // the family's income/expense stops absorbing their spending, while
-      // pure member entries still count in full. Visibility mirrors the
-      // journal list: guest posts stay counted even when opted out; only
-      // non-guest opt-outs drop.
-      journalRepository.listActivityEntries(ledgerId, {
-        from: monthStart,
-        to: monthEnd,
-      }),
+      // Behavioral statement over the journal's filter surface: the same
+      // entry set (and guest project clamping) as the daily/category
+      // summaries, so a filtered chart page's overview reconciles with the
+      // cards beside it. Guest posts stay counted even when opted out;
+      // only non-guest opt-outs drop (the activity predicate).
+      journalRepository.listActivityEntriesWithLines(ledgerId, boundedWindow),
       ledgerMemberRepository.listByLedger(ledgerId),
-      journalRepository.listRecent(ledgerId, 5),
+      // Recent entries mirror the statement's filters, so a filtered
+      // dashboard response stays coherent within itself.
+      journalRepository.listRecent(ledgerId, 5, recentWindow),
     ],
   );
   const memberUserIds = new Set(members.map((m) => m.userId));
@@ -470,9 +513,11 @@ export async function dashboard(
 
   const statement = buildStatementRows(
     accounts,
-    shareSumsByAccount(monthEntries, (entry) =>
-      memberSharesCents(entry, memberUserIds),
-    ),
+    statWindow.shareMode === "members"
+      ? shareSumsByAccount(monthEntries, (entry) =>
+          memberSharesCents(entry, memberUserIds),
+        )
+      : lineSumsByAccount(monthEntries),
   );
 
   // Recent entries mirror the journal activity: member entries the creator

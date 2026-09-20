@@ -58,6 +58,7 @@ import {
 import {
   categorySummaryQuerySchema,
   dailySummaryQuerySchema,
+  dashboardQuerySchema,
   statQuerySchema,
   statWindowArgs,
 } from "../routes/report/schema";
@@ -297,18 +298,22 @@ describe("dashboard", () => {
 
     // Net worth stays the all-time sum; the month statement gets the window.
     expect(mockJournalRepo.sumLinesByAccount).toHaveBeenCalledWith("led-1", {});
-    const window = mockJournalRepo.listActivityEntries.mock.calls[0]?.[1] as {
+    const window = mockJournalRepo.listActivityEntriesWithLines.mock
+      .calls[0]?.[1] as {
       from?: Date;
+      shareMode?: string;
     };
     expect(window?.from?.getUTCMonth()).toBe(before.getUTCMonth());
     expect(window?.from?.getUTCFullYear()).toBe(before.getUTCFullYear());
     expect(window?.from?.getUTCDate()).toBe(1);
+    // The dashboard's own caliber stays members when the caller omits it.
+    expect(window?.shareMode).toBe("members");
     expect(result.month.year).toBe(before.getUTCFullYear());
     expect(result.month.month).toBe(before.getUTCMonth() + 1);
   });
 
   it("summarizes the caller-provided window at the members' shares", async () => {
-    mockJournalRepo.listActivityEntries.mockResolvedValue([
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
       // 100 split across two roster members: both slices count, so the
       // entry lands in full.
       shareEntry({
@@ -324,10 +329,10 @@ describe("dashboard", () => {
       to,
     });
 
-    expect(mockJournalRepo.listActivityEntries).toHaveBeenCalledWith("led-1", {
-      from,
-      to,
-    });
+    expect(mockJournalRepo.listActivityEntriesWithLines).toHaveBeenCalledWith(
+      "led-1",
+      { from, to, shareMode: "members" },
+    );
     expect(result.month.year).toBe(2025);
     expect(result.month.month).toBe(12);
     expect(result.month.totalExpense).toBe(100);
@@ -335,10 +340,72 @@ describe("dashboard", () => {
     expect(result.month.net).toBe(-100);
   });
 
+  it("forwards the stat filter surface into the entries and recent windows", async () => {
+    // The repo owns the filtering — the service's contract is that the
+    // caller's window reaches BOTH reads: the statement bounded by the
+    // materialized month, the feed carrying the filters but NOT the date
+    // bounds (its "5 most recent, all-time" semantics must not shrink to
+    // the summarized month).
+    const from = new Date(Date.UTC(2025, 11, 1));
+    const to = new Date(Date.UTC(2025, 12, 0, 23, 59, 59, 999));
+    await dashboard("led-1", "viewer", new Date(), {
+      from,
+      to,
+      q: "lunch",
+      participantUserId: "user-b",
+      accountId: "acc-food",
+      kind: "expense",
+      shareMode: "members",
+    });
+
+    expect(
+      mockJournalRepo.listActivityEntriesWithLines.mock.calls[0]?.[1],
+    ).toMatchObject({
+      from,
+      to,
+      q: "lunch",
+      participantUserId: "user-b",
+      accountId: "acc-food",
+      kind: "expense",
+      shareMode: "members",
+    });
+    expect(mockJournalRepo.listRecent.mock.calls[0]?.[2]).toMatchObject({
+      q: "lunch",
+      participantUserId: "user-b",
+      accountId: "acc-food",
+      kind: "expense",
+      shareMode: "members",
+    });
+    expect(mockJournalRepo.listRecent.mock.calls[0]?.[2]).not.toHaveProperty(
+      "from",
+    );
+    expect(mockJournalRepo.listRecent.mock.calls[0]?.[2]).not.toHaveProperty(
+      "to",
+    );
+  });
+
+  it("shareMode=line summarizes raw lines instead of the members' split", async () => {
+    // Members mode would count only user-a's slice (66.67 of the 100);
+    // line mode is the raw-books view: the gross 100.
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      shareEntry({
+        lines: [{ accountId: "acc-food", debit: 100, credit: 0 }],
+        participants: ["user-a", "user-out"],
+      }),
+    ]);
+
+    const result = await dashboard("led-1", "viewer", new Date(), {
+      shareMode: "line",
+    });
+
+    expect(result.month.totalExpense).toBe(100);
+    expect(result.month.net).toBe(-100);
+  });
+
   it("drops project outsiders' slices from the split while net worth stays all-time", async () => {
     // The beforeEach roster knows only user-a/user-b — "user-out" and
     // "user-guest" hold no ledger row.
-    mockJournalRepo.listActivityEntries.mockResolvedValue([
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
       // 100 across two members and one outsider: only the members' slices
       // count (33.34 + 33.33).
       shareEntry({
@@ -391,7 +458,11 @@ describe("dashboard", () => {
     // Recent entries mirror the journal activity: member entries the creator
     // kept in plus every guest post (every entry feeding the statement stays
     // visible at the top of the dashboard too).
-    expect(mockJournalRepo.listRecent).toHaveBeenCalledWith("led-1", 5);
+    expect(mockJournalRepo.listRecent).toHaveBeenCalledWith(
+      "led-1",
+      5,
+      expect.objectContaining({ shareMode: "members" }),
+    );
   });
 });
 
@@ -724,10 +795,26 @@ describe("report route query schemas", () => {
   it.each([
     dailySummaryQuerySchema,
     categorySummaryQuerySchema,
+    dashboardQuerySchema,
   ])("keeps parentAccountId on %#", (schema) => {
     expect(
       schema.parse({ shareMode: "members", parentAccountId: "acc-parent" }),
     ).toMatchObject({ parentAccountId: "acc-parent" });
+  });
+
+  // The dashboard's stat-filter extension rides the same statWindowArgs
+  // mapper as the other stat routes; its schema only differs in shareMode
+  // defaulting (the ledger dashboard has always spoken members).
+  it("dashboard query defaults shareMode to members and keeps filters", () => {
+    expect(dashboardQuerySchema.parse({})).toMatchObject({
+      shareMode: "members",
+    });
+    expect(
+      dashboardQuerySchema.parse({
+        participantUserId: "user-1",
+        shareMode: "line",
+      }),
+    ).toMatchObject({ participantUserId: "user-1", shareMode: "line" });
   });
 
   // The handlers' shared wire→service mapping: every declared filter must

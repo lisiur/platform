@@ -113,6 +113,12 @@ final class JournalStore {
     /// it, `clearFilters` restores it instead of lifting it. nil =
     /// ledger-wide page.
     var scopeProjectId: String?
+    /// The last (ledger, scope) pair `syncScopeProjection` applied — the
+    /// pop-back re-run guard's memory. A pushed page's return re-runs the
+    /// host page's `.task`, which re-invokes the projection with unchanged
+    /// inputs; the signature check is what keeps that re-run from wiping a
+    /// manual project filter (see the method's doc).
+    private var scopeSyncSignature: String?
     /// Row ordering, driven by the dashboard's month header (every other
     /// surface stays on `.date`). Not part of `clearFilters`: it's
     /// presentation intent, not a filter.
@@ -621,6 +627,27 @@ final class JournalStore {
         }
         if loadError != nil { loadError = nil }
         refreshSidecars()
+    }
+
+    /// Forces the project filter onto the ledger switcher's scope — but
+    /// only when the (ledger, scope) pair actually moved. The journal page
+    /// calls this from its `.task(id:)` (ledger switch, and the pop-back
+    /// re-run every push return produces) and from its live scope onChange;
+    /// an unconditional write would reset a manual project filter the user
+    /// picked in the funnel sheet on the ledger-wide page every time a
+    /// pushed chart page was popped back. The ledger id is explicit
+    /// because the caller must name the ledger it renders — which during
+    /// a switch precedes `load` seeding the store's own `ledgerId`. A
+    /// ledger switch changes the signature even when neither ledger is
+    /// scoped, so the previous ledger's manual pick can never survive into
+    /// the new ledger's list (its project id is meaningless there — the
+    /// sheet would render a blank row over a filtered list).
+    func syncScopeProjection(ledgerId: String?, scopeProjectId: String?) {
+        let signature = "\(ledgerId ?? "-")|\(scopeProjectId ?? "-")"
+        guard signature != scopeSyncSignature else { return }
+        scopeSyncSignature = signature
+        if self.scopeProjectId != scopeProjectId { self.scopeProjectId = scopeProjectId }
+        if projectFilterId != scopeProjectId { projectFilterId = scopeProjectId }
     }
 
     /// Batched clear: suppresses the per-key didSet storms so exactly one

@@ -51,15 +51,20 @@ struct JournalView: View {
     /// the window the user tapped on. nil = chart page popped.
     @State private var statsTarget: StatsTarget?
 
-    /// The chart page's push payload: the ledger snapshot plus the
-    /// window. Distinct from the cards' drill payload (`StatDetailTarget`)
-    /// — this one carries the window instead of a filter.
+    /// The chart page's push payload: the ledger snapshot plus the window
+    /// and the structural filters captured at tap time (the list's bounds
+    /// and filters keep moving behind a push — the pushed page must
+    /// describe the state the user tapped on). Distinct from the cards'
+    /// drill payload (`StatDetailTarget`) — this one carries the window
+    /// instead of a drill filter.
     private struct StatsTarget: Identifiable, Hashable {
         let ledger: QianlaiLedger
         let window: MonthWindow
+        let filters: StatsFilters?
 
         var id: String {
-            "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)"
+            let filterToken = filters.flatMap(StatsFilters.keySegment) ?? "-"
+            return "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
         }
     }
 
@@ -97,12 +102,17 @@ struct JournalView: View {
             }
             #endif
         }
-        // The chart page: the stats component for the tapped window. The
-        // registration lives on the page (never inside a lazy container,
-        // per the navigationDestination contract); the button only raises
-        // the payload.
+        // The chart page: the stats component for the tapped window and
+        // the filters active at tap time. The registration lives on the
+        // page (never inside a lazy container, per the
+        // navigationDestination contract); the button only raises the
+        // payload.
         .navigationDestination(item: $statsTarget) { target in
-            JournalStatsView(ledger: target.ledger, window: target.window)
+            JournalStatsView(
+                ledger: target.ledger,
+                window: target.window,
+                filters: target.filters
+            )
         }
         .task(id: ledgerStore.activeLedger?.id) {
             guard let id = ledgerStore.activeLedger?.id else { return }
@@ -452,16 +462,35 @@ struct JournalView: View {
         return !ledger.isGuest && scopedProject == nil
     }
 
+    /// The journal's structural filters as they read right now — the
+    /// chart page's push payload and the stat card's summary fetch share
+    /// the same live capture (an empty capture collapses to nil so an
+    /// unfiltered chart page stays wire- and cache-identical to the
+    /// dashboard tab's).
+    private var statsFilters: StatsFilters? {
+        let filters = StatsFilters(
+            participantUserId: store.participantUserId,
+            projectId: store.projectFilterId
+        )
+        return filters.isEmpty ? nil : filters
+    }
+
     /// The chart-page button (toolbar, trailing): opens the stats
-    /// component on the journal's active window. Same gate as the stat
-    /// card — the report endpoints 403 guests and the cards' ledger-wide
-    /// numerals would misdescribe a project-only list.
+    /// component on the journal's active window and filters (the funnel
+    /// sheet's structural picks; the search text and the show/hide opt-out
+    /// toggle stay list-only). Same gate as the stat card — the report
+    /// endpoints 403 guests and the cards' ledger-wide numerals would
+    /// misdescribe a project-only list.
     private var statsButton: some View {
         Group {
             if showsStats {
                 Button {
                     guard let ledger = ledgerStore.activeLedger else { return }
-                    statsTarget = StatsTarget(ledger: ledger, window: statsWindow)
+                    statsTarget = StatsTarget(
+                        ledger: ledger,
+                        window: statsWindow,
+                        filters: statsFilters
+                    )
                 } label: {
                     Image(systemName: "chart.bar")
                 }
@@ -492,10 +521,13 @@ struct JournalView: View {
     }
 
     /// Refetches the window summary, debounced like the list's own reload
-    /// so a tab switch's two bound writes cost one request. The All tab's
-    /// unbounded fetch is equivalent to bounding by the entry extent (every
-    /// entry lies within it), so no bounds wait is needed; a ledger switch
-    /// that lands mid-flight discards the stale response.
+    /// so a tab switch's two bound writes cost one request. The filters
+    /// ride along live (read at fetch time — the card follows the list),
+    /// so a participant- or project-filtered window's totals describe
+    /// exactly the rows beneath the card. The All tab's unbounded fetch is
+    /// equivalent to bounding by the entry extent (every entry lies within
+    /// it), so no bounds wait is needed; a ledger switch that lands
+    /// mid-flight discards the stale response.
     private func scheduleSummaryReload() {
         guard showsStats else { return }
         summaryTask?.cancel()
@@ -505,7 +537,8 @@ struct JournalView: View {
             let ledgerId = ledgerStore.activeLedger?.id
             let summary = await reportStore.windowSummary(
                 from: store.fromDate ?? .distantPast,
-                to: store.toDate ?? .distantFuture
+                to: store.toDate ?? .distantFuture,
+                filters: statsFilters
             )
             guard !Task.isCancelled, ledgerId == ledgerStore.activeLedger?.id else { return }
             windowSummary = summary
@@ -704,13 +737,15 @@ struct JournalView: View {
     /// scoped, and again from `.onChange(of: scopedProject?.id)` — which
     /// fires even while this tab is offscreen — on live scope changes; a
     /// nil scope lifts the filter. Also records the scope so the filter
-    /// sheet can't change it and Clear restores it.
+    /// sheet can't change it and Clear restores it. The store-side
+    /// signature guard (`syncScopeProjection`) is what makes re-running
+    /// this from a pop-back `.task` harmless: unchanged inputs leave a
+    /// manual project filter alone.
     private func syncScopeFilter() {
-        let scopedId = scopedProject?.id
-        if store.scopeProjectId != scopedId { store.scopeProjectId = scopedId }
-        if store.projectFilterId != scopedId {
-            store.projectFilterId = scopedId
-        }
+        store.syncScopeProjection(
+            ledgerId: ledgerStore.activeLedger?.id,
+            scopeProjectId: scopedProject?.id
+        )
     }
 
     /// Drops a manual project filter that no longer points at an active

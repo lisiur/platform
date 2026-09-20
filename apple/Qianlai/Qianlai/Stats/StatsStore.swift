@@ -8,22 +8,64 @@
 import Foundation
 import Observation
 
+/// The journal's structural filters a chart page carries, captured at
+/// push time (the funnel sheet's picks). Deliberately absent: the search
+/// text (a list mechanic, not a chart dimension) and the show/hide opt-out
+/// toggle — a 不计收支 entry's amounts stay out of every stat the ledger
+/// speaks, charts included, however the list displays it; that caliber is
+/// pinned server-side. nil = the unfiltered ledger stats the dashboard tab
+/// fetches: unchanged snapshot keys, and the widget-snapshot publish duty.
+struct StatsFilters: Hashable {
+    var participantUserId: String?
+    var projectId: String?
+
+    /// Capture sites collapse empty filters to nil so an unfiltered chart
+    /// page stays wire- and cache-identical to the dashboard tab's.
+    var isEmpty: Bool { participantUserId == nil && projectId == nil }
+
+    /// The aggregation's numerator, the journal day headers' rule: a
+    /// project's books speak raw lines, the ledger speaks the members'
+    /// split.
+    var shareMode: ReportShareMode { projectId == nil ? .members : .line }
+
+    /// The wire pairs appended beside the window pairs (`ReportPaths`).
+    var queryPairs: [(String, String?)] {
+        [
+            ("participantUserId", participantUserId),
+            ("projectId", projectId),
+        ]
+    }
+
+    /// The cache-key segment that separates a filtered page's record from
+    /// the ledger's unfiltered one — nil keeps the legacy key (and its
+    /// already-persisted snapshots) valid for the unfiltered surfaces.
+    /// Pure and nonisolated for tests.
+    nonisolated static func keySegment(_ filters: StatsFilters?) -> String? {
+        guard let filters, !filters.isEmpty else { return nil }
+        return ApiQuery.build(
+            filters.queryPairs + [("shareMode", filters.shareMode.rawValue)]
+        )
+    }
+}
+
 /// Windowed stats for one ledger: the overview totals (the dashboard
 /// report), the per-day income/expense series, and the per-category
 /// totals — the three payloads behind the stats component's cards,
-/// fetched together at the `members` share mode over ANY local window (a
-/// month on the dashboard, a week or custom range on a journal stats
-/// page). Each surface owns its own instance so two mounted stats
-/// windows (the dashboard tab alive behind a pushed stats page) can
-/// never overwrite each other — the same per-surface-store rule the
-/// drill-down's private `JournalStore` follows. Keep-previous on
-/// failure like the old dashboard cards; a ledger switch drops
-/// everything (stale charts from another ledger are worse than blank
-/// ones). The widget's month-to-date snapshot duty rode here with the
-/// overview fetch (out of `ReportStore`): a fetched window that IS the
-/// current local month republishes the snapshot, so week/custom-range
-/// totals can never masquerade as the widget's month figures and
-/// browsing an older month doesn't overwrite it either.
+/// fetched together over ANY local window (a month on the dashboard, a
+/// week or custom range on a journal stats page), optionally scoped to
+/// the journal's structural filters. Each surface owns its own instance
+/// so two mounted stats windows (the dashboard tab alive behind a pushed
+/// stats page) can never overwrite each other — the same per-surface-
+/// store rule the drill-down's private `JournalStore` follows. Keep-
+/// previous on failure like the old dashboard cards; a ledger switch
+/// drops everything (stale charts from another ledger are worse than
+/// blank ones). The widget's month-to-date snapshot duty rode here with
+/// the overview fetch (out of `ReportStore`): a fetched window that IS
+/// the current local month republishes the snapshot, so week/custom-
+/// range totals can never masquerade as the widget's month figures and
+/// browsing an older month doesn't overwrite it either — and a FILTERED
+/// fetch never republishes at all (one participant's spend is not the
+/// family's month-to-date).
 @MainActor
 @Observable
 final class StatsStore {
@@ -51,15 +93,21 @@ final class StatsStore {
 
     private var ledgerId: String?
 
-    /// Fetches all three payloads for `window`. The component's
-    /// `.task(id:)` calls this on mount, window change, and appearance —
-    /// re-fetching on every appearance is the dashboard's established
-    /// refresh rhythm, and `.task`'s restart coalesces rapid window
-    /// stepping the way the old debounced reload did. A cold surface first
-    /// hydrates the nil payloads from the snapshot cache, so a remounted
-    /// stats page paints last-known figures instead of placeholders while
-    /// the fetches below silently correct them.
-    func load(ledgerId: String, window: MonthWindow) async {
+    /// Fetches all three payloads for `window`, scoped to `filters` when
+    /// the surface carries the journal's structural filters (nil = the
+    /// dashboard tab's unfiltered ledger stats). The component's
+    /// `.task(id:)` calls this on mount, window change, and every
+    /// appearance — re-fetching on every appearance is the dashboard's
+    /// established refresh rhythm, and `.task`'s restart coalesces rapid
+    /// window stepping the way the old debounced reload did. A cold
+    /// surface first hydrates the nil payloads from the snapshot cache,
+    /// so a remounted stats page paints last-known figures instead of
+    /// placeholders while the fetches below silently correct them.
+    func load(
+        ledgerId: String,
+        window: MonthWindow,
+        filters: StatsFilters? = nil
+    ) async {
         let ledgerChanged = self.ledgerId != ledgerId
         if ledgerChanged {
             overview = nil
@@ -68,12 +116,18 @@ final class StatsStore {
         }
         self.ledgerId = ledgerId
         self.window = window
-        hydrate(ledgerId: ledgerId, window: window)
+        hydrate(ledgerId: ledgerId, window: window, filters: filters)
         isLoading = true
         defer { isLoading = false }
-        async let overview: () = loadOverview(ledgerId: ledgerId, window: window)
-        async let daily: () = loadDaily(ledgerId: ledgerId, window: window)
-        async let categories: () = loadCategories(ledgerId: ledgerId, window: window)
+        async let overview: () = loadOverview(
+            ledgerId: ledgerId, window: window, filters: filters
+        )
+        async let daily: () = loadDaily(
+            ledgerId: ledgerId, window: window, filters: filters
+        )
+        async let categories: () = loadCategories(
+            ledgerId: ledgerId, window: window, filters: filters
+        )
         _ = await (overview, daily, categories)
     }
 
@@ -91,15 +145,26 @@ final class StatsStore {
         var categories: CategorySummaryResponse? = nil
     }
 
-    /// The cache key: ledger + window bounds. The stats component speaks a
-    /// fixed share mode (`members`) and no other query dimensions, so the
-    /// window is the whole signature.
-    private static func snapshotKey(ledgerId: String, window: MonthWindow) -> String {
-        SnapshotCache.makeKey([
+    /// The cache key: ledger + window bounds, plus a filters segment when
+    /// the surface carries the journal's structural filters — a
+    /// participant-scoped chart must never read or poison the ledger's
+    /// record. The unfiltered key is unchanged (the dashboard tab's cold
+    /// mounts rehydrate its persisted snapshots). Pure and nonisolated
+    /// for tests.
+    nonisolated static func snapshotKey(
+        ledgerId: String,
+        window: MonthWindow,
+        filters: StatsFilters?
+    ) -> String {
+        var tokens = [
             ledgerId,
             SnapshotCache.epochOrAll(window.from),
             SnapshotCache.epochOrAll(window.to),
-        ])
+        ]
+        if let segment = StatsFilters.keySegment(filters) {
+            tokens.append(segment)
+        }
+        return SnapshotCache.makeKey(tokens)
     }
 
     /// Fills only the payload fields that are nil — a cold mount hydrates
@@ -110,11 +175,15 @@ final class StatsStore {
     /// publishes the widget snapshot: that duty belongs to real fetches
     /// (`loadOverview`), a cache hit must not pose as one. Surfaces that
     /// never fetch (guests) never reach `load`, so they never hydrate.
-    private func hydrate(ledgerId: String, window: MonthWindow) {
+    private func hydrate(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) {
         guard overview == nil || daily == nil || categories == nil else { return }
         guard
             let snapshot: StatsSnapshot = Self.cache.read(
-                key: Self.snapshotKey(ledgerId: ledgerId, window: window),
+                key: Self.snapshotKey(
+                    ledgerId: ledgerId, window: window, filters: filters
+                ),
                 as: StatsSnapshot.self
             )
         else { return }
@@ -131,31 +200,38 @@ final class StatsStore {
     private func mergeIntoCache(
         ledgerId: String,
         window: MonthWindow,
+        filters: StatsFilters?,
         update: (inout StatsSnapshot) -> Void
     ) {
-        let key = Self.snapshotKey(ledgerId: ledgerId, window: window)
+        let key = Self.snapshotKey(
+            ledgerId: ledgerId, window: window, filters: filters
+        )
         var snapshot = Self.cache.read(key: key, as: StatsSnapshot.self) ?? StatsSnapshot()
         update(&snapshot)
         Self.cache.write(key: key, payload: snapshot)
     }
 
-    /// The three fetches' shared shape. The window bounds come from
-    /// `ReportPaths.windowPairs` — the one place a stats query's range is
-    /// shaped, so a payload can never silently lose it again (a dropped
-    /// pair once shipped the composition card as all-time totals) — then
-    /// the endpoint is requested, the result dropped when a newer load
-    /// has re-aimed the store or the task was cancelled, published, and
-    /// the previous payload kept on failure (the next reload retries).
+    /// The three fetches' shared shape. The window pairs and the caller's
+    /// filters + numerator come from `baseQueryPairs` — the one place a
+    /// stats query's scope is shaped (ReportPaths owns the range, so a
+    /// payload can never silently lose it again — a dropped pair once
+    /// shipped the composition card as all-time totals) — then the
+    /// endpoint is requested, the result dropped when a newer load has
+    /// re-aimed the store or the task was cancelled, published, and the
+    /// previous payload kept on failure (the next reload retries).
     /// `publish` runs on the store's actor only after the staleness guard.
     private func fetch<P: Decodable>(
         _ endpoint: String,
         ledgerId: String,
         window: MonthWindow,
+        filters: StatsFilters?,
         query: [(String, String?)] = [],
         publish: (P) -> Void
     ) async {
         let path = "bookkeeping/ledgers/\(ledgerId)/reports/\(endpoint)"
-            + ApiQuery.build(ReportPaths.windowPairs(window) + query)
+            + ApiQuery.build(
+                Self.baseQueryPairs(window: window, filters: filters) + query
+            )
         do {
             let payload: P = try await client.request("GET", path)
             guard isCurrent(window), !Task.isCancelled else { return }
@@ -165,43 +241,78 @@ final class StatsStore {
         }
     }
 
+    /// The wire pairs every stats request carries beside its endpoint
+    /// extras: the window, then the caller's filters and numerator. The
+    /// unfiltered shape is the shipped one — window + `shareMode=members`
+    /// — with one deliberate delta: the overview fetch now also declares
+    /// its numerator (the server's default anyway, matching the
+    /// every-caller-declares convention), so the daily/category requests
+    /// are the byte-identical ones. Pure and nonisolated for tests.
+    nonisolated static func baseQueryPairs(
+        window: MonthWindow, filters: StatsFilters?
+    ) -> [(String, String?)] {
+        ReportPaths.windowPairs(window)
+            + [
+                ("shareMode", (filters?.shareMode ?? .members).rawValue)
+            ]
+            + (filters?.queryPairs ?? [])
+    }
+
     /// The overview fetch. On success the widget snapshot duty runs (see
-    /// `WidgetSnapshotSync` for the current-month rule).
-    private func loadOverview(ledgerId: String, window: MonthWindow) async {
+    /// `WidgetSnapshotSync` for the current-month rule) — unfiltered
+    /// fetches only: a participant- or project-scoped page's figures are
+    /// not the family's month-to-date, so they must never republish.
+    private func loadOverview(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) async {
         await fetch(
-            "dashboard", ledgerId: ledgerId, window: window
+            "dashboard", ledgerId: ledgerId, window: window, filters: filters
         ) { (dashboard: Dashboard) in
             overview = dashboard
-            WidgetSnapshotSync.publishIfCurrentMonth(dashboard, ledgerId: ledgerId, window: window)
-            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.overview = dashboard }
+            if filters?.isEmpty ?? true {
+                WidgetSnapshotSync.publishIfCurrentMonth(
+                    dashboard, ledgerId: ledgerId, window: window
+                )
+            }
+            mergeIntoCache(
+                ledgerId: ledgerId, window: window, filters: filters
+            ) { $0.overview = dashboard }
         }
     }
 
-    /// The daily-summary fetch — the trend card's `members` numerator,
-    /// matching the stat block; `tzOffsetMinutes` is the day bucketing.
-    private func loadDaily(ledgerId: String, window: MonthWindow) async {
+    /// The daily-summary fetch — the trend card's numerator, matching the
+    /// stat block; `tzOffsetMinutes` is the day bucketing.
+    private func loadDaily(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) async {
         await fetch(
             "daily-summary", ledgerId: ledgerId, window: window,
+            filters: filters,
             query: [
-                ("shareMode", ReportShareMode.members.rawValue),
                 ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
             ]
         ) { (response: DailySummaryResponse) in
             daily = response.days
-            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.daily = response.days }
+            mergeIntoCache(
+                ledgerId: ledgerId, window: window, filters: filters
+            ) { $0.daily = response.days }
         }
     }
 
-    /// The category-summary fetch — the daily summary's `members`
-    /// numerator keyed per account, so the composition card reconciles
-    /// with the trend card beside it.
-    private func loadCategories(ledgerId: String, window: MonthWindow) async {
+    /// The category-summary fetch — the daily summary's numerator keyed
+    /// per account, so the composition card reconciles with the trend
+    /// card beside it.
+    private func loadCategories(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) async {
         await fetch(
             "category-summary", ledgerId: ledgerId, window: window,
-            query: [("shareMode", ReportShareMode.members.rawValue)]
+            filters: filters
         ) { (summary: CategorySummaryResponse) in
             categories = summary
-            mergeIntoCache(ledgerId: ledgerId, window: window) { $0.categories = summary }
+            mergeIntoCache(
+                ledgerId: ledgerId, window: window, filters: filters
+            ) { $0.categories = summary }
         }
     }
 

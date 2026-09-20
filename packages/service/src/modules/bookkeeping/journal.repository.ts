@@ -970,13 +970,11 @@ export const journalRepository = {
   listRecent(
     ledgerId: string,
     limit: number,
-    opts: { includeExcluded?: boolean } = {},
+    opts: EntryWindow = {},
     tx: Prisma.TransactionClient = prisma,
   ) {
     return tx.journalEntry.findMany({
-      where: entryFilterWhere(ledgerId, {
-        includeExcluded: opts.includeExcluded,
-      }),
+      where: entryFilterWhere(ledgerId, opts),
       include: entryInclude,
       take: limit,
       orderBy: [{ date: "desc" }, { entryNo: "desc" }],

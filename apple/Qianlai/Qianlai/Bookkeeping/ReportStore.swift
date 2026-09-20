@@ -248,16 +248,27 @@ final class ReportStore {
     }
 
     /// One-shot share-based summary for an explicit window (the journal's
-    /// stat card): the dashboard endpoint takes from/to like the windowed
-    /// reports, but nothing here touches the published state. nil on
-    /// failure — guests 403 (callers gate the card), and a failed fetch
-    /// just keeps the previous totals.
-    func windowSummary(from: Date, to: Date) async -> Dashboard? {
+    /// stat card), optionally scoped to the journal's structural filters —
+    /// a filtered window's totals then describe exactly the list's rows.
+    /// The dashboard endpoint takes from/to like the windowed reports, but
+    /// nothing here touches the published state. nil on failure — guests
+    /// 403 (callers gate the card), and a failed fetch just keeps the
+    /// previous totals.
+    func windowSummary(
+        from: Date,
+        to: Date,
+        filters: StatsFilters? = nil
+    ) async -> Dashboard? {
         guard let ledgerId else { return nil }
-        let query = ApiQuery.build([
+        var pairs: [(String, String?)] = [
             ("from", ApiQuery.iso(from)),
             ("to", ApiQuery.iso(AppDates.localEndOfDay(to))),
-        ])
+        ]
+        if let filters, !filters.isEmpty {
+            pairs += filters.queryPairs
+            pairs.append(("shareMode", filters.shareMode.rawValue))
+        }
+        let query = ApiQuery.build(pairs)
         return try? await client.request(
             "GET",
             "bookkeeping/ledgers/\(ledgerId)/reports/dashboard\(query)"

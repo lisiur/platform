@@ -15,7 +15,8 @@ import Foundation
 @MainActor
 enum ReportPaths {
     /// The [from, to] pairs every windowed report path carries.
-    static func windowPairs(_ window: MonthWindow) -> [(String, String?)] {
+    /// nonisolated — the snapshot-key builders are pure and read it.
+    nonisolated static func windowPairs(_ window: MonthWindow) -> [(String, String?)] {
         [
             ("from", ApiQuery.iso(window.from)),
             ("to", ApiQuery.iso(window.to)),

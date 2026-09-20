@@ -8,19 +8,26 @@
 import SwiftUI
 
 /// The journal page's chart page: the reusable stats component rendering
-/// the journal's active window, captured at push time (the list's bounds
-/// keep moving behind the push otherwise — the page never follows them).
-/// The cards' drills push the same filtered-journal page the dashboard's
-/// cards use, windowed to this page's range; swipe edits down there bump
-/// the shared epoch the component listens on, so the cards re-summarize
-/// live. Reached only where the journal's stat card shows (not a guest —
-/// the report endpoints 403 them — and not in project scope, where the
-/// cards' ledger-wide numerals would misdescribe a project-only list).
+/// the journal's active window and structural filters (the funnel sheet's
+/// participant/project picks), captured at push time — the list's bounds
+/// and filters keep moving behind the push otherwise; the page never
+/// follows them. The cards' drills push the same filtered-journal page
+/// the dashboard's cards use, windowed to this page's range and seeded
+/// with the same filters so the rows reconcile with the tapped figures;
+/// swipe edits down there bump the shared epoch the component listens
+/// on, so the cards re-summarize live. Reached only where the journal's
+/// stat card shows (not a guest — the report endpoints 403 them — and
+/// not in project scope, where the cards' ledger-wide numerals would
+/// misdescribe a project-only list).
 struct JournalStatsView: View {
     @Environment(\.locale) private var locale
 
     let ledger: QianlaiLedger
     let window: MonthWindow
+    /// The journal filters captured at push time (nil = unfiltered). The
+    /// component's show/hide opt-out toggle is deliberately not among
+    /// them: 不计收支 amounts stay out of every stat, charts included.
+    var filters: StatsFilters? = nil
 
     /// One windowed store for this surface, so a drill page's live epoch
     /// refresh can't clash with the dashboard tab's payloads.
@@ -34,6 +41,7 @@ struct JournalStatsView: View {
                 ledgerId: ledger.id,
                 currency: ledger.currency,
                 window: window,
+                filters: filters,
                 expenseAction: { openDrill(JournalDrillDown(kind: .expense)) },
                 incomeAction: { openDrill(JournalDrillDown(kind: .income)) },
                 onSelectDay: { day, kind in openDrill(JournalDrillDown(kind: kind), day: day) },
@@ -64,7 +72,13 @@ struct JournalStatsView: View {
         // bars on every level keep push/pop offset-neutral.
         .largeNavigationBarTitle()
         .navigationDestination(item: $drillTarget) { target in
-            StatKindDetailView(ledger: target.ledger, filter: target.filter, window: window, day: target.day)
+            StatKindDetailView(
+                ledger: target.ledger,
+                filter: target.filter,
+                window: window,
+                day: target.day,
+                filters: filters
+            )
         }
         // The component's own task fetches on mount, window change, and
         // every appearance — no page-level fetch here.

@@ -45,6 +45,13 @@ struct StatsCardsView: View {
     /// natural month additionally mounts the calendar card; wider ranges
     /// hide it (a calendar grid is month-shaped).
     let window: MonthWindow
+    /// The journal's structural filters the host surface is scoped to
+    /// (the journal chart page's push-time capture). nil = the dashboard
+    /// tab's unfiltered ledger stats. A filtered surface's totals never
+    /// republish the widget snapshot, so it must not claim the posting
+    /// path's dedupe either — the liveness registration below is
+    /// unfiltered-only.
+    var filters: StatsFilters? = nil
     /// The stat block's kind drills (expense hero / income column).
     var expenseAction: (() -> Void)? = nil
     var incomeAction: (() -> Void)? = nil
@@ -55,11 +62,14 @@ struct StatsCardsView: View {
     /// A composition row/slice drill (kind + account axes + label).
     var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
 
-    /// The task key: ledger plus window bounds. Reacting to the window —
-    /// not just the ledger — is what re-aims the cards when the host
-    /// steps its month/range.
+    /// The task key: ledger, window bounds, and the filter segment. Reacting
+    /// to the window — not just the ledger — is what re-aims the cards when
+    /// the host steps its month/range; the filters are fixed per mounted
+    /// page but belong in the key so identity survives a host that re-aims
+    /// them.
     private var loadKey: String {
-        "\(ledgerId)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)"
+        let filterToken = StatsFilters.keySegment(filters) ?? "-"
+        return "\(ledgerId)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
     }
 
     /// The calendar card's month when the window is exactly one natural
@@ -120,32 +130,41 @@ struct StatsCardsView: View {
                 try? await Task.sleep(for: ReloadDebounce.interval)
                 guard !Task.isCancelled else { return }
             }
-            await store.load(ledgerId: ledgerId, window: window)
+            await store.load(
+                ledgerId: ledgerId, window: window, filters: filters
+            )
         }
         // A post/update/delete anywhere bumps the shared epoch — refetch
         // so the cards re-summarize live under the user's finger.
         .onChange(of: reportStore?.journalEpoch ?? 0) {
             guard isReportingEnabled else { return }
-            Task { await store.load(ledgerId: ledgerId, window: window) }
+            Task {
+                await store.load(
+                    ledgerId: ledgerId, window: window, filters: filters
+                )
+            }
         }
         // Liveness for the posting path's snapshot dedupe: while mounted
         // and fetching, this surface owns the snapshot republish for its
         // window (the epoch onChange above fires on every post), so the
-        // post path skips its own dashboard fetch. A lazy list row
-        // scrolled off-screen unregisters, which only ever costs the
-        // dedupe — never a missing publish.
+        // post path skips its own dashboard fetch. UNFILTERED surfaces
+        // only — a filtered page's totals never republish (the store's
+        // overview guard), so claiming the duty here would leave the
+        // widget stale after a post. A lazy list row scrolled off-screen
+        // unregisters, which only ever costs the dedupe — never a missing
+        // publish.
         .onAppear {
-            guard isReportingEnabled else { return }
+            guard isReportingEnabled, filters?.isEmpty ?? true else { return }
             StatsSurfaceWatch.register(ledgerId: ledgerId, window: window)
         }
         .onDisappear {
-            guard isReportingEnabled else { return }
+            guard isReportingEnabled, filters?.isEmpty ?? true else { return }
             StatsSurfaceWatch.unregister(ledgerId: ledgerId, window: window)
         }
         // onAppear doesn't re-fire when the host steps the month in place —
         // re-seat the registration from the old window to the new one.
         .onChange(of: window) { old, new in
-            guard isReportingEnabled else { return }
+            guard isReportingEnabled, filters?.isEmpty ?? true else { return }
             StatsSurfaceWatch.unregister(ledgerId: ledgerId, window: old)
             StatsSurfaceWatch.register(ledgerId: ledgerId, window: new)
         }

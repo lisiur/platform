@@ -89,6 +89,11 @@ struct StatKindDetailView: View {
     /// month; `filter.kind` still scopes within the day when set (the
     /// calendar drills all kinds, the trend card drills its metric).
     var day: Date? = nil
+    /// The journal chart page's captured structural filters, seeded onto
+    /// the private store so the drill's rows (and their day headers)
+    /// reconcile with the filtered figures the user tapped. The dashboard's
+    /// drills leave it nil — its cards summarize the unfiltered ledger.
+    var filters: StatsFilters? = nil
 
     /// Private entry store, injected below so the rows act on this
     /// list without clashing with the Journal tab's root store. Configured
@@ -140,6 +145,8 @@ struct StatKindDetailView: View {
             store.accountId = filter.accountId
             store.parentAccountId = filter.parentAccountId
             store.budgetExcluded = filter.isBudgetExcluded
+            store.participantUserId = filters?.participantUserId
+            store.projectFilterId = filters?.projectId
             await store.load(ledgerId: ledger.id)
         }
     }
