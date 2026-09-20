@@ -75,7 +75,7 @@ struct JournalView: View {
                     topContent: AnyView(rangeHeader),
                     // Ledger-wide journal only: in project scope the
                     // settlement pages own the shares (project members).
-                    showsProjectShare: scopedProject == nil
+                    showsShareCaption: scopedProject == nil
                 )
             } else {
                 EmptyStateView(

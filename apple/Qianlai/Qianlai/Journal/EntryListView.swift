@@ -37,7 +37,7 @@ struct EntryListView: View {
     /// drill-down's right-column look, with the figure the stat cards
     /// count. Project surfaces hide it (their settlement pages compute
     /// per-member shares among project members instead).
-    var showsProjectShare = false
+    var showsShareCaption = false
 
     @State private var entryPendingDelete: JournalEntry?
     @State private var entryPendingEdit: JournalEntry?
@@ -48,14 +48,14 @@ struct EntryListView: View {
         showsPostHint: Bool = true,
         amountSection: ((JournalEntry) -> EntryAmountSection?)? = nil,
         topContent: AnyView? = nil,
-        showsProjectShare: Bool = false
+        showsShareCaption: Bool = false
     ) {
         self.ledger = ledger
         self.emptyMessage = emptyMessage
         self.showsPostHint = showsPostHint
         self.amountSection = amountSection
         self.topContent = topContent
-        self.showsProjectShare = showsProjectShare
+        self.showsShareCaption = showsShareCaption
     }
 
     var body: some View {
@@ -224,11 +224,11 @@ struct EntryListView: View {
             entry: entry,
             currency: ledger.currency,
             amountSection: amountSection?(entry),
-            showsProjectShare: showsProjectShare
+            showsShareCaption: showsShareCaption
         )
             .background {
                 NavigationLink {
-                    JournalDetailView(entry: entry, showsProjectShare: showsProjectShare)
+                    JournalDetailView(entry: entry, showsShareCaption: showsShareCaption)
                 } label: {
                     EmptyView()
                 }
@@ -334,12 +334,16 @@ struct EntryRow: View {
     /// Custom right-hand column replacing the standard headline (settlement
     /// drill-downs); nil renders the entry's own amount.
     var amountSection: EntryAmountSection?
-    /// Ledger-wide switch: a project entry's amount column also carries the
-    /// 分摊/分账 caption — the ledger members' combined share (what the
-    /// stat cards count from this entry), rendered with the settlement
-    /// drill-down's shared caption. Off on project surfaces, where the
-    /// settlement math runs among project members instead.
-    var showsProjectShare = false
+    /// Ledger-wide switch: the amount column carries the 分摊/分账 caption
+    /// whenever the row's contribution to the day headers differs from its
+    /// headline — every project entry (virtual/project-only participants
+    /// hold no ledger roster row), plus a pure-ledger entry whose tagged
+    /// slice left the headline via a since-departed member. The caption is
+    /// the ledger members' combined share (what the stat cards count from
+    /// this entry), rendered with the settlement drill-down's shared
+    /// caption. Off on project surfaces, where the settlement math runs
+    /// among project members instead.
+    var showsShareCaption = false
 
     /// Fixed icon column for the meta rows (project, location,
     /// not-counted): the symbols' natural widths differ, so without it the
@@ -540,12 +544,15 @@ struct EntryRow: View {
     /// among project members). Reuses `SettlementAmountColumn.shareCaption`
     /// so the two captions never drift. Hidden for transfers (nothing to
     /// split), when the list didn't supply the figure, and on project
-    /// surfaces (showsProjectShare off).
+    /// surfaces (showsShareCaption off). A pure-ledger entry captions too,
+    /// but only when its share actually left the headline — a tagged slice
+    /// held by a since-departed member the day header no longer counts;
+    /// equal shares reconcile with the headline alone and need no caption.
     private var projectShareSection: EntryAmountSection? {
-        guard showsProjectShare,
-              entry.project != nil,
+        guard showsShareCaption,
               let cents = entry.memberSharesCents,
-              entry.valueCents != 0
+              entry.valueCents != 0,
+              entry.shareLeavesHeadline(cents)
         else { return nil }
         return EntryAmountSection(
             headline: .init(text: headlineAmount.text, color: headlineAmount.color),

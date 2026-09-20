@@ -105,7 +105,7 @@ struct StatKindDetailView: View {
             showsPostHint: false,
             // Ledger-wide surface: project entries carry the ledger
             // members' combined share, like the journal list.
-            showsProjectShare: true
+            showsShareCaption: true
         )
         .environment(store)
         // Pull-to-refresh is back: the drop was a sheet-mount accommodation

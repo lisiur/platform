@@ -459,6 +459,18 @@ struct JournalEntry: Codable, Identifiable, Hashable {
         return value
     }
 
+    /// Whether the entry's ledger-member share can differ from its gross
+    /// headline: every project entry (virtual/project-only participants
+    /// hold no ledger roster row, so their slices silently leave the
+    /// headline), plus any entry whose attached share actually left it —
+    /// a tagged slice held by a since-departed member. Exactly these
+    /// entries need the 分摊 caption for the day headers' share-based
+    /// totals to reconcile row by row; the rest reconcile against the
+    /// headline alone.
+    func shareLeavesHeadline(_ memberSharesCents: Int) -> Bool {
+        project != nil || memberSharesCents != valueCents
+    }
+
     /// The viewer's share of this entry's value in cents, mirroring the
     /// server's `viewerShareCents` (report.service.ts): equal split across
     /// the deduped tagged participants — remainder cents to the earliest

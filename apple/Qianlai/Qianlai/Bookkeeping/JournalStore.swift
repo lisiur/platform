@@ -914,6 +914,12 @@ final class JournalStore {
     /// 不计入收支) but its amounts stay out of every day total, matching
     /// the month stat card.
     ///
+    /// The rows are the header's audit trail: a day header totals exactly
+    /// what the rows beneath it can account for — per row the 分摊 caption
+    /// (`memberSharesCents`, the same server figure the header splits by)
+    /// or the headline where the two are equal, minus the rows the
+    /// 不计收支 flag marks.
+    ///
     /// EXCEPTION — the budget-flag drill: its rows DO include creator
     /// opt-outs (the budget pool counts them, and the list rides the
     /// store's includeExcluded=true), so the day headers must too — or a

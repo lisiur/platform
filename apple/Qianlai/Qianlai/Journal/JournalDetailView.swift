@@ -27,7 +27,7 @@ struct JournalDetailView: View {
     /// Mirrors the list that pushed this page: ledger-wide surfaces also
     /// show the ledger members' combined share on project entries (see
     /// `EntryRow`); project surfaces stay without it.
-    var showsProjectShare = false
+    var showsShareCaption = false
 
     @State private var isEditPresented = false
     @State private var isDeletePending = false
@@ -88,7 +88,7 @@ struct JournalDetailView: View {
             EntryRow(
                 entry: resolved,
                 currency: ledgerStore.activeLedger?.currency ?? "",
-                showsProjectShare: showsProjectShare
+                showsShareCaption: showsShareCaption
             )
             .appCardRow()
             .listRowSeparator(.hidden)

@@ -27,15 +27,17 @@ function row(
   };
 }
 
-/** A transaction client whose journalLine.findMany records its where — the
- *  line aggregations' filter surface is `entryFilterWhere`'s output, so
+/** A transaction client whose `model`.findMany records its where — the
+ *  aggregations' filter surface is `entryFilterWhere`'s output, so
  *  capturing the where (and the select) is the whole assertion surface.
- *  Shared by the day-summary and category-summary describes. */
-function capturingTx() {
+ *  Shared by the day-summary, category-summary, and members-input
+ *  describes (line aggregations read journalLine, the members-mode
+ *  summary's input reads journalEntry). */
+function capturingTx(model: "journalEntry" | "journalLine" = "journalLine") {
   const findMany = vi.fn().mockResolvedValue([]);
   return {
     findMany,
-    tx: { journalLine: { findMany } } as unknown as Prisma.TransactionClient,
+    tx: { [model]: { findMany } } as unknown as Prisma.TransactionClient,
   };
 }
 
@@ -541,6 +543,29 @@ describe("sumLinesByDay", () => {
     });
     const memberOr = and[0].OR as Array<Record<string, unknown>>;
     expect(memberOr[0]).toEqual({ paidById: "user-2" });
+  });
+});
+
+describe("listActivityEntriesWithLines", () => {
+  it("applies the same filter surface as the line-mode summary — the members-mode twin never widens the set", async () => {
+    const { tx, findMany } = capturingTx("journalEntry");
+    await journalRepository.listActivityEntriesWithLines("led-1", {}, tx);
+    expect(findMany.mock.calls[0][0].where).toMatchObject({
+      ledgerId: "led-1",
+      OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
+    expect(findMany.mock.calls[0][0].where.excludedFromBudget).toBeUndefined();
+  });
+
+  it("includeExcluded=true lifts the activity predicate here too — the budget drill's axis", async () => {
+    const { tx, findMany } = capturingTx("journalEntry");
+    await journalRepository.listActivityEntriesWithLines(
+      "led-1",
+      { includeExcluded: true },
+      tx,
+    );
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.OR).toBeUndefined();
   });
 });
 
