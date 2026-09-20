@@ -15,7 +15,9 @@ import Observation
 /// speaks, charts included, however the list displays it; that caliber is
 /// pinned server-side. nil = the unfiltered ledger stats the dashboard tab
 /// fetches: unchanged snapshot keys, and the widget-snapshot publish duty.
-struct StatsFilters: Hashable {
+/// nonisolated — its members feed the pure key/query builders below, the
+/// same convention as `MonthWindow`.
+nonisolated struct StatsFilters: Hashable {
     var participantUserId: String?
     var projectId: String?
 

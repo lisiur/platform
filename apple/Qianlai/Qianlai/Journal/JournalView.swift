@@ -148,6 +148,18 @@ struct JournalView: View {
             clearRangePinIfWindowEmpty()
             scheduleSummaryReload()
         }
+        // The funnel sheet's structural picks reshape the stat card's set
+        // too — its summary fetch carries them (unlike the search text and
+        // the show/hide toggle, which the stats caliber ignores) — so each
+        // pick reloads the card the same way a window bound does. The
+        // project filter also moves on scope switches, whose onChange
+        // above already fires; the debounced reload coalesces.
+        .onChange(of: store.participantUserId) {
+            scheduleSummaryReload()
+        }
+        .onChange(of: store.projectFilterId) {
+            scheduleSummaryReload()
+        }
         // A post/update/delete anywhere bumps this; the All tab's entry
         // extent and the card's window totals must move with the list.
         .onChange(of: reportStore.journalEpoch) {
