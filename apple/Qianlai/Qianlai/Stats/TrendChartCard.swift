@@ -29,7 +29,10 @@ import SwiftUI
 /// hairline STAY on the last pressed day (a sticky `activeDay`) so the
 /// readout band never snaps empty; before the first press the bubble
 /// defaults to today when the displayed window contains it, else the
-/// window's last day. The selection rides the chart's own data
+/// window's last day. Tapping a day selects it the same way — the tap
+/// rides alongside the framework's scrub (attached one level up and
+/// simultaneous, so neither gesture starves the other) and lands the
+/// sticky day without the hold. The selection rides the chart's own data
 /// coordinates (same band-center anchor as the bars, so it can't
 /// drift); the bubble and the hand-drawn axis are chartOverlay +
 /// ChartProxy positioning.

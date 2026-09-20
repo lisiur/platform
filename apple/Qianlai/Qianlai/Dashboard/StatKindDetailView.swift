@@ -125,14 +125,8 @@ struct StatKindDetailView: View {
         // it. No searchable here: the field's system glass background only
         // engages after the push transition, flashing a bare field for the
         // first frames, and a one-page keyword filter wasn't worth it.
-        //
-        // Large, not inline: the dashboard source page is large-titled, and
-        // an inline destination collapses the bar mid-push — the system
-        // compensates by scrolling the dashboard's list one large-title
-        // height (restored on pop), which reads as a phantom auto-scroll.
-        // Equal-height bars on both ends keep the push/pop offset-neutral.
         .navigationTitle(Text(title))
-        .largeNavigationBarTitle()
+        .inlineNavigationBarTitle()
         .task {
             if let day {
                 // One LOCAL day, midnight through end-of-day.

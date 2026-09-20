@@ -137,7 +137,7 @@ struct EntryListView: View {
                 .appCardRow()
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .alert(
             L10n.string("journal.delete", defaultValue: "Delete"),
             isPresented: Binding(

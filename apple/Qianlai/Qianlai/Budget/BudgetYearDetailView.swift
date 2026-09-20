@@ -60,7 +60,7 @@ struct BudgetYearDetailView: View {
                 )
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(navigationTitle))
         .inlineNavigationBarTitle()
     }

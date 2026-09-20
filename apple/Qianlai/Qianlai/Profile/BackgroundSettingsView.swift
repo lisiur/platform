@@ -38,7 +38,7 @@ struct BackgroundSettingsView: View {
                 }
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("profile.theme", defaultValue: "Theme")))
         .onChange(of: photoItem) { _, item in
             guard let item else { return }

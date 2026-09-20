@@ -185,7 +185,7 @@ struct CategoriesManageView: View {
                 .appCardRow()
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .refreshable {
             await store.reload()
         }

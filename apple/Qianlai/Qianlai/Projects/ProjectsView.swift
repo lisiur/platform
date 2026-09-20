@@ -63,7 +63,7 @@ struct ProjectsView: View {
                 }
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .toolbar {
             if LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive) {
                 ToolbarItem(placement: .primaryAction) {
@@ -265,7 +265,7 @@ struct ProjectDetailView: View {
                 }
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .refreshable {
             await projectStore.load(ledgerId: ledger.id, force: true)
             await projectStore.loadReport(ledgerId: ledger.id, projectId: project.id)

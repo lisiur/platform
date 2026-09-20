@@ -66,7 +66,7 @@ struct BudgetSettingsView: View {
                 closeSection
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("budget.settings.title", defaultValue: "Budget Settings")))
         .alert(
             L10n.string("budget.closeYear", defaultValue: "Close This Year's Budget"),

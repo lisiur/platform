@@ -74,7 +74,7 @@ struct RealAccountsView: View {
                 }
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("realAccounts.title", defaultValue: "Assets")))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

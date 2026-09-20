@@ -44,8 +44,12 @@ struct QianlaiApp: App {
                     BudgetSettingsDemoScreen()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-theme") {
                     // Theme page without login/backend: verifies the 边框高光
-                    // section and the background controls offline.
-                    BackgroundSettingsView()
+                    // section and the background controls offline. The page
+                    // is a sink consumer now, so the harness carries the
+                    // sunk shell it clears against.
+                    AppBackgroundSinkContainer {
+                        NavigationStack { BackgroundSettingsView() }
+                    }
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-rim-settings") {
                     // Border highlight sub-page offline harness.
                     NavigationStack { RimSettingsView() }

@@ -561,10 +561,25 @@ extension View {
 
     /// Page-level global background while it is active (see
     /// `AppBackgroundCanvasModifier`). No-op while the background is off.
-    /// Main-window pages only — sheets and covers are separate opaque
-    /// surfaces.
+    /// Now only for surfaces OUTSIDE the main-window tab container —
+    /// full-screen covers (QuickEntry) and macOS pages: sheets and covers
+    /// are separate opaque surfaces the sunk layer can't reach.
     func appBackgroundCanvas() -> some View {
         modifier(AppBackgroundCanvasModifier())
+    }
+
+    /// Page-side half of the sunk wallpaper (see
+    /// `AppBackgroundWallpaperLayer`, mounted once under the tab container
+    /// in `ContentView`): hides the scroll canvas and clears the
+    /// navigation container's own opaque background so the sunk layer
+    /// shows through. iOS 26 draws that container background, and the
+    /// clear does NOT inherit down the stack — every pushed page carries
+    /// this modifier (probed in WallpaperSinkProbe, variants d–h).
+    /// No-op while the background is off. macOS keeps the per-page
+    /// wallpaper (`appBackgroundCanvas`): the container sink is only
+    /// verified on iOS.
+    func appBackgroundSink() -> some View {
+        modifier(AppBackgroundSinkModifier())
     }
 
     /// Card-colored row background that turns translucent with the global
@@ -611,14 +626,12 @@ private struct AppCardRowModifier: ViewModifier {
     }
 }
 
-/// Paints the global background image at page level: the iOS 26
-/// TabView/NavigationStack containers draw opaque surfaces, so a single
-/// layer behind the tab root never shows through — each page has to carry
-/// the image itself and hide its grouped-list canvas, letting it show
-/// between the cards (rows keep their opaque default). The image rides in
-/// `.background` (not a wrapping ZStack) — an `ignoresSafeArea` sibling
-/// inside a ZStack relaxes the safe area for the content too and collapses
-/// the large-title/search layout.
+/// Paints the global background image at page level — now only for
+/// surfaces outside the tab container (covers, macOS). Main-window pages
+/// moved to the sunk layer (`AppBackgroundWallpaperLayer` +
+/// `AppBackgroundSinkModifier`), which pins the wallpaper screen-fixed
+/// through push/pop; this per-page variant is what the sunk design
+/// originally replaced, kept for the surfaces the sink can't reach.
 ///
 /// The canvas greedily fills the whole screen through safe areas: the
 /// backdrop covers everything behind a mounted page — nav-bar insets and
@@ -641,32 +654,93 @@ private struct AppCardRowModifier: ViewModifier {
 /// under a light theme would sink exactly the text drawn on the canvas.
 private struct AppBackgroundCanvasModifier: ViewModifier {
     @Environment(BackgroundSettings.self) private var backgroundSettings
-    @Environment(\.colorScheme) private var colorScheme
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if backgroundSettings.isActive, let image = backgroundSettings.activeImage {
+        if backgroundSettings.isActive {
             content
                 .scrollContentBackground(.hidden)
-                .background {
-                    ZStack {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                        (colorScheme == .dark ? Color.black : Color.white)
-                            .opacity(backgroundSettings.dim)
-                    }
-                    // Order is load-bearing: .clipped() must precede
-                    // .ignoresSafeArea() — clipped-after re-clips the
-                    // expanded region back to the content bounds, leaving
-                    // the status-bar strip bare (4-variant probe,
-                    // 2026-09-16).
-                    .clipped()
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
-                }
+                .background { AppBackgroundWallpaperLayer() }
         } else {
             content
         }
+    }
+}
+
+/// The wallpaper itself — image plus the scheme-contrast scrim, greedily
+/// filling the screen through safe areas. One instance sits in each tab's
+/// content, outside that tab's NavigationStack (`AppBackgroundSinkContainer`,
+/// in `ContentView`), so it never participates in push/pop transitions —
+/// the wallpaper sits screen-fixed while pages slide over it (transition
+/// probes i/j, WallpaperSinkProbe). Pages opt in via `appBackgroundSink`,
+/// which clears each navigation container's own opaque background — iOS 26
+/// draws one on the NavigationStack AND on the TabView, and the page-side
+/// clear reaches only the former, which is why the layer lives at the tab
+/// level rather than once under the whole TabView. The `clipped()`-before-
+/// `ignoresSafeArea()` order is load-bearing (4-variant probe, 2026-09-16).
+struct AppBackgroundWallpaperLayer: View {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        if backgroundSettings.isActive, let image = backgroundSettings.activeImage {
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                (colorScheme == .dark ? Color.black : Color.white)
+                    .opacity(backgroundSettings.dim)
+            }
+            .clipped()
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+/// The per-page half of the sunk wallpaper: hide the grouped-list canvas
+/// and clear the navigation container's own background so the layer under
+/// the tab container shows through. macOS keeps the per-page wallpaper —
+/// the sink is only verified on iOS (WallpaperSinkProbe variants d–h).
+private struct AppBackgroundSinkModifier: ViewModifier {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if backgroundSettings.isActive {
+            #if os(iOS)
+            content
+                .scrollContentBackground(.hidden)
+                .containerBackground(for: .navigation) { Color.clear }
+            #else
+            content
+                .appBackgroundCanvas()
+            #endif
+        } else {
+            content
+        }
+    }
+}
+
+/// The tab-level shell of the sunk wallpaper: the layer, then the tab's
+/// navigation stack over it. This is the shape the whole design hinges on
+/// — the layer must sit outside the NavigationStack (screen-fixed through
+/// pushes) but inside the Tab (iOS 26 draws an opaque TabView background
+/// that page-side APIs can't clear), so every consumer wraps exactly this
+/// way. macOS takes the content bare: its pages still carry the wallpaper
+/// themselves via `appBackgroundSink`'s canvas fallback, and a layer here
+/// would double-paint under it.
+struct AppBackgroundSinkContainer<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        #if os(iOS)
+        ZStack {
+            AppBackgroundWallpaperLayer()
+            content()
+        }
+        #else
+        content()
+        #endif
     }
 }

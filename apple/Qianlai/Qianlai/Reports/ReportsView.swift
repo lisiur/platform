@@ -104,7 +104,7 @@ struct ReportsView: View {
             case .memberTurnover: memberTurnoverSection
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .refreshable {
             await store.reloadWindowed()
         }

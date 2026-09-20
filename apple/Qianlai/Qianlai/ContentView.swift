@@ -128,13 +128,20 @@ struct ContentView: View {
                 AppTabBar(selection: tabSelection, tabs: visibleTabs + [.quickAdd])
             }
             #else
+            // The sunk wallpaper lives at the TAB level: each tab wraps its
+            // NavigationStack in AppBackgroundSinkContainer (see there for
+            // why the layer can sit neither under the whole TabView nor
+            // inside the stack). Pages opt in with appBackgroundSink.
+            // Covers (quick entry) and macOS still use the per-page canvas.
             TabView(selection: tabSelection) {
                 ForEach(visibleTabs, id: \.self) { tab in
                     Tab(tab.label, systemImage: tab.icon, value: tab) {
-                        NavigationStack {
-                            page(tab)
-                                .modifier(AppTabTitleChrome(tab: tab))
-                                .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
+                        AppBackgroundSinkContainer {
+                            NavigationStack {
+                                page(tab)
+                                    .modifier(AppTabTitleChrome(tab: tab))
+                                    .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
+                            }
                         }
                         .modifier(ToastHostModifier())
                     }
@@ -346,7 +353,7 @@ struct ContentView: View {
         switch tab {
         case .dashboard: DashboardView()
         case .journal: JournalView()
-        case .members: MembersTabPageView().appBackgroundCanvas()
+        case .members: MembersTabPageView().appBackgroundSink()
         case .assets: RealAccountsView()
         case .projects: ProjectsView()
         case .reports: ReportsView()

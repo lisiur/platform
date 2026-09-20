@@ -406,7 +406,7 @@ struct DashboardView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .scrollBounceBehavior(.basedOnSize)
     }
 

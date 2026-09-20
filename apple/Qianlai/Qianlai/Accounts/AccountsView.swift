@@ -180,7 +180,7 @@ struct AccountsView: View {
                 .appCardRow()
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         #if os(iOS)
         .environment(\.editMode, .constant(isReordering ? .active : .inactive))
         // macOS lists reorder by dragging directly — no edit mode needed.

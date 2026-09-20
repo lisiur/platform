@@ -59,18 +59,13 @@ struct JournalStatsView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .scrollBounceBehavior(.basedOnSize)
         .refreshable {
             await store.load(ledgerId: ledger.id, window: window)
         }
         .navigationTitle(Text(AppDates.formatWindowTitle(window, locale: locale)))
-        // Large, not inline — the same offset-neutral rule as the drill
-        // page: the journal source page is large-titled, and an inline
-        // destination collapses the bar mid-push, scrolling the source's
-        // list one large-title height (restored on pop). Equal-height
-        // bars on every level keep push/pop offset-neutral.
-        .largeNavigationBarTitle()
+        .inlineNavigationBarTitle()
         .navigationDestination(item: $drillTarget) { target in
             StatKindDetailView(
                 ledger: target.ledger,

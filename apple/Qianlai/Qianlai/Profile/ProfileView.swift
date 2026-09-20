@@ -64,7 +64,7 @@ struct ProfileView: View {
                 .appCardRow()
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("profile.title", defaultValue: "Me")))
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
@@ -134,7 +134,7 @@ struct ProfileView: View {
                 // Expanded for guests: guest-ledger rows render as their
                 // projects, never as ledger names.
                 LedgersView(expandGuestLedgers: isGuest)
-                    .appBackgroundCanvas()
+                    .appBackgroundSink()
             } label: {
                 Label(L10n.string("ledgers.title", defaultValue: "Ledgers"), systemImage: "book")
             }
@@ -154,7 +154,7 @@ struct ProfileView: View {
             .appCardRow()
             NavigationLink {
                 CategoriesManageView()
-                    .appBackgroundCanvas()
+                    .appBackgroundSink()
             } label: {
                 Label(L10n.string("categories.title", defaultValue: "Categories"), systemImage: "tag")
             }
@@ -164,7 +164,7 @@ struct ProfileView: View {
             // filters — not in the personal settings section.
             NavigationLink {
                 BudgetSettingsView()
-                    .appBackgroundCanvas()
+                    .appBackgroundSink()
             } label: {
                 Label(L10n.string("budget.settings.title", defaultValue: "Budget Settings"), systemImage: "gauge.with.needle")
             }
@@ -172,7 +172,7 @@ struct ProfileView: View {
             if let ledger = ledgerStore.activeLedger {
                 NavigationLink {
                     MembersView(ledger: ledger, isModal: false)
-                        .appBackgroundCanvas()
+                        .appBackgroundSink()
                 } label: {
                     Label(L10n.string("members.title", defaultValue: "Members"), systemImage: "person.2")
                 }

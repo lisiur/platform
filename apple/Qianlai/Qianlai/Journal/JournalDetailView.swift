@@ -50,7 +50,7 @@ struct JournalDetailView: View {
             sharesSection
             linesSection
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("journal.detail.title", defaultValue: "Entry Details")))
         .inlineNavigationBarTitle()
         .toolbar {

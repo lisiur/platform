@@ -40,7 +40,7 @@ struct RimSettingsView: View {
                 ))
             }
         }
-        .appBackgroundCanvas()
+        .appBackgroundSink()
         .navigationTitle(Text(L10n.string("profile.theme.rim.title", defaultValue: "Border Highlight")))
     }
 
