@@ -8,12 +8,11 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { categorySummary } from "../../report.service";
-import { triStateQueryFlag } from "../../domain";
 import {
   categorySummaryQuerySchema,
   categorySummaryResponseSchema,
   ledgerIdParamSchema,
-  statViewFlags,
+  statWindowArgs,
 } from "./schema";
 
 export const categorySummaryRoute = defineOpenAPIRoute({
@@ -47,21 +46,10 @@ export const categorySummaryRoute = defineOpenAPIRoute({
       access,
       query.projectId,
     );
-    const summary = await categorySummary(ledgerId, {
-      from: query.from,
-      to: query.to,
-      q: query.q,
-      participantUserId: query.participantUserId,
-      projectId,
-      accountId: query.accountId,
-      accountType: query.accountType,
-      kind: query.kind,
-      memberUserId: query.memberUserId,
-      excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
-      scopeProjectIds,
-      shareMode: query.shareMode,
-      ...statViewFlags(query),
-    });
+    const summary = await categorySummary(
+      ledgerId,
+      statWindowArgs(query, projectId, scopeProjectIds),
+    );
     return c.json(summary, 200);
   },
 });

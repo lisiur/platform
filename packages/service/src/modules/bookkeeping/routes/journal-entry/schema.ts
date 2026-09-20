@@ -163,6 +163,20 @@ export const journalEntrySchema = z
   })
   .openapi("QianlaiJournalEntry");
 
+/**
+ * The 一级 category rollup's filter field, declared once and spread into
+ * both the list schema and the report routes' stat schemas — zod silently
+ * strips undeclared query keys, and a missing declaration here once left
+ * the daily summary's day headers counting the whole ledger under a
+ * parent drill-down while the list filtered correctly.
+ */
+export const parentAccountIdFilterField = {
+  parentAccountId: z.string().optional().openapi({
+    description:
+      "Only entries with a line against an account under this parent account id, or against the parent itself (top-level category rollup drill-down).",
+  }),
+};
+
 export const listEntriesQuerySchema = paginationQuerySchema
   .extend({
     from: z.coerce.date().optional(),
@@ -174,10 +188,7 @@ export const listEntriesQuerySchema = paginationQuerySchema
       description:
         "Only entries with a line against this account id (category drill-down).",
     }),
-    parentAccountId: z.string().optional().openapi({
-      description:
-        "Only entries with a line against an account under this parent account id, or against the parent itself (top-level category rollup drill-down).",
-    }),
+    ...parentAccountIdFilterField,
     accountType: z.enum(ACCOUNT_TYPES).optional().openapi({
       description:
         "Only entries with a line against an account of this type (statement flow drill-down: expense vs income totals).",

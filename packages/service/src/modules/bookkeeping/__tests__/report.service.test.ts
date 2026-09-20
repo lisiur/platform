@@ -55,6 +55,12 @@ import {
   incomeStatement,
   memberTurnover,
 } from "../report.service";
+import {
+  categorySummaryQuerySchema,
+  dailySummaryQuerySchema,
+  statQuerySchema,
+  statWindowArgs,
+} from "../routes/report/schema";
 
 const mockAccountRepo = accountRepository as unknown as {
   listByLedger: ReturnType<typeof vi.fn>;
@@ -508,7 +514,10 @@ function statEntry(
         icon: line.icon ?? null,
         type: line.type ?? "expense",
         parent: line.parent
-          ? { id: line.parent.id ?? `parent-of-${line.accountId}`, ...line.parent }
+          ? {
+              id: line.parent.id ?? `parent-of-${line.accountId}`,
+              ...line.parent,
+            }
           : null,
       },
     })),
@@ -704,5 +713,60 @@ describe("categorySummary (shareMode=members)", () => {
       shareMode: "line",
     });
     expect(summary).toEqual({ expense: [], income: [] });
+  });
+});
+
+describe("report route query schemas", () => {
+  // The composition card's 一级 rollup drill pushes parentAccountId to the
+  // entry list AND the daily summary; zod silently strips query fields the
+  // schema doesn't declare, and a stripped parentAccountId here is exactly
+  // how the drill's day headers once counted the whole ledger.
+  it.each([
+    dailySummaryQuerySchema,
+    categorySummaryQuerySchema,
+  ])("keeps parentAccountId on %#", (schema) => {
+    expect(
+      schema.parse({ shareMode: "members", parentAccountId: "acc-parent" }),
+    ).toMatchObject({ parentAccountId: "acc-parent" });
+  });
+
+  // The handlers' shared wire→service mapping: every declared filter must
+  // survive into the aggregation window by name. An unforwarded key here
+  // drops from the stats just as silently as an undeclared one (the same
+  // drill bug, other half).
+  it("statWindowArgs forwards every declared filter field", () => {
+    const query = statQuerySchema.parse({
+      shareMode: "members",
+      from: "2026-09-01T00:00:00Z",
+      to: "2026-09-30T23:59:59Z",
+      q: "lunch",
+      participantUserId: "user-1",
+      projectId: "prj-1",
+      accountId: "acc-1",
+      parentAccountId: "acc-parent",
+      accountType: "expense",
+      kind: "expense",
+      memberUserId: "user-2",
+      excludedFromBudget: "true",
+      includeExcluded: "true",
+      includeBudgetExcluded: "false",
+    });
+    expect(statWindowArgs(query, "prj-clamped", ["prj-a"])).toEqual({
+      from: new Date("2026-09-01T00:00:00Z"),
+      to: new Date("2026-09-30T23:59:59Z"),
+      q: "lunch",
+      participantUserId: "user-1",
+      projectId: "prj-clamped",
+      accountId: "acc-1",
+      parentAccountId: "acc-parent",
+      accountType: "expense",
+      kind: "expense",
+      memberUserId: "user-2",
+      excludedFromBudget: true,
+      scopeProjectIds: ["prj-a"],
+      shareMode: "members",
+      includeExcluded: true,
+      includeBudgetExcluded: false,
+    });
   });
 });

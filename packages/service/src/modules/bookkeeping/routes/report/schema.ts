@@ -5,8 +5,12 @@ import {
   LEDGER_ROLES,
   queryFlag,
   STAT_SHARE_MODES,
+  triStateQueryFlag,
 } from "../../domain";
-import { journalEntrySchema } from "../journal-entry/schema";
+import {
+  journalEntrySchema,
+  parentAccountIdFilterField,
+} from "../journal-entry/schema";
 
 export const trialBalanceRowSchema = z
   .object({
@@ -191,6 +195,7 @@ const statFilterFields = {
   participantUserId: z.string().optional(),
   projectId: z.string().optional(),
   accountId: z.string().optional(),
+  ...parentAccountIdFilterField,
   accountType: z.enum(ACCOUNT_TYPES).optional(),
   kind: z.enum(ENTRY_KINDS).optional(),
   memberUserId: z.string().optional(),
@@ -229,10 +234,48 @@ export function statViewFlags(query: {
   };
 }
 
-export const dailySummaryQuerySchema = z
-  .object({
-    ...statFilterFields,
-    ...statViewFields,
+/** The query shape both stat routes share — every filter and view field,
+ *  before each route's extras (the daily summary's tzOffsetMinutes). Both
+ *  wire schemas and the statWindowArgs mapper derive from this one object,
+ *  so the wire, the parser, and the aggregation move together. */
+export const statQuerySchema = z.object({
+  ...statFilterFields,
+  ...statViewFields,
+});
+
+/**
+ * Both stat handlers' wire→service mapping: every field the shared query
+ * shape declares forwarded by name into the aggregation window. A new
+ * filter axis is one edit to statFilterFields plus one line here — zod
+ * strips undeclared query keys, and an unforwarded declared key silently
+ * drops from the stats (the parentAccountId drill bug was this split
+ * drifting apart). projectId/scopeProjectIds ride in from the access
+ * layer, not the query (guest clamping). */
+export function statWindowArgs(
+  query: z.infer<typeof statQuerySchema>,
+  projectId?: string,
+  scopeProjectIds?: string[],
+) {
+  return {
+    from: query.from,
+    to: query.to,
+    q: query.q,
+    participantUserId: query.participantUserId,
+    projectId,
+    accountId: query.accountId,
+    parentAccountId: query.parentAccountId,
+    accountType: query.accountType,
+    kind: query.kind,
+    memberUserId: query.memberUserId,
+    excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
+    scopeProjectIds,
+    shareMode: query.shareMode,
+    ...statViewFlags(query),
+  };
+}
+
+export const dailySummaryQuerySchema = statQuerySchema
+  .extend({
     tzOffsetMinutes: z.coerce.number().int().min(-840).max(840).default(0),
   })
   .openapi("QianlaiDailySummaryQuery");
@@ -270,9 +313,6 @@ export const categorySummaryResponseSchema = z
   })
   .openapi("QianlaiCategorySummaryResponse");
 
-export const categorySummaryQuerySchema = z
-  .object({
-    ...statFilterFields,
-    ...statViewFields,
-  })
-  .openapi("QianlaiCategorySummaryQuery");
+export const categorySummaryQuerySchema = statQuerySchema.openapi(
+  "QianlaiCategorySummaryQuery",
+);

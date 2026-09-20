@@ -544,6 +544,24 @@ describe("sumLinesByDay", () => {
     const memberOr = and[0].OR as Array<Record<string, unknown>>;
     expect(memberOr[0]).toEqual({ paidById: "user-2" });
   });
+
+  it("threads parentAccountId as the parent-or-children rollup clause", async () => {
+    const { tx, findMany } = capturingTx();
+    await journalRepository.sumLinesByDay(
+      "led-1",
+      { parentAccountId: "acc-parent" },
+      480,
+      tx,
+    );
+    expect(findMany.mock.calls[0][0].where.entry.lines).toEqual({
+      some: {
+        OR: [
+          { accountId: "acc-parent" },
+          { account: { parentId: "acc-parent" } },
+        ],
+      },
+    });
+  });
 });
 
 describe("listActivityEntriesWithLines", () => {

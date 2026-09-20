@@ -8,12 +8,11 @@ import {
 } from "#lib/openapi";
 import { requireLedgerAccess, resolveEntryProjectFilter } from "../../access";
 import { dailySummary } from "../../report.service";
-import { triStateQueryFlag } from "../../domain";
 import {
   dailySummaryQuerySchema,
   dailySummaryResponseSchema,
   ledgerIdParamSchema,
-  statViewFlags,
+  statWindowArgs,
 } from "./schema";
 
 export const dailySummaryRoute = defineOpenAPIRoute({
@@ -49,21 +48,7 @@ export const dailySummaryRoute = defineOpenAPIRoute({
     );
     const days = await dailySummary(
       ledgerId,
-      {
-        from: query.from,
-        to: query.to,
-        q: query.q,
-        participantUserId: query.participantUserId,
-        projectId,
-        accountId: query.accountId,
-        accountType: query.accountType,
-        kind: query.kind,
-        memberUserId: query.memberUserId,
-        excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
-        scopeProjectIds,
-        shareMode: query.shareMode,
-        ...statViewFlags(query),
-      },
+      statWindowArgs(query, projectId, scopeProjectIds),
       query.tzOffsetMinutes,
     );
     return c.json({ days }, 200);
