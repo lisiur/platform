@@ -1,0 +1,46 @@
+//
+//  BudgetProgressBar.swift
+//  Qianlai
+//
+//  Created by Lisiur Day on 2026/9/21.
+//
+
+import SwiftUI
+
+/// The thin spent-vs-budget ratio bar both budget cards render: a 4pt
+/// capsule track with the spent share filled. Color is the status ladder
+/// (`BudgetMath.status`): GREEN while normal — the theme tint saturates
+/// these cards already and can't double as a state signal — yellow from
+/// 80%, red from 100%. A zero budget overspends on the first spent cent
+/// ("预算为 0 视为有效预算"); refund-negatives clamp to zero and the fill
+/// caps at full width.
+struct BudgetProgressBar: View {
+    let spentCents: Int
+    let budgetCents: Int
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.15))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: proxy.size.width * ratio)
+            }
+        }
+        .frame(height: 4)
+    }
+
+    private var tint: Color {
+        switch BudgetMath.status(countedCents: spentCents, budgetCents: budgetCents) {
+        case .normal: .green
+        case .near: .yellow
+        case .over: .red
+        }
+    }
+
+    private var ratio: Double {
+        guard budgetCents > 0 else { return spentCents > 0 ? 1 : 0 }
+        return max(0, min(Double(spentCents) / Double(budgetCents), 1))
+    }
+}

@@ -81,6 +81,15 @@ struct BudgetCardView: View {
                     .lineLimit(1)
             }
 
+            // The month's consumption progress — the same thin ratio bar
+            // the category budget card's rows carry (green/yellow/red
+            // ladder over spent ÷ budget).
+            BudgetProgressBar(
+                spentCents: month.countedCents,
+                budgetCents: month.budgetCents
+            )
+            .padding(.horizontal, 6)
+
             // Equal columns with the label above the figure: inline
             // label+value pairs shared one line, so long amounts squeezed
             // the neighbors out of the visible width.

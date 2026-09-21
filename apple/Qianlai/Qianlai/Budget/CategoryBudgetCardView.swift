@@ -87,19 +87,12 @@ struct CategoryBudgetCardView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                // The thin ratio bar: spent ÷ budget, capped at full — a
-                // zero budget overspends on the first spent cent (the
-                // status ladder's "预算为 0 视为有效预算").
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.secondary.opacity(0.15))
-                        Capsule()
-                            .fill(statusTint(row) ?? Color.accentColor)
-                            .frame(width: proxy.size.width * ratio(row))
-                    }
-                }
-                .frame(height: 4)
+                // The thin ratio bar: spent ÷ budget (the shared card
+                // bar — green/yellow/red ladder, refund-clamped).
+                BudgetProgressBar(
+                    spentCents: row.spentCents,
+                    budgetCents: row.budgetCents
+                )
             }
             .frame(maxWidth: .infinity, minHeight: 32)
             .contentShape(Rectangle())
@@ -108,21 +101,15 @@ struct CategoryBudgetCardView: View {
         .accessibilityHint(L10n.string("categoryBudget.card.drillHint", defaultValue: "View this year's expenses"))
     }
 
-    /// FR6's ladder, pure ratios the monthly card shares: yellow from 80%,
-    /// red from 100%.
+    /// FR6's ladder tints the spent figure too: yellow from 80%, red from
+    /// 100%; normal keeps the inert primary (the bar alone reads green —
+    /// see `BudgetProgressBar`).
     private func statusTint(_ row: CategoryBudgetRow) -> Color? {
         switch BudgetMath.status(countedCents: row.spentCents, budgetCents: row.budgetCents) {
         case .normal: nil
         case .near: .yellow
         case .over: .red
         }
-    }
-
-    private func ratio(_ row: CategoryBudgetRow) -> Double {
-        // Refunds credited against the expense account can drag the net
-        // below zero — the bar never runs backwards.
-        guard row.budgetCents > 0 else { return row.spentCents > 0 ? 1 : 0 }
-        return max(0, min(Double(row.spentCents) / Double(row.budgetCents), 1))
     }
 
     private func amount(_ cents: Int) -> String {
