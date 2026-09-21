@@ -104,7 +104,7 @@ beforeEach(() => {
 });
 
 describe("listLedgerCategoryNames", () => {
-  it("keeps active leaves only, per kind, ordered as fetched", async () => {
+  it("keeps parents and leaves, ordered as fetched, per kind", async () => {
     findMany.mockResolvedValue([
       account("food", "expense", "食品", null),
       account("meal", "expense", "餐饮", "food"),
@@ -112,9 +112,9 @@ describe("listLedgerCategoryNames", () => {
       account("salary", "income", "工资", null),
     ] as never);
     // The status filter lives in the query (asserted below); the service
-    // trusts it and only applies leaf/null/cap logic here.
+    // trusts it and only applies name/cap logic here.
     const names = await listLedgerCategoryNames("ledger-1");
-    expect(names.expense).toEqual(["餐饮"]);
+    expect(names.expense).toEqual(["食品", "餐饮"]);
     expect(names.income).toEqual(["工资"]);
   });
 

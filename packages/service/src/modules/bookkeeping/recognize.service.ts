@@ -71,9 +71,10 @@ export interface RecognitionTile {
 }
 
 /**
- * Active leaf expense/income category display names for the prompt. Leaves
- * only — a parent's name would double-count its children's spend semantics —
- * and per-kind capped; the client re-matches names against its own tree, so
+ * Active expense/income category display names for the prompt — parents and
+ * leaves alike: a payment often lands naturally on a parent bucket, and
+ * posting to a non-leaf is valid (the rollup counts a parent's own line).
+ * Per-kind capped; the client re-matches names against its own tree, so
  * truncation degrades suggestion quality, never correctness.
  */
 export async function listLedgerCategoryNames(ledgerId: string): Promise<{
@@ -86,26 +87,12 @@ export async function listLedgerCategoryNames(ledgerId: string): Promise<{
       status: "active",
       type: { in: ["expense", "income"] },
     },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      sortOrder: true,
-      parentId: true,
-    },
+    select: { id: true, name: true, type: true, sortOrder: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-  const parentIds = new Set(
-    accounts.map((account) => account.parentId).filter(Boolean),
-  );
   const names = (type: string) =>
     accounts
-      .filter(
-        (account) =>
-          account.type === type &&
-          !parentIds.has(account.id) &&
-          account.name !== null,
-      )
+      .filter((account) => account.type === type && account.name !== null)
       .map((account) => account.name as string)
       .slice(0, MAX_CATEGORY_NAMES_PER_KIND);
   return { expense: names("expense"), income: names("income") };
@@ -131,7 +118,7 @@ export function buildRecognitionPrompt(categories: {
     '- occurredAt: the transaction time exactly as shown, ISO 8601 "YYYY-MM-DDTHH:mm:ss" without timezone offset. Date only → "YYYY-MM-DDT00:00:00"; no date visible → null.',
     "- merchant: the counterparty name (商家/收款方/付款方/对方) verbatim; null if absent.",
     "- memo: the item name or note (商品/备注) verbatim, trimmed; null if absent.",
-    "- categoryName: copy exactly one name from the category list matching kind below, verbatim. If nothing fits, null.",
+    "- categoryName: copy exactly one name from the category list matching kind below, verbatim. The list holds parent categories and their sub-categories — prefer the most specific (deepest) one that fits; pick a parent only when no sub-category fits. If nothing fits, null.",
     "- categoryAlternatives: when two or more categories from the list could fit, keep the best in categoryName and put up to 3 runners-up here (verbatim from the same kind list, excluding categoryName). [] when unambiguous.",
     '- confidence: "high" when the amount and counterparty are both clearly legible; "medium" when the amount is legible but other fields are missing or ambiguous; "low" when the image is blurry, cropped, or the amount itself is hard to read.',
     "",
