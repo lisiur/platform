@@ -23,7 +23,7 @@ export const listRedeemCodesQuerySchema = z.object({
 export const listMyCreditLedgerQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
-  type: z.enum(["ai_usage", "redeem", "seed"]).optional(),
+  type: z.enum(["ai_usage", "redeem", "seed", "grant", "deduct"]).optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 });
@@ -52,6 +52,15 @@ export const redeemCodeIdParamSchema = z.object({
 
 export const userCreditUserIdParamSchema = z.object({
   userId: z.string().min(1),
+});
+
+export const adjustUserCreditBodySchema = z.object({
+  /** Signed amount: positive grants credits, negative deducts them. */
+  amount: z
+    .number()
+    .int()
+    .refine((n) => n !== 0, { message: "Amount must be a non-zero integer" }),
+  description: z.string().min(1).max(200).optional(),
 });
 
 export const redeemCodeBodySchema = z.object({

@@ -518,6 +518,11 @@ const systemPermissions = [
     name: "List User Credits",
   },
   {
+    code: "system/user-credit:update",
+    group: "user-credit",
+    name: "Update User Credits",
+  },
+  {
     code: "system/billing-config:list",
     group: "billing-config",
     name: "List Billing Configs",

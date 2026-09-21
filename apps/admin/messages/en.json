@@ -1578,7 +1578,16 @@
     "balanceAfter": "After",
     "descriptionLabel": "Description",
     "noCredits": "No user credits found.",
-    "noLedgerEntries": "No ledger entries found."
+    "noLedgerEntries": "No ledger entries found.",
+    "grant": "Grant",
+    "deduct": "Deduct",
+    "grantTitle": "Grant credits — {name}",
+    "deductTitle": "Deduct credits — {name}",
+    "currentBalance": "Current balance",
+    "cancel": "Cancel",
+    "saving": "Saving",
+    "granted": "Credits granted",
+    "deducted": "Credits deducted"
   },
   "BillingConfigs": {
     "title": "Billing Configs",

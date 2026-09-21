@@ -1,14 +1,21 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PaginatedTableFrame } from "@repo/frontend";
 import {
+  Button,
   ButtonGroup,
   Dialog,
   DialogBody,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DropdownMenuItem,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
   Input,
   TableActionCell,
   TableActionHead,
@@ -19,9 +26,12 @@ import {
   TableRow,
   TooltipButton,
 } from "@repo/ui";
-import { FileText, Search } from "lucide-react";
+import { CircleMinus, FileText, Gift, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
 import { useHasPermission } from "@/lib/api/use-has-permission";
@@ -53,13 +63,28 @@ interface UserCreditLedgerRow {
   createdAt: string;
 }
 
+type AdjustMode = "grant" | "deduct";
+
+const adjustSchema = z.object({
+  amount: z.coerce.number().int().min(1),
+  description: z.string().max(200).optional().or(z.literal("")),
+});
+
 export function UserCreditTable() {
   const t = useTranslations("UserCredits");
   const canView = useHasPermission("system/user-credit:list");
+  const canGrant = useHasPermission("system/user-credit:update");
   const [search, setSearch] = useState("");
   const [ds, setDs] = useState("");
   const dr = useRef<NodeJS.Timeout | null>(null);
   const [ledgerItem, setLedgerItem] = useState<UserCreditRow | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<{
+    user: UserCreditRow;
+    mode: AdjustMode;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const adjustForm = useForm({ resolver: zodResolver(adjustSchema) });
 
   useEffect(() => {
     return () => {
@@ -74,6 +99,7 @@ export function UserCreditTable() {
     pageSize,
     loading,
     setPage,
+    refresh,
   } = usePaginatedQuery<UserCreditRow>({
     queryKey: ["user-credits", { search: ds || undefined }],
     enabled: canView,
@@ -118,6 +144,37 @@ export function UserCreditTable() {
   function openLedger(c: UserCreditRow) {
     setLedgerPage(1);
     setLedgerItem(c);
+  }
+
+  function openAdjust(c: UserCreditRow, mode: AdjustMode) {
+    adjustForm.reset({ amount: undefined, description: "" });
+    setAdjustTarget({ user: c, mode });
+  }
+
+  async function handleAdjust() {
+    if (!adjustTarget) return;
+    const { user, mode } = adjustTarget;
+    setSaving(true);
+    try {
+      const v = adjustForm.getValues();
+      const amount = Number(v.amount);
+      await withApiFeedback(
+        appClient.api["redeem-codes"].credits[":userId"].adjust.$post,
+      )({
+        param: { userId: user.userId },
+        json: {
+          amount: mode === "grant" ? amount : -amount,
+          description: v.description ? v.description : undefined,
+        },
+      });
+      setAdjustTarget(null);
+      adjustForm.reset();
+      refresh();
+      toast.success(t(mode === "grant" ? "granted" : "deducted"));
+    } catch {
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -170,10 +227,29 @@ export function UserCreditTable() {
               <TableActionCell
                 menuLabel={t("actions")}
                 menu={
-                  <DropdownMenuItem onClick={() => openLedger(c)}>
-                    <FileText />
-                    {t("ledger")}
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => openLedger(c)}>
+                      <FileText />
+                      {t("ledger")}
+                    </DropdownMenuItem>
+                    {canGrant && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => openAdjust(c, "grant")}
+                        >
+                          <Gift />
+                          {t("grant")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => openAdjust(c, "deduct")}
+                        >
+                          <CircleMinus />
+                          {t("deduct")}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </>
                 }
               >
                 <ButtonGroup className="ml-auto">
@@ -186,6 +262,28 @@ export function UserCreditTable() {
                   >
                     <FileText />
                   </TooltipButton>
+                  {canGrant && (
+                    <>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("grant")}
+                        tooltip={t("grant")}
+                        onClick={() => openAdjust(c, "grant")}
+                      >
+                        <Gift />
+                      </TooltipButton>
+                      <TooltipButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("deduct")}
+                        tooltip={t("deduct")}
+                        onClick={() => openAdjust(c, "deduct")}
+                      >
+                        <CircleMinus />
+                      </TooltipButton>
+                    </>
+                  )}
                 </ButtonGroup>
               </TableActionCell>
             </TableRow>
@@ -243,6 +341,91 @@ export function UserCreditTable() {
               </TableBody>
             </PaginatedTableFrame>
           </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!adjustTarget}
+        onOpenChange={(open) => {
+          if (!open) setAdjustTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {adjustTarget?.mode === "grant"
+                ? t("grantTitle", { name: adjustTarget.user.user.name })
+                : t("deductTitle", {
+                    name: adjustTarget?.user.user.name ?? "",
+                  })}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            {adjustTarget && (
+              <form
+                id="uc-adjust"
+                onSubmit={adjustForm.handleSubmit(handleAdjust)}
+              >
+                <FieldGroup>
+                  <div className="text-sm text-muted-foreground">
+                    {t("currentBalance")}:{" "}
+                    <span className="font-mono">
+                      {adjustTarget.user.balance}
+                    </span>
+                  </div>
+                  <Field>
+                    <FieldLabel htmlFor="uc-amount" required>
+                      {t("amount")}
+                    </FieldLabel>
+                    <Input
+                      id="uc-amount"
+                      type="number"
+                      min={1}
+                      step={1}
+                      aria-invalid={!!adjustForm.formState.errors.amount}
+                      {...(adjustForm.register("amount") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        adjustForm.formState.errors.amount
+                          ? [adjustForm.formState.errors.amount]
+                          : undefined
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="uc-desc">
+                      {t("descriptionLabel")}
+                    </FieldLabel>
+                    <Input
+                      id="uc-desc"
+                      aria-invalid={!!adjustForm.formState.errors.description}
+                      {...(adjustForm.register("description") as object)}
+                    />
+                    <FieldError
+                      errors={
+                        adjustForm.formState.errors.description
+                          ? [adjustForm.formState.errors.description]
+                          : undefined
+                      }
+                    />
+                  </Field>
+                </FieldGroup>
+              </form>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>
+              {t("cancel")}
+            </Button>
+            <Button type="submit" form="uc-adjust" disabled={saving}>
+              {saving
+                ? t("saving")
+                : adjustTarget?.mode === "grant"
+                  ? t("grant")
+                  : t("deduct")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

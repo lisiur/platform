@@ -128,7 +128,43 @@ export async function listUserCredits(limit?: number, offset?: number) {
   return { credits, total };
 }
 
-const USER_LEDGER_TYPES = ["ai_usage", "redeem", "seed"] as const;
+/**
+ * Admin-initiated credit adjustment. `amount` is signed: positive grants
+ * credits (`grant` ledger entry), negative deducts them (`deduct` ledger
+ * entry). The balance is never allowed to go below zero.
+ */
+export async function adjustUserCredit(
+  userId: string,
+  amount: number,
+  description?: string,
+  adminUserId?: string,
+) {
+  const grant = amount > 0;
+  try {
+    return await userCreditRepository.adjustBalance(userId, {
+      amount,
+      type: grant ? "grant" : "deduct",
+      referenceType: grant ? "admin_grant" : "admin_deduct",
+      description,
+      metadata: adminUserId ? { adminUserId } : undefined,
+    });
+  } catch (e) {
+    if (e instanceof Error && /negative/.test(e.message)) {
+      throw new HTTPException(400, {
+        message: "Insufficient credit balance for this deduction",
+      });
+    }
+    throw e;
+  }
+}
+
+const USER_LEDGER_TYPES = [
+  "ai_usage",
+  "redeem",
+  "seed",
+  "grant",
+  "deduct",
+] as const;
 
 export type LedgerType = (typeof USER_LEDGER_TYPES)[number];
 

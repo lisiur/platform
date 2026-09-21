@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { adjustUserCredit } from "./adjustUserCredit";
 import { createRedeemCode } from "./createRedeemCode";
 import { deleteRedeemCode } from "./deleteRedeemCode";
 import { getMyCredit } from "./getMyCredit";
@@ -21,6 +22,7 @@ const routes = redeemCodeRoutes.openapiRoutes([
   getMyCreditLedger,
   listUserCredits,
   listUserCreditLedger,
+  adjustUserCredit,
 ] as const);
 
 export { routes as redeemCodeRoutes };

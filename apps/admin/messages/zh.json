@@ -1579,7 +1579,16 @@
     "balanceAfter": "变更后",
     "descriptionLabel": "描述",
     "noCredits": "暂无用户积分记录。",
-    "noLedgerEntries": "暂无积分流水。"
+    "noLedgerEntries": "暂无积分流水。",
+    "grant": "赠送",
+    "deduct": "扣减",
+    "grantTitle": "赠送积分 — {name}",
+    "deductTitle": "扣减积分 — {name}",
+    "currentBalance": "当前余额",
+    "cancel": "取消",
+    "saving": "保存中",
+    "granted": "积分已赠送",
+    "deducted": "积分已扣减"
   },
   "BillingConfigs": {
     "title": "计费配置",
