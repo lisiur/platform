@@ -52,13 +52,15 @@ export const screenshotRecognitionSchema = z.object({
   categoryName: z
     .string()
     .nullable()
-    .describe("best-fit category, verbatim from the provided list"),
+    .describe(
+      'best-fit leaf as its full "/"-joined path from the provided list, verbatim',
+    ),
   categoryAlternatives: z
     .array(z.string())
     .max(3)
     .default([])
     .describe(
-      "runner-up categories verbatim from the same kind list, excluding categoryName",
+      "runner-up leaf paths verbatim from the same kind list, excluding categoryName",
     ),
   confidence: z.enum(["high", "medium", "low"]),
 });
@@ -71,13 +73,15 @@ export interface RecognitionTile {
 }
 
 /**
- * Active expense/income category display names for the prompt — parents and
- * leaves alike: a payment often lands naturally on a parent bucket, and
- * posting to a non-leaf is valid (the rollup counts a parent's own line).
- * Per-kind capped; the client re-matches names against its own tree, so
- * truncation degrades suggestion quality, never correctness.
+ * Active expense/income category LEAF paths for the prompt — the selectable
+ * range is leaves only, but each leaf is listed as its full "/"-joined path
+ * (服饰/衣服 vs 育儿/衣服) so same-named leaves under different parents
+ * stay distinguishable. Unnamed (seeded i18n) segments break the path and
+ * drop the leaf; per-kind capped on leaves, and the client re-walks the
+ * path against its own tree, so truncation degrades suggestion quality,
+ * never correctness.
  */
-export async function listLedgerCategoryNames(ledgerId: string): Promise<{
+export async function listLedgerCategoryPaths(ledgerId: string): Promise<{
   expense: string[];
   income: string[];
 }> {
@@ -87,19 +91,42 @@ export async function listLedgerCategoryNames(ledgerId: string): Promise<{
       status: "active",
       type: { in: ["expense", "income"] },
     },
-    select: { id: true, name: true, type: true, sortOrder: true },
+    select: { id: true, name: true, type: true, parentId: true, sortOrder: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
-  const names = (type: string) =>
-    accounts
-      .filter((account) => account.type === type && account.name !== null)
-      .map((account) => account.name as string)
-      .slice(0, MAX_CATEGORY_NAMES_PER_KIND);
-  return { expense: names("expense"), income: names("income") };
+  const byId = new Map(accounts.map((account) => [account.id, account]));
+  const pathOf = (
+    account: (typeof accounts)[number],
+  ): string | null => {
+    const segments: string[] = [];
+    const visited = new Set<string>();
+    let cursor: (typeof accounts)[number] | undefined = account;
+    while (cursor) {
+      if (visited.has(cursor.id)) return null; // corrupt tree, cycle guard
+      visited.add(cursor.id);
+      if (cursor.name === null) return null; // unnamed segment → unmatchable
+      segments.unshift(cursor.name);
+      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    }
+    return segments.join("/");
+  };
+  const paths = (type: string) => {
+    const out: string[] = [];
+    for (const account of accounts) {
+      if (account.type !== type) continue;
+      const hasChildren = accounts.some((other) => other.parentId === account.id);
+      if (hasChildren) continue;
+      const path = pathOf(account);
+      if (path !== null) out.push(path);
+      if (out.length >= MAX_CATEGORY_NAMES_PER_KIND) break;
+    }
+    return out;
+  };
+  return { expense: paths("expense"), income: paths("income") };
 }
 
 const RECOGNITION_SHAPE_HINT =
-  '{"recognized":true,"kind":"expense","amount":0,"amountAlternatives":[],"occurredAt":"YYYY-MM-DDTHH:mm:ss","merchant":"","memo":"","categoryName":"","categoryAlternatives":[],"confidence":"high"}';
+  '{"recognized":true,"kind":"expense","amount":0,"amountAlternatives":[],"occurredAt":"YYYY-MM-DDTHH:mm:ss","merchant":"","memo":"","categoryName":"parent/leaf","categoryAlternatives":[],"confidence":"high"}';
 
 export function buildRecognitionPrompt(categories: {
   expense: string[];
@@ -118,8 +145,8 @@ export function buildRecognitionPrompt(categories: {
     '- occurredAt: the transaction time exactly as shown, ISO 8601 "YYYY-MM-DDTHH:mm:ss" without timezone offset. Date only → "YYYY-MM-DDT00:00:00"; no date visible → null.',
     "- merchant: the counterparty name (商家/收款方/付款方/对方) verbatim; null if absent.",
     "- memo: the item name or note (商品/备注) verbatim, trimmed; null if absent.",
-    "- categoryName: copy exactly one name from the category list matching kind below, verbatim. The list holds parent categories and their sub-categories — prefer the most specific (deepest) one that fits; pick a parent only when no sub-category fits. If nothing fits, null.",
-    "- categoryAlternatives: when two or more categories from the list could fit, keep the best in categoryName and put up to 3 runners-up here (verbatim from the same kind list, excluding categoryName). [] when unambiguous.",
+    "- categoryName: copy exactly one entry from the category list matching kind below, verbatim. Entries are \"/\"-joined paths from the top-level parent to the leaf category (e.g. \"服饰/衣服\"); the LAST segment is the actual category, so always answer the full path — never a bare leaf name, never a parent alone. If nothing fits, null.",
+    "- categoryAlternatives: when two or more entries from the list could fit, keep the best in categoryName and put up to 3 runner-up paths here (verbatim from the same kind list, excluding categoryName). [] when unambiguous.",
     '- confidence: "high" when the amount and counterparty are both clearly legible; "medium" when the amount is legible but other fields are missing or ambiguous; "low" when the image is blurry, cropped, or the amount itself is hard to read.',
     "",
     "Selection rules:",
@@ -160,7 +187,7 @@ export async function recognizeScreenshot(params: {
     requireCapability: REQUIRED_CAPABILITY,
   });
 
-  const categories = await listLedgerCategoryNames(params.ledgerId);
+  const categories = await listLedgerCategoryPaths(params.ledgerId);
   const system = resolved.agent.systemPrompt ?? undefined;
   const prompt = buildRecognitionPrompt(categories);
   const genParams = {

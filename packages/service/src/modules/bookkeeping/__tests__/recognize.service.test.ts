@@ -32,7 +32,7 @@ import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import { resolveBilling } from "#modules/billing/billing.service";
 import {
   buildRecognitionPrompt,
-  listLedgerCategoryNames,
+  listLedgerCategoryPaths,
   recognizeScreenshot,
 } from "../recognize.service";
 import { collectRecognitionTiles } from "../routes/journal-entry/recognizeScreenshot";
@@ -103,19 +103,27 @@ beforeEach(() => {
   );
 });
 
-describe("listLedgerCategoryNames", () => {
-  it("keeps parents and leaves, ordered as fetched, per kind", async () => {
+describe("listLedgerCategoryPaths", () => {
+  it("lists leaves as full slash-joined paths, unnamed branches dropped", async () => {
     findMany.mockResolvedValue([
       account("food", "expense", "食品", null),
       account("meal", "expense", "餐饮", "food"),
+      // 同名叶子 under different parents — the path is the disambiguator.
+      account("apparel", "expense", "服饰", null),
+      account("clothes", "expense", "衣服", "apparel"),
+      account("kids", "expense", "育儿", null),
+      account("kidsclothes", "expense", "衣服", "kids"),
+      // An unnamed (seeded i18n) parent breaks the path → leaf dropped.
+      account("coded", "expense", null, null),
+      account("under-coded", "expense", "孤儿", "coded"),
       account("pocket", "asset", "现金", null),
       account("salary", "income", "工资", null),
     ] as never);
     // The status filter lives in the query (asserted below); the service
-    // trusts it and only applies name/cap logic here.
-    const names = await listLedgerCategoryNames("ledger-1");
-    expect(names.expense).toEqual(["食品", "餐饮"]);
-    expect(names.income).toEqual(["工资"]);
+    // trusts it and only applies leaf/path/cap logic here.
+    const paths = await listLedgerCategoryPaths("ledger-1");
+    expect(paths.expense).toEqual(["食品/餐饮", "服饰/衣服", "育儿/衣服"]);
+    expect(paths.income).toEqual(["工资"]);
   });
 
   it("caps each kind at 100 names", async () => {
@@ -125,14 +133,14 @@ describe("listLedgerCategoryNames", () => {
     rows.push(account("inc", "income", "工资", null));
     findMany.mockResolvedValue(rows as never);
 
-    const names = await listLedgerCategoryNames("ledger-1");
-    expect(names.expense).toHaveLength(100);
-    expect(names.income).toEqual(["工资"]);
+    const paths = await listLedgerCategoryPaths("ledger-1");
+    expect(paths.expense).toHaveLength(100);
+    expect(paths.income).toEqual(["工资"]);
   });
 
   it("queries only active expense/income accounts of the ledger", async () => {
     findMany.mockResolvedValue([]);
-    await listLedgerCategoryNames("ledger-1");
+    await listLedgerCategoryPaths("ledger-1");
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -148,13 +156,13 @@ describe("listLedgerCategoryNames", () => {
 describe("buildRecognitionPrompt", () => {
   it("leads with the tiles preamble and embeds both category lists", () => {
     const prompt = buildRecognitionPrompt({
-      expense: ["餐饮", "交通"],
+      expense: ["餐饮", "服饰/衣服"],
       income: ["工资"],
     });
     expect(prompt).toContain("consecutive vertical tiles");
     expect(prompt).toContain("treat them as one single document");
     expect(prompt).toContain("- 餐饮");
-    expect(prompt).toContain("- 交通");
+    expect(prompt).toContain("- 服饰/衣服");
     expect(prompt).toContain("- 工资");
     // Alternates contract is spelled out for the json_object-mode model.
     expect(prompt).toContain("amountAlternatives");
