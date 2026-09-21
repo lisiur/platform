@@ -19,11 +19,16 @@ import Foundation
 nonisolated struct MonthWindow: Hashable {
     var from: Date
     var to: Date
+    /// The window's calendar year when it is exactly one LOCAL year —
+    /// the category budget drill-down's window, whose page titles "2026年"
+    /// instead of the from–to rendering. Default nil; only `AppDates
+    /// .yearWindow(_:)` sets it.
+    var singleYear: Int? = nil
 
     /// The window's `YearMonth` when it is exactly one natural LOCAL
     /// month — the stats component's calendar-card gate and the drill
     /// page's month title. nil for any wider, narrower, or shifted
-    /// window (a week, a custom range, a day).
+    /// window (a week, a custom range, a day, a year).
     var singleMonth: YearMonth? {
         guard self == AppDates.monthWindow(containing: from) else { return nil }
         let components = Calendar.current.dateComponents([.year, .month], from: from)

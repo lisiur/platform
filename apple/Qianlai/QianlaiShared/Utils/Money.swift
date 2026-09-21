@@ -96,6 +96,11 @@ nonisolated enum AppDates {
         return YearMonth(year: components.year ?? 1970, month: components.month ?? 1)
     }
 
+    /// The LOCAL year containing now — the category budget card's year.
+    static var currentYear: Int {
+        currentYearMonth.year
+    }
+
     /// The device's current UTC offset in minutes EAST of UTC (ISO style,
     /// so UTC+8 sends 480) — the budget report's month-bucketing parameter.
     /// The server buckets by natural month under this fixed offset instead
@@ -186,11 +191,15 @@ nonisolated enum AppDates {
         return "\(dayFormatter.string(from: start)) – \(dayFormatter.string(from: end))"
     }
 
-    /// A window's title head: the month title when the window is exactly
-    /// one natural LOCAL month, else the week stepper's from–to rendering —
-    /// the stats surfaces' shared window label (a chart page's title, a
-    /// drill page's time head).
+    /// A window's title head: the year when the window is exactly one
+    /// LOCAL calendar year ("2026年" / "2026"), the month title when it is
+    /// exactly one natural LOCAL month, else the week stepper's from–to
+    /// rendering — the stats surfaces' shared window label (a chart page's
+    /// title, a drill page's time head).
     static func formatWindowTitle(_ window: MonthWindow, locale: Locale) -> String {
+        if let year = window.singleYear {
+            return formatYearTitle(year, locale: locale)
+        }
         if let month = window.singleMonth {
             return formatMonthTitle(month, locale: locale)
         }
@@ -199,6 +208,16 @@ nonisolated enum AppDates {
             end: Calendar.current.startOfDay(for: window.to),
             locale: locale
         )
+    }
+
+    /// A bare year's title ("2026年", "2026") — the category budget
+    /// drill-down's window head.
+    static func formatYearTitle(_ year: Int, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("y")
+        return formatter.string(from: Calendar.current.date(from: DateComponents(year: year)) ?? Date())
     }
 
     /// First-to-last day of the LOCAL month containing `date`, for
@@ -212,6 +231,20 @@ nonisolated enum AppDates {
         return MonthWindow(
             from: interval.start,
             to: interval.end.addingTimeInterval(-0.001)
+        )
+    }
+
+    /// First-to-last day of the LOCAL calendar year — the category budget
+    /// drill-down's window. Carries `singleYear` so the drill page titles
+    /// "2026年" instead of falling back to the from–to rendering.
+    static func yearWindow(_ year: Int) -> MonthWindow {
+        let calendar = Calendar.current
+        let january1st = calendar.date(from: DateComponents(year: year, month: 1, day: 1)) ?? Date()
+        let nextJanuary1st = calendar.date(from: DateComponents(year: year + 1, month: 1, day: 1)) ?? Date()
+        return MonthWindow(
+            from: calendar.startOfDay(for: january1st),
+            to: calendar.startOfDay(for: nextJanuary1st).addingTimeInterval(-0.001),
+            singleYear: year
         )
     }
 

@@ -13,9 +13,9 @@ import SwiftUI
 /// calendar card's day drill — every entry of the day, transfers included.
 /// `categoryLabel`, when set, swaps the title to "时间 · 分类" instead of
 /// "时间 · 支出/收入". `isBudgetExcluded`, when set, scopes the list to one
-/// side of the per-entry budget flag (the budget card's 日常已花 / 不计入预算
+/// side of the per-entry budget flag (the budget card's 日常已花 / 不计入日常预算
 /// columns — always carried with kind = .expense, the pools being
-/// expense-only) and swaps the title to "时间 · 日常已花/不计入预算".
+/// expense-only) and swaps the title to "时间 · 日常已花/不计入日常预算".
 struct JournalDrillDown: Hashable {
     var kind: QuickEntryKind?
     var accountId: String?
@@ -44,12 +44,20 @@ struct StatDetailTarget: Identifiable, Hashable {
     let ledger: QianlaiLedger
     let filter: JournalDrillDown
     let day: Date?
+    /// Overrides the host's window for this drill — the category budget
+    /// card's rows drill the YEAR, not the host's selected month. nil
+    /// keeps the host's window.
+    var windowOverride: MonthWindow? = nil
 
     var id: String {
         let dayKey = day.map { String($0.timeIntervalSince1970) } ?? "-"
         let kindKey = filter.kind?.rawValue ?? "all"
         let budgetKey = filter.isBudgetExcluded.map { $0 ? "excl" : "counted" } ?? "-"
-        return "\(ledger.id)|\(dayKey)|\(kindKey)|\(budgetKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")"
+        // The override rides the identity: a year drill and a month drill
+        // of the same category are different items, so a quick re-tap of
+        // the other one re-pushes cleanly.
+        let windowKey = windowOverride.map { "\($0.from.timeIntervalSince1970)-\($0.to.timeIntervalSince1970)" } ?? "-"
+        return "\(ledger.id)|\(dayKey)|\(kindKey)|\(budgetKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")|\(windowKey)"
     }
 }
 
@@ -149,7 +157,7 @@ struct StatKindDetailView: View {
     /// plus either the kind (no category drill) or the tapped category
     /// label; the category label is carried by the filter, so the page
     /// never looks it up by id. The budget card's drills title with the
-    /// tapped column's own label ("日常已花" / "不计入预算"), same rule.
+    /// tapped column's own label ("日常已花" / "不计入日常预算"), same rule.
     /// Day drills replace the head with the full
     /// date ("2026年9月21日" / "Sep 21, 2026"), the same medium date the
     /// journal's day headers render, plus the kind when the drill scopes

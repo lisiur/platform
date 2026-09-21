@@ -250,6 +250,11 @@ struct DashboardView: View {
             // in the project detail view.
             store.setBudgetMonthSilently(selectedMonth)
             await store.load(ledgerId: ledger.id)
+            // The category budget card is annual — it re-aims on neither
+            // the month stepper (this task key excludes it) nor the
+            // windowed reloads, only on ledger change (this task re-fires),
+            // pull-to-refresh, posting, and the settings page's writes.
+            await store.loadCategoryBudget(ledgerId: ledger.id, year: AppDates.currentYear)
         }
         .onChange(of: selectedMonth) { _, month in
             // budgetMonth's didSet schedules the debounced budget
@@ -267,10 +272,13 @@ struct DashboardView: View {
             }
             if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
                 async let budget: () = store.refreshBudget()
+                async let categoryBudget: () = store.loadCategoryBudget(
+                    ledgerId: ledger.id, year: AppDates.currentYear
+                )
                 async let stats: () = statsStore.load(
                     ledgerId: ledger.id, window: statsWindow
                 )
-                _ = await (budget, stats)
+                _ = await (budget, categoryBudget, stats)
             }
         }
         .sheet(isPresented: $isShowingLedgerForm) {
@@ -312,7 +320,12 @@ struct DashboardView: View {
         // full story on StatKindDetailView); a push adds no presentation
         // host, so this chain matches the journal tab's.
         .navigationDestination(item: $statDetailTarget) { target in
-            StatKindDetailView(ledger: target.ledger, filter: target.filter, window: statsWindow, day: target.day)
+            StatKindDetailView(
+                ledger: target.ledger,
+                filter: target.filter,
+                window: target.windowOverride ?? statsWindow,
+                day: target.day
+            )
         }
     }
 
@@ -371,12 +384,13 @@ struct DashboardView: View {
     /// page title to "时间 · 分类" instead of the kind. `day`, when set,
     /// windows to that single LOCAL day (the calendar card's cell and the
     /// trend card's bubble) instead of the month.
-    private func openStatDetail(_ drill: JournalDrillDown, day: Date? = nil) {
+    private func openStatDetail(_ drill: JournalDrillDown, day: Date? = nil, windowOverride: MonthWindow? = nil) {
         guard let ledger = ledgerStore.activeLedger else { return }
         statDetailTarget = StatDetailTarget(
             ledger: ledger,
             filter: drill,
-            day: day
+            day: day,
+            windowOverride: windowOverride
         )
     }
 
@@ -470,6 +484,27 @@ struct DashboardView: View {
                         )
                     }
                 )
+            }
+            // The annual category budget card rides between the month
+            // budget card and the stats block. It deliberately ignores the
+            // month stepper — its figures summarize the CURRENT year, and
+            // its rows drill the year's journal (windowOverride), not the
+            // selected month. Rows drill by parentAccountId: the card's
+            // spent is the category's SUBTREE roll-up, and the server's
+            // parent filter (the account plus its direct children) is the
+            // closest journal-side match — identical to accountId for a
+            // leaf, the composition card's rollup drill for a parent.
+            if let categoryBudget = store.categoryBudget, !categoryBudget.categories.isEmpty {
+                CategoryBudgetCardView(report: categoryBudget) { row in
+                    openStatDetail(
+                        JournalDrillDown(
+                            kind: .expense,
+                            parentAccountId: row.accountId,
+                            categoryLabel: row.displayName
+                        ),
+                        windowOverride: AppDates.yearWindow(categoryBudget.year)
+                    )
+                }
             }
             // The stats component: overview block, month calendar, trend
             // chart, composition chart for the selected month. Guests pass
