@@ -281,34 +281,19 @@ struct CategoryBreakdownCard: View {
         )
     }
 
-    /// The legend row's leading icon badge, matching the journal card's
-    /// category badge structure: the category's emoji (the side's SF Symbol
-    /// when unset), with the parent's emoji as a small badge overlaid in
-    /// the bottom-trailing corner so same-named leaves under different
-    /// parents read as distinct — same composition, scaled to the legend's
-    /// 20pt badge. The color cue lives in the row's separate dot.
+    /// The legend row's leading icon badge — the shared category badge
+    /// (the category's emoji, the side's SF Symbol when unset, the
+    /// parent's emoji overlaid in the bottom-trailing corner so same-named
+    /// leaves under different parents read as distinct) at the legend's
+    /// 20pt diameter. The row's separate dot carries the color cue.
     private func legendIconBadge(for row: CategoryAmountRow) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            Group {
-                if let icon = row.icon, !icon.isEmpty {
-                    Text(icon)
-                        .font(.footnote)
-                } else {
-                    Image(systemName: side.icon)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 20, height: 20)
-            if let parentIcon = row.parentIcon, !parentIcon.isEmpty {
-                Text(parentIcon)
-                    .font(.system(size: 8))
-                    .frame(width: 12, height: 12)
-                    .background(Circle().fill(Color.primary.opacity(0.06)))
-                    .accessibilityHidden(true)
-            }
-        }
-        .frame(width: 24, height: 20, alignment: .leading)
+        CategoryIconBadge(
+            icon: row.icon,
+            fallbackSymbol: side.icon,
+            parentIcon: row.parentIcon,
+            diameter: 20
+        )
+        .frame(width: 24, height: 24, alignment: .leading)
     }
 
     private func percent(_ cents: Int) -> String {

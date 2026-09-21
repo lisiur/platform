@@ -90,9 +90,14 @@ final class AccountStore {
     /// Screenshot-harness seeding (`--ui-demo-quick-entry`): fills the tree
     /// with sample accounts so the quick-entry grid renders without a
     /// backend; the demo ledger id keeps `load` from ever hitting the API.
+    /// A few ids go into the recents cache too (record dedupes, so repeat
+    /// launches stay stable) so the recents row renders.
     func seedForDemo(_ accounts: [BookAccount]) {
         ledgerId = accounts.first?.ledgerId
         items = accounts
+        for id in ["demo-food", "demo-transport", "demo-shopping", "demo-fun"] {
+            RecentCategoryStore.record(id, ledgerId: "demo-ledger", kind: .expense)
+        }
     }
 
     /// Sample expense chart + money pockets for `seedForDemo`.

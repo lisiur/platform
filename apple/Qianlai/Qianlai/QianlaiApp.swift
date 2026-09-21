@@ -51,6 +51,8 @@ struct QianlaiApp: App {
                     NavigationStack { RimSettingsView() }
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-composition-card") {
                     CompositionCardDemo()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-icon-badge") {
+                    IconBadgeDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-trend-card") {
                     TrendCardDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-calendar-card") {
@@ -283,22 +285,22 @@ private struct CompositionCardDemo: View {
 
     static let summary = CategorySummaryResponse(
         expense: [
-            row("lunch", name: "午餐", parentCode: "food", cents: 21_000),
-            row("breakfast", name: "早餐", parentCode: "food", cents: 12_000),
-            row("snacks", name: "零食饮料", parentCode: "food", cents: 8_000),
-            row("fuel", name: "加油", parentCode: "transport", cents: 15_000),
-            row("subway", name: "地铁公交", parentCode: "transport", cents: 6_000),
-            row("utilities", name: "房租水电", parentCode: "housing", cents: 30_000),
-            row("digital", name: "数码", cents: 45_000),
-            row("refund", name: "退款", parentName: "数码", cents: -2_000),
-            row("apparel", name: "衣服鞋帽", cents: 9_900),
-            row("topup", name: "话费", cents: 5_000),
+            row("lunch", name: "午餐", parentCode: "food", icon: "🍱", parentIcon: "🍜", cents: 21_000),
+            row("breakfast", name: "早餐", parentCode: "food", icon: "🥣", parentIcon: "🍜", cents: 12_000),
+            row("snacks", name: "零食饮料", parentCode: "food", icon: "🥤", parentIcon: "🍜", cents: 8_000),
+            row("fuel", name: "加油", parentCode: "transport", icon: "⛽️", parentIcon: "🚗", cents: 15_000),
+            row("subway", name: "地铁公交", parentCode: "transport", icon: "🚇", parentIcon: "🚗", cents: 6_000),
+            row("utilities", name: "房租水电", parentCode: "housing", icon: "💡", parentIcon: "🏠", cents: 30_000),
+            row("digital", name: "数码", icon: "💻", cents: 45_000),
+            row("refund", name: "退款", parentName: "数码", icon: "🔄", parentIcon: "💻", cents: -2_000),
+            row("apparel", name: "衣服鞋帽", icon: "👕", cents: 9_900),
+            row("topup", name: "话费", icon: "📱", cents: 5_000),
             row("voided", name: "撤账", cents: 0),
         ],
         income: [
-            row("salary", name: "工资", parentCode: "payroll", cents: 200_000),
-            row("interest", name: "理财收益", cents: 50_000),
-            row("redpacket", name: "红包", cents: 8_800),
+            row("salary", name: "工资", parentCode: "payroll", icon: "💰", parentIcon: "💼", cents: 200_000),
+            row("interest", name: "理财收益", icon: "📈", cents: 50_000),
+            row("redpacket", name: "红包", icon: "🧧", cents: 8_800),
         ]
     )
 
@@ -307,6 +309,8 @@ private struct CompositionCardDemo: View {
         name: String,
         parentName: String? = nil,
         parentCode: String? = nil,
+        icon: String? = nil,
+        parentIcon: String? = nil,
         cents: Int
     ) -> CategoryAmountRow {
         CategoryAmountRow(
@@ -315,8 +319,64 @@ private struct CompositionCardDemo: View {
             code: nil,
             parentName: parentName,
             parentCode: parentCode,
+            parentIcon: parentIcon,
+            icon: icon,
             amountCents: cents
         )
+    }
+}
+
+/// Screenshot harness for the shared category icon badge
+/// (`--ui-demo-icon-badge`): one anatomy at three diameters — the journal
+/// card's 36pt, an in-between 28pt, and the composition legend's 20pt —
+/// each showing a parent-overlaid leaf, a bare leaf, and the unset-icon
+/// fallback, so the proportional scaling is visible side by side. No
+/// login or backend; emoji are verbatim sample glyphs, not catalog keys.
+private struct IconBadgeDemo: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            presetRow("36pt · 流水卡", diameter: 36)
+            presetRow("28pt · 中间档", diameter: 28)
+            presetRow("20pt · 图例", diameter: 20)
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func presetRow(_ title: String, diameter: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(verbatim: title)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .bottom, spacing: 28) {
+                CategoryIconBadge(
+                    icon: "🍱",
+                    fallbackSymbol: "arrow.down.circle.fill",
+                    parentIcon: "🍜",
+                    diameter: diameter
+                )
+                CategoryIconBadge(
+                    icon: "🥤",
+                    fallbackSymbol: "arrow.down.circle.fill",
+                    parentIcon: "🍜",
+                    diameter: diameter
+                )
+                CategoryIconBadge(
+                    icon: "💻",
+                    fallbackSymbol: "arrow.down.circle.fill",
+                    parentIcon: nil,
+                    diameter: diameter
+                )
+                CategoryIconBadge(
+                    icon: nil,
+                    fallbackSymbol: "arrow.down.circle.fill",
+                    parentIcon: nil,
+                    diameter: diameter
+                )
+            }
+        }
     }
 }
 
