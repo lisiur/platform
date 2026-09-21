@@ -5,7 +5,6 @@
 //  Created by Lisiur Day on 2026/8/26.
 //
 
-import PhotosUI
 import SwiftUI
 
 /// One-click income/expense/transfer entry: pick a scenario, two accounts,
@@ -91,10 +90,6 @@ struct QuickEntryView: View {
     /// The bound widget's target; nil for pill/tab presentations, which
     /// follow the app's active-ledger scope.
     private let binding: QuickEntryBinding?
-    /// Share-extension handoff: the sheet consumes the staged screenshot
-    /// (App Group file) once the ledger-scoped stores have loaded and runs
-    /// the same recognize-prefill pipeline as the in-sheet picker.
-    private let recognizesStagedScreenshot: Bool
     @State private var draft: QuickEntryDraft
 
     /// The ledger this sheet records into: the bound target for widget
@@ -173,38 +168,14 @@ struct QuickEntryView: View {
     /// true so its stored flag survives a category re-pick.
     @State private var didTouchBudgetToggle = false
 
-    /// The picked screenshot awaiting recognition — one pick runs the whole
-    /// tile-and-recognize pipeline and prefills the draft from the result.
-    @State private var screenshotItem: PhotosPickerItem?
-    /// True while the tiles upload and the model runs; the sheet disables
-    /// beneath the progress card so the prefill lands on a quiet draft.
-    @State private var isRecognizing = false
-    /// Recognition failures — soft misses (nothing recognized) and hard
-    /// errors (network, billing) alike; clears with the alert.
-    @State private var recognitionError: String?
-    /// The last successful recognition, kept so its amount/category
-    /// alternates render as one-tap correction chips.
-    @State private var recognition: ScreenshotRecognition?
-    /// The kind the recognition was applied as: the category alternates only
-    /// fit that kind, so a manual kind switch retires them while the amount
-    /// ones stay.
-    @State private var recognitionKind: QuickEntryKind?
-    /// The AI category waiting to be applied by `applyCategoryDefault` — the
-    /// kind switch's own `onChange` clears both sides and re-applies the
-    /// default AFTER this function returns, so the suggestion must ride that
-    /// path instead of writing the draft side directly.
-    @State private var recognitionCategoryId: String?
-
     /// Editing seeds every field from the entry; creating starts blank,
     /// optionally prefilled from the bound widget's binding.
     init(
         entry: JournalEntry? = nil,
-        binding: QuickEntryBinding? = nil,
-        recognizesStagedScreenshot: Bool = false
+        binding: QuickEntryBinding? = nil
     ) {
         editedEntry = entry
         self.binding = binding
-        self.recognizesStagedScreenshot = recognizesStagedScreenshot
         var seed = entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft()
         if let binding {
             if let kind = binding.kind { seed.kind = kind }
@@ -406,33 +377,17 @@ struct QuickEntryView: View {
     @ViewBuilder
     private var kindTabs: some View {
         if !isGuest {
-            ZStack {
-                Picker(L10n.string("quick.accountType", defaultValue: "Account Type"), selection: $draft.kind) {
-                    ForEach(QuickEntryKind.allCases) { kind in
-                        Text(kind.label).tag(kind)
-                    }
+            // Hug the segment titles instead of stretching edge to edge;
+            // the infinite frame centers the hugged control.
+            Picker(L10n.string("quick.accountType", defaultValue: "Account Type"), selection: $draft.kind) {
+                ForEach(QuickEntryKind.allCases) { kind in
+                    Text(kind.label).tag(kind)
                 }
-                .pickerStyle(.segmented)
-                .controlSize(.regular)
-                // Hug the segment titles instead of stretching edge to edge;
-                // the infinite frame centers the hugged control.
-                .fixedSize()
-                .frame(maxWidth: .infinity)
-
-                // Trailing of the tabs row: the screenshot-recognition entry.
-                // Picking a payment screenshot runs tile → upload → AI →
-                // prefill; the overlay trailing frame keeps the segmented
-                // control exactly centered.
-                PhotosPicker(selection: $screenshotItem, matching: .images) {
-                    Image(systemName: "doc.viewfinder")
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .disabled(isRecognizing)
-                .accessibilityLabel(Text(L10n.string(
-                    "quick.screenshot.recognize",
-                    defaultValue: "Recognize from Screenshot"
-                )))
             }
+            .pickerStyle(.segmented)
+            .controlSize(.regular)
+            .fixedSize()
+            .frame(maxWidth: .infinity)
             // Breathing gap to the form below (the VStack spacing is zero
             // so the form meets the calculator flush).
             .padding(.bottom, 8)
@@ -492,10 +447,6 @@ struct QuickEntryView: View {
             VStack(spacing: 0) {
                 kindTabs
 
-                // One-tap corrections from the last recognition, between the
-                // tabs and the form so they read as suggestions, not fields.
-                recognitionSuggestions
-
                 // The category grid is the only always-visible form surface;
                 // every row field lives in the quick bar's chips or the more
                 // sheet behind them, per the layout — except the transfer's
@@ -551,9 +502,8 @@ struct QuickEntryView: View {
         .background(Color.groupedCanvas)
         // Disables the form and its fields only — attached before the
         // toolbar so Cancel and the ledger switcher stay usable on a
-        // read-only ledger (switching away is the escape hatch there), and
-        // while a recognition runs so the prefill lands on a quiet draft.
-        .disabled(!canPost || isRecognizing)
+        // read-only ledger (switching away is the escape hatch there).
+        .disabled(!canPost)
         .navigationTitle(Text(navigationTitleText))
         .inlineNavigationBarTitle()
         .toolbar {
@@ -731,31 +681,6 @@ struct QuickEntryView: View {
         } message: {
             Text(validationError ?? "")
         }
-        // Recognition failures get their own alert (soft misses included —
-        // the user just waited out a network round trip, a toast would be
-        // gone before they look up).
-        .alert(
-            L10n.string("quick.screenshot.failedTitle", defaultValue: "Recognition Failed"),
-            isPresented: Binding(
-                get: { recognitionError != nil },
-                set: { if !$0 { recognitionError = nil } }
-            )
-        ) {
-            Button(L10n.string("common.ok", defaultValue: "OK"), role: .cancel) {}
-        } message: {
-            Text(recognitionError ?? "")
-        }
-        .overlay {
-            if isRecognizing {
-                recognitionProgressCard
-            }
-        }
-        // A fresh pick kicks off the pipeline; clearing the item afterwards
-        // re-arms the picker without re-running anything.
-        .onChange(of: screenshotItem) {
-            guard screenshotItem != nil else { return }
-            Task { await recognizePickedScreenshot() }
-        }
         .overlay {
             if !canPost {
                 ContentUnavailableView(
@@ -823,13 +748,6 @@ struct QuickEntryView: View {
             applyGuestProjectDefault()
             applyScopedProjectDefault()
             applyBinding()
-            // The share extension's handoff runs last: the category tree the
-            // suggestion matching needs is loaded, and the recognized prefill
-            // wins over every default above. Re-runs of this task (ledger
-            // switch) find nothing staged and no-op.
-            if recognizesStagedScreenshot {
-                await recognizeStagedScreenshot()
-            }
         }
         // The switcher inside this sheet can change the scope mid-edit:
         // follow it so a pinned entry never outlives its scope, and an
@@ -2162,19 +2080,15 @@ struct QuickEntryView: View {
     }
 
     /// Seeds the kind's category once accounts are in; an explicit pick is
-    /// never overwritten, and no-op for transfer. The AI suggestion (when a
-    /// recognition just landed) outranks the journal default and is consumed
-    /// on first application — it must not haunt later ledger switches.
+    /// never overwritten, and no-op for transfer.
     private func applyCategoryDefault() {
-        let suggestion = recognitionCategoryId
-        recognitionCategoryId = nil
         switch draft.kind {
         case .expense:
             guard draft.debitAccountId == nil else { return }
-            draft.debitAccountId = suggestion ?? defaultCategoryId
+            draft.debitAccountId = defaultCategoryId
         case .income:
             guard draft.creditAccountId == nil else { return }
-            draft.creditAccountId = suggestion ?? defaultCategoryId
+            draft.creditAccountId = defaultCategoryId
         case .transfer:
             break
         }
@@ -2265,219 +2179,6 @@ struct QuickEntryView: View {
             return L10n.string("common.notSelected", defaultValue: "Not selected")
         }
         return names.joined(separator: ", ")
-    }
-
-    // MARK: Screenshot recognition
-
-    /// Blocking progress card while the tiles upload and the model runs.
-    private var recognitionProgressCard: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-            Text(L10n.string("quick.screenshot.working", defaultValue: "Recognizing…"))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    /// One-tap corrections from the last recognition: alternate amounts
-    /// (always) and alternate categories (only while the kind still matches
-    /// the recognized one). Empty lists render nothing.
-    @ViewBuilder
-    private var recognitionSuggestions: some View {
-        if let recognition, !isRecognizing {
-            let currentAmount = Double(engine.entry)
-            let amounts = recognition.amountSuggestions.filter { amount in
-                guard let currentAmount else { return true }
-                return abs(amount - currentAmount) > 0.001
-            }
-            let categories = recognitionKind == draft.kind
-                ? dedupedCategorySuggestions(recognition)
-                : []
-            if !amounts.isEmpty || !categories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        if !amounts.isEmpty {
-                            suggestionCaption("quick.screenshot.otherAmounts", defaultValue: "Other amounts")
-                            ForEach(amounts, id: \.self) { amount in
-                                suggestionChip(String(format: "%.2f", amount)) {
-                                    engine = CalculatorEngine(initialText: String(format: "%.2f", amount))
-                                }
-                            }
-                        }
-                        if !categories.isEmpty {
-                            suggestionCaption("quick.screenshot.otherCategories", defaultValue: "Other categories")
-                            ForEach(categories, id: \.self) { name in
-                                suggestionChip(name) {
-                                    if let id = matchCategoryId(name) {
-                                        selectCategory(id)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .padding(.bottom, 8)
-            }
-        }
-    }
-
-    private func suggestionCaption(_ key: String, defaultValue: String) -> some View {
-        Text(L10n.string(key, defaultValue: defaultValue))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-    }
-
-    /// Secondary-tint capsule — a suggestion, not a state signal, so it
-    /// stays on the accent color (no red/green kind tinting).
-    private func suggestionChip(_ text: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(text)
-                .font(.footnote)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(Color.accentColor.opacity(0.12)))
-                .foregroundStyle(Color.accentColor)
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Category alternates with the picked one and duplicates removed,
-    /// order preserved — the model doesn't guarantee either.
-    private func dedupedCategorySuggestions(_ recognition: ScreenshotRecognition) -> [String] {
-        var seen = Set<String>()
-        if let picked = recognition.categoryName {
-            seen.insert(picked)
-        }
-        return recognition.categorySuggestions.filter { seen.insert($0).inserted }
-    }
-
-    /// The picker path of the pipeline: read the item's bytes, then hand
-    /// off to the shared tile-upload-prefill tail. The item clears as soon
-    /// as its bytes are read (or on failure) so the same photo can be
-    /// picked again later.
-    private func recognizePickedScreenshot() async {
-        guard !isRecognizing, let item = screenshotItem else { return }
-        isRecognizing = true
-        defer { isRecognizing = false }
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                recognitionError = L10n.string(
-                    "quick.screenshot.readFailed",
-                    defaultValue: "Couldn't read the selected image."
-                )
-                screenshotItem = nil
-                return
-            }
-            screenshotItem = nil
-            await runRecognition(imageData: data)
-        } catch {
-            screenshotItem = nil
-            recognition = nil
-            recognitionKind = nil
-            recognitionError = recognitionErrorMessage(error)
-        }
-    }
-
-    /// The share-extension handoff path: consume the staged image and run
-    /// the same shared tail. Nothing staged (the normal case on task re-runs
-    /// and stale handoffs) is a silent no-op.
-    private func recognizeStagedScreenshot() async {
-        guard !isRecognizing, let data = ScreenshotHandoff.consumePendingImageData() else {
-            return
-        }
-        isRecognizing = true
-        defer { isRecognizing = false }
-        await runRecognition(imageData: data)
-    }
-
-    /// Shared tail of both entry paths: tile → upload → prefill.
-    private func runRecognition(imageData: Data) async {
-        guard let ledger else { return }
-        guard let tiles = ScreenshotTiler.jpegTiles(from: imageData), !tiles.isEmpty else {
-            recognitionError = L10n.string(
-                "quick.screenshot.readFailed",
-                defaultValue: "Couldn't read the selected image."
-            )
-            return
-        }
-        do {
-            let result = try await postingJournal.recognizeScreenshot(
-                ledgerId: ledger.id,
-                tiles: tiles
-            )
-            applyRecognition(result)
-        } catch {
-            recognition = nil
-            recognitionKind = nil
-            recognitionError = recognitionErrorMessage(error)
-        }
-    }
-
-    /// Billing rejections read as their own guidance; everything else keeps
-    /// the server's message (same surface as the save path).
-    private func recognitionErrorMessage(_ error: Error) -> String {
-        if case .server(402, _) = error as? APIError {
-            return L10n.string(
-                "quick.screenshot.noCredit",
-                defaultValue: "Not enough credits for screenshot recognition. Redeem a code to top up."
-            )
-        }
-        return error.localizedDescription
-    }
-
-    /// Maps a recognition onto the draft: kind, time, amount (through the
-    /// calculator, so the keypad math continues from it), merchant·memo,
-    /// then the category — the AI's pick first, the journal-derived default
-    /// when the name doesn't match this ledger's tree. Alternates stay on
-    /// `recognition` for the correction chips.
-    private func applyRecognition(_ result: ScreenshotRecognition) {
-        guard result.recognized else {
-            recognition = nil
-            recognitionKind = nil
-            recognitionError = L10n.string(
-                "quick.screenshot.notRecognized",
-                defaultValue: "No transaction found in this screenshot. Fill in the entry manually."
-            )
-            return
-        }
-        recognition = result
-        let targetKind: QuickEntryKind = result.kind == "income" ? .income : .expense
-        let kindChanged = draft.kind != targetKind
-        draft.kind = targetKind
-        recognitionKind = targetKind
-        if let date = result.occurredDate {
-            draft.date = date
-        }
-        if let amount = result.amount, amount > 0 {
-            engine = CalculatorEngine(initialText: String(format: "%.2f", amount))
-        }
-        let memoParts = [result.merchant, result.memo]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if !memoParts.isEmpty {
-            draft.memo = memoParts.joined(separator: " · ")
-        }
-        // The kind change's own onChange clears both sides and re-applies
-        // the default — the suggestion rides that path. When the kind didn't
-        // change nothing fires, and the journal default already owns the
-        // side from load, so the AI's pick is written directly (a manual
-        // pick, recents untouched); no match leaves that default standing.
-        if kindChanged {
-            recognitionCategoryId = result.categoryName.flatMap(matchCategoryId)
-        } else if let id = result.categoryName.flatMap(matchCategoryId) {
-            selectCategory(id)
-        }
-    }
-
-    /// Resolves an AI-suggested category against this ledger's tree — the
-    /// prompt's "/"-joined full paths (服饰/衣服 vs 育儿/衣服) disambiguate
-    /// same-named leaves, and the selectable range is leaves only. Nil
-    /// leaves the journal default in place.
-    private func matchCategoryId(_ name: String) -> String? {
-        CategoryPathResolver.leafAccountId(forSuggestion: name, tree: categoryTree)
     }
 
     private func save() async {

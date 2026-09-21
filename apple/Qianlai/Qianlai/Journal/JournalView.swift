@@ -29,6 +29,8 @@ struct JournalView: View {
     @Environment(\.locale) private var locale
     @State private var memberStore = MemberStore()
     @State private var isFilterPresented = false
+    /// The screenshot-recognition page, presented from the toolbar button.
+    @State private var isRecognitionPresented = false
     /// True while the user has explicitly chosen the range tab — keeps the
     /// selection from re-deriving to a preset tab when the picked bounds
     /// happen to form an exact week/month/year window. Cleared by tapping
@@ -94,14 +96,21 @@ struct JournalView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
+                recognitionButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 statsButton
             }
             #else
             ToolbarItem(placement: .primaryAction) {
-                statsButton
+                HStack(spacing: 12) {
+                    recognitionButton
+                    statsButton
+                }
             }
             #endif
         }
+        .screenshotRecognitionCover(isPresented: $isRecognitionPresented)
         // The chart page: the stats component for the tapped window and
         // the filters active at tap time. The registration lives on the
         // page (never inside a lazy container, per the
@@ -485,6 +494,25 @@ struct JournalView: View {
             projectId: store.projectFilterId
         )
         return filters.isEmpty ? nil : filters
+    }
+
+    /// The screenshot-recognition page button (toolbar, trailing, left of
+    /// the chart button): `canRecognizeScreenshots` — full-role ledgers
+    /// with posting rights only; guests are project-pinned expense loggers
+    /// the recognition prefill doesn't cover, and viewers can't post.
+    @ViewBuilder
+    private var recognitionButton: some View {
+        if ledgerStore.activeLedger?.canRecognizeScreenshots == true {
+            Button {
+                isRecognitionPresented = true
+            } label: {
+                Image(systemName: "doc.viewfinder")
+            }
+            .accessibilityLabel(Text(L10n.string(
+                "screenshot.title",
+                defaultValue: "Receipt Recognition"
+            )))
+        }
     }
 
     /// The chart-page button (toolbar, trailing): opens the stats

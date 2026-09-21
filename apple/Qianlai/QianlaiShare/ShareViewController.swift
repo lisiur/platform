@@ -20,9 +20,9 @@ final class ShareViewController: UIViewController {
     private static let appGroupSuite = "group.top.hapaul.qianlai"
     /// Must match `ScreenshotHandoff.pendingFilename` in the app target.
     private static let pendingFilename = "pending-screenshot.img"
-    /// The handoff link: opens the quick-entry sheet, which consumes the
-    /// staged image (`screenshot=1`) on its first load.
-    private static let deepLink = URL(string: "qianlai://quick-entry?screenshot=1")
+    /// The handoff link: opens the recognition page, which consumes the
+    /// staged image on its first load.
+    private static let deepLink = URL(string: "qianlai://recognize")
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)

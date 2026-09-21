@@ -92,6 +92,10 @@ nonisolated struct QianlaiLedger: Codable, Identifiable, Hashable {
     /// True when the viewer is a project-scoped guest on this ledger: they
     /// only see entries of their projects and record expenses against them.
     var isGuest: Bool { LedgerPolicy.isGuest(myRole) }
+    /// Screenshot recognition posts through the same rights as quick entry,
+    /// but guests are excluded: their entries are project-pinned, which the
+    /// recognition prefill (no project surface) can't express yet.
+    var canRecognizeScreenshots: Bool { !isGuest && canPost }
 }
 
 // MARK: - Accounts
@@ -1269,6 +1273,9 @@ struct ScreenshotRecognition: Codable {
 
     var amountSuggestions: [Double] { amountAlternatives ?? [] }
     var categorySuggestions: [String] { categoryAlternatives ?? [] }
+
+    /// The model squinted: show the double-check hint.
+    var isLowConfidence: Bool { confidence == "low" }
 
     /// The screenshot's wall-clock time parsed in the device's timezone —
     /// the model emits local time without an offset by contract.
