@@ -293,6 +293,11 @@ export type LedgerBudgetYear = Prisma.LedgerBudgetYearModel
  */
 export type LedgerBudgetMonthOverride = Prisma.LedgerBudgetMonthOverrideModel
 /**
+ * Model LedgerCategoryBudgetYear
+ * 
+ */
+export type LedgerCategoryBudgetYear = Prisma.LedgerCategoryBudgetYearModel
+/**
  * Model Project
  * 
  */

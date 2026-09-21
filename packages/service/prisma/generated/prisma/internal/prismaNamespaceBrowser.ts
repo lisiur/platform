@@ -106,6 +106,7 @@ export const ModelName = {
   Ledger: 'Ledger',
   LedgerBudgetYear: 'LedgerBudgetYear',
   LedgerBudgetMonthOverride: 'LedgerBudgetMonthOverride',
+  LedgerCategoryBudgetYear: 'LedgerCategoryBudgetYear',
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
@@ -970,6 +971,17 @@ export const LedgerBudgetMonthOverrideScalarFieldEnum = {
 } as const
 
 export type LedgerBudgetMonthOverrideScalarFieldEnum = (typeof LedgerBudgetMonthOverrideScalarFieldEnum)[keyof typeof LedgerBudgetMonthOverrideScalarFieldEnum]
+
+
+export const LedgerCategoryBudgetYearScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  accountId: 'accountId',
+  year: 'year',
+  cents: 'cents'
+} as const
+
+export type LedgerCategoryBudgetYearScalarFieldEnum = (typeof LedgerCategoryBudgetYearScalarFieldEnum)[keyof typeof LedgerCategoryBudgetYearScalarFieldEnum]
 
 
 export const ProjectScalarFieldEnum = {

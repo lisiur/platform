@@ -80,6 +80,15 @@ export type QuickEntryChipField = (typeof QUICK_ENTRY_CHIP_FIELDS)[number];
 export const MAX_LINE_AMOUNT = 9_999_999_999.99;
 export const MAX_LINE_CENTS = 999_999_999_999;
 
+/**
+ * Budget amounts land in plain INTEGER columns (the Prisma `Int` of the
+ * budget tables), whose hard ceiling is 2,147,483,647 cents — a whole-year
+ * amount reaches that more easily than a month's, so the budget schemas
+ * cap here instead of at MAX_LINE_CENTS, whose excess would pass Zod and
+ * only explode at the database as an int overflow (a 500).
+ */
+export const MAX_INT_CENTS = 2_147_483_647;
+
 import {
   ADJUSTMENT_OFFSET_ACCOUNT_FLAG,
   BUILTIN_ACCOUNT_FLAG,

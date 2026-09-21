@@ -452,6 +452,7 @@ export const ModelName = {
   Ledger: 'Ledger',
   LedgerBudgetYear: 'LedgerBudgetYear',
   LedgerBudgetMonthOverride: 'LedgerBudgetMonthOverride',
+  LedgerCategoryBudgetYear: 'LedgerCategoryBudgetYear',
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   LedgerMember: 'LedgerMember',
@@ -476,7 +477,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "ledgerBudgetYear" | "ledgerBudgetMonthOverride" | "project" | "projectMember" | "ledgerMember" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant" | "qianlaiUserPreference"
+    modelProps: "user" | "session" | "account" | "verification" | "jobInstance" | "job" | "organization" | "department" | "position" | "memberPosition" | "member" | "invitation" | "systemConfig" | "upload" | "attachment" | "application" | "applicationConfig" | "menu" | "menuPermission" | "permission" | "rolePermission" | "roleAssignment" | "role" | "operationLog" | "auditLog" | "notificationChannel" | "notificationTemplate" | "notification" | "rateLimitOverride" | "apiToken" | "aiConversation" | "aiMessage" | "collectionItem" | "itemEnrichment" | "aiProvider" | "aiAccount" | "aiAccountProvider" | "aiKey" | "aiModel" | "aiModelPricing" | "aiAgent" | "aiUsageEvent" | "billingConfig" | "currencyRate" | "pricingPlan" | "feature" | "planFeature" | "userQuota" | "pricingSubscription" | "userCredit" | "userCreditLedger" | "redeemCode" | "ledger" | "ledgerBudgetYear" | "ledgerBudgetMonthOverride" | "ledgerCategoryBudgetYear" | "project" | "projectMember" | "ledgerMember" | "realAccount" | "bookAccount" | "journalEntry" | "journalLine" | "journalEntryParticipant" | "qianlaiUserPreference"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4550,6 +4551,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LedgerCategoryBudgetYear: {
+      payload: Prisma.$LedgerCategoryBudgetYearPayload<ExtArgs>
+      fields: Prisma.LedgerCategoryBudgetYearFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LedgerCategoryBudgetYearFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LedgerCategoryBudgetYearFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        findFirst: {
+          args: Prisma.LedgerCategoryBudgetYearFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LedgerCategoryBudgetYearFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        findMany: {
+          args: Prisma.LedgerCategoryBudgetYearFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>[]
+        }
+        create: {
+          args: Prisma.LedgerCategoryBudgetYearCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        createMany: {
+          args: Prisma.LedgerCategoryBudgetYearCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LedgerCategoryBudgetYearCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>[]
+        }
+        delete: {
+          args: Prisma.LedgerCategoryBudgetYearDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        update: {
+          args: Prisma.LedgerCategoryBudgetYearUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        deleteMany: {
+          args: Prisma.LedgerCategoryBudgetYearDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LedgerCategoryBudgetYearUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LedgerCategoryBudgetYearUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>[]
+        }
+        upsert: {
+          args: Prisma.LedgerCategoryBudgetYearUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LedgerCategoryBudgetYearPayload>
+        }
+        aggregate: {
+          args: Prisma.LedgerCategoryBudgetYearAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLedgerCategoryBudgetYear>
+        }
+        groupBy: {
+          args: Prisma.LedgerCategoryBudgetYearGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LedgerCategoryBudgetYearGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LedgerCategoryBudgetYearCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LedgerCategoryBudgetYearCountAggregateOutputType> | number
+        }
+      }
+    }
     Project: {
       payload: Prisma.$ProjectPayload<ExtArgs>
       fields: Prisma.ProjectFieldRefs
@@ -6094,6 +6169,17 @@ export const LedgerBudgetMonthOverrideScalarFieldEnum = {
 export type LedgerBudgetMonthOverrideScalarFieldEnum = (typeof LedgerBudgetMonthOverrideScalarFieldEnum)[keyof typeof LedgerBudgetMonthOverrideScalarFieldEnum]
 
 
+export const LedgerCategoryBudgetYearScalarFieldEnum = {
+  id: 'id',
+  ledgerId: 'ledgerId',
+  accountId: 'accountId',
+  year: 'year',
+  cents: 'cents'
+} as const
+
+export type LedgerCategoryBudgetYearScalarFieldEnum = (typeof LedgerCategoryBudgetYearScalarFieldEnum)[keyof typeof LedgerCategoryBudgetYearScalarFieldEnum]
+
+
 export const ProjectScalarFieldEnum = {
   id: 'id',
   ledgerId: 'ledgerId',
@@ -6657,6 +6743,7 @@ export type GlobalOmitConfig = {
   ledger?: Prisma.LedgerOmit
   ledgerBudgetYear?: Prisma.LedgerBudgetYearOmit
   ledgerBudgetMonthOverride?: Prisma.LedgerBudgetMonthOverrideOmit
+  ledgerCategoryBudgetYear?: Prisma.LedgerCategoryBudgetYearOmit
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
   ledgerMember?: Prisma.LedgerMemberOmit

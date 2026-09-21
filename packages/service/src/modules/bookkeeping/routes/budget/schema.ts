@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { MAX_LINE_CENTS } from "../../domain";
+import { MAX_INT_CENTS } from "../../domain";
 
 export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),
@@ -20,7 +20,7 @@ const budgetMonthOverrideSchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .openapi({ example: 800000 }),
   })
   .openapi("QianlaiBudgetMonthOverride");
@@ -35,7 +35,7 @@ export const budgetSettingsSchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .nullable()
       .openapi({ example: 500000 }),
     // The previous year's amount — a prefill hint for the settings form so
@@ -45,7 +45,7 @@ export const budgetSettingsSchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .nullable()
       .openapi({ example: 500000 }),
     // Single-month overrides (month-ascending); only the pinned months.
@@ -67,7 +67,7 @@ export const setYearBudgetBodySchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .openapi({ example: 500000 }),
   })
   .openapi("QianlaiSetYearBudgetBody");
@@ -82,7 +82,7 @@ export const setMonthBudgetBodySchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .openapi({ example: 800000 }),
   })
   .openapi("QianlaiSetMonthBudgetBody");
@@ -166,7 +166,7 @@ export const budgetReportResponseSchema = z
       .number()
       .int()
       .min(0)
-      .max(MAX_LINE_CENTS)
+      .max(MAX_INT_CENTS)
       .nullable()
       .openapi({ example: 500000 }),
     currency: z.string().openapi({ example: "CNY" }),

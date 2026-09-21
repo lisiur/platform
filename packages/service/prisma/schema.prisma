@@ -1104,6 +1104,7 @@ model Ledger {
   entries     JournalEntry[]
   projects    Project[]
   budgetYears LedgerBudgetYear[]
+  categoryBudgets LedgerCategoryBudgetYear[]
 
   @@index([ownerId])
   @@map("qianlai_ledger")
@@ -1143,6 +1144,27 @@ model LedgerBudgetMonthOverride {
 
   @@unique([budgetYearId, month])
   @@map("qianlai_ledger_budget_month_override")
+}
+
+// Per-CATEGORY annual budgets, fully isolated from the year/month budget
+// above (LedgerBudgetYear): no prerequisite, no lifecycle coupling, its own
+// hidden gate. One row pins a year's whole-year cents to one expense
+// category (any depth); parent and child rows may coexist and their spent
+// sums intentionally overlap (a parent's total rolls up its subtree).
+// `countsInLedger` and `excludedFromBudget` never drop from "spent" —
+// the budget answers for every expense cent recorded in the year.
+model LedgerCategoryBudgetYear {
+  id        String      @id @default(cuid())
+  ledgerId  String
+  ledger    Ledger      @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+  accountId String
+  account   BookAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  year      Int
+  // The category's whole-year budget in cents (0 is a valid, tight budget).
+  cents     Int
+
+  @@unique([ledgerId, year, accountId])
+  @@map("qianlai_ledger_category_budget_year")
 }
 
 // A sub-scope of a ledger that both tags entries (JournalEntry.projectId)
@@ -1245,6 +1267,8 @@ model BookAccount {
   parent    BookAccount? @relation("BookAccountTree", fields: [parentId], references: [id], onDelete: Cascade)
   children  BookAccount[] @relation("BookAccountTree")
   lines     JournalLine[]
+  // This category's per-year budget rows (see LedgerCategoryBudgetYear).
+  categoryBudgets LedgerCategoryBudgetYear[]
   status    String       @default("active")
   // Display icon (emoji or icon name) shown next to the account name.
   icon      String?

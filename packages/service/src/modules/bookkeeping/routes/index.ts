@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { qianlaiAccountRoutes } from "./account";
 import { qianlaiBudgetRoutes } from "./budget";
+import { qianlaiCategoryBudgetRoutes } from "./category-budget";
 import { qianlaiJournalEntryRoutes } from "./journal-entry";
 import { qianlaiLedgerRoutes } from "./ledger";
 import { qianlaiPreferenceRoutes } from "./preferences";
@@ -15,6 +16,7 @@ const bookkeepingRoutes = new OpenAPIHono()
   .route("/", qianlaiRealAccountRoutes)
   .route("/", qianlaiJournalEntryRoutes)
   .route("/", qianlaiBudgetRoutes)
+  .route("/", qianlaiCategoryBudgetRoutes)
   .route("/", qianlaiReportRoutes)
   .route("/", qianlaiShareRoutes)
   .route("/", qianlaiProjectRoutes)

@@ -284,6 +284,7 @@ export type BookAccountWhereInput = {
   parent?: Prisma.XOR<Prisma.BookAccountNullableScalarRelationFilter, Prisma.BookAccountWhereInput> | null
   children?: Prisma.BookAccountListRelationFilter
   lines?: Prisma.JournalLineListRelationFilter
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearListRelationFilter
   realAccount?: Prisma.XOR<Prisma.RealAccountNullableScalarRelationFilter, Prisma.RealAccountWhereInput> | null
 }
 
@@ -306,6 +307,7 @@ export type BookAccountOrderByWithRelationInput = {
   parent?: Prisma.BookAccountOrderByWithRelationInput
   children?: Prisma.BookAccountOrderByRelationAggregateInput
   lines?: Prisma.JournalLineOrderByRelationAggregateInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearOrderByRelationAggregateInput
   realAccount?: Prisma.RealAccountOrderByWithRelationInput
 }
 
@@ -332,6 +334,7 @@ export type BookAccountWhereUniqueInput = Prisma.AtLeast<{
   parent?: Prisma.XOR<Prisma.BookAccountNullableScalarRelationFilter, Prisma.BookAccountWhereInput> | null
   children?: Prisma.BookAccountListRelationFilter
   lines?: Prisma.JournalLineListRelationFilter
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearListRelationFilter
   realAccount?: Prisma.XOR<Prisma.RealAccountNullableScalarRelationFilter, Prisma.RealAccountWhereInput> | null
 }, "id" | "ledgerId_code">
 
@@ -393,6 +396,7 @@ export type BookAccountCreateInput = {
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
   children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
   realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
 }
 
@@ -413,6 +417,7 @@ export type BookAccountUncheckedCreateInput = {
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountUpdateInput = {
@@ -431,6 +436,7 @@ export type BookAccountUpdateInput = {
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
   children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
   realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
 }
 
@@ -451,6 +457,7 @@ export type BookAccountUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountCreateManyInput = {
@@ -509,6 +516,11 @@ export type BookAccountListRelationFilter = {
 
 export type BookAccountOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type BookAccountScalarRelationFilter = {
+  is?: Prisma.BookAccountWhereInput
+  isNot?: Prisma.BookAccountWhereInput
 }
 
 export type BookAccountNullableScalarRelationFilter = {
@@ -576,11 +588,6 @@ export type BookAccountSumOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
 }
 
-export type BookAccountScalarRelationFilter = {
-  is?: Prisma.BookAccountWhereInput
-  isNot?: Prisma.BookAccountWhereInput
-}
-
 export type BookAccountCreateNestedManyWithoutLedgerInput = {
   create?: Prisma.XOR<Prisma.BookAccountCreateWithoutLedgerInput, Prisma.BookAccountUncheckedCreateWithoutLedgerInput> | Prisma.BookAccountCreateWithoutLedgerInput[] | Prisma.BookAccountUncheckedCreateWithoutLedgerInput[]
   connectOrCreate?: Prisma.BookAccountCreateOrConnectWithoutLedgerInput | Prisma.BookAccountCreateOrConnectWithoutLedgerInput[]
@@ -621,6 +628,20 @@ export type BookAccountUncheckedUpdateManyWithoutLedgerNestedInput = {
   update?: Prisma.BookAccountUpdateWithWhereUniqueWithoutLedgerInput | Prisma.BookAccountUpdateWithWhereUniqueWithoutLedgerInput[]
   updateMany?: Prisma.BookAccountUpdateManyWithWhereWithoutLedgerInput | Prisma.BookAccountUpdateManyWithWhereWithoutLedgerInput[]
   deleteMany?: Prisma.BookAccountScalarWhereInput | Prisma.BookAccountScalarWhereInput[]
+}
+
+export type BookAccountCreateNestedOneWithoutCategoryBudgetsInput = {
+  create?: Prisma.XOR<Prisma.BookAccountCreateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedCreateWithoutCategoryBudgetsInput>
+  connectOrCreate?: Prisma.BookAccountCreateOrConnectWithoutCategoryBudgetsInput
+  connect?: Prisma.BookAccountWhereUniqueInput
+}
+
+export type BookAccountUpdateOneRequiredWithoutCategoryBudgetsNestedInput = {
+  create?: Prisma.XOR<Prisma.BookAccountCreateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedCreateWithoutCategoryBudgetsInput>
+  connectOrCreate?: Prisma.BookAccountCreateOrConnectWithoutCategoryBudgetsInput
+  upsert?: Prisma.BookAccountUpsertWithoutCategoryBudgetsInput
+  connect?: Prisma.BookAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BookAccountUpdateToOneWithWhereWithoutCategoryBudgetsInput, Prisma.BookAccountUpdateWithoutCategoryBudgetsInput>, Prisma.BookAccountUncheckedUpdateWithoutCategoryBudgetsInput>
 }
 
 export type BookAccountCreateNestedManyWithoutRealAccountInput = {
@@ -761,6 +782,7 @@ export type BookAccountCreateWithoutLedgerInput = {
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
   children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
   realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
 }
 
@@ -780,6 +802,7 @@ export type BookAccountUncheckedCreateWithoutLedgerInput = {
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountCreateOrConnectWithoutLedgerInput = {
@@ -828,6 +851,98 @@ export type BookAccountScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"BookAccount"> | Date | string
 }
 
+export type BookAccountCreateWithoutCategoryBudgetsInput = {
+  id?: string
+  name?: string | null
+  code?: string | null
+  type: string
+  sortOrder?: number
+  status?: string
+  icon?: string | null
+  meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
+  parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
+  children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
+  lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
+}
+
+export type BookAccountUncheckedCreateWithoutCategoryBudgetsInput = {
+  id?: string
+  ledgerId: string
+  name?: string | null
+  code?: string | null
+  type: string
+  sortOrder?: number
+  parentId?: string | null
+  status?: string
+  icon?: string | null
+  meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountCreateflagsInput | string[]
+  realAccountId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
+  lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+}
+
+export type BookAccountCreateOrConnectWithoutCategoryBudgetsInput = {
+  where: Prisma.BookAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.BookAccountCreateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedCreateWithoutCategoryBudgetsInput>
+}
+
+export type BookAccountUpsertWithoutCategoryBudgetsInput = {
+  update: Prisma.XOR<Prisma.BookAccountUpdateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedUpdateWithoutCategoryBudgetsInput>
+  create: Prisma.XOR<Prisma.BookAccountCreateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedCreateWithoutCategoryBudgetsInput>
+  where?: Prisma.BookAccountWhereInput
+}
+
+export type BookAccountUpdateToOneWithWhereWithoutCategoryBudgetsInput = {
+  where?: Prisma.BookAccountWhereInput
+  data: Prisma.XOR<Prisma.BookAccountUpdateWithoutCategoryBudgetsInput, Prisma.BookAccountUncheckedUpdateWithoutCategoryBudgetsInput>
+}
+
+export type BookAccountUpdateWithoutCategoryBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
+  parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
+  lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
+}
+
+export type BookAccountUncheckedUpdateWithoutCategoryBudgetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ledgerId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  flags?: Prisma.BookAccountUpdateflagsInput | string[]
+  realAccountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
+  lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+}
+
 export type BookAccountCreateWithoutRealAccountInput = {
   id?: string
   name?: string | null
@@ -844,6 +959,7 @@ export type BookAccountCreateWithoutRealAccountInput = {
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
   children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountUncheckedCreateWithoutRealAccountInput = {
@@ -862,6 +978,7 @@ export type BookAccountUncheckedCreateWithoutRealAccountInput = {
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountCreateOrConnectWithoutRealAccountInput = {
@@ -905,6 +1022,7 @@ export type BookAccountCreateWithoutChildrenInput = {
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
   lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
   realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
 }
 
@@ -924,6 +1042,7 @@ export type BookAccountUncheckedCreateWithoutChildrenInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountCreateOrConnectWithoutChildrenInput = {
@@ -946,6 +1065,7 @@ export type BookAccountCreateWithoutParentInput = {
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
   children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
   realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
 }
 
@@ -965,6 +1085,7 @@ export type BookAccountUncheckedCreateWithoutParentInput = {
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
   lines?: Prisma.JournalLineUncheckedCreateNestedManyWithoutAccountInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountCreateOrConnectWithoutParentInput = {
@@ -1003,6 +1124,7 @@ export type BookAccountUpdateWithoutChildrenInput = {
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
   lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
   realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
 }
 
@@ -1022,6 +1144,7 @@ export type BookAccountUncheckedUpdateWithoutChildrenInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountUpsertWithWhereUniqueWithoutParentInput = {
@@ -1055,6 +1178,7 @@ export type BookAccountCreateWithoutLinesInput = {
   ledger: Prisma.LedgerCreateNestedOneWithoutAccountsInput
   parent?: Prisma.BookAccountCreateNestedOneWithoutChildrenInput
   children?: Prisma.BookAccountCreateNestedManyWithoutParentInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearCreateNestedManyWithoutAccountInput
   realAccount?: Prisma.RealAccountCreateNestedOneWithoutPocketsInput
 }
 
@@ -1074,6 +1198,7 @@ export type BookAccountUncheckedCreateWithoutLinesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.BookAccountUncheckedCreateNestedManyWithoutParentInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type BookAccountCreateOrConnectWithoutLinesInput = {
@@ -1107,6 +1232,7 @@ export type BookAccountUpdateWithoutLinesInput = {
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
   children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
   realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
 }
 
@@ -1126,6 +1252,7 @@ export type BookAccountUncheckedUpdateWithoutLinesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountCreateManyLedgerInput = {
@@ -1159,6 +1286,7 @@ export type BookAccountUpdateWithoutLedgerInput = {
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
   children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
   realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
 }
 
@@ -1178,6 +1306,7 @@ export type BookAccountUncheckedUpdateWithoutLedgerInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountUncheckedUpdateManyWithoutLedgerInput = {
@@ -1228,6 +1357,7 @@ export type BookAccountUpdateWithoutRealAccountInput = {
   parent?: Prisma.BookAccountUpdateOneWithoutChildrenNestedInput
   children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountUncheckedUpdateWithoutRealAccountInput = {
@@ -1246,6 +1376,7 @@ export type BookAccountUncheckedUpdateWithoutRealAccountInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountUncheckedUpdateManyWithoutRealAccountInput = {
@@ -1295,6 +1426,7 @@ export type BookAccountUpdateWithoutParentInput = {
   ledger?: Prisma.LedgerUpdateOneRequiredWithoutAccountsNestedInput
   children?: Prisma.BookAccountUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUpdateManyWithoutAccountNestedInput
   realAccount?: Prisma.RealAccountUpdateOneWithoutPocketsNestedInput
 }
 
@@ -1314,6 +1446,7 @@ export type BookAccountUncheckedUpdateWithoutParentInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.BookAccountUncheckedUpdateManyWithoutParentNestedInput
   lines?: Prisma.JournalLineUncheckedUpdateManyWithoutAccountNestedInput
+  categoryBudgets?: Prisma.LedgerCategoryBudgetYearUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type BookAccountUncheckedUpdateManyWithoutParentInput = {
@@ -1340,11 +1473,13 @@ export type BookAccountUncheckedUpdateManyWithoutParentInput = {
 export type BookAccountCountOutputType = {
   children: number
   lines: number
+  categoryBudgets: number
 }
 
 export type BookAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   children?: boolean | BookAccountCountOutputTypeCountChildrenArgs
   lines?: boolean | BookAccountCountOutputTypeCountLinesArgs
+  categoryBudgets?: boolean | BookAccountCountOutputTypeCountCategoryBudgetsArgs
 }
 
 /**
@@ -1371,6 +1506,13 @@ export type BookAccountCountOutputTypeCountLinesArgs<ExtArgs extends runtime.Typ
   where?: Prisma.JournalLineWhereInput
 }
 
+/**
+ * BookAccountCountOutputType without action
+ */
+export type BookAccountCountOutputTypeCountCategoryBudgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LedgerCategoryBudgetYearWhereInput
+}
+
 
 export type BookAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1391,6 +1533,7 @@ export type BookAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   parent?: boolean | Prisma.BookAccount$parentArgs<ExtArgs>
   children?: boolean | Prisma.BookAccount$childrenArgs<ExtArgs>
   lines?: boolean | Prisma.BookAccount$linesArgs<ExtArgs>
+  categoryBudgets?: boolean | Prisma.BookAccount$categoryBudgetsArgs<ExtArgs>
   realAccount?: boolean | Prisma.BookAccount$realAccountArgs<ExtArgs>
   _count?: boolean | Prisma.BookAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["bookAccount"]>
@@ -1458,6 +1601,7 @@ export type BookAccountInclude<ExtArgs extends runtime.Types.Extensions.Internal
   parent?: boolean | Prisma.BookAccount$parentArgs<ExtArgs>
   children?: boolean | Prisma.BookAccount$childrenArgs<ExtArgs>
   lines?: boolean | Prisma.BookAccount$linesArgs<ExtArgs>
+  categoryBudgets?: boolean | Prisma.BookAccount$categoryBudgetsArgs<ExtArgs>
   realAccount?: boolean | Prisma.BookAccount$realAccountArgs<ExtArgs>
   _count?: boolean | Prisma.BookAccountCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1479,6 +1623,7 @@ export type $BookAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
     parent: Prisma.$BookAccountPayload<ExtArgs> | null
     children: Prisma.$BookAccountPayload<ExtArgs>[]
     lines: Prisma.$JournalLinePayload<ExtArgs>[]
+    categoryBudgets: Prisma.$LedgerCategoryBudgetYearPayload<ExtArgs>[]
     realAccount: Prisma.$RealAccountPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1894,6 +2039,7 @@ export interface Prisma__BookAccountClient<T, Null = never, ExtArgs extends runt
   parent<T extends Prisma.BookAccount$parentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookAccount$parentArgs<ExtArgs>>): Prisma.Prisma__BookAccountClient<runtime.Types.Result.GetResult<Prisma.$BookAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   children<T extends Prisma.BookAccount$childrenArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookAccount$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   lines<T extends Prisma.BookAccount$linesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookAccount$linesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JournalLinePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  categoryBudgets<T extends Prisma.BookAccount$categoryBudgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookAccount$categoryBudgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LedgerCategoryBudgetYearPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   realAccount<T extends Prisma.BookAccount$realAccountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BookAccount$realAccountArgs<ExtArgs>>): Prisma.Prisma__RealAccountClient<runtime.Types.Result.GetResult<Prisma.$RealAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2403,6 +2549,30 @@ export type BookAccount$linesArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.JournalLineScalarFieldEnum | Prisma.JournalLineScalarFieldEnum[]
+}
+
+/**
+ * BookAccount.categoryBudgets
+ */
+export type BookAccount$categoryBudgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LedgerCategoryBudgetYear
+   */
+  select?: Prisma.LedgerCategoryBudgetYearSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LedgerCategoryBudgetYear
+   */
+  omit?: Prisma.LedgerCategoryBudgetYearOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LedgerCategoryBudgetYearInclude<ExtArgs> | null
+  where?: Prisma.LedgerCategoryBudgetYearWhereInput
+  orderBy?: Prisma.LedgerCategoryBudgetYearOrderByWithRelationInput | Prisma.LedgerCategoryBudgetYearOrderByWithRelationInput[]
+  cursor?: Prisma.LedgerCategoryBudgetYearWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LedgerCategoryBudgetYearScalarFieldEnum | Prisma.LedgerCategoryBudgetYearScalarFieldEnum[]
 }
 
 /**
