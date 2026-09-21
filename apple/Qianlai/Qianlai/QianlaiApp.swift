@@ -50,6 +50,8 @@ struct QianlaiApp: App {
                     AppBackgroundSinkContainer {
                         NavigationStack { BackgroundSettingsView() }
                     }
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-wallpaper-tabs") {
+                    WallpaperTabsDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-rim-settings") {
                     // Border highlight sub-page offline harness.
                     NavigationStack { RimSettingsView() }
@@ -182,6 +184,86 @@ private struct QuickEntryDemoScreen: View {
         shared: false
         )
     }()
+}
+
+/// Screenshot harness for the sunk-wallpaper tab shell
+/// (`--ui-demo-wallpaper-tabs`, add `--ui-demo-wallpaper-off` to compare
+/// against the wallpaper disabled): replicates ContentView's iOS branch —
+/// TabView → Tab → AppBackgroundSinkContainer → NavigationStack → a
+/// large-title page with a trailing toolbar item — with the wallpaper
+/// force-enabled (the first preset auto-applies when the active slot is
+/// empty, mirroring `setEnabled`). No login or backend; vehicle for the
+/// toolbar/status-bar overlap.
+private struct WallpaperTabsDemo: View {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+    @State private var tab: WallpaperDemoTab = .ledger
+
+    var body: some View {
+        TabView(selection: $tab) {
+            ForEach(WallpaperDemoTab.allCases) { demoTab in
+                Tab(demoTab.label, systemImage: demoTab.icon, value: demoTab) {
+                    AppBackgroundSinkContainer {
+                        NavigationStack {
+                            WallpaperDemoPage(title: demoTab.label)
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-wallpaper-off") {
+                try? backgroundSettings.setEnabled(false)
+            } else if !backgroundSettings.isActive {
+                try? backgroundSettings.setEnabled(true)
+            }
+        }
+    }
+}
+
+private enum WallpaperDemoTab: String, CaseIterable, Identifiable {
+    case ledger, stats, profile
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .ledger: "账本"
+        case .stats: "统计"
+        case .profile: "我的"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .ledger: "book"
+        case .stats: "chart.pie"
+        case .profile: "person.crop.circle"
+        }
+    }
+}
+
+/// Stand-in root page: large title + trailing toolbar item over a grouped
+/// list — the chrome whose position against the status bar is under test.
+private struct WallpaperDemoPage: View {
+    let title: String
+
+    var body: some View {
+        List {
+            ForEach(0..<40, id: \.self) { index in
+                Text("演示行 \(index + 1)")
+            }
+        }
+        .appBackgroundSink()
+        .navigationTitle(Text(title))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+    }
 }
 
 /// Shared chrome for the two chart-card demos: the card top-anchored on

@@ -722,23 +722,29 @@ private struct AppBackgroundSinkModifier: ViewModifier {
     }
 }
 
-/// The tab-level shell of the sunk wallpaper: the layer, then the tab's
-/// navigation stack over it. This is the shape the whole design hinges on
-/// — the layer must sit outside the NavigationStack (screen-fixed through
-/// pushes) but inside the Tab (iOS 26 draws an opaque TabView background
-/// that page-side APIs can't clear), so every consumer wraps exactly this
-/// way. macOS takes the content bare: its pages still carry the wallpaper
-/// themselves via `appBackgroundSink`'s canvas fallback, and a layer here
-/// would double-paint under it.
+/// The tab-level shell of the sunk wallpaper: the layer pinned behind the
+/// tab's navigation stack via `.background`. This is the shape the whole
+/// design hinges on — the layer must sit outside the NavigationStack
+/// (screen-fixed through pushes) but inside the Tab (iOS 26 draws an
+/// opaque TabView background that page-side APIs can't clear), so every
+/// consumer wraps exactly this way. The layer rides in `.background`
+/// rather than as a ZStack sibling: a sibling ZStack sizes itself to the
+/// layer's full-bleed union and center-aligns the safe-area-respecting
+/// stack inside it, hoisting the whole stack — navigation bar included —
+/// up into the status bar (toolbar y 73.6→63.2pt probed on the 26.5 sim,
+/// 2026-09-21), while a background never moves its host. macOS takes the
+/// content bare: its pages still carry the wallpaper themselves via
+/// `appBackgroundSink`'s canvas fallback, and a layer here would
+/// double-paint under it.
 struct AppBackgroundSinkContainer<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         #if os(iOS)
-        ZStack {
-            AppBackgroundWallpaperLayer()
-            content()
-        }
+        content()
+            .background {
+                AppBackgroundWallpaperLayer()
+            }
         #else
         content()
         #endif
