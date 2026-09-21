@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// The dashboard's budget card (FR2): 本月日常预算 / 日常已花 / 日常剩余
-/// (hero) / 日均还能花 / 不计入预算, plus the year-to-date line pushing the
+/// (hero) / 日均还能花 / 不计入日常预算, plus the year-to-date line pushing the
 /// monthly breakdown. Shown only when a budget is set — the spec forbids
 /// any onboarding hint otherwise. The card follows the dashboard's selected
 /// month; the daily figure only renders for the real current month, where
@@ -28,7 +28,7 @@ struct BudgetCardView: View {
     /// meaningless there and the daily hint hides.
     var isCurrentMonth: Bool
     /// The two drill-downs the dashboard owns: 日常已花 (budget-counted
-    /// expenses) and 不计入预算 (the per-entry budget opt-outs). The columns
+    /// expenses) and 不计入日常预算 (the per-entry budget opt-outs). The columns
     /// become tappable with a trailing chevron, like the stat block's
     /// expense/income drills; nil keeps a column inert.
     var spentAction: (() -> Void)? = nil

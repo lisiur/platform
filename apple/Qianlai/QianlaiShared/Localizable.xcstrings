@@ -7,6 +7,9 @@
     "(%@)" : {
 
     },
+    "/ %@" : {
+
+    },
     "%@" : {
 
     },
@@ -1884,7 +1887,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入预算"
+            "value" : "不计入日常预算"
           }
         }
       }
@@ -2014,13 +2017,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entries under an excluded category default to \"exclude from budget\" when recorded — sub-categories can also be excluded on their own. Only future entries are affected."
+            "value" : "Entries under an excluded category default to \"exclude from the monthly budget\" when recorded — sub-categories can also be excluded on their own. Only future entries are affected."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "被排除的分类，其下子分类记账时默认不计入预算；也可以单独排除某个子分类。仅影响之后的新记账。"
+            "value" : "被排除的分类，其下子分类记账时默认不计入日常预算；也可以单独排除某个子分类。仅影响之后的新记账。"
           }
         }
       }
@@ -2106,6 +2109,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可为单月单独设定金额；不支持删除单月，关闭当年预算即全部重置。"
+          }
+        }
+      }
+    },
+    "budget.settings.tab.category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annual Category Budgets"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年度分类预算"
+          }
+        }
+      }
+    },
+    "budget.settings.tab.monthly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly Budget"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月度日常预算"
           }
         }
       }
@@ -2599,6 +2636,125 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "分类已更新"
+          }
+        }
+      }
+    },
+    "categoryBudget.card.drillHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View this year's expenses"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看今年支出"
+          }
+        }
+      }
+    },
+    "categoryBudget.card.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annual Category Budgets"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年度分类预算"
+          }
+        }
+      }
+    },
+    "categoryBudget.deleted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget removed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预算已删除"
+          }
+        }
+      }
+    },
+    "categoryBudget.saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budget saved"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预算已保存"
+          }
+        }
+      }
+    },
+    "categoryBudget.settings.editorFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This amount covers the whole year, recorded months included."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该额度覆盖整年，含已记账月份。"
+          }
+        }
+      }
+    },
+    "categoryBudget.settings.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Budget"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除预算"
+          }
+        }
+      }
+    },
+    "categoryBudget.settings.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a category to set or change its whole-year amount, recorded months included. A parent's figure includes its sub-categories, and parent and child budgets may overlap. Spent counts every recorded expense — including entries marked “exclude from the monthly budget”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击分类即可设置或修改其整年额度，含已记账月份。父分类的数字包含其子分类，父子预算允许重叠。已花计入全部已记支出——含标记为「不计入日常预算」的条目。"
           }
         }
       }
@@ -4413,13 +4569,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Excluded from budget"
+            "value" : "Excluded from monthly budget"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入预算"
+            "value" : "不计入日常预算"
           }
         }
       }
@@ -4583,13 +4739,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Excluded from budget"
+            "value" : "Excluded from monthly budget"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入预算"
+            "value" : "不计入日常预算"
           }
         }
       }
@@ -8985,13 +9141,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Excluded from budget"
+            "value" : "Excluded from monthly budget"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不计入预算"
+            "value" : "不计入日常预算"
           }
         }
       }

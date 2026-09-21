@@ -29,6 +29,12 @@ final class ReportStore {
         SnapshotCache.makeKey(["budget", ledgerId, String(month.year), String(month.month)])
     }
 
+    /// The category budget record's key: ledger + summarized year. Pure
+    /// and nonisolated for tests.
+    nonisolated static func categoryBudgetKey(ledgerId: String, year: Int) -> String {
+        SnapshotCache.makeKey(["categoryBudget", ledgerId, String(year)])
+    }
+
     /// A windowed report's key: ledger + the exact window the request
     /// carries (nil bounds = the all-time request). Pure and nonisolated
     /// for tests.
@@ -74,6 +80,13 @@ final class ReportStore {
     /// published, matching the dashboard's keep-previous behavior). Also
     /// feeds the quick entry's toggle default (`excludedAccountIds`).
     private(set) var budget: BudgetReport?
+
+    /// The category budget card's payload — nil until the first successful
+    /// fetch, cleared on failure (guests 403; callers gate the card the
+    /// same way as the budget card). Annual, so it re-aims on neither the
+    /// month stepper nor the windowed reloads — only on ledger change,
+    /// pull-to-refresh, posting, and the settings page's writes.
+    private(set) var categoryBudget: CategoryBudgetReport?
 
     /// Month the budget card summarizes; nil follows the current month
     /// (server default). Writing it schedules a coalesced budget reload,
@@ -157,8 +170,12 @@ final class ReportStore {
             // Never let another ledger's budget card survive a switch whose
             // fresh fetch fails — hiding beats cross-ledger numbers. (The
             // dashboard keeps its keep-previous semantics; the budget card
-            // has no back-compat to honor.)
+            // has no back-compat to honor.) The category budget card is
+            // cleared here too; its fetch rides the dashboard task that
+            // re-fires on the same ledger change, so fetching here would
+            // only duplicate the request.
             budget = nil
+            categoryBudget = nil
             async let trial: () = loadTrialBalance()
             async let statement: () = loadIncomeStatement()
             async let turnover: () = loadMemberTurnover()
@@ -182,7 +199,8 @@ final class ReportStore {
     }
 
     /// Refreshes every surface a posting can change: the budget card (the
-    /// dashboard's month-to-date spend), the windowed reports, and the
+    /// dashboard's month-to-date spend), the category budget card (the
+    /// year's spent grows with every post), the windowed reports, and the
     /// widget's month snapshot. The stats cards ride the `journalEpoch`
     /// bump — they hold their own `StatsStore` and refetch on its change.
     func refreshAfterPosting() async {
@@ -194,9 +212,12 @@ final class ReportStore {
         async let budget: () = loadBudgetReport(
             ledgerId: ledgerId, month: effectiveBudgetMonth
         )
+        async let categoryBudget: () = loadCategoryBudget(
+            ledgerId: ledgerId, year: AppDates.currentYear
+        )
         async let windowed: () = reloadWindowed()
         async let snapshot: () = refreshWidgetSnapshot(ledgerId: ledgerId)
-        _ = await (budget, windowed, snapshot)
+        _ = await (budget, categoryBudget, windowed, snapshot)
     }
 
     /// The widget snapshot's post-path refresh. The stats cards only
@@ -245,6 +266,30 @@ final class ReportStore {
             ledgerId: ledgerId,
             month: effectiveBudgetMonth
         )
+    }
+
+    /// One category-budget report fetch; a failure clears the card (guests
+    /// 403 — callers gate the card the same way as the dashboard).
+    func loadCategoryBudget(ledgerId: String, year: Int) async {
+        await loadCached(
+            path: "bookkeeping/ledgers/\(ledgerId)/reports/category-budgets" + ApiQuery.build([
+                ("year", String(year)),
+                ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
+            ]),
+            key: Self.categoryBudgetKey(ledgerId: ledgerId, year: year),
+            as: CategoryBudgetReport.self,
+            isEmpty: { categoryBudget == nil },
+            assign: { categoryBudget = $0 },
+            clear: { categoryBudget = nil }
+        )
+    }
+
+    /// Refetches just the category budget report — after a category budget
+    /// settings write — so the dashboard card re-renders without reloading
+    /// the dashboard (the mirror of `refreshBudget`).
+    func refreshCategoryBudget() async {
+        guard let ledgerId else { return }
+        await loadCategoryBudget(ledgerId: ledgerId, year: AppDates.currentYear)
     }
 
     /// One-shot share-based summary for an explicit window (the journal's

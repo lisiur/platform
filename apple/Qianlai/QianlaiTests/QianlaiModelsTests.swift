@@ -10,6 +10,51 @@ import XCTest
 
 @MainActor
 final class QianlaiModelsTests: XCTestCase {
+    // MARK: - Category budget models
+
+    func testCategoryBudgetSettingsDecodes() throws {
+        let json = """
+        {
+          "year": 2026,
+          "categories": [{"accountId": "acc-food", "cents": 120000}],
+          "carryOver": [{"accountId": "acc-food", "cents": 100000}]
+        }
+        """
+        let decoded = try JSONDecoder().decode(CategoryBudgetSettings.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.year, 2026)
+        XCTAssertEqual(decoded.budget(accountId: "acc-food")?.cents, 120_000)
+        XCTAssertEqual(decoded.budget(accountId: "acc-taxi"), nil)
+        XCTAssertEqual(decoded.carryOverCents(accountId: "acc-food"), 100_000)
+        XCTAssertEqual(decoded.carryOverCents(accountId: "acc-taxi"), nil)
+    }
+
+    func testCategoryBudgetReportDecodes() throws {
+        let json = """
+        {
+          "year": 2026,
+          "currency": "CNY",
+          "categories": [
+            {
+              "accountId": "acc-food",
+              "name": null,
+              "code": "food",
+              "icon": "🍜",
+              "budgetCents": 120000,
+              "spentCents": 98000
+            }
+          ]
+        }
+        """
+        let decoded = try JSONDecoder().decode(CategoryBudgetReport.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.categories.count, 1)
+        let row = decoded.categories[0]
+        // Seeded categories render their localized label from the code.
+        XCTAssertEqual(row.displayName, L10n.string("account.name.food", defaultValue: "food"))
+        XCTAssertEqual(row.displayIcon, "🍜")
+        XCTAssertEqual(row.budgetCents, 120_000)
+        XCTAssertEqual(row.spentCents, 98_000)
+    }
+
     override func setUp() {
         super.setUp()
         PinnedLanguage.pin()

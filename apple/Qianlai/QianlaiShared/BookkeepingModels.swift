@@ -804,7 +804,7 @@ struct BudgetMonthSummary: Codable, Hashable {
     var budgetCents: Int
     /// Expense value the budget answers for (activity entries, not excluded).
     var countedCents: Int
-    /// Expense value marked "不计入预算" at posting time — display-only.
+    /// Expense value marked "不计入日常预算" at posting time — display-only.
     var excludedCents: Int
 
     var remainingCents: Int { budgetCents - countedCents }
@@ -914,6 +914,83 @@ struct SetMonthBudgetBody: Encodable {
 /// query string; it only shapes the settings payload the write returns.)
 struct SetExcludedCategoriesBody: Encodable {
     var excludedAccountIds: [String]
+}
+
+// MARK: - CategoryBudget
+
+/// One category's budgeted amount for one year.
+struct CategoryBudgetAmount: Codable, Hashable {
+    var accountId: String
+    var cents: Int
+}
+
+/// One year's category-budget settings (GET/PUT/DELETE category-budgets) —
+/// the settings page's state: the year's pinned categories plus the
+/// previous year's amounts as prefill. Fully isolated from the year/month
+/// budget (BudgetSettings) — neither implies the other.
+struct CategoryBudgetSettings: Codable, Hashable {
+    /// The year these settings describe (the settings page edits the
+    /// current year; there is no year switcher).
+    var year: Int
+    /// The year's per-category budgets, account-id ascending.
+    var categories: [CategoryBudgetAmount]
+    /// The previous year's per-category amounts — the form's prefill so
+    /// this year starts where the last one left off (saving is what makes
+    /// it real).
+    var carryOver: [CategoryBudgetAmount]
+
+    /// The year's pinned row for a category, when one exists.
+    func budget(accountId: String) -> CategoryBudgetAmount? {
+        categories.first { $0.accountId == accountId }
+    }
+
+    /// The previous year's amount for a category — a new row's seed.
+    func carryOverCents(accountId: String) -> Int? {
+        carryOver.first { $0.accountId == accountId }?.cents
+    }
+}
+
+/// The category budget card's payload (GET reports/category-budgets).
+/// Empty `categories` = no budgets for the year; the card hides then.
+struct CategoryBudgetReport: Codable, Hashable {
+    var year: Int
+    var currency: String
+    var categories: [CategoryBudgetRow]
+}
+
+/// One budgeted category's spent-vs-budget for the whole year. Spent is
+/// the SUBTREE's total (the category plus every descendant) and counts
+/// every recorded cent — both budget-flag exclusions and countsInLedger
+/// opt-outs stay in.
+struct CategoryBudgetRow: Codable, Hashable {
+    var accountId: String
+    /// Display naming, mirroring the composition rows: seeded categories
+    /// store name = nil and render the localized label from `code`.
+    var name: String?
+    var code: String?
+    var icon: String?
+    var budgetCents: Int
+    var spentCents: Int
+
+    var displayName: String {
+        if let name, !name.isEmpty { return name }
+        if let code {
+            return L10n.string("account.name.\(code)", defaultValue: code)
+        }
+        return name ?? "—"
+    }
+
+    var displayIcon: String {
+        icon ?? "🏷️"
+    }
+}
+
+/// Pins (or re-pins) one category's whole-year budget. The category must
+/// be an expense category of the ledger; parent and child rows may coexist.
+struct UpsertCategoryBudgetBody: Encodable {
+    var year: Int
+    var accountId: String
+    var cents: Int
 }
 
 /// The budget card's status ladder (FR6): normal below 80% of the month's
@@ -1310,7 +1387,7 @@ struct CreateEntryBody: Encodable {
     /// intent — unrelated to `guestCreated`, which only records that the
     /// creator was a guest and never excludes anything.
     var countsInLedger: Bool?
-    /// Budget intent (the "不计入预算" toggle): true feeds the ledger's
+    /// Budget intent (the "不计入日常预算" toggle): true feeds the ledger's
     /// excluded-from-budget pool instead of the monthly discretionary spend.
     /// nil omits the field: server default false on create, keep-on-omit on
     /// edit (an edit form that doesn't surface the toggle can't strip it).
@@ -1422,8 +1499,8 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         case .budget:
             LocalizedStringResource(
                 "quick.excludeFromBudget",
-                defaultValue: "Excluded from budget",
-                comment: "Quick-entry toggle: keep the entry out of the ledger's monthly budget (Chinese 不计入预算)"
+                defaultValue: "Excluded from monthly budget",
+                comment: "Quick-entry toggle: keep the entry out of the ledger's monthly budget (Chinese 不计入日常预算)"
             )
         }
     }

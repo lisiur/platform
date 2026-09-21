@@ -97,7 +97,7 @@ final class JournalStore {
     /// a transfer. nil lists every kind.
     var kind: QuickEntryKind? { didSet { guard !suppressReload, oldValue != kind else { return }; scheduleReload() } }
     /// Budget-flag drill axis (the budget card's two drill-downs): true
-    /// lists only entries marked 不计入预算, false only entries the budget
+    /// lists only entries marked 不计入日常预算, false only entries the budget
     /// counts (日常已花). nil lists every entry — the ledger's default.
     /// Always paired with `kind = .expense`: the budget pools are
     /// expense-only, so the drill's rows reconcile with the tapped figure.

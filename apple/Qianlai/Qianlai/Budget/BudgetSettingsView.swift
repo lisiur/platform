@@ -17,29 +17,101 @@ private func excludedFooterText() -> Text {
 }
 
 /// 预算设置 (FR1/FR4) — the ONLY budget configuration surface, reached from
-/// the profile's ledger section. Budgets are YEAR-scoped: this page edits
-/// the CURRENT year's monthly amount (editors+; the write is ledger-wide
-/// shared state), pins single months to their own amounts, and manages the
-/// excluded expense categories (any depth). Both amounts edit in a sheet
-/// backed by the shared `CalculatorView` — never the system keyboard.
-/// Closing the year is the only deletion — single months have no delete
-/// path.
+/// the profile's ledger section. Two tabs off one Form: 月度日常预算 (the
+/// year's monthly amount, its single-month pins, and the excluded expense
+/// categories) and 年度分类预算 (the per-category whole-year amounts, a
+/// fully isolated system). Both tabs edit the CURRENT year (editors+; the
+/// writes are ledger-wide shared state). Amounts edit in a sheet backed by
+/// the shared `CalculatorView` — never the system keyboard. Closing the
+/// year is the only monthly-side deletion — a category budget is removed
+/// from its own editor sheet.
+///
+/// The category tab lists the WHOLE expense tree, collapsed by default
+/// (the manage screens' `expandedIds` pattern): tapping a category — any
+/// depth — opens its editor, the leading chevron folds a parent's subtree.
+/// EVERY sheet hangs off the Form itself, never off section content: the
+/// rows mutate when their loads land (first tab entry), and a sheet
+/// attached inside that mutating content is torn down with it — the
+/// "sheet opens then instantly dismisses" bug. One `activeSheet` enum
+/// drives all of them, so the monthly and category editors share the
+/// calculator machinery without competing sheet modifiers.
 struct BudgetSettingsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
 
+    /// The two budget systems the page configures.
+    enum BudgetTab: Hashable {
+        /// 月度日常预算 — the year/month budget.
+        case monthly
+        /// 年度分类预算 — the per-category annual budgets.
+        case category
+    }
+
+    /// Which amount the monthly calculator sheet edits.
+    enum AmountEditorTarget: Identifiable {
+        /// The year's monthly amount.
+        case year
+        /// One month's override.
+        case month(Int)
+
+        var id: String {
+            switch self {
+            case .year: "year"
+            case .month(let month): "month-\(month)"
+            }
+        }
+    }
+
+    /// Which category the category calculator sheet edits.
+    struct CategoryAmountEditor: Identifiable {
+        let accountId: String
+        let name: String
+
+        var id: String { accountId }
+    }
+
+    /// Which sheet the Form presents — one item binding for all of them
+    /// (see the doc header — it must attach to the Form, not the section
+    /// content).
+    enum SettingsSheet: Identifiable {
+        /// A monthly-side amount (the year amount or one month's pin).
+        case monthlyEditor(AmountEditorTarget)
+        /// One category's annual amount.
+        case categoryEditor(CategoryAmountEditor)
+
+        var id: String {
+            switch self {
+            case .monthlyEditor(let target): "monthly-\(target.id)"
+            case .categoryEditor(let editor): "category-\(editor.accountId)"
+            }
+        }
+    }
+
+    @State private var tab: BudgetTab = .monthly
     @State private var store = BudgetStore()
     @State private var isConfirmingClose = false
-    /// The amount the editor sheet is adjusting — the year's monthly
-    /// amount or one month's override.
-    @State private var amountEditor: AmountEditorTarget?
-    /// The editor sheet's calculator engine, re-seeded from the target's
-    /// current amount on every open.
-    @State private var editorEngine = CalculatorEngine()
-    @State private var isEditorSaving = false
     /// The excluded-categories picker sheet.
     @State private var isShowingExcluded = false
+
+    /// The one sheet this page presents (see the doc header — it must
+    /// attach to the Form, not the section content).
+    @State private var activeSheet: SettingsSheet?
+    /// The calculator sheet's engine, re-seeded from the target's current
+    /// amount on every open.
+    @State private var editorEngine = CalculatorEngine()
+    @State private var isEditorSaving = false
+
+    // MARK: Category tab state
+
+    /// The category budgets' settings + chart — lazy: loaded the first
+    /// time the category tab mounts, not on page entry.
+    @State private var categoryStore = CategoryBudgetStore()
+    @State private var categoryAccountStore = AccountStore()
+    @State private var categoryLoadedLedgerId: String?
+    /// Parents whose subtrees are revealed. Empty by default — the tree
+    /// starts fully collapsed (the manage screens' pattern).
+    @State private var expandedCategoryIds: Set<String> = []
 
     private var ledgerId: String? { ledgerStore.activeLedger?.id }
 
@@ -54,11 +126,16 @@ struct BudgetSettingsView: View {
 
     var body: some View {
         Form {
-            amountSection
-            monthsSection
-            excludedSection
-            if store.settings?.cents != nil {
-                closeSection
+            tabSection
+            if tab == .monthly {
+                amountSection
+                monthsSection
+                excludedSection
+                if store.settings?.cents != nil {
+                    closeSection
+                }
+            } else {
+                categorySection
             }
         }
         .appBackgroundSink()
@@ -77,8 +154,13 @@ struct BudgetSettingsView: View {
                 defaultValue: "The dashboard budget card disappears until you set this year's budget again. Recorded history is unaffected."
             ))
         }
-        .sheet(item: $amountEditor) { target in
-            amountEditorSheet(target)
+        .sheet(item: $activeSheet) { target in
+            switch target {
+            case .monthlyEditor(let editorTarget):
+                amountEditorSheet(editorTarget)
+            case .categoryEditor(let editor):
+                categoryEditorSheet(editor)
+            }
         }
         .sheet(isPresented: $isShowingExcluded) {
             ExcludedCategoriesView(store: store)
@@ -88,9 +170,41 @@ struct BudgetSettingsView: View {
             loadedLedgerId = ledgerId
             await store.load(ledgerId: ledgerId, year: settingsYear)
         }
+        // The category tab's loads are lazy: they fire on its FIRST mount
+        // only (the ledger guard), so entering the page never pays for a
+        // tab the user doesn't open.
+        .task(id: tab) {
+            guard tab == .category, let ledgerId, categoryLoadedLedgerId != ledgerId else { return }
+            categoryLoadedLedgerId = ledgerId
+            async let settings: () = categoryStore.load(ledgerId: ledgerId, year: settingsYear)
+            async let accounts: () = categoryAccountStore.load(ledgerId: ledgerId)
+            _ = await (settings, accounts)
+        }
     }
 
     @State private var loadedLedgerId: String?
+
+    /// The tab switch, chrome-free at the Form's top — a clear-background
+    /// row so the segmented control floats like a page-level toggle rather
+    /// than reading as a form field.
+    private var tabSection: some View {
+        Section {
+            Picker(
+                L10n.string("budget.settings.title", defaultValue: "Budget Settings"),
+                selection: $tab
+            ) {
+                Text(L10n.string("budget.settings.tab.monthly", defaultValue: "Monthly Budget"))
+                    .tag(BudgetTab.monthly)
+                Text(L10n.string("budget.settings.tab.category", defaultValue: "Annual Category Budgets"))
+                    .tag(BudgetTab.category)
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        }
+    }
+
+    // MARK: - 月度日常预算 sections
 
     /// The year's monthly amount, edited in the calculator sheet. The
     /// leading year names the row's scope — budgets are year-scoped and
@@ -236,22 +350,118 @@ struct BudgetSettingsView: View {
         }
     }
 
-    // MARK: - Amount editor sheet
+    // MARK: - 年度分类预算 section
 
-    /// Which amount the calculator sheet edits.
-    enum AmountEditorTarget: Identifiable {
-        /// The year's monthly amount.
-        case year
-        /// One month's override.
-        case month(Int)
+    private var categoryTreeEntries: [AccountTreeEntry] {
+        // Archived categories stay out — the manage screens archive first;
+        // an archived category's budget keeps living server-side (the
+        // dashboard card still shows it) but is not editable here.
+        AccountTreeEntry.build(categoryAccountStore.byType(.expense, includeArchived: false))
+    }
 
-        var id: String {
-            switch self {
-            case .year: "year"
-            case .month(let month): "month-\(month)"
+    /// The tree entries revealed under the current expansion state —
+    /// unexpanded parents' descendants stay hidden (the manage screens'
+    /// `revealedEntries` walk).
+    private var revealedCategoryRows: [AccountTreeEntry] {
+        let entries = categoryTreeEntries
+        let byId = Dictionary(
+            uniqueKeysWithValues: categoryAccountStore.byType(.expense).map { ($0.id, $0) }
+        )
+        return entries.filter { entry in
+            var parent = entry.account.parentId.flatMap { byId[$0] }
+            while let current = parent {
+                guard expandedCategoryIds.contains(current.id) else { return false }
+                parent = current.parentId.flatMap { byId[$0] }
             }
+            return true
         }
     }
+
+    private var categoryChildrenByParent: [String: [AccountTreeEntry]] {
+        Dictionary(grouping: categoryTreeEntries.filter { $0.depth > 0 }) { $0.account.parentId ?? "" }
+    }
+
+    private var categorySection: some View {
+        Section {
+            ForEach(revealedCategoryRows) { entry in
+                categoryRow(
+                    entry,
+                    hasChildren: !(categoryChildrenByParent[entry.account.id]?.isEmpty ?? true)
+                )
+                .appCardRow()
+            }
+        } header: {
+            Text(String(settingsYear))
+        } footer: {
+            Text(L10n.string(
+                "categoryBudget.settings.footer",
+                defaultValue: "Tap a category to set or change its whole-year amount, recorded months included. A parent's figure includes its sub-categories, and parent and child budgets may overlap. Spent counts every recorded expense — including entries marked \"exclude from the monthly budget\"."
+            ))
+        }
+    }
+
+    /// Tree anatomy from the manage screens, with one deviation: the fold
+    /// slot is reserved on EVERY top-level row (a childless 一级 keeps the
+    /// chevron's width as an inert placeholder), so all first-level icons
+    /// line up. The per-level indent is then chevron (22) + spacing (8) =
+    /// 30, which lands each child's icon exactly under its parent's.
+    private func categoryRow(_ entry: AccountTreeEntry, hasChildren: Bool) -> some View {
+        let isExpanded = expandedCategoryIds.contains(entry.account.id)
+        let budget = categoryStore.settings?.budget(accountId: entry.account.id)
+        let showsFoldSlot = hasChildren || entry.depth == 0
+        return HStack(spacing: 8) {
+            if showsFoldSlot {
+                if hasChildren {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .frame(width: 22, height: 30)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.snappy) {
+                                if isExpanded {
+                                    expandedCategoryIds.remove(entry.account.id)
+                                } else {
+                                    expandedCategoryIds.insert(entry.account.id)
+                                }
+                            }
+                        }
+                } else {
+                    Color.clear.frame(width: 22, height: 30)
+                }
+            }
+            Button {
+                openCategoryEditor(accountId: entry.account.id)
+            } label: {
+                HStack(spacing: 8) {
+                    Text(entry.account.icon ?? entry.account.type.defaultIcon)
+                        .font(.title3)
+                    Text(entry.account.displayName)
+                        .fontWeight(entry.depth == 0 ? .medium : .regular)
+                        .foregroundStyle(Color.primary)
+                        .lineLimit(1)
+                    Spacer()
+                    if let budget {
+                        Text(Money.format(Double(budget.cents) / 100, currency: ledgerStore.activeLedger?.currency))
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(Color.primary)
+                    } else {
+                        Text(L10n.string("budget.settings.amountNone", defaultValue: "Not set"))
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .listRowInsets(EdgeInsets(top: 6, leading: 12 + CGFloat(entry.depth) * 30, bottom: 6, trailing: 12))
+    }
+
+    // MARK: - Sheets
 
     /// Seeds the engine from the target's current amount — the year falls
     /// back to last year's carry-over as an editable prefill — and presents
@@ -266,11 +476,28 @@ struct BudgetSettingsView: View {
         case .month(let month):
             seedCents = store.settings?.effectiveCents(month: month)
         }
+        seedEngine(seedCents: seedCents)
+        activeSheet = .monthlyEditor(target)
+    }
+
+    /// Seeds the engine from the category's current amount — a brand-new
+    /// row falls back to LAST year's amount for the same category as an
+    /// editable prefill — then presents the calculator.
+    private func openCategoryEditor(accountId: String) {
+        let name = categoryTreeEntries.first { $0.account.id == accountId }?.account.displayName
+            ?? categoryAccountStore.byType(.expense).first { $0.id == accountId }?.displayName
+            ?? "—"
+        let seedCents = categoryStore.settings?.budget(accountId: accountId)?.cents
+            ?? categoryStore.settings?.carryOverCents(accountId: accountId)
+        seedEngine(seedCents: seedCents)
+        activeSheet = .categoryEditor(CategoryAmountEditor(accountId: accountId, name: name))
+    }
+
+    private func seedEngine(seedCents: Int?) {
         editorEngine = CalculatorEngine(
             initialText: seedCents.map { String(format: "%.2f", Double($0) / 100) } ?? ""
         )
         editorContentHeight = 440
-        amountEditor = target
     }
 
     /// The sheet hug's live measurements — natural content height and the
@@ -290,15 +517,22 @@ struct BudgetSettingsView: View {
         return editorContentHeight + chrome
     }
 
-    /// One sheet serves both targets: the system navigation bar (inline
-    /// title, Cancel) over the shared `CalculatorView`, the month's
-    /// override semantics as a footnote. The sheet HUGS the pad — its
-    /// height is measured and fed back as a custom detent, because
-    /// `.medium` left a dead band above the calculator.
-    private func amountEditorSheet(_ target: AmountEditorTarget) -> some View {
+    /// The shared calculator sheet both tabs' editors render: the system
+    /// navigation bar (inline title, Cancel) over `CalculatorView`, with
+    /// an optional destructive action (the category budget's removal —
+    /// swipe-delete died with the all-categories tree, where most rows
+    /// have nothing to delete). The sheet HUGS the pad — its height is
+    /// measured and fed back as a custom detent, because `.medium` left a
+    /// dead band above the calculator.
+    private func calculatorSheet(
+        title: Text,
+        footer: Text?,
+        destructiveAction: (() -> Void)? = nil,
+        onCommit: @escaping () -> Void
+    ) -> some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if let footer = editorFooter(target) {
+                if let footer {
                     footer
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -310,26 +544,59 @@ struct BudgetSettingsView: View {
                 CalculatorView(
                     engine: $editorEngine,
                     currency: ledgerStore.activeLedger?.currency ?? "CNY",
-                    onCommit: { Task { await commitEditor(target) } },
+                    onCommit: onCommit,
                     isCommitDisabled: isEditorSaving || editorCents == nil,
                     isCommitting: isEditorSaving
                 )
                 .padding(.bottom, 8)
+                if let destructiveAction {
+                    Button(role: .destructive, action: destructiveAction) {
+                        Label(
+                            L10n.string("categoryBudget.settings.remove", defaultValue: "Remove Budget"),
+                            systemImage: "trash"
+                        )
+                        .font(.footnote.weight(.medium))
+                    }
+                    .padding(.bottom, 8)
+                }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { editorContentHeight = $0 }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { editorContentTopY = $0 }
             .frame(maxHeight: .infinity, alignment: .top)
             .ignoresSafeArea(.container, edges: .bottom)
-            .navigationTitle(editorTitle(target))
+            .navigationTitle(title)
             .inlineNavigationBarTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.string("common.cancel", defaultValue: "Cancel")) { amountEditor = nil }
+                    Button(L10n.string("common.cancel", defaultValue: "Cancel")) { activeSheet = nil }
                 }
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { editorSheetTopY = $0 }
         .presentationDetents([.height(editorDetentHeight)])
+    }
+
+    private func amountEditorSheet(_ target: AmountEditorTarget) -> some View {
+        calculatorSheet(title: editorTitle(target), footer: editorFooter(target)) {
+            Task { await commitAmountEditor(target) }
+        }
+    }
+
+    private func categoryEditorSheet(_ editor: CategoryAmountEditor) -> some View {
+        calculatorSheet(
+            title: Text(editor.name),
+            footer: Text(L10n.string(
+                "categoryBudget.settings.editorFooter",
+                defaultValue: "This amount covers the whole year, recorded months included."
+            )),
+            // The removal lives here because the tree lists EVERY category
+            // — a swipe zone over rows without budgets would be dead UI.
+            destructiveAction: categoryStore.settings?.budget(accountId: editor.accountId) != nil
+                ? { Task { await removeCategoryBudget(editor) } }
+                : nil
+        ) {
+            Task { await commitCategoryEditor(editor) }
+        }
     }
 
     private func editorTitle(_ target: AmountEditorTarget) -> Text {
@@ -354,13 +621,15 @@ struct BudgetSettingsView: View {
         ))
     }
 
-    /// The ✓ key's write: folds any pending operation first, so the total
-    /// the display previewed is what gets kept, then dispatches on the
-    /// target. Failure keeps the sheet up with the entry intact — a retry
-    /// is one tap.
-    private func commitEditor(_ target: AmountEditorTarget) async {
+    // MARK: - Writes
+
+    /// The monthly ✓ key's write: folds any pending operation first, so
+    /// the total the display previewed is what gets kept, then dispatches
+    /// on the target. Failure keeps the sheet up with the entry intact —
+    /// a retry is one tap.
+    private func commitAmountEditor(_ target: AmountEditorTarget) async {
         guard let ledgerId else {
-            amountEditor = nil
+            activeSheet = nil
             return
         }
         editorEngine.commitPending()
@@ -374,7 +643,7 @@ struct BudgetSettingsView: View {
             case .month(let month):
                 _ = try await store.setMonth(ledgerId: ledgerId, year: settingsYear, month: month, cents: cents)
             }
-            amountEditor = nil
+            activeSheet = nil
             toast.show(L10n.string("budget.saved", defaultValue: "Budget saved"))
             await reportStore.refreshBudget()
         } catch {
@@ -382,7 +651,54 @@ struct BudgetSettingsView: View {
         }
     }
 
-    // MARK: - Actions
+    /// The category ✓ key's write (same failure posture as the monthly
+    /// editor), then a dashboard card refresh.
+    private func commitCategoryEditor(_ editor: CategoryAmountEditor) async {
+        guard let ledgerId else {
+            activeSheet = nil
+            return
+        }
+        editorEngine.commitPending()
+        guard let cents = Self.parseCents(editorEngine.entry) else { return }
+        isEditorSaving = true
+        defer { isEditorSaving = false }
+        do {
+            _ = try await categoryStore.upsert(
+                ledgerId: ledgerId,
+                year: settingsYear,
+                accountId: editor.accountId,
+                cents: cents
+            )
+            activeSheet = nil
+            toast.show(L10n.string("categoryBudget.saved", defaultValue: "Budget saved"))
+            await reportStore.refreshCategoryBudget()
+        } catch {
+            toast.show(error.localizedDescription)
+        }
+    }
+
+    /// The editor sheet's removal: direct, no confirm — re-adding the
+    /// budget is one tap.
+    private func removeCategoryBudget(_ editor: CategoryAmountEditor) async {
+        guard let ledgerId else {
+            activeSheet = nil
+            return
+        }
+        do {
+            _ = try await categoryStore.delete(
+                ledgerId: ledgerId,
+                year: settingsYear,
+                accountId: editor.accountId
+            )
+            activeSheet = nil
+            toast.show(L10n.string("categoryBudget.deleted", defaultValue: "Budget removed"))
+            await reportStore.refreshCategoryBudget()
+        } catch {
+            toast.show(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Monthly actions
 
     private func closeYear() async {
         guard let ledgerId else { return }

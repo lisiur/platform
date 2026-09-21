@@ -161,7 +161,8 @@ struct ProfileView: View {
             .appCardRow()
             // The budget is ledger-scoped shared state, so the entry lives
             // in the active-ledger section next to the categories it
-            // filters — not in the personal settings section.
+            // filters — not in the personal settings section. The page's
+            // tabs cover both budget systems (monthly + annual categories).
             NavigationLink {
                 BudgetSettingsView()
                     .appBackgroundSink()
