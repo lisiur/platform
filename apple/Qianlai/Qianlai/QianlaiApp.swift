@@ -34,14 +34,8 @@ struct QianlaiApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             Group {
-                if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-location-picker") {
-                    LocationPickerSheet(initialLocation: nil) { _ in }
-                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-category-picker") {
-                    CategoryPickerDemo()
-                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
+                if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
                     QuickEntryDemoScreen()
-                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-settings") {
-                    BudgetSettingsDemoScreen()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-theme") {
                     // Theme page without login/backend: verifies the 边框高光
                     // section and the background controls offline. The page
@@ -133,22 +127,6 @@ struct QianlaiApp: App {
 extension ProcessInfo {
     func hasLaunchFlag(_ flag: String) -> Bool {
         arguments.contains(flag)
-    }
-}
-
-/// Screenshot harness for the budget settings page (`--ui-demo-budget-settings`):
-/// renders the real `BudgetSettingsView`, whose own `BudgetStore` seeds its
-/// settings from the flag; `LedgerStore` seeds the demo CNY ledger so the
-/// amounts render with the currency symbol. No login or backend. Adding
-/// `--ui-demo-budget-editor` also auto-opens the year-amount editor sheet.
-private struct BudgetSettingsDemoScreen: View {
-    var body: some View {
-        NavigationStack {
-            BudgetSettingsView(
-                autoOpenEditor: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-budget-editor")
-                    ? .year : nil
-            )
-        }
     }
 }
 
@@ -412,70 +390,3 @@ private struct CalendarCardDemo: View {
     }
 }
 
-/// Screenshot harness for the quick-entry category picker sheet: mirrors the
-/// real presentation (`QuickEntryView.activeAccountSide`, large-only detent)
-/// with static sample data so sheet styling can be verified without a login
-/// or backend. Launch with `--ui-demo-category-picker`.
-private struct CategoryPickerDemo: View {
-    @State private var isPresented = true
-    @State private var selection: String? = "demo-food-dinner"
-
-    var body: some View {
-        Color.clear
-            .sheet(isPresented: $isPresented) {
-                NavigationStack {
-                    AccountSelectionView(
-                        title: "Category",
-                        entries: Self.sampleEntries,
-                        allowsEmpty: true,
-                        parentSelectable: false,
-                        selection: $selection
-                    )
-                }
-                #if os(iOS)
-                .presentationDetents([.large])
-                #endif
-            }
-    }
-
-    /// Parent-plus-children expense chart shaped like the seeded data —
-    /// enough rows that the sheet grows its search field.
-    static let sampleEntries: [AccountTreeEntry] = [
-        ("demo-food", "🍜 吃饭", nil),
-        ("demo-food-breakfast", "早餐", "demo-food"),
-        ("demo-food-lunch", "午餐", "demo-food"),
-        ("demo-food-dinner", "晚餐", "demo-food"),
-        ("demo-food-snacks", "零食饮料", "demo-food"),
-        ("demo-groceries", "🛒 生鲜果蔬", nil),
-        ("demo-transport", "🚇 交通", nil),
-        ("demo-transport-subway", "地铁公交", "demo-transport"),
-        ("demo-transport-taxi", "打车", "demo-transport"),
-        ("demo-transport-fuel", "加油", "demo-transport"),
-        ("demo-housing", "🏠 居家", nil),
-        ("demo-housing-rent", "房租水电", "demo-housing"),
-        ("demo-shopping", "🛍️ 购物", nil),
-        ("demo-shopping-clothes", "衣服鞋帽", "demo-shopping"),
-        ("demo-shopping-digital", "数码", "demo-shopping"),
-        ("demo-fun", "🎬 娱乐", nil),
-        ("demo-health", "🏥 医疗", nil),
-        ("demo-learn", "📚 学习", nil),
-    ].map { id, name, parentId in
-        AccountTreeEntry(
-            account: BookAccount(
-                id: id,
-                ledgerId: "demo",
-                name: name,
-                code: nil,
-                type: .expense,
-                sortOrder: 0,
-                parentId: parentId,
-                status: "active",
-                icon: nil,
-                flags: nil,
-                meta: nil,
-                createdAt: .now
-            ),
-            depth: parentId == nil ? 0 : 1
-        )
-    }
-}
