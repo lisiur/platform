@@ -229,6 +229,56 @@ struct AccountTreeEntry: Identifiable, Hashable {
     }
 }
 
+/// Resolves the recognition prompt's category suggestion against a built
+/// tree (the `AccountTreeEntry.build` output). The model answers with a
+/// "/"-joined path from the top-level parent to the leaf — 服饰/衣服 vs
+/// 育儿/衣服 — because the bare leaf name alone is ambiguous across
+/// branches; the selectable range is leaves only, so a path that lands on a
+/// parent resolves to nothing.
+enum CategoryPathResolver {
+    static func leafAccountId(
+        forSuggestion suggestion: String,
+        tree: [AccountTreeEntry]
+    ) -> String? {
+        let trimmed = suggestion.trimmingCharacters(in: .whitespacesAndNewlines)
+        let segments = trimmed
+            .split(separator: "/")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+        guard !segments.isEmpty else { return nil }
+
+        // Top-level entries group under "" (nil parent).
+        let childrenByParent = Dictionary(grouping: tree) {
+            $0.account.parentId ?? ""
+        }
+        var scope = childrenByParent[""] ?? []
+        var matched: AccountTreeEntry?
+        for segment in segments {
+            guard let hit = scope.first(where: {
+                $0.account.name?.lowercased() == segment
+            }) else { return nil }
+            matched = hit
+            scope = childrenByParent[hit.account.id] ?? []
+        }
+        if let matched, (childrenByParent[matched.account.id] ?? []).isEmpty {
+            return matched.account.id
+        }
+        // A bare leaf name without its path: acceptable only when exactly
+        // one leaf carries the name — two 衣服 under different parents stay
+        // ambiguous on purpose.
+        if segments.count == 1 {
+            let leaves = tree.filter {
+                $0.account.name?.lowercased() == segments[0]
+                    && (childrenByParent[$0.account.id] ?? []).isEmpty
+            }
+            if leaves.count == 1, let only = leaves.first {
+                return only.account.id
+            }
+        }
+        return nil
+    }
+}
+
 // MARK: - Journal entries
 
 struct EntryUserRef: Codable, Hashable {

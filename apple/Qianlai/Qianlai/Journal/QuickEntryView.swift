@@ -2472,21 +2472,12 @@ struct QuickEntryView: View {
         }
     }
 
-    /// Resolves an AI-suggested category name against this ledger's tree:
-    /// exact (case-insensitive) first, then containment either way, both
-    /// preferring the deepest node so a parent never wins over its matching
-    /// child. Nil leaves the journal default in place.
+    /// Resolves an AI-suggested category against this ledger's tree — the
+    /// prompt's "/"-joined full paths (服饰/衣服 vs 育儿/衣服) disambiguate
+    /// same-named leaves, and the selectable range is leaves only. Nil
+    /// leaves the journal default in place.
     private func matchCategoryId(_ name: String) -> String? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        let lowered = trimmed.lowercased()
-        let candidates = categoryTree.filter { entry in
-            guard let candidate = entry.account.name?.lowercased() else { return false }
-            return candidate == lowered
-                || candidate.contains(lowered)
-                || lowered.contains(candidate)
-        }
-        return candidates.max(by: { $0.depth < $1.depth })?.account.id
+        CategoryPathResolver.leafAccountId(forSuggestion: name, tree: categoryTree)
     }
 
     private func save() async {
