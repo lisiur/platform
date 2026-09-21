@@ -3,6 +3,7 @@ import { createEntryRoute } from "./createEntry";
 import { deleteEntryRoute } from "./deleteEntry";
 import { getEntryRoute } from "./getEntry";
 import { listEntriesRoute } from "./listEntries";
+import { recognizeScreenshotRoute } from "./recognizeScreenshot";
 import { updateEntryRoute } from "./updateEntry";
 
 const journalEntryRoutes = new OpenAPIHono();
@@ -13,6 +14,7 @@ const routes = journalEntryRoutes.openapiRoutes([
   createEntryRoute,
   updateEntryRoute,
   deleteEntryRoute,
+  recognizeScreenshotRoute,
 ] as const);
 
 export { routes as qianlaiJournalEntryRoutes };

@@ -93,6 +93,14 @@ export class AgentAccountUnavailableError extends HTTPException {
   }
 }
 
+export class AgentCapabilityMissingError extends HTTPException {
+  constructor(agentCode: string, capability: string, subAgent?: string) {
+    super(503, {
+      message: `AI Agent "${agentCode}"${subAgent ? ` sub-agent "${subAgent}"` : ""} is pinned to a model without the required "${capability}" capability. Tag a vision-capable model row in the admin AI models page and point the agent's sub-agent at it.`,
+    });
+  }
+}
+
 function currentPrice(pricing?: PricingRates[]): number {
   const p = pricing?.[0];
   if (!p) return Number.POSITIVE_INFINITY;
@@ -176,6 +184,10 @@ export async function resolveAgentModel(params: {
   agentCode: string;
   subAgent: string;
   principal: Principal;
+  /** When set, candidate models must advertise this entry in
+   * `AiModel.capabilities` (e.g. "vision"); otherwise resolution 503s with a
+   * configuration pointer instead of failing the actual AI call opaquely. */
+  requireCapability?: string;
 }): Promise<ResolvedAgentRuntime> {
   const now = new Date();
 
@@ -246,6 +258,21 @@ export async function resolveAgentModel(params: {
     throw new AgentModelUnavailableError(params.agentCode, params.subAgent);
   }
 
+  const requiredCapability = params.requireCapability;
+  const eligibleModels = requiredCapability
+    ? models.filter((model) => model.capabilities.includes(requiredCapability))
+    : models;
+  if (eligibleModels.length === 0) {
+    if (requiredCapability !== undefined) {
+      throw new AgentCapabilityMissingError(
+        params.agentCode,
+        requiredCapability,
+        params.subAgent,
+      );
+    }
+    throw new AgentModelUnavailableError(params.agentCode, params.subAgent);
+  }
+
   type ModelRow = (typeof models)[number];
   type AccountRow = ModelRow["provider"]["accounts"][number]["account"];
   type KeyRow = AccountRow["keys"][number];
@@ -255,7 +282,7 @@ export async function resolveAgentModel(params: {
     account: AccountRow;
     key: KeyRow;
   }> = [];
-  for (const model of models) {
+  for (const model of eligibleModels) {
     for (const link of model.provider.accounts) {
       const account = link.account;
       const key = account.keys[0];

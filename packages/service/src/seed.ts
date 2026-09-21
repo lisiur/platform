@@ -1474,11 +1474,19 @@ const features = [
     description: "Generate StudyBuddy item enrichments.",
     status: "active",
   },
+  {
+    code: "qianlai_receipt",
+    name: "Qianlai Receipt Recognition",
+    description:
+      "Recognize payment screenshots into draft bookkeeping entries.",
+    status: "active",
+  },
 ];
 
 const planFeatures: { planCode: string; featureCode: string }[] = [
   { planCode: "basic", featureCode: "platform_assistant" },
   { planCode: "basic", featureCode: "studybuddy_enrichment" },
+  { planCode: "basic", featureCode: "qianlai_receipt" },
 ];
 
 const pricingPlans = [
@@ -1553,7 +1561,7 @@ const aiModels = [
     providerKey: "deepseek",
     modelId: "deepseek-v4-flash",
     displayName: "deepseek-v4-flash",
-    capabilities: [],
+    capabilities: ["vision"],
     contextWindow: null,
     supportsReasoning: true,
     supportsCaching: true,
@@ -1702,6 +1710,29 @@ const platformAssistantSystemPrompt = [
 
 const aiAgents: AiAgentInput[] = [
   {
+    code: "qianlai_receipt",
+    name: "Qianlai Receipt Recognition",
+    description:
+      "Recognizes payment screenshots into draft bookkeeping entries.",
+    status: "active",
+    allowedApis: [] as string[],
+    subAgents: {
+      default: {
+        label: "Receipt Recognition",
+        description: "Extracts one transaction from a payment screenshot.",
+        modelId: "deepseek-v4-flash",
+        systemPrompt: [
+          "You are the receipt-recognition engine inside Qianlai, a personal double-entry bookkeeping app.",
+          "You receive one payment screenshot (Alipay/WeChat Pay receipt, bank or merchant order page, transfer record, etc.) and must extract exactly one successful transaction from it.",
+          "",
+          "Respond with ONLY a single valid JSON object — no markdown, no code fences, no commentary.",
+          "Never invent values not visible in the screenshot; use null.",
+        ].join("\n"),
+        reasoning: "none" as const,
+      },
+    },
+  },
+  {
     code: "platform_assistant",
     name: "Platform Assistant",
     description: "Built-in platform AI assistant.",
@@ -1769,6 +1800,16 @@ const billingConfigs = [
     priceAmount: 1,
     status: "active",
     description: "Bill StudyBuddy enrichment as a fixed flat call price.",
+  },
+  {
+    resourceType: "ai_agent",
+    resourceId: "qianlai_receipt",
+    billingType: "per_call",
+    priceUnit: "credit",
+    priceAmount: 1,
+    status: "active",
+    description:
+      "Bill Qianlai screenshot recognition as a fixed flat call price.",
   },
 ];
 
