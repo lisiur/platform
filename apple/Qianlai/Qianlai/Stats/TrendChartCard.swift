@@ -64,10 +64,17 @@ struct TrendChartCard: View {
     /// finger is down and clears it on release; the sticky `activeDay`
     /// captures the last non-nil value so the readout persists.
     @State private var selectedDay: Date?
-    /// The last pressed data day. The bubble, hairline, and readout stay
-    /// parked on it after the finger lifts; nil means "no press yet" and
-    /// the default day (today / latest data) shows instead.
+    /// The last pressed or tapped data day. The bubble, hairline, and
+    /// readout stay parked on it after the finger lifts; nil means "no
+    /// press yet" and the default day (today / latest data) shows
+    /// instead.
     @State private var activeDay: Date?
+    /// The plot's frame in the overlay's coordinate space, captured from
+    /// the chart overlay — ChartProxy geometry isn't reachable where the
+    /// tap gesture attaches. `tapSelection` maps a tap's x onto the day
+    /// bands through it; onAppear/onChange keep it current across
+    /// rotation and Dynamic Type.
+    @State private var plotRect: CGRect?
 
     /// Chart geometry, in points: the plot keeps its established height,
     /// the chart runs `bubbleBand` taller above it (the tooltip's home)
@@ -283,7 +290,9 @@ struct TrendChartCard: View {
         .frame(height: Self.plotHeight)
         .padding(.top, Self.bubbleBand)
         .padding(.bottom, Self.axisBand)
+        .simultaneousGesture(tapSelection)
         .chartOverlay { proxy in
+            plotGeometryCapture(proxy: proxy)
             if let selected = displayedPoint {
                 selectionBubble(for: selected, proxy: proxy)
             }
@@ -345,6 +354,59 @@ struct TrendChartCard: View {
         // release — `onChange` hands each pressed day to the sticky
         // `activeDay`, so the readout outlives the touch.
         .chartXSelection(value: $selectedDay)
+    }
+
+    /// Tap-to-select. Attached one level above the chart (the padded
+    /// group, simultaneous with the framework's scrub gesture) rather
+    /// than as a hit-testable pad in the overlay — a pad on top of the
+    /// plot would sit in the hit-test path and starve the scrub. The
+    /// tap only counts inside the plot's band: the bubble band above is
+    /// the drill target (its own tap must stay exclusive), the axis
+    /// band below is decorative. The x maps onto the day bands through
+    /// the captured plot rect and the sticky `activeDay` is written
+    /// directly — `selectedDay` stays the framework's transient, so the
+    /// axis keeps its pressed-state rendering rules. Movement cancels
+    /// the tap recognizer, so scrubbing is untouched.
+    private var tapSelection: some Gesture {
+        SpatialTapGesture().onEnded { tap in
+            guard let plot = plotRect,
+                  tap.location.y >= Self.bubbleBand,
+                  tap.location.y <= Self.bubbleBand + Self.plotHeight
+            else { return }
+            guard let index = Self.tappedDayIndex(
+                atX: tap.location.x - plot.minX,
+                plotWidth: plot.width,
+                dayCount: dayCount
+            ), points.indices.contains(index) else { return }
+            activeDay = points[index].date
+        }
+    }
+
+    /// Captures the plot's frame for `tapSelection` — ChartProxy
+    /// geometry is overlay-only. Invisible and content-shapeless, so it
+    /// never enters the hit-test path.
+    private func plotGeometryCapture(proxy: ChartProxy) -> some View {
+        plotSpace(proxy) { plot in
+            Color.clear
+                .onAppear { plotRect = plot }
+                .onChange(of: plot) { _, updated in plotRect = updated }
+        }
+    }
+
+    /// The window day a plot-relative tap offset lands on: the plot
+    /// spans the whole window on the same linear scale `.chartXScale`
+    /// pins, so the band index is the tapped width fraction × the day
+    /// count, clamped into range. Band arithmetic, never seconds — DST
+    /// days must not skew the mapping. Offsets outside the plot and
+    /// degenerate geometry find nothing. Pure so the mapping stays
+    /// unit-testable.
+    nonisolated static func tappedDayIndex(
+        atX offset: Double,
+        plotWidth: Double,
+        dayCount: Int
+    ) -> Int? {
+        guard dayCount > 0, plotWidth > 0, offset >= 0, offset <= plotWidth else { return nil }
+        return min(dayCount - 1, Int(offset / plotWidth * Double(dayCount)))
     }
 
     /// Runs `body` with the plot's frame resolved into the overlay's
@@ -446,8 +508,8 @@ struct TrendChartCard: View {
 
     /// The data point whose figure the card surfaces: the pressed day
     /// while scrubbing (any day of the window — gaps read as ¥0), the
-    /// last pressed day after the finger lifts, and the default day
-    /// before the first press.
+    /// last pressed or tapped day after the interaction ends, and the
+    /// default day before the first interaction.
     private var displayedPoint: TrendPoint? {
         if let selectedDay, let pressed = point(on: selectedDay) { return pressed }
         if let activeDay, let kept = point(on: activeDay) { return kept }
@@ -515,7 +577,7 @@ struct TrendChartCard: View {
                 // geometry assumes holds at every Dynamic Type size
                 // (the text scales down to fit instead of growing).
                 .frame(width: bubbleHalf * 2, height: bubbleHeight)
-                .padding(.vertical, 6)
+                .padding(.vertical, 2)
                 .background {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(.regularMaterial)

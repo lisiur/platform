@@ -278,3 +278,35 @@ final class TrendCardDefaultSelectionTests: XCTestCase {
         XCTAssertNil(TrendChartCard.defaultSelectionDayIndex(todayIndex: 19, dayCount: 0))
     }
 }
+
+/// The trend card's tap-to-select mapping: a tap offset within the plot
+/// maps onto the window's day bands (width fraction × day count, the
+/// same linear scale `.chartXScale` pins, clamped at the far edge) while
+/// offsets outside the plot and degenerate geometry find nothing.
+final class TrendCardTapSelectionTests: XCTestCase {
+    func testMapsOffsetsOntoDayBands() {
+        // A 30-day window over a 300pt plot: 10pt bands.
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 0, plotWidth: 300, dayCount: 30), 0)
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 9.9, plotWidth: 300, dayCount: 30), 0)
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 10, plotWidth: 300, dayCount: 30), 1)
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 155, plotWidth: 300, dayCount: 30), 15)
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 299.9, plotWidth: 300, dayCount: 30), 29)
+        // The far edge lands on the last band, never past it.
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 300, plotWidth: 300, dayCount: 30), 29)
+    }
+
+    func testOutsideThePlotFindsNothing() {
+        XCTAssertNil(TrendChartCard.tappedDayIndex(atX: -0.5, plotWidth: 300, dayCount: 30))
+        XCTAssertNil(TrendChartCard.tappedDayIndex(atX: 300.5, plotWidth: 300, dayCount: 30))
+    }
+
+    func testSingleDayWindowMapsAnywhereToItsOneDay() {
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 0, plotWidth: 120, dayCount: 1), 0)
+        XCTAssertEqual(TrendChartCard.tappedDayIndex(atX: 120, plotWidth: 120, dayCount: 1), 0)
+    }
+
+    func testDegenerateGeometryFindsNothing() {
+        XCTAssertNil(TrendChartCard.tappedDayIndex(atX: 0, plotWidth: 0, dayCount: 30))
+        XCTAssertNil(TrendChartCard.tappedDayIndex(atX: 0, plotWidth: 300, dayCount: 0))
+    }
+}

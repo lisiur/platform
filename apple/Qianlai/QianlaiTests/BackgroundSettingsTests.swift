@@ -10,6 +10,23 @@ import XCTest
 
 @MainActor
 final class BackgroundSettingsTests: XCTestCase {
+    /// Every test starts from a wiped slate: tearDown only covers runs
+    /// that finish — a crashed or cancelled run (and any real app usage
+    /// on this simulator — the wallpaper enable switch persists) leaves
+    /// state behind that the next run's first test would otherwise read.
+    /// The enable flag is SET to off, not just removed: on this sim a
+    /// value already present at process launch survives a plain
+    /// removeObject (cfprefsd quirk), while an in-process write wins.
+    override func setUp() {
+        try? FileManager.default.removeItem(at: Self.fileURL)
+        try? FileManager.default.removeItem(at: Self.photoFileURL)
+        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.dim")
+        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.cardOpacity")
+        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
+        UserDefaults.standard.set(false, forKey: "app.backgroundImage.enabled")
+        super.setUp()
+    }
+
     override func tearDown() {
         try? FileManager.default.removeItem(at: Self.fileURL)
         try? FileManager.default.removeItem(at: Self.photoFileURL)
@@ -27,12 +44,6 @@ final class BackgroundSettingsTests: XCTestCase {
     /// clearPhoto removes every trace; the dim and card-opacity defaults
     /// fill when unset.
     func testPhotoPersistRoundtrip() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.dim")
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.cardOpacity")
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
-
         let store = BackgroundSettings()
         try store.setEnabled(true)
         XCTAssertEqual(store.dim, BackgroundSettings.defaultDim)
@@ -64,10 +75,6 @@ final class BackgroundSettingsTests: XCTestCase {
     /// Applying a preset persists the render + selection; a photo pick
     /// replaces it and clears the selection.
     func testPresetApply() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
-
         let store = BackgroundSettings()
         try store.setEnabled(true)
         let preset = try XCTUnwrap(BackgroundPresetCatalog.all.first)
@@ -89,10 +96,6 @@ final class BackgroundSettingsTests: XCTestCase {
     /// last-picked thumbnail even while a preset is the active
     /// wallpaper.
     func testPhotoSurvivesPreset() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
-
         let store = BackgroundSettings()
         try store.setEnabled(true)
         try store.setPhoto(try XCTUnwrap(Self.smallJPEG()))
@@ -109,10 +112,6 @@ final class BackgroundSettingsTests: XCTestCase {
     /// clearPhoto while a preset is active must leave the preset on
     /// screen — only the picked photo (and the photo file) goes away.
     func testClearPhotoLeavesPresetActive() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
-
         let store = BackgroundSettings()
         try store.setEnabled(true)
         try store.setPhoto(try XCTUnwrap(Self.smallJPEG()))
@@ -132,10 +131,6 @@ final class BackgroundSettingsTests: XCTestCase {
     /// touching the photo file (the re-pick phase); with no photo,
     /// it is a no-op rather than an error.
     func testSelectPhotoRestoresPhoto() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
-
         let store = BackgroundSettings()
         try store.selectPhoto()
         XCTAssertFalse(store.isActive, "selectPhoto without a photo must not activate anything")
@@ -159,16 +154,12 @@ final class BackgroundSettingsTests: XCTestCase {
         XCTAssertNotNil(reloaded.image)
     }
 
-    /// The enable switch: defaults on, persists across instances, and
+    /// The enable switch: defaults off, persists across instances, and
     /// hides the background without destroying the stored photo — the
     /// next enable brings it straight back. Enabling with no active
     /// wallpaper (fresh, or after removal) default-applies the first
     /// built-in preset instead of showing a blank "on" state.
     func testEnabledToggle() throws {
-        try? FileManager.default.removeItem(at: Self.fileURL)
-        try? FileManager.default.removeItem(at: Self.photoFileURL)
-        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.enabled")
-
         let store = BackgroundSettings()
         XCTAssertFalse(store.enabled, "the switch defaults to off")
         XCTAssertFalse(store.isActive, "nothing is active without a wallpaper")
