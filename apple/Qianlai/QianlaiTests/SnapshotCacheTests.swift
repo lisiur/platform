@@ -155,6 +155,19 @@ final class SnapshotCacheTests: XCTestCase {
         XCTAssertNotEqual(report, ProjectStore.listKey(ledgerId: "l1"))
     }
 
+    // MARK: AccountStore snapshot key
+
+    func testAccountSnapshotKeySeparatesLedgers() {
+        XCTAssertEqual(
+            AccountStore.snapshotKey(ledgerId: "l1"),
+            AccountStore.snapshotKey(ledgerId: "l1")
+        )
+        XCTAssertNotEqual(
+            AccountStore.snapshotKey(ledgerId: "l1"),
+            AccountStore.snapshotKey(ledgerId: "l2")
+        )
+    }
+
     // MARK: JournalStore snapshot key
 
     private func journalPairs(

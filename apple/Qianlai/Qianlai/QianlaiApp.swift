@@ -250,7 +250,9 @@ private struct WallpaperDemoPage: View {
     var body: some View {
         List {
             ForEach(0..<40, id: \.self) { index in
-                Text("演示行 \(index + 1)")
+                // verbatim: demo filler must not feed the string catalog's
+                // build-time extraction (it seeded an empty stub key).
+                Text(verbatim: "演示行 \(index + 1)")
             }
         }
         .appBackgroundSink()

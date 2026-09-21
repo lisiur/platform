@@ -723,6 +723,12 @@ struct QuickEntryView: View {
                     validationError = nil
                 }
             }
+            // The chip arrangement is an in-memory preference read — apply
+            // it before any await so the bar renders the stored layout in
+            // the first frame instead of flashing `.standard` until the
+            // loads land. Scope switches and the more sheet's close re-run
+            // this below.
+            applyPreferenceLayout()
             await accountStore.load(ledgerId: ledger.id)
             await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             // The sheet posts through (and prefills categories from) the
@@ -739,7 +745,6 @@ struct QuickEntryView: View {
             applyGuestProjectDefault()
             applyScopedProjectDefault()
             applyBinding()
-            applyPreferenceLayout()
         }
         // The switcher inside this sheet can change the scope mid-edit:
         // follow it so a pinned entry never outlives its scope, and an

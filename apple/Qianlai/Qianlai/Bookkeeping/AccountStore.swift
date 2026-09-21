@@ -23,6 +23,19 @@ final class AccountStore {
     /// switch racing a late response.
     private(set) var ledgerId: String?
 
+    // MARK: snapshot cache
+
+    /// The store's snapshot-cache binding. Bump `schema` when the payload's
+    /// shape changes incompatibly. Every surface builds its own instance,
+    /// but they all read the same per-ledger record — so a remounted sheet
+    /// paints the last-known chart instead of an empty grid.
+    private static let cache = SnapshotCache.namespace("accounts", schema: 1)
+
+    /// The record's identity: the ledger. Pure and nonisolated for tests.
+    nonisolated static func snapshotKey(ledgerId: String) -> String {
+        SnapshotCache.makeKey([ledgerId])
+    }
+
     init() {
         #if DEBUG
         // Screenshot harness: pre-seed the sample chart so the quick-entry
@@ -36,6 +49,15 @@ final class AccountStore {
     func load(ledgerId: String, force: Bool = false) async {
         guard force || self.ledgerId != ledgerId || items.isEmpty else { return }
         self.ledgerId = ledgerId
+        // Paint the last-known chart before the fetch — the snapshot is the
+        // render seed, the response only corrects it (a remounted sheet
+        // shows the grid immediately instead of an empty flash).
+        if items.isEmpty, let snapshot: [BookAccount] = Self.cache.read(
+            key: Self.snapshotKey(ledgerId: ledgerId),
+            as: [BookAccount].self
+        ) {
+            items = snapshot
+        }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -46,8 +68,15 @@ final class AccountStore {
             guard self.ledgerId == ledgerId else { return }
             items = response.accounts
             loadError = nil
+            Self.cache.write(
+                key: Self.snapshotKey(ledgerId: ledgerId),
+                payload: response.accounts
+            )
         } catch {
             guard self.ledgerId == ledgerId else { return }
+            // Hydrated (or otherwise loaded) content is stale-but-good: keep
+            // it and skip the error so the UI doesn't flag data it is showing.
+            guard items.isEmpty else { return }
             loadError = error.localizedDescription
         }
     }

@@ -17,13 +17,18 @@ import Observation
 /// the mirror every launch showed the shipped arrangement and swapped it
 /// when the response arrived — a visible flicker. With it, launch renders
 /// the last-known arrangement and the fetch only corrects it when the
-/// config actually changed elsewhere.
+/// config actually changed elsewhere. The chip layouts are mirrored the
+/// same way: quick entry reads them on every presentation, and a cold
+/// start that beats the preferences fetch would otherwise flash the
+/// shipped split.
 @MainActor
 @Observable
 final class PreferenceStore {
     let client = APIClient.shared
 
     private static let cachedTabsKey = "qianlai.preferences.user.tabs"
+    private static let cachedLedgerChipsKey = "qianlai.preferences.ledger.quickEntry.chipFields"
+    private static let cachedProjectChipsKey = "qianlai.preferences.project.quickEntry.chipFields"
 
     private let defaults: UserDefaults
 
@@ -33,6 +38,8 @@ final class PreferenceStore {
         // seeding never rewrites what was just read.
         self.configuredTabs = defaults.stringArray(forKey: Self.cachedTabsKey)
             .flatMap(Self.resolveTabs)
+        self.ledgerChipFields = Self.readCachedChipFields(Self.cachedLedgerChipsKey, in: defaults)
+        self.projectChipFields = Self.readCachedChipFields(Self.cachedProjectChipsKey, in: defaults)
     }
 
     /// Simultaneously visible configurable tabs — the bar holds dashboard
@@ -87,9 +94,40 @@ final class PreferenceStore {
 
     /// Ledger/project-scope quick-entry chip arrangements. Presence IS the
     /// config — an empty array is meaningful (every field lives in the more
-    /// sheet), absence falls back to `.standard`.
-    var ledgerChipFields: [String: [QuickEntryField]] = [:]
-    var projectChipFields: [String: [QuickEntryField]] = [:]
+    /// sheet), absence falls back to `.standard`. Every mutation (server
+    /// apply, optimistic write, rollback, restore) mirrors straight into
+    /// UserDefaults so the next launch starts from this exact state.
+    var ledgerChipFields: [String: [QuickEntryField]] = [:] {
+        didSet { Self.persistChipFields(ledgerChipFields, key: Self.cachedLedgerChipsKey, in: defaults) }
+    }
+    var projectChipFields: [String: [QuickEntryField]] = [:] {
+        didSet { Self.persistChipFields(projectChipFields, key: Self.cachedProjectChipsKey, in: defaults) }
+    }
+
+    /// Decodes a mirrored chip dictionary, dropping unknown field raw
+    /// values (a newer client's config) the same way the server payload is
+    /// mapped; undecodable data degrades to "no cached scopes".
+    private static func readCachedChipFields(
+        _ key: String,
+        in defaults: UserDefaults
+    ) -> [String: [QuickEntryField]] {
+        let raw = defaults.dictionary(forKey: key) as? [String: [String]] ?? [:]
+        return raw.mapValues { $0.compactMap(QuickEntryField.init(rawValue:)) }
+    }
+
+    private static func persistChipFields(
+        _ fields: [String: [QuickEntryField]],
+        key: String,
+        in defaults: UserDefaults
+    ) {
+        // An empty dictionary holds no scopes — drop the mirror entirely so
+        // the next launch reads "absent" and falls back to `.standard`.
+        if fields.isEmpty {
+            defaults.removeObject(forKey: key)
+        } else {
+            defaults.set(fields.mapValues { $0.map(\.rawValue) }, forKey: key)
+        }
+    }
 
     // MARK: - Reads
 

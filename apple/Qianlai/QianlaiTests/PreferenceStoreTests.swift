@@ -210,6 +210,121 @@ final class PreferenceStoreTests: XCTestCase {
         XCTAssertEqual(store.ledgerChipFields["l1"], [.memo])
     }
 
+    // MARK: - Chip cache (launch without flicker)
+
+    func testSeedsChipFieldsFromCache() {
+        defaults.set(
+            ["l1": ["memo", "time"]],
+            forKey: "qianlai.preferences.ledger.quickEntry.chipFields"
+        )
+        defaults.set(
+            ["p1": ["project"]],
+            forKey: "qianlai.preferences.project.quickEntry.chipFields"
+        )
+        let launched = PreferenceStore(defaults: defaults)
+        XCTAssertEqual(launched.ledgerChipFields["l1"], [.memo, .time])
+        XCTAssertEqual(launched.projectChipFields["p1"], [.project])
+        XCTAssertEqual(
+            launched.quickEntryLayout(ledgerId: "l1", projectId: nil),
+            QuickEntryLayout(chipFields: [.memo, .time])
+        )
+        XCTAssertEqual(
+            launched.quickEntryLayout(ledgerId: "l1", projectId: "p1"),
+            QuickEntryLayout(chipFields: [.project])
+        )
+    }
+
+    func testCachedChipFieldsDropUnknownValues() {
+        // A newer client's field raw value is dropped on read — the same
+        // rule the server payload gets — and the rest of the list survives.
+        defaults.set(
+            ["l1": ["memo", "dragon"]],
+            forKey: "qianlai.preferences.ledger.quickEntry.chipFields"
+        )
+        XCTAssertEqual(PreferenceStore(defaults: defaults).ledgerChipFields["l1"], [.memo])
+    }
+
+    func testEmptyChipListSurvivesTheCache() {
+        // An empty list IS the config (every field lives in the more sheet)
+        // — the mirror must not collapse it into "absent".
+        defaults.set(["l1": []], forKey: "qianlai.preferences.ledger.quickEntry.chipFields")
+        let launched = PreferenceStore(defaults: defaults)
+        XCTAssertEqual(
+            launched.quickEntryLayout(ledgerId: "l1", projectId: nil),
+            QuickEntryLayout(chipFields: [])
+        )
+    }
+
+    func testChipMutationsMirrorIntoCache() {
+        store.ledgerChipFields["l1"] = [.account, .budget]
+        store.projectChipFields["p1"] = []
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "qianlai.preferences.ledger.quickEntry.chipFields")
+                as? [String: [String]],
+            ["l1": ["account", "budget"]]
+        )
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "qianlai.preferences.project.quickEntry.chipFields")
+                as? [String: [String]],
+            ["p1": []]
+        )
+        // Dropping a scope's config (the restore path assigns nil) empties
+        // the mirror — the next launch reads "absent" and falls back to
+        // `.standard`.
+        store.ledgerChipFields["l1"] = nil
+        XCTAssertNil(
+            defaults.dictionary(forKey: "qianlai.preferences.ledger.quickEntry.chipFields")
+        )
+    }
+
+    func testApplyReplacesMirroredChipScopes() {
+        store.ledgerChipFields["l1"] = [.memo]
+        store.apply(UserPreferencesResponse(
+            user: nil,
+            ledgers: ["l2": QuickEntryPreference(quickEntry: .init(chipFields: ["time"]))],
+            projects: [:]
+        ))
+        // The apply is a wholesale replacement — a scope the server no
+        // longer returns must not haunt the mirror.
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "qianlai.preferences.ledger.quickEntry.chipFields")
+                as? [String: [String]],
+            ["l2": ["time"]]
+        )
+    }
+
+    func testApplyRoundTripsToANewInstance() {
+        store.apply(UserPreferencesResponse(
+            user: nil,
+            ledgers: ["l1": QuickEntryPreference(quickEntry: .init(chipFields: ["memo", "time"]))],
+            projects: ["p1": QuickEntryPreference(quickEntry: .init(chipFields: []))]
+        ))
+        let launched = PreferenceStore(defaults: defaults)
+        XCTAssertEqual(
+            launched.quickEntryLayout(ledgerId: "l1", projectId: nil),
+            QuickEntryLayout(chipFields: [.memo, .time])
+        )
+        // An empty list from the server stays meaningful through the
+        // mirror — it must not collapse into "absent".
+        XCTAssertEqual(
+            launched.quickEntryLayout(ledgerId: "l1", projectId: "p1"),
+            QuickEntryLayout(chipFields: [])
+        )
+    }
+
+    func testRestoredScopeFallsBackToStandardOnNextLaunch() {
+        // `restoreChipFields` itself needs the network, so the test drives
+        // the same state change it performs offline (the nil assignment;
+        // the didSet is what persists) — the scope drops from the mirror
+        // and the next launch reads "absent", falling back to `.standard`.
+        store.ledgerChipFields["l1"] = [.memo]
+        store.ledgerChipFields["l1"] = nil
+        XCTAssertEqual(
+            PreferenceStore(defaults: defaults).quickEntryLayout(ledgerId: "l1", projectId: nil),
+            .standard
+        )
+    }
+
     // MARK: - Wire format
 
     func testDecodePreferencesPayload() throws {
