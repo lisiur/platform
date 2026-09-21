@@ -62,7 +62,11 @@ export const screenshotRecognitionSchema = z.object({
     .describe(
       "runner-up leaf paths verbatim from the same kind list, excluding categoryName",
     ),
-  confidence: z.enum(["high", "medium", "low"]),
+  // Nullable: the no-transaction path nulls every field (the prompt says
+  // so explicitly), and a required enum here is what turned "not a receipt"
+  // screenshots into schema failures — the model obeyed the prompt and the
+  // parse rejected its own contract (prod 502, 2026-09-21).
+  confidence: z.enum(["high", "medium", "low"]).nullable(),
 });
 
 export type ScreenshotRecognition = z.infer<typeof screenshotRecognitionSchema>;
@@ -91,13 +95,17 @@ export async function listLedgerCategoryPaths(ledgerId: string): Promise<{
       status: "active",
       type: { in: ["expense", "income"] },
     },
-    select: { id: true, name: true, type: true, parentId: true, sortOrder: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      parentId: true,
+      sortOrder: true,
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
   const byId = new Map(accounts.map((account) => [account.id, account]));
-  const pathOf = (
-    account: (typeof accounts)[number],
-  ): string | null => {
+  const pathOf = (account: (typeof accounts)[number]): string | null => {
     const segments: string[] = [];
     const visited = new Set<string>();
     let cursor: (typeof accounts)[number] | undefined = account;
@@ -114,7 +122,9 @@ export async function listLedgerCategoryPaths(ledgerId: string): Promise<{
     const out: string[] = [];
     for (const account of accounts) {
       if (account.type !== type) continue;
-      const hasChildren = accounts.some((other) => other.parentId === account.id);
+      const hasChildren = accounts.some(
+        (other) => other.parentId === account.id,
+      );
       if (hasChildren) continue;
       const path = pathOf(account);
       if (path !== null) out.push(path);
@@ -145,14 +155,15 @@ export function buildRecognitionPrompt(categories: {
     '- occurredAt: the transaction time exactly as shown, ISO 8601 "YYYY-MM-DDTHH:mm:ss" without timezone offset. Date only → "YYYY-MM-DDT00:00:00"; no date visible → null.',
     "- merchant: the counterparty name (商家/收款方/付款方/对方) verbatim; null if absent.",
     "- memo: the item name or note (商品/备注) verbatim, trimmed; null if absent.",
-    "- categoryName: copy exactly one entry from the category list matching kind below, verbatim. Entries are \"/\"-joined paths from the top-level parent to the leaf category (e.g. \"服饰/衣服\"); the LAST segment is the actual category, so always answer the full path — never a bare leaf name, never a parent alone. If nothing fits, null.",
+    '- categoryName: copy exactly one entry from the category list matching kind below, verbatim. Entries are "/"-joined paths from the top-level parent to the leaf category (e.g. "服饰/衣服"); the LAST segment is the actual category, so always answer the full path — never a bare leaf name, never a parent alone. If nothing fits, null.',
     "- categoryAlternatives: when two or more entries from the list could fit, keep the best in categoryName and put up to 3 runner-up paths here (verbatim from the same kind list, excluding categoryName). [] when unambiguous.",
-    '- confidence: "high" when the amount and counterparty are both clearly legible; "medium" when the amount is legible but other fields are missing or ambiguous; "low" when the image is blurry, cropped, or the amount itself is hard to read.',
+    '- confidence: "high" when the amount and counterparty are both clearly legible; "medium" when the amount is legible but other fields are missing or ambiguous; "low" when the image is blurry, cropped, or the amount itself is hard to read; null when recognized is false.',
     "",
     "Selection rules:",
     "- If several transactions are visible, the largest successful one is primary; the other successful transactions' amounts go to amountAlternatives.",
     "- Failed, cancelled, or pending records are not successful — ignore them.",
     "- If the screenshot shows no successful transaction at all (or is not a payment/transaction screenshot), set recognized to false and every other field to null (arrays []).",
+    "- Even in that case you MUST still reply with the JSON object — never plain text, never an explanation.",
     "- Do not guess values not visible in the screenshot — use null.",
     "",
     `Expense categories:\n${list(categories.expense)}`,

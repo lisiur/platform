@@ -34,6 +34,7 @@ import {
   buildRecognitionPrompt,
   listLedgerCategoryPaths,
   recognizeScreenshot,
+  screenshotRecognitionSchema,
 } from "../recognize.service";
 import { collectRecognitionTiles } from "../routes/journal-entry/recognizeScreenshot";
 
@@ -174,6 +175,37 @@ describe("buildRecognitionPrompt", () => {
     const prompt = buildRecognitionPrompt({ expense: [], income: [] });
     expect(prompt).toContain("Expense categories:\n(none)");
     expect(prompt).toContain("Income categories:\n(none)");
+  });
+
+  it("keeps the no-transaction path inside the JSON contract", () => {
+    const prompt = buildRecognitionPrompt({ expense: [], income: [] });
+    // The no-transaction rule nulls everything, so the confidence rule must
+    // name null too, and the JSON-only demand must survive the miss — a
+    // non-receipt image once drew prose out of the model (prod 502).
+    expect(prompt).toContain("every other field to null");
+    expect(prompt).toContain("null when recognized is false");
+    expect(prompt).toContain("MUST still reply with the JSON object");
+  });
+});
+
+describe("screenshotRecognitionSchema", () => {
+  it("accepts the no-transaction payload — every field nulled, confidence included", () => {
+    // The prod 502 regression: the prompt tells the model to null every
+    // field when nothing is recognized, so the schema must accept exactly
+    // that instead of rejecting the model's own contract.
+    const parsed = screenshotRecognitionSchema.parse({
+      recognized: false,
+      kind: null,
+      amount: null,
+      occurredAt: null,
+      merchant: null,
+      memo: null,
+      categoryName: null,
+      confidence: null,
+    });
+    expect(parsed).toMatchObject({ recognized: false, confidence: null });
+    expect(parsed.amountAlternatives).toEqual([]);
+    expect(parsed.categoryAlternatives).toEqual([]);
   });
 });
 
