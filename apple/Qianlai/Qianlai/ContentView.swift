@@ -173,9 +173,19 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $isQuickAddPresented) {
             NavigationStack {
-                QuickEntryView(binding: quickAddBinding)
+                QuickEntryView(
+                    binding: quickAddBinding,
+                    recognizesStagedScreenshot: quickAddRecognizesStagedScreenshot
+                )
             }
             .interactiveDismissDisabled()
+        }
+        .onChange(of: isQuickAddPresented) {
+            // The handoff flag is one-shot: it armed the presentation just
+            // closed, and the next sheet (pill tap, widget link) must open
+            // plain.
+            guard !isQuickAddPresented else { return }
+            quickAddRecognizesStagedScreenshot = false
         }
         .onAppear {
             quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
@@ -183,10 +193,16 @@ struct ContentView: View {
         .onOpenURL { url in
             // Widget deep links: qianlai://quick-entry opens the quick-entry
             // sheet (a bound widget's link carries its target as query
-            // items), qianlai://dashboard lands on the dashboard tab.
+            // items), qianlai://dashboard lands on the dashboard tab. The
+            // share extension's link carries only `screenshot=1` — no
+            // preset, so the plain sheet runs the staged recognition.
             switch url.host {
             case "quick-entry":
-                tryPresentQuickAdd(preset: QuickEntryPreset(url: url))
+                let preset = QuickEntryPreset(url: url)
+                if preset == nil, isStagedScreenshotLink(url) {
+                    quickAddRecognizesStagedScreenshot = true
+                }
+                tryPresentQuickAdd(preset: preset)
             case "dashboard":
                 tab = .dashboard
             default:
@@ -218,6 +234,10 @@ struct ContentView: View {
     /// link; nil keeps the sheet on the active-ledger defaults. The bound
     /// sheet records against its own ledger — the global scope is untouched.
     @State private var quickAddBinding: QuickEntryBinding?
+    /// The share extension's handoff: the next presented quick-entry sheet
+    /// consumes the staged screenshot and runs recognition on mount. Cleared
+    /// when that sheet closes.
+    @State private var quickAddRecognizesStagedScreenshot = false
     /// Set when the quick-add pill is tapped without a postable ledger;
     /// drives the denial alert and clears on dismiss.
     @State private var quickAddDeniedReason: String?
@@ -259,6 +279,18 @@ struct ContentView: View {
 
     private func dismissQuickAddDenial() {
         quickAddDeniedReason = nil
+    }
+
+    /// Whether the URL is the share extension's handoff link — host
+    /// `quick-entry` with a lone `screenshot=1` query item (a bound widget's
+    /// link always also carries `ledger`, so a preset wins).
+    private func isStagedScreenshotLink(_ url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return false
+        }
+        return components.queryItems?.contains(where: {
+            $0.name == "screenshot" && $0.value == "1"
+        }) == true
     }
 
     /// Presents the quick-entry sheet when the active ledger allows posting;

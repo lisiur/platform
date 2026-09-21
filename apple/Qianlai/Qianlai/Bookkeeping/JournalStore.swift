@@ -505,6 +505,27 @@ final class JournalStore {
         await reloadFromStart()
     }
 
+    /// AI recognition of a payment screenshot into a draft payload — one
+    /// call, billed per use. The JPEG tiles (from `ScreenshotTiler`) post as
+    /// file0…fileN; array order is the tiles' vertical order.
+    func recognizeScreenshot(
+        ledgerId: String,
+        tiles: [Data]
+    ) async throws -> ScreenshotRecognition {
+        let files = tiles.enumerated().map { index, data in
+            (
+                fieldName: "file\(index)",
+                data: data,
+                fileName: "tile\(index).jpg",
+                mimeType: "image/jpeg"
+            )
+        }
+        return try await client.uploadMultipartFiles(
+            "bookkeeping/ledgers/\(ledgerId)/entries/recognize-screenshot",
+            files: files
+        )
+    }
+
     /// Optimistic delete: the entry leaves the local list the moment this
     /// runs — the row animates away with no network wait, `total` drops
     /// with it — and the server sync continues in the background task this

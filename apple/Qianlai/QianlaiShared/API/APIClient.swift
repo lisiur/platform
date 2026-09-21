@@ -185,6 +185,19 @@ final class APIClient {
         fileName: String,
         mimeType: String
     ) async throws -> T {
+        try await uploadMultipartFiles(
+            path,
+            files: [("file", fileData, fileName, mimeType)]
+        )
+    }
+
+    /// Uploads several files as one `multipart/form-data` request — the
+    /// field name comes with each file (`file0…file5` for screenshot tiles)
+    /// — and decodes the JSON response.
+    func uploadMultipartFiles<T: Decodable>(
+        _ path: String,
+        files: [(fieldName: String, data: Data, fileName: String, mimeType: String)]
+    ) async throws -> T {
         let boundary = "Qianlai.boundary.\(UUID().uuidString)"
         var request = URLRequest(url: config.url(forPath: path))
         request.httpMethod = "POST"
@@ -195,11 +208,14 @@ final class APIClient {
         }
 
         var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        for file in files {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(file.fileName)\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: \(file.mimeType)\r\n\r\n".data(using: .utf8)!)
+            body.append(file.data)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
 
         let (data, response) = try await session.data(for: request)

@@ -1199,6 +1199,39 @@ struct UploadAvatarResponse: Codable {
     var attachmentId: String
 }
 
+/// AI extraction of one transaction from a payment screenshot — a prefill
+/// payload only; nothing posts until the user confirms the draft. Server
+/// mirror: recognize.service.ts `screenshotRecognitionSchema`.
+struct ScreenshotRecognition: Codable {
+    var recognized: Bool
+    /// "expense" | "income"; anything else reads as expense.
+    var kind: String?
+    var amount: Double?
+    var amountAlternatives: [Double]?
+    /// Local wall-clock time without an offset, ISO 8601.
+    var occurredAt: String?
+    var merchant: String?
+    var memo: String?
+    var categoryName: String?
+    var categoryAlternatives: [String]?
+    /// "high" | "medium" | "low".
+    var confidence: String?
+
+    var amountSuggestions: [Double] { amountAlternatives ?? [] }
+    var categorySuggestions: [String] { categoryAlternatives ?? [] }
+
+    /// The screenshot's wall-clock time parsed in the device's timezone —
+    /// the model emits local time without an offset by contract.
+    var occurredDate: Date? {
+        guard let occurredAt else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.date(from: occurredAt)
+    }
+}
+
 // MARK: - Request bodies
 
 struct CreateLedgerBody: Encodable {
