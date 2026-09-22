@@ -177,34 +177,18 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
-        .screenshotRecognitionCover(isPresented: $isRecognitionPresented)
         .onAppear {
             quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
         }
         .onOpenURL { url in
             // Widget deep links: qianlai://quick-entry opens the quick-entry
             // sheet (a bound widget's link carries its target as query
-            // items), qianlai://dashboard lands on the dashboard tab,
-            // qianlai://recognize opens the screenshot-recognition page
-            // (the share extension's handoff link — the page consumes the
-            // staged image on its first load).
+            // items), qianlai://dashboard lands on the dashboard tab.
             switch url.host {
             case "quick-entry":
-                let preset = QuickEntryPreset(url: url)
-                if preset == nil, isStagedScreenshotLink(url) {
-                    // One-release tolerance: a share extension from before
-                    // the recognition page existed still hands off on
-                    // quick-entry?screenshot=1 — route it to the page that
-                    // actually consumes the staged file, never to a plain
-                    // quick add that would strand it.
-                    tryPresentRecognition()
-                } else {
-                    tryPresentQuickAdd(preset: preset)
-                }
+                tryPresentQuickAdd(preset: QuickEntryPreset(url: url))
             case "dashboard":
                 tab = .dashboard
-            case "recognize":
-                tryPresentRecognition()
             default:
                 break
             }
@@ -234,12 +218,8 @@ struct ContentView: View {
     /// link; nil keeps the sheet on the active-ledger defaults. The bound
     /// sheet records against its own ledger — the global scope is untouched.
     @State private var quickAddBinding: QuickEntryBinding?
-    /// The screenshot-recognition page, presented from the Journal toolbar
-    /// and the share extension's `qianlai://recognize` handoff link.
-    @State private var isRecognitionPresented = false
-    /// Set when the quick-add pill or the recognition deep link is used
-    /// without a postable ledger; drives the denial alert and clears on
-    /// dismiss.
+    /// Set when the quick-add pill is used without a postable ledger;
+    /// drives the denial alert and clears on dismiss.
     @State private var entryDeniedReason: String?
 
     /// The pill's role, version-split for the trailing capsule — the full
@@ -279,43 +259,6 @@ struct ContentView: View {
 
     private func dismissEntryDenial() {
         entryDeniedReason = nil
-    }
-
-    /// Whether the URL is the old share extension's handoff link — host
-    /// `quick-entry` with a lone `screenshot=1` query item (a bound widget's
-    /// link always also carries `ledger`, so a preset wins). Kept one
-    /// release past the recognition page's deep-link retarget.
-    private func isStagedScreenshotLink(_ url: URL) -> Bool {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return false
-        }
-        return components.queryItems?.contains(where: {
-            $0.name == "screenshot" && $0.value == "1"
-        }) == true
-    }
-
-    /// Presents the screenshot-recognition page when the active ledger can
-    /// use it (`canRecognizeScreenshots`: posting rights, never guests —
-    /// their project-pinned entries are beyond the prefill). The cold-launch
-    /// shape mirrors the quick-add path: a handoff link delivered before the
-    /// ledger fetch settles runs the load and re-resolves once before
-    /// denying.
-    private func tryPresentRecognition() {
-        if ledgerStore.activeLedger?.canRecognizeScreenshots == true {
-            isRecognitionPresented = true
-            return
-        }
-        guard ledgerStore.hasLoaded else {
-            Task { @MainActor in
-                await ledgerStore.load()
-                tryPresentRecognition()
-            }
-            return
-        }
-        entryDeniedReason = L10n.string(
-            "quick.cannotPost",
-            defaultValue: "You can't add entries in this ledger"
-        )
     }
 
     /// Presents the quick-entry sheet when the active ledger allows posting;

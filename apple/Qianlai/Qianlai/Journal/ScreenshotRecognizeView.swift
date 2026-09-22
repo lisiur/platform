@@ -10,8 +10,8 @@ import PhotosUI
 import SwiftUI
 
 /// The dedicated screenshot-recognition page: one screenshot in, one entry
-/// out. Pick (or receive the share extension's staged image), tile → upload
-/// → AI recognize, then review the recognized fields in a small editable
+/// out. Pick a screenshot, tile → upload → AI recognize, then review the
+/// recognized fields in a small editable
 /// form — amount, kind, category (with the AI's one-tap alternates), date,
 /// memo — and post through the same quick-entry draft the calculator uses.
 /// The page stays mounted after a save and resets to the picker, so a stack
@@ -131,7 +131,7 @@ struct ScreenshotRecognizeView: View {
             categoryId = recognition?.categoryName.flatMap(matchCategoryId)
         }
         // Keyed by the active ledger: the category tree suggestion matching
-        // needs must be loaded before any staged handoff runs.
+        // needs must be loaded before the review form renders.
         .task(id: ledger?.id) {
             guard let ledger, loadedLedgerId != ledger.id else { return }
             loadedLedgerId = ledger.id
@@ -139,9 +139,6 @@ struct ScreenshotRecognizeView: View {
             // Posting goes through the shared root journal; the load dedupes
             // against the Journal tab's.
             await journalStore.load(ledgerId: ledger.id)
-            // The share extension's handoff runs last, on the loaded tree.
-            // Re-runs find nothing staged and no-op.
-            await recognizeStagedScreenshot()
         }
     }
 
@@ -468,14 +465,7 @@ struct ScreenshotRecognizeView: View {
         }
     }
 
-    /// The share-extension handoff path: consume the staged image and run
-    /// the same shared tail. Nothing staged is a silent no-op.
-    private func recognizeStagedScreenshot() async {
-        guard let data = ScreenshotHandoff.consumePendingImageData() else { return }
-        await runRecognition(imageData: data)
-    }
-
-    /// Shared tail of both entry paths: tile → upload → apply. The stage
+    /// Shared tail of the picker path: tile → upload → apply. The stage
     /// gate keeps one recognition running at a time; a failure (or a soft
     /// miss) falls back to the picker for the next attempt.
     private func runRecognition(imageData: Data) async {
@@ -616,8 +606,7 @@ struct ScreenshotRecognizeView: View {
 }
 
 /// The page's presentation wrapper — full-screen, interactive dismiss off
-/// (a mid-recognition swipe abandons a billed call's result). One definition
-/// for both mount points: the Journal toolbar entry and the deep link.
+/// (a mid-recognition swipe abandons a billed call's result).
 extension View {
     func screenshotRecognitionCover(isPresented: Binding<Bool>) -> some View {
         fullScreenCover(isPresented: isPresented) {

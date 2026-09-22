@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		7E6BA00E30357BDB000F3F45 /* QianlaiWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E6BA00230357BDB000F3F45 /* QianlaiWidget.appex */; platformFilter = ios; };
-		7E6CB00C30357BDB000F3F45 /* QianlaiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E6CB00230357BDB000F3F45 /* QianlaiShare.appex */; platformFilter = ios; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,13 +25,6 @@
 			remoteGlobalIDString = 7E6BA00130357BDB000F3F45;
 			remoteInfo = QianlaiWidget;
 		};
-		7E6CB00A30357BDB000F3F45 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 25A4A05F30357BDB000F3F45 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7E6CB00130357BDB000F3F45;
-			remoteInfo = QianlaiShare;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -43,7 +35,6 @@
 			dstSubfolderSpec = 13;
 			files = (
 				7E6BA00E30357BDB000F3F45 /* QianlaiWidget.appex in Embed Foundation Extensions */,
-				7E6CB00C30357BDB000F3F45 /* QianlaiShare.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -54,7 +45,6 @@
 		25A4A06730357BDB000F3F45 /* Qianlai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Qianlai.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E57A10130357BDB000F3F45 /* QianlaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QianlaiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E6BA00230357BDB000F3F45 /* QianlaiWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QianlaiWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		7E6CB00230357BDB000F3F45 /* QianlaiShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QianlaiShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -71,13 +61,6 @@
 				Info.plist,
 			);
 			target = 7E6BA00130357BDB000F3F45 /* QianlaiWidget */;
-		};
-		7E6CB00D30357BDB000F3F45 /* Exceptions for "QianlaiShare" folder in "QianlaiShare" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 7E6CB00130357BDB000F3F45 /* QianlaiShare */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -108,14 +91,6 @@
 			path = QianlaiWidget;
 			sourceTree = "<group>";
 		};
-		7E6CB00330357BDB000F3F45 /* QianlaiShare */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7E6CB00D30357BDB000F3F45 /* Exceptions for "QianlaiShare" folder in "QianlaiShare" target */,
-			);
-			path = QianlaiShare;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,13 +115,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7E6CB00530357BDB000F3F45 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -156,7 +124,6 @@
 				25A4A06930357BDB000F3F45 /* Qianlai */,
 				7E6BA00330357BDB000F3F45 /* QianlaiShared */,
 				7E6BA00430357BDB000F3F45 /* QianlaiWidget */,
-				7E6CB00330357BDB000F3F45 /* QianlaiShare */,
 				7E57A10230357BDB000F3F45 /* QianlaiTests */,
 				25A4A06830357BDB000F3F45 /* Products */,
 			);
@@ -167,7 +134,6 @@
 			children = (
 				25A4A06730357BDB000F3F45 /* Qianlai.app */,
 				7E6BA00230357BDB000F3F45 /* QianlaiWidget.appex */,
-				7E6CB00230357BDB000F3F45 /* QianlaiShare.appex */,
 				7E57A10130357BDB000F3F45 /* QianlaiTests.xctest */,
 			);
 			name = Products;
@@ -189,7 +155,6 @@
 			);
 			dependencies = (
 				7E6BA00C30357BDB000F3F45 /* PBXTargetDependency */,
-				7E6CB00B30357BDB000F3F45 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				25A4A06930357BDB000F3F45 /* Qianlai */,
@@ -248,28 +213,6 @@
 			productReference = 7E6BA00230357BDB000F3F45 /* QianlaiWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		7E6CB00130357BDB000F3F45 /* QianlaiShare */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7E6CB00930357BDB000F3F45 /* Build configuration list for PBXNativeTarget "QianlaiShare" */;
-			buildPhases = (
-				7E6CB00430357BDB000F3F45 /* Sources */,
-				7E6CB00530357BDB000F3F45 /* Frameworks */,
-				7E6CB00630357BDB000F3F45 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				7E6CB00330357BDB000F3F45 /* QianlaiShare */,
-			);
-			name = QianlaiShare;
-			packageProductDependencies = (
-			);
-			productName = QianlaiShare;
-			productReference = 7E6CB00230357BDB000F3F45 /* QianlaiShare.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -288,9 +231,6 @@
 						TestTargetID = 25A4A06630357BDB000F3F45;
 					};
 					7E6BA00130357BDB000F3F45 = {
-						CreatedOnToolsVersion = 26.6;
-					};
-					7E6CB00130357BDB000F3F45 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -312,7 +252,6 @@
 			targets = (
 				25A4A06630357BDB000F3F45 /* Qianlai */,
 				7E6BA00130357BDB000F3F45 /* QianlaiWidget */,
-				7E6CB00130357BDB000F3F45 /* QianlaiShare */,
 				7E57A10330357BDB000F3F45 /* QianlaiTests */,
 			);
 		};
@@ -334,13 +273,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7E6BA00730357BDB000F3F45 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		7E6CB00630357BDB000F3F45 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -371,13 +303,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7E6CB00430357BDB000F3F45 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -390,11 +315,6 @@
 			isa = PBXTargetDependency;
 			target = 7E6BA00130357BDB000F3F45 /* QianlaiWidget */;
 			targetProxy = 7E6BA00B30357BDB000F3F45 /* PBXContainerItemProxy */;
-		};
-		7E6CB00B30357BDB000F3F45 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7E6CB00130357BDB000F3F45 /* QianlaiShare */;
-			targetProxy = 7E6CB00A30357BDB000F3F45 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -753,72 +673,6 @@
 			};
 			name = Release;
 		};
-		7E6CB00730357BDB000F3F45 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = QianlaiShare/QianlaiShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V45ATZDSXQ;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = QianlaiShare/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "钱来";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = top.hapaul.qianlai.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		7E6CB00830357BDB000F3F45 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				CODE_SIGN_ENTITLEMENTS = QianlaiShare/QianlaiShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V45ATZDSXQ;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = QianlaiShare/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "钱来";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = top.hapaul.qianlai.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -854,15 +708,6 @@
 			buildConfigurations = (
 				7E6BA00830357BDB000F3F45 /* Debug */,
 				7E6BA00930357BDB000F3F45 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		7E6CB00930357BDB000F3F45 /* Build configuration list for PBXNativeTarget "QianlaiShare" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7E6CB00730357BDB000F3F45 /* Debug */,
-				7E6CB00830357BDB000F3F45 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
