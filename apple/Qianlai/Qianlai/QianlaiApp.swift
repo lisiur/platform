@@ -36,6 +36,10 @@ struct QianlaiApp: App {
             Group {
                 if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
                     QuickEntryDemoScreen()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry-recognition") {
+                    // AI-mode variant: the same sheet seeded with a fake
+                    // recognition — suggestion grid + amount pad offline.
+                    QuickEntryDemoScreen(isRecognitionMode: true)
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-theme") {
                     // Theme page without login/backend: verifies the 边框高光
                     // section and the background controls offline. The page
@@ -138,13 +142,36 @@ extension ProcessInfo {
 /// its sample chart when this launch argument is set): renders the real
 /// `QuickEntryView` in bound mode — owner role, no ledger switcher — so the
 /// kind tabs, category grid, chip bar, and calculator lay out without a
-/// login or backend. Launch with `--ui-demo-quick-entry`.
+/// login or backend. Launch with `--ui-demo-quick-entry`; add
+/// `--ui-demo-quick-entry-recognition` instead to seed a fake recognition
+/// and see the AI surfaces (suggestion grid, amount pad).
 private struct QuickEntryDemoScreen: View {
+    var isRecognitionMode = false
+
     var body: some View {
         NavigationStack {
-            QuickEntryView(binding: QuickEntryBinding(ledger: Self.demoLedger))
+            QuickEntryView(
+                binding: QuickEntryBinding(ledger: Self.demoLedger),
+                recognition: isRecognitionMode ? Self.demoRecognition : nil
+            )
         }
     }
+
+    /// A fake recognition whose category names resolve against
+    /// `AccountStore.demoAccounts` (交通 / 购物 / 娱乐 are real leaves), so
+    /// the suggestion grid and the prefill behave exactly like production.
+    static let demoRecognition = ScreenshotRecognition(
+        recognized: true,
+        kind: "expense",
+        amount: 42.0,
+        amountAlternatives: [42.5, 40.0, 45.0, 39.9],
+        occurredAt: "2026-09-22T12:30:00",
+        merchant: "全家便利店",
+        memo: "午餐",
+        categoryName: "交通",
+        categoryAlternatives: ["购物", "娱乐"],
+        confidence: "high"
+    )
 
     static let demoLedger: QianlaiLedger = {
         // Two recent categories so the recents row renders above the grid.

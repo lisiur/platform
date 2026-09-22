@@ -240,7 +240,7 @@ struct AccountTreeEntry: Identifiable, Hashable {
 /// branches; the selectable range is leaves only, so a path that lands on a
 /// parent resolves to nothing.
 enum CategoryPathResolver {
-    static func leafAccountId(
+    nonisolated static func leafAccountId(
         forSuggestion suggestion: String,
         tree: [AccountTreeEntry]
     ) -> String? {
@@ -280,6 +280,53 @@ enum CategoryPathResolver {
             }
         }
         return nil
+    }
+}
+
+/// Seeds the AI-mode quick entry from a screenshot recognition — the pure
+/// mapping applied at presentation time. Foundation-only, `nonisolated`,
+/// and total (any recognition is accepted) so tests can pin the contract.
+enum RecognitionSeeding {
+    /// "income" reads as income; anything else (nil, unknown) reads as
+    /// expense — the recognition page's own mapping, kept verbatim.
+    nonisolated static func kind(from recognition: ScreenshotRecognition) -> QuickEntryKind {
+        recognition.kind == "income" ? .income : .expense
+    }
+
+    /// Merchant · memo joined with " · ", skipping missing or blank
+    /// segments — the caption the recognition page's review form used to
+    /// build, now the quick entry's memo prefill.
+    nonisolated static func memo(from recognition: ScreenshotRecognition) -> String {
+        [recognition.merchant, recognition.memo]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
+    /// The AI's category suggestions resolved against the given tree: the
+    /// recommended path first, then the alternatives, de-duplicated with
+    /// order preserved. Suggestions that don't resolve (renamed, deleted,
+    /// path landing on a parent) drop out. Returns the tree's own entries
+    /// so callers never rebuild an id index just to render.
+    nonisolated static func suggestedCategoryEntries(
+        for recognition: ScreenshotRecognition,
+        tree: [AccountTreeEntry]
+    ) -> [AccountTreeEntry] {
+        let byId = Dictionary(
+            tree.map { ($0.account.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var seen = Set<String>()
+        var entries: [AccountTreeEntry] = []
+        for name in [recognition.categoryName] + recognition.categorySuggestions {
+            guard let name,
+                  let id = CategoryPathResolver.leafAccountId(forSuggestion: name, tree: tree),
+                  seen.insert(id).inserted,
+                  let entry = byId[id]
+            else { continue }
+            entries.append(entry)
+        }
+        return entries
     }
 }
 
@@ -1676,6 +1723,18 @@ struct QuickEntryDraft: Equatable {
         kind == .transfer
             && debitAccountId != nil
             && debitAccountId == creditAccountId
+    }
+
+    /// Writes the kind's category side (expense → debit, income → credit;
+    /// transfer has none) — the one mapping every category prefill shares:
+    /// the widget binding's seed, the AI recommendation's, the recents
+    /// default's.
+    mutating func setCategorySide(_ accountId: String?, for kind: QuickEntryKind) {
+        switch kind {
+        case .expense: debitAccountId = accountId
+        case .income: creditAccountId = accountId
+        case .transfer: break
+        }
     }
 
     /// True when the draft satisfies the kind's required sides.

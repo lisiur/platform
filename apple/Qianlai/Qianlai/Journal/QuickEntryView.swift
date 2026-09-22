@@ -167,26 +167,48 @@ struct QuickEntryView: View {
     /// toggle outranks the excluded-category rule). Editing an entry starts
     /// true so its stored flag survives a category re-pick.
     @State private var didTouchBudgetToggle = false
+    /// The screenshot recognition the sheet opened with, if any — the
+    /// AI-mode seed. Its suggested amounts drive the amount pad and its
+    /// suggested categories the grid, until the user falls back to the
+    /// full surfaces (全部 / 手动编辑, both one-way).
+    private let recognitionSeed: ScreenshotRecognition?
+    /// AI-mode grid state: false renders the suggestion subset plus the
+    /// 全部 chip, true the regular full grid (More/manage chips and the
+    /// recents row included).
+    @State private var showsAllCategories = false
+    /// AI-mode pad state: false renders the suggestion pad, true the
+    /// regular numeric keypad (one-way fallback).
+    @State private var usesManualKeypad = false
+    /// The suggested amount currently loaded into the engine — the AI
+    /// pad's highlighted key. Starts at the recognition's own amount.
+    @State private var selectedSuggestedAmount: Double?
 
     /// Editing seeds every field from the entry; creating starts blank,
-    /// optionally prefilled from the bound widget's binding.
+    /// optionally prefilled from the bound widget's binding — or from a
+    /// screenshot recognition, which also sets the kind, the time, the
+    /// merchant·memo caption, and the amount.
     init(
         entry: JournalEntry? = nil,
-        binding: QuickEntryBinding? = nil
+        binding: QuickEntryBinding? = nil,
+        recognition: ScreenshotRecognition? = nil
     ) {
         editedEntry = entry
         self.binding = binding
+        recognitionSeed = recognition
         var seed = entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft()
         if let binding {
-            if let kind = binding.kind { seed.kind = kind }
-            if let projectId = binding.projectId { seed.projectId = projectId }
-            if let categoryId = binding.categoryId, let kind = binding.kind {
-                switch kind {
-                case .expense: seed.debitAccountId = categoryId
-                case .income: seed.creditAccountId = categoryId
-                case .transfer: break
+            if let kind = binding.kind {
+                seed.kind = kind
+                if let categoryId = binding.categoryId {
+                    seed.setCategorySide(categoryId, for: kind)
                 }
             }
+            if let projectId = binding.projectId { seed.projectId = projectId }
+        }
+        if let recognition {
+            seed.kind = RecognitionSeeding.kind(from: recognition)
+            seed.date = recognition.occurredDate ?? seed.date
+            seed.memo = RecognitionSeeding.memo(from: recognition)
         }
         _draft = State(initialValue: seed)
         // An edit seeds the toggle from the entry's stored budget flag and
@@ -194,7 +216,17 @@ struct QuickEntryView: View {
         // moves when the user flips the switch themselves.
         _didTouchBudgetToggle = State(initialValue: entry != nil)
         // No grouping separator so post()'s Double parsing round-trips.
-        _engine = State(initialValue: CalculatorEngine(initialText: entry.map { String(format: "%.2f", $0.amount) } ?? ""))
+        // The AI seed starts at the recognized amount; nothing to type.
+        let engineSeed: String
+        if let entry {
+            engineSeed = String(format: "%.2f", entry.amount)
+        } else if let recognition, let amount = recognition.amount {
+            engineSeed = String(format: "%.2f", amount)
+        } else {
+            engineSeed = ""
+        }
+        _engine = State(initialValue: CalculatorEngine(initialText: engineSeed))
+        _selectedSuggestedAmount = State(initialValue: recognition?.amount)
     }
 
     @State private var accountStore = AccountStore()
@@ -396,7 +428,14 @@ struct QuickEntryView: View {
                 draft.debitAccountId = nil
                 draft.creditAccountId = nil
                 validationError = nil
-                applyCategoryDefault()
+                // AI mode re-resolves the recognition's suggestion against
+                // the new kind's tree instead of applying the recents
+                // default, which would fight the AI's pick.
+                if recognitionSeed == nil {
+                    applyCategoryDefault()
+                } else {
+                    applyRecognitionCategory()
+                }
             }
         }
     }
@@ -418,12 +457,45 @@ struct QuickEntryView: View {
     /// — flush under the display while idle, sliding behind the keyboard
     /// while the memo chip is editing. The greedy bottom-aligned frame sits
     /// inside the keyboard-ignoring region: without it the keypad would
-    /// ride the expanded layer's center.
+    /// ride the expanded layer's center. AI mode swaps the numeric keypad
+    /// for the suggestion pad until the user falls back to manual editing;
+    /// both pads share the regular keypad's exact footprint, so the height
+    /// the display's resting padding reads never changes.
     private var memoPadLayer: some View {
-        memoCalculator(.padOnly)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { memoPadBlockHeight = $0 }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .ignoresSafeArea(.keyboard, edges: .bottom)
+        Group {
+            if isRecognitionMode, !usesManualKeypad {
+                recognitionAmountPad
+            } else {
+                memoCalculator(.padOnly)
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { memoPadBlockHeight = $0 }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    /// The AI-mode pad: suggested amounts as one-tap keys, the confirm key
+    /// in the regular ✓ key's slot. Confirm shares `save` with the ✓ key —
+    /// same posting, toast, recents, and dismissal path.
+    private var recognitionAmountPad: some View {
+        RecognitionAmountPad(
+            recommended: recognitionSeed?.amount,
+            alternatives: recognitionSeed?.amountSuggestions ?? [],
+            currency: ledger?.currency,
+            engine: $engine,
+            selectedAmount: $selectedSuggestedAmount,
+            onConfirm: { Task { await save() } },
+            isConfirmDisabled: isPosting || draft.isSameAccount || !hasPostableAmount,
+            isCommitting: isPosting,
+            onManualEdit: { usesManualKeypad = true }
+        )
+    }
+
+    /// The AI pad's confirm gate: the regular ✓ validates the amount in
+    /// `save`, but the pad has no digit keys — an empty engine must read as
+    /// a disabled confirm instead of an alert.
+    private var hasPostableAmount: Bool {
+        (Double(engine.entry) ?? 0) > 0
     }
 
     private func memoCalculator(_ visibility: CalculatorView.Visibility) -> CalculatorView {
@@ -744,10 +816,15 @@ struct QuickEntryView: View {
                 await appProjectStore.prefetch(ledgerId: ledger.id)
             }
             await postingJournal.load(ledgerId: ledger.id)
-            applyCategoryDefault()
+            // AI mode prefills the recognition's suggestion instead of the
+            // recents-based default — the two prefills must never race.
+            if recognitionSeed == nil {
+                applyCategoryDefault()
+            }
             applyGuestProjectDefault()
             applyScopedProjectDefault()
             applyBinding()
+            applyRecognitionCategory()
         }
         // The switcher inside this sheet can change the scope mid-edit:
         // follow it so a pinned entry never outlives its scope, and an
@@ -804,11 +881,14 @@ struct QuickEntryView: View {
     /// one with subs opens an inline bubble listing them), and a trailing
     /// "More" chip opens the hierarchical picker sheet for long-tail
     /// categories. Transfer has no category side and shows nothing.
+    /// AI mode starts on the recognition's suggestion subset instead —
+    /// suggested chips plus a trailing 全部 chip, no recents row — and
+    /// joins this common path once the user taps 全部.
     @ViewBuilder
     private var categorySection: some View {
         if let side = categorySide {
             Section {
-                if !recentCategoryEntries.isEmpty {
+                if !recentCategoryEntries.isEmpty, !showsSuggestedCategories {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.string("quick.categories.recent", defaultValue: "Recent"))
                             .font(.footnote)
@@ -891,7 +971,13 @@ struct QuickEntryView: View {
     /// most, so laziness buys nothing here; fixed rows hand the List an
     /// exact height on the first pass.
     private func categoryGrid(side: AccountSide) -> some View {
-        let cellCount = categoryEntries.count + 1 + ((binding == nil && canPost) ? 1 : 0)
+        let suggestions = showsSuggestedCategories ? suggestedCategoryEntries : []
+        // The suggestion subset renders suggested chips plus the trailing
+        // 全部 chip — never More/manage (the subset IS the short list the
+        // user was handed). The regular composition follows once 全部 wins.
+        let cellCount = suggestions.isEmpty
+            ? categoryEntries.count + 1 + ((binding == nil && canPost) ? 1 : 0)
+            : suggestions.count + 1
         let rowCount = (cellCount + Self.gridColumns - 1) / Self.gridColumns
         return VStack(spacing: 10) {
             ForEach(0..<rowCount, id: \.self) { row in
@@ -899,7 +985,7 @@ struct QuickEntryView: View {
                 let end = min(start + Self.gridColumns, cellCount)
                 HStack(spacing: 6) {
                     ForEach(start..<end, id: \.self) { index in
-                        categoryGridCell(at: index, side: side)
+                        categoryGridCell(at: index, side: side, suggestions: suggestions)
                     }
                     // Pad the trailing row so its cells keep the column
                     // width a full row gives them.
@@ -911,20 +997,64 @@ struct QuickEntryView: View {
         }
     }
 
-    /// The grid cell at a flattened index: categories first, then the More
-    /// chip, then the manage chip — owner/editor on the recording ledger
-    /// only (guests and viewers never see it), and bound sheets hide it
-    /// too: the manage screen follows the app's active ledger, which a
+    /// The grid cell at a flattened index. The suggestion subset: AI chips
+    /// then the 全部 chip. The regular grid: categories first, then the
+    /// More chip, then the manage chip — owner/editor on the recording
+    /// ledger only (guests and viewers never see it), and bound sheets hide
+    /// it too: the manage screen follows the app's active ledger, which a
     /// widget-bound sheet may not be recording into.
     @ViewBuilder
-    private func categoryGridCell(at index: Int, side: AccountSide) -> some View {
-        if index < categoryEntries.count {
+    private func categoryGridCell(
+        at index: Int,
+        side: AccountSide,
+        suggestions: [AccountTreeEntry]
+    ) -> some View {
+        if !suggestions.isEmpty {
+            if index < suggestions.count {
+                suggestedCategoryChip(suggestions[index])
+            } else {
+                allCategoriesChip
+            }
+        } else if index < categoryEntries.count {
             categoryChip(categoryEntries[index])
         } else if index == categoryEntries.count {
             moreChip(side: side)
         } else {
             categoryManageChip
         }
+    }
+
+    /// A suggested category's grid cell: the resolved leaf, always directly
+    /// selectable — the resolver only accepts leaves, so there is no
+    /// sub-picker bubble behind these chips. A sub shows its parent chain
+    /// as a breadcrumb, the same "<parent>-<sub>" convention the picked-sub
+    /// chip uses.
+    private func suggestedCategoryChip(_ entry: AccountTreeEntry) -> some View {
+        Button {
+            selectCategory(entry.id)
+        } label: {
+            categoryCellLabel(
+                entry,
+                isSelected: categorySelection.wrappedValue == entry.id,
+                hasSubs: false,
+                name: breadcrumbName(for: entry),
+                diameter: Self.gridIconDiameter
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// "<parent>-<sub>" for a sub-category — a top-level category's own
+    /// name. Walks the full chain, though the data grows sub-subs only
+    /// rarely, so deep paths read in full.
+    private func breadcrumbName(for entry: AccountTreeEntry) -> String {
+        var names = [entry.account.displayName]
+        var cursor = entry.account.parentId.flatMap { categoryTreeById[$0] }
+        while let node = cursor {
+            names.append(node.account.displayName)
+            cursor = node.account.parentId.flatMap { categoryTreeById[$0] }
+        }
+        return names.reversed().joined(separator: "-")
     }
 
     /// Icon-over-name grid cell: a tinted circle carries the category's
@@ -1170,6 +1300,31 @@ struct QuickEntryView: View {
                     .background(Circle().fill(backgroundSettings.chipSurface))
                     .foregroundStyle(.secondary)
                 Text(L10n.string("quick.categories.manage", defaultValue: "Manage"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The AI grid's trailing chip: leaves the suggestion subset for the
+    /// full category grid — the regular quick entry's exact surface, More
+    /// and manage chips and the recents row included. One-way: once the
+    /// user asks for everything the AI shortlist has served its purpose.
+    private var allCategoriesChip: some View {
+        Button {
+            showsAllCategories = true
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 24))
+                    .frame(width: 48, height: 48)
+                    .background(Circle().fill(backgroundSettings.chipSurface))
+                    .foregroundStyle(.secondary)
+                Text(L10n.string("quick.categories.all", defaultValue: "All"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -1987,6 +2142,28 @@ struct QuickEntryView: View {
         categoryTree.filter { $0.depth == 0 }
     }
 
+    /// True when the sheet opened with a screenshot recognition — the
+    /// AI-mode surfaces (suggestion grid, amount pad) key off this.
+    private var isRecognitionMode: Bool {
+        recognitionSeed != nil
+    }
+
+    /// Whether the grid renders the recognition's suggestion subset rather
+    /// than the full tree: AI mode before 全部, and only while at least one
+    /// suggestion resolves against the current kind's tree — an empty
+    /// shortlist would strand the user behind a 全部 tap for no reason.
+    private var showsSuggestedCategories: Bool {
+        isRecognitionMode && !showsAllCategories && !suggestedCategoryEntries.isEmpty
+    }
+
+    /// The recognition's category suggestions resolved against the current
+    /// kind's tree — the recommended path first, then the alternatives,
+    /// de-duplicated, misses dropped (see `RecognitionSeeding`).
+    private var suggestedCategoryEntries: [AccountTreeEntry] {
+        guard let recognitionSeed else { return [] }
+        return RecognitionSeeding.suggestedCategoryEntries(for: recognitionSeed, tree: categoryTree)
+    }
+
     /// Direct children of a grid category, in tree order.
     private func subCategories(of parent: AccountTreeEntry) -> [AccountTreeEntry] {
         categoryTree.filter { $0.account.parentId == parent.account.id }
@@ -2027,12 +2204,18 @@ struct QuickEntryView: View {
     /// though the grid itself only shows the top level.
     private var recentCategoryEntries: [AccountTreeEntry] {
         guard let ledger = self.ledger, categorySide != nil else { return [] }
-        let byId = Dictionary(
+        return RecentCategoryStore.ids(ledgerId: ledger.id, kind: draft.kind)
+            .compactMap { categoryTreeById[$0] }
+    }
+
+    /// The category tree indexed by account id — the shared lookup behind
+    /// the recents row, the suggestion breadcrumb names, and any other
+    /// "find the tree node for this id" walk.
+    private var categoryTreeById: [String: AccountTreeEntry] {
+        Dictionary(
             categoryTree.map { ($0.account.id, $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        return RecentCategoryStore.ids(ledgerId: ledger.id, kind: draft.kind)
-            .compactMap { byId[$0] }
     }
 
     /// Applies a grid or bubble pick to the draft. The recents cache is
@@ -2094,6 +2277,21 @@ struct QuickEntryView: View {
         }
         // The prefilled category (a default, a kind round-trip, or the
         // bound widget's) re-derives the toggle's default the same way a
+        // manual pick would.
+        resolveBudgetDefault()
+    }
+
+    /// AI mode's category prefill: the recognition's best suggestion that
+    /// resolves against the current kind's tree — the recommended path
+    /// when it maps, else the first alternative that does. Runs after the
+    /// accounts load and on every kind round-trip (which clears both sides
+    /// first); the recents-based default never runs in AI mode, so the
+    /// AI's pick can't be fought by it. No resolution (empty shortlist)
+    /// leaves the pick empty for the user to correct.
+    private func applyRecognitionCategory() {
+        guard let recommended = suggestedCategoryEntries.first else { return }
+        categorySelection.wrappedValue = recommended.account.id
+        // The AI's pick re-derives the toggle's default the same way a
         // manual pick would.
         resolveBudgetDefault()
     }

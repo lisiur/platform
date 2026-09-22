@@ -183,7 +183,10 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
-        .screenshotRecognitionCover(isPresented: $isRecognitionPresented)
+        .screenshotRecognitionCover(
+            isPresented: $isRecognitionPresented,
+            seed: $recognitionResult
+        )
         .onAppear {
             quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
             quickAddTabBarProxy.pillLongPressed = { tryPresentRecognition() }
@@ -222,6 +225,12 @@ struct ContentView: View {
     /// ("视图记账") cover, whose only entry this pill now is (the Journal
     /// toolbar button was retired when the gesture shipped).
     @State private var isRecognitionPresented = false
+    /// The recognition produced inside the recognition cover: non-nil swaps
+    /// that cover's content to the seeded quick entry (the result surface IS
+    /// the quick entry). One cover hosts both phases — no dismiss-then-present
+    /// chain, which raced the quick entry's seed and presented it plain.
+    /// Cleared when the cover finally dismisses.
+    @State private var recognitionResult: ScreenshotRecognition?
     /// The UIKit-level tap/long-press interception for the pill (see
     /// QuickAddTabBarProxy). The proxy object must live as long as the
     /// screen — the tab bar controller holds it as its delegate.
