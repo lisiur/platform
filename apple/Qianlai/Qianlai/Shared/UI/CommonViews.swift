@@ -667,7 +667,8 @@ private struct AppBackgroundCanvasModifier: ViewModifier {
     }
 }
 
-/// The wallpaper itself — image plus the scheme-contrast scrim, greedily
+/// The wallpaper itself — image, optional frosted-glass tier (a system
+/// material; see `Frost`), and the scheme-contrast scrim, greedily
 /// filling the screen through safe areas. One instance sits in each tab's
 /// content, outside that tab's NavigationStack (`AppBackgroundSinkContainer`,
 /// in `ContentView`), so it never participates in push/pop transitions —
@@ -681,6 +682,10 @@ private struct AppBackgroundCanvasModifier: ViewModifier {
 struct AppBackgroundWallpaperLayer: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
     @Environment(\.colorScheme) private var colorScheme
+    /// Reduce Transparency turns materials into near-opaque system
+    /// backgrounds — the wallpaper would vanish under them — so the
+    /// frost layer steps aside and the sharp wallpaper shows.
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         if backgroundSettings.isActive, let image = backgroundSettings.activeImage {
@@ -688,6 +693,10 @@ struct AppBackgroundWallpaperLayer: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                if !reduceTransparency, let material = backgroundSettings.frost.material {
+                    Rectangle()
+                        .fill(material)
+                }
                 (colorScheme == .dark ? Color.black : Color.white)
                     .opacity(backgroundSettings.dim)
             }

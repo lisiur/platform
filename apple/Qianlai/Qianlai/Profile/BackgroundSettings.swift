@@ -18,13 +18,14 @@ import UniformTypeIdentifiers
 ///   photo" tile can keep showing the last-picked thumbnail even while
 ///   a preset is currently the active background. An enable switch
 ///   (`enabledKey`) hides the background without touching either slot.
-///   Nothing syncs to the server. The dim level, card opacity, active
-///   preset, and enable flag live in UserDefaults.
+///   Nothing syncs to the server. The dim level, frost tier, card
+///   opacity, active preset, and enable flag live in UserDefaults.
 @MainActor @Observable
 final class BackgroundSettings {
     static let defaults = UserDefaults.standard
     static let dimKey = "app.backgroundImage.dim"
     static let cardOpacityKey = "app.backgroundImage.cardOpacity"
+    static let frostKey = "app.backgroundImage.frost"
     static let presetKey = "app.backgroundImage.preset"
     static let enabledKey = "app.backgroundImage.enabled"
     static let activeFileURL = URL.documentsDirectory.appendingPathComponent("background-image.jpg")
@@ -44,6 +45,9 @@ final class BackgroundSettings {
     private(set) var image: UIImage?
     private(set) var dim: Double
     private(set) var cardOpacity: Double
+    /// The frosted-glass tier layered over the wallpaper; `.off`
+    /// renders it sharp.
+    private(set) var frost: Frost
     /// The wallpaper currently shown on screen: the picked photo when
     /// it owns the slot, else the rendered preset, else nothing.
     /// Mirrors `activeFileURL`.
@@ -73,6 +77,13 @@ final class BackgroundSettings {
             cardOpacity = stored
         } else {
             cardOpacity = Self.defaultCardOpacity
+        }
+        if let stored = Self.defaults.string(forKey: Self.frostKey),
+            let stored = Frost(rawValue: stored)
+        {
+            frost = stored
+        } else {
+            frost = .off
         }
         let preset = Self.defaults.string(forKey: Self.presetKey)
         if let preset, BackgroundPresetCatalog.all.contains(where: { $0.id == preset }) {
@@ -135,6 +146,11 @@ final class BackgroundSettings {
     func setCardOpacity(_ value: Double) {
         cardOpacity = min(max(value, Self.cardOpacityRange.lowerBound), Self.cardOpacityRange.upperBound)
         Self.defaults.set(cardOpacity, forKey: Self.cardOpacityKey)
+    }
+
+    func setFrost(_ value: Frost) {
+        frost = value
+        Self.defaults.set(value.rawValue, forKey: Self.frostKey)
     }
 
     /// Downsamples and stores the picked photo. Picking one is an
@@ -250,5 +266,43 @@ final class BackgroundSettings {
         )
         guard CGImageDestinationFinalize(destination) else { return nil }
         return output as Data
+    }
+}
+
+/// The frosted-glass treatment layered over the wallpaper: one system
+/// material tier, or none. Materials expose no blur radius, so strength
+/// is a stepped slider (five stops) rather than a continuous dial — the
+/// tiers step the material's tint (their blur amount sits at fixed
+/// system-bar strength). Stored by rawValue in defaults; unknown stored
+/// values fall back to `.off`.
+enum Frost: String, CaseIterable, Identifiable {
+    case off
+    case ultraThin
+    case thin
+    case regular
+    case thick
+
+    var id: Self { self }
+
+    /// The SwiftUI material for the tier; nil for `.off`, so the off
+    /// tier is unrenderable by construction — no call-site gate needed.
+    var material: Material? {
+        switch self {
+        case .off: nil
+        case .ultraThin: .ultraThinMaterial
+        case .thin: .thinMaterial
+        case .regular: .regularMaterial
+        case .thick: .thickMaterial
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .off: L10n.string("profile.theme.frost.none", defaultValue: "None")
+        case .ultraThin: L10n.string("profile.theme.frost.ultraThin", defaultValue: "Ultra Thin")
+        case .thin: L10n.string("profile.theme.frost.thin", defaultValue: "Thin")
+        case .regular: L10n.string("profile.theme.frost.regular", defaultValue: "Regular")
+        case .thick: L10n.string("profile.theme.frost.thick", defaultValue: "Thick")
+        }
     }
 }

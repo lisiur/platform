@@ -22,6 +22,7 @@ final class BackgroundSettingsTests: XCTestCase {
         try? FileManager.default.removeItem(at: Self.photoFileURL)
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.dim")
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.cardOpacity")
+        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.frost")
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
         UserDefaults.standard.set(false, forKey: "app.backgroundImage.enabled")
         super.setUp()
@@ -32,6 +33,7 @@ final class BackgroundSettingsTests: XCTestCase {
         try? FileManager.default.removeItem(at: Self.photoFileURL)
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.dim")
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.cardOpacity")
+        UserDefaults.standard.removeObject(forKey: "app.backgroundImage.frost")
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.preset")
         UserDefaults.standard.removeObject(forKey: "app.backgroundImage.enabled")
         super.tearDown()
@@ -41,13 +43,14 @@ final class BackgroundSettingsTests: XCTestCase {
     private static let photoFileURL = URL.documentsDirectory.appendingPathComponent("background-photo.jpg")
 
     /// setPhoto persists across instances (file + flag), auto-activates, and
-    /// clearPhoto removes every trace; the dim and card-opacity defaults
-    /// fill when unset.
+    /// clearPhoto removes every trace; the dim, frost, and card-opacity
+    /// defaults fill when unset.
     func testPhotoPersistRoundtrip() throws {
         let store = BackgroundSettings()
         try store.setEnabled(true)
         XCTAssertEqual(store.dim, BackgroundSettings.defaultDim)
         XCTAssertEqual(store.cardOpacity, BackgroundSettings.defaultCardOpacity)
+        XCTAssertEqual(store.frost, .off)
 
         let jpeg = try XCTUnwrap(Self.smallJPEG())
         try store.setPhoto(jpeg)
@@ -64,6 +67,12 @@ final class BackgroundSettingsTests: XCTestCase {
 
         reloaded.setCardOpacity(0.4)
         XCTAssertEqual(BackgroundSettings().cardOpacity, 0.4, accuracy: 0.0001)
+
+        reloaded.setFrost(.thin)
+        XCTAssertEqual(BackgroundSettings().frost, .thin)
+        // An unknown stored tier falls back to off rather than crashing.
+        UserDefaults.standard.set("bogus", forKey: BackgroundSettings.frostKey)
+        XCTAssertEqual(BackgroundSettings().frost, .off)
 
         reloaded.clearPhoto()
         XCTAssertNil(reloaded.image)

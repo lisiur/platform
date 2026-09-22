@@ -10,9 +10,10 @@ import SwiftUI
 /// the "border highlight" entry (its sub-page owns the live preview
 /// and the strength slider), and the wallpaper — an enable switch on
 /// its own row, then (while enabled) the built-in presets plus a
-/// custom photo picked from the library, with the dim and card-opacity
-/// sliders for whichever wallpaper is active. The border-highlight
-/// entry sits directly below Appearance.
+/// custom photo picked from the library, with the stepped frosted-glass
+/// slider, the dim slider, and the card-opacity slider for whichever
+/// wallpaper is active. The border-highlight entry sits directly below
+/// Appearance.
 struct BackgroundSettingsView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
     @Environment(AppearanceSettings.self) private var appearanceSettings
@@ -161,13 +162,24 @@ struct BackgroundSettingsView: View {
         }
     }
 
-    /// The dim and card-opacity sliders live next to the wallpaper row
-    /// so the user can tune whatever wallpaper is showing — built-in
-    /// preset or picked photo alike — without leaving the page. They
-    /// only render while a wallpaper is active, and the persisted
-    /// levels carry over to the next pick.
+    /// The frosted-glass stepped slider, dim slider, and card-opacity
+    /// slider live next to the wallpaper row so the user can tune
+    /// whatever wallpaper is showing — built-in preset or picked photo
+    /// alike — without leaving the page. They only render while a
+    /// wallpaper is active, and the persisted levels carry over to the
+    /// next pick.
     private var photoAdjustSection: some View {
         Section {
+            sliderRow(
+                label: L10n.string("profile.theme.frost", defaultValue: "Frosted Glass"),
+                range: 0...Double(Frost.allCases.count - 1),
+                value: {
+                    Double(Frost.allCases.firstIndex(of: backgroundSettings.frost) ?? 0)
+                },
+                set: { backgroundSettings.setFrost(Frost.allCases[Int($0.rounded())]) },
+                step: 1,
+                valueLabel: backgroundSettings.frost.label
+            )
             sliderRow(
                 label: L10n.string("profile.theme.dim", defaultValue: "Dimming"),
                 range: BackgroundSettings.dimRange,
@@ -185,15 +197,31 @@ struct BackgroundSettingsView: View {
 
     /// A labelled slider row that reads/writes through closures so the
     /// `Slider`'s `Binding` survives without storing one on the view.
+    /// `step` snaps the thumb to discrete stops (the frosted-glass
+    /// tiers); `valueLabel` names the current value trailing the label —
+    /// a stepped slider's position is unreadable without it.
     private func sliderRow(
         label: String,
         range: ClosedRange<Double>,
         value: @escaping () -> Double,
-        set: @escaping (Double) -> Void
+        set: @escaping (Double) -> Void,
+        step: Double? = nil,
+        valueLabel: String? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-            Slider(value: Binding(get: value, set: set), in: range)
+            HStack {
+                Text(label)
+                Spacer()
+                if let valueLabel {
+                    Text(valueLabel)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let step {
+                Slider(value: Binding(get: value, set: set), in: range, step: step)
+            } else {
+                Slider(value: Binding(get: value, set: set), in: range)
+            }
         }
         .appCardRow()
     }
