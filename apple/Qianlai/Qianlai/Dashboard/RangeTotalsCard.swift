@@ -38,7 +38,7 @@ struct RangeTotalsCard: View {
         VStack(spacing: 14) {
             row(
                 L10n.string("dashboard.rangeCard.today", defaultValue: "Today"),
-                icon: "sun.max.fill",
+                icon: todayIcon,
                 caption: todayCaption,
                 period: totals?.today,
                 action: todayAction
@@ -65,6 +65,14 @@ struct RangeTotalsCard: View {
                 .fill(backgroundSettings.cardSurface)
         )
         .glassRim(cornerRadius: 20)
+    }
+
+    /// Today's row icon — the date-numbered calendar symbol
+    /// (`1.calendar`…`31.calendar`, one per day of the month), so the
+    /// glyph itself says which day it is; it refreshes whenever the body
+    /// re-renders past midnight.
+    private var todayIcon: String {
+        "\(Calendar.current.component(.day, from: .now)).calendar"
     }
 
     /// The period captions — the same renderings the drill pages title
@@ -108,14 +116,16 @@ struct RangeTotalsCard: View {
     ) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.callout)
-                .foregroundStyle(.tertiary)
+                .font(.title3)
+                // The memo color on journal cards — the icon reads as
+                // supporting text, not a faint watermark.
+                .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.subheadline)
                 Text(caption)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 12)
