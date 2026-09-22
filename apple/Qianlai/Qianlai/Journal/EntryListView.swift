@@ -172,9 +172,10 @@ struct EntryListView: View {
     /// convention (income red, expense green), not the entry-row accent.
     private func dayHeader(_ group: (day: Date, entries: [JournalEntry])) -> some View {
         HStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(AppDates.formatEntryDay(group.day, locale: locale))
                 Text(AppDates.formatEntryWeekday(group.day, locale: locale))
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 12)
