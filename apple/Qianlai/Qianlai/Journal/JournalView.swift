@@ -29,8 +29,9 @@ struct JournalView: View {
     @Environment(\.locale) private var locale
     @State private var memberStore = MemberStore()
     @State private var isFilterPresented = false
-    /// The screenshot-recognition page, presented from the toolbar button.
-    @State private var isRecognitionPresented = false
+    /// Push flag for the month view page (the toolbar calendar button) —
+    /// the dashboard's MonthCalendarView re-mounted here, ledger scope.
+    @State private var isShowingMonthCalendar = false
     /// True while the user has explicitly chosen the range tab — keeps the
     /// selection from re-deriving to a preset tab when the picked bounds
     /// happen to form an exact week/month/year window. Cleared by tapping
@@ -96,21 +97,20 @@ struct JournalView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
-                recognitionButton
+                monthCalendarButton
             }
             ToolbarItem(placement: .topBarTrailing) {
                 statsButton
             }
             #else
             ToolbarItem(placement: .primaryAction) {
-                HStack(spacing: 12) {
-                    recognitionButton
-                    statsButton
-                }
+                monthCalendarButton
+            }
+            ToolbarItem(placement: .primaryAction) {
+                statsButton
             }
             #endif
         }
-        .screenshotRecognitionCover(isPresented: $isRecognitionPresented)
         // The chart page: the stats component for the tapped window and
         // the filters active at tap time. The registration lives on the
         // page (never inside a lazy container, per the
@@ -122,6 +122,11 @@ struct JournalView: View {
                 window: target.window,
                 filters: target.filters
             )
+        }
+        .navigationDestination(isPresented: $isShowingMonthCalendar) {
+            if let ledger = ledgerStore.activeLedger {
+                MonthCalendarView(ledger: ledger)
+            }
         }
         .task(id: ledgerStore.activeLedger?.id) {
             guard let id = ledgerStore.activeLedger?.id else { return }
@@ -496,21 +501,21 @@ struct JournalView: View {
         return filters.isEmpty ? nil : filters
     }
 
-    /// The screenshot-recognition page button (toolbar, trailing, left of
-    /// the chart button): `canRecognizeScreenshots` — full-role ledgers
-    /// with posting rights only; guests are project-pinned expense loggers
-    /// the recognition prefill doesn't cover, and viewers can't post.
+    /// The month view page's toolbar button (calendar icon, before the
+    /// chart button) — the dashboard's entry, re-surfaced here. Guests only:
+    /// the page's per-day amounts come from the daily-summary report whose
+    /// endpoint 403s guests (the same gate the dashboard applies).
     @ViewBuilder
-    private var recognitionButton: some View {
-        if ledgerStore.activeLedger?.canRecognizeScreenshots == true {
+    private var monthCalendarButton: some View {
+        if ledgerStore.activeLedger?.isGuest == false {
             Button {
-                isRecognitionPresented = true
+                isShowingMonthCalendar = true
             } label: {
-                Image(systemName: "doc.viewfinder")
+                Image(systemName: "calendar")
             }
             .accessibilityLabel(Text(L10n.string(
-                "screenshot.title",
-                defaultValue: "Receipt Recognition"
+                "dashboard.monthView",
+                defaultValue: "Month view"
             )))
         }
     }
@@ -532,7 +537,7 @@ struct JournalView: View {
                         filters: statsFilters
                     )
                 } label: {
-                    Image(systemName: "chart.bar")
+                    Image(systemName: "chart.bar.xaxis")
                 }
                 .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
             }

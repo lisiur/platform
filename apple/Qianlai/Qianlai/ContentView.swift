@@ -125,7 +125,11 @@ struct ContentView: View {
                 Divider()
                 currentTab
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                AppTabBar(selection: tabSelection, tabs: visibleTabs + [.quickAdd])
+                AppTabBar(
+                    selection: tabSelection,
+                    tabs: visibleTabs + [.quickAdd],
+                    pillLongPress: { tryPresentRecognition() }
+                )
             }
             #else
             // The sunk wallpaper lives at the TAB level: each tab wraps its
@@ -153,10 +157,12 @@ struct ContentView: View {
                 // `.search` pill merges into the main capsule even with
                 // only two tabs (2026-09-16 probe on the 27.0 GM runtime),
                 // and `role: .prominent` (new in 27) is what keeps it
-                // separated. Taps are refused one layer down, at the
-                // UITabBarControllerDelegate (QuickAddTabBarProxy): the
-                // pill never becomes selected, so this page never mounts
-                // and no park/resync choreography is needed on either OS.
+                // separated. Both gestures are refused one layer down, at
+                // the UITabBarControllerDelegate (QuickAddTabBarProxy): the
+                // tap presents quick entry, a ~0.5 s hold presents the
+                // screenshot-recognition cover, and the pill never becomes
+                // selected, so this page never mounts and no park/resync
+                // choreography is needed on either OS.
                 // It must stay search-free: a `.searchable` here is what
                 // let the iOS 26 search-role tap morph latch onto the
                 // drawer search and persist after the sheet closed.
@@ -177,8 +183,10 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
+        .screenshotRecognitionCover(isPresented: $isRecognitionPresented)
         .onAppear {
             quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
+            quickAddTabBarProxy.pillLongPressed = { tryPresentRecognition() }
         }
         .onOpenURL { url in
             // Widget deep links: qianlai://quick-entry opens the quick-entry
@@ -210,7 +218,11 @@ struct ContentView: View {
 
     @State private var tab: AppTab = .dashboard
     @State private var isQuickAddPresented = false
-    /// The UIKit-level tap interception for the pill (see
+    /// The pill's long-press destination — the screenshot-recognition
+    /// ("视图记账") cover, whose only entry this pill now is (the Journal
+    /// toolbar button was retired when the gesture shipped).
+    @State private var isRecognitionPresented = false
+    /// The UIKit-level tap/long-press interception for the pill (see
     /// QuickAddTabBarProxy). The proxy object must live as long as the
     /// screen — the tab bar controller holds it as its delegate.
     @State private var quickAddTabBarProxy = QuickAddTabBarProxy()
@@ -299,6 +311,22 @@ struct ContentView: View {
         } else {
             entryDeniedReason = L10n.string("quick.cannotPost", defaultValue: "You can't add entries in this ledger")
         }
+    }
+
+    /// Presents the screenshot-recognition ("视图记账") cover when the
+    /// active ledger allows it: full-role ledgers with posting rights
+    /// only — guests are project-pinned expense loggers the recognition
+    /// prefill doesn't cover, and viewers can't post (the gate the
+    /// retired Journal toolbar button applied). Anything else falls back
+    /// to the tap action, so a long press never dead-ends: a guest or
+    /// post-locked ledger gets the regular quick-add flow (which surfaces
+    /// its own denial alert).
+    private func tryPresentRecognition() {
+        if ledgerStore.activeLedger?.canRecognizeScreenshots == true {
+            isRecognitionPresented = true
+            return
+        }
+        tryPresentQuickAdd()
     }
 
     private func presentQuickAdd(_ binding: QuickEntryBinding) {
@@ -414,6 +442,10 @@ struct AppTabBar: View {
     /// The rendered tabs, already preference-ordered; the add pill is
     /// appended by the caller.
     let tabs: [AppTab]
+    /// Runs when the add pill is long-pressed (~0.5 s) — screenshot
+    /// recognition, matching the iOS pill. The high-priority gesture wins
+    /// the hold; a quick lift fails it and the plain Button tap fires.
+    var pillLongPress: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -435,9 +467,30 @@ struct AppTabBar: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .modifier(PillLongPressModifier(
+                    isEnabled: tab == .quickAdd && pillLongPress != nil
+                ) {
+                    pillLongPress?()
+                })
             }
         }
         .background(.bar, ignoresSafeAreaEdges: .bottom)
+    }
+}
+
+private struct PillLongPressModifier: ViewModifier {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.highPriorityGesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .onEnded { _ in action() }
+            )
+        } else {
+            content
+        }
     }
 }
 #endif
