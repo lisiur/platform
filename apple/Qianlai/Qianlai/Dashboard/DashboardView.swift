@@ -487,21 +487,17 @@ struct DashboardView: View {
     }
 
     /// Current-month title, budget card, and the reusable stats
-    /// component's overview stat block.
+    /// component's overview stat block — laid out by the shared
+    /// summary chrome (the screenshot harness stacks the same way, so
+    /// the spacings can't drift between the two).
     private func monthSummary(_ ledger: QianlaiLedger) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // A static label, not a stepper: the dashboard is pinned to
-            // the current month — history browsing lives on the month
-            // view page, which steps its own header.
-            Text(AppDates.formatMonthTitle(.current, locale: locale))
-                .font(.title3.weight(.semibold))
-                // The same little inset the chrome-less rows carry.
-                .padding(.horizontal, 6)
-            // The budget card rides directly under the month header so the
-            // "how much is left" answer is the first thing on the page. It
-            // renders only when a budget is set (nil report / nil month =
-            // no card, and per the spec no onboarding hint either — guests
-            // never even fetch it, since the report endpoint 403s them).
+        dashboardSummaryStack(title: AppDates.formatMonthTitle(.current, locale: locale)) {
+            // The budget card rides directly under the month header so
+            // the "how much is left" answer is the first thing on the
+            // page. It renders only when a budget is set (nil report /
+            // nil month = no card, and per the spec no onboarding hint
+            // either — guests never even fetch it, since the report
+            // endpoint 403s them).
             if let budget = store.budget, let month = budget.month {
                 BudgetCardView(
                     isYearDetailPresented: $isShowingYearDetail,
@@ -552,7 +548,7 @@ struct DashboardView: View {
                 // The summary's card-to-card rhythm matches the journal
                 // list's day-card gap (the inset-grouped 20pt section
                 // spacing): base VStack 10 + this 10.
-                .padding(.top, 10)
+                .summaryCardGap()
             }
             // The stats component's overview block for the selected
             // month — the calendar lives on the month view page (the
@@ -575,8 +571,7 @@ struct DashboardView: View {
                 incomeAction: { openStatDetail(kind: .income) },
                 onSelectCategory: { openStatDetail($0) }
             )
-            // Same card rhythm as above.
-            .padding(.top, 10)
+            .summaryCardGap()
             // The today/week/year card — anchored to NOW, not a month
             // stepper. Each row drills into the period's journal. Guests
             // never see it: the daily-summary endpoint 403s them.
@@ -605,13 +600,44 @@ struct DashboardView: View {
                         )
                     }
                 )
-                // Same card rhythm as above.
-                .padding(.top, 10)
+                .summaryCardGap()
             }
         }
-        // Horizontal margins come from the inset-grouped list itself;
-        // vertical padding spaces the summary off the screen edges under
-        // the large title.
-        .padding(.vertical, 8)
+    }
+}
+
+/// The dashboard summary's shared chrome — the month title, the base
+/// stack rhythm, and the outer top padding — used by the real page AND
+/// the `--ui-demo-range-card` screenshot harness, so the demo measures
+/// the real geometry by construction instead of by keeping copies in
+/// step. Cards after the first carry `.summaryCardGap()` themselves.
+func dashboardSummaryStack(
+    title: String, @ViewBuilder content: () -> some View
+) -> some View {
+    VStack(alignment: .leading, spacing: 10) {
+        // A static label, not a stepper: the dashboard is pinned to the
+        // current month — history browsing lives on the month view page,
+        // which steps its own header.
+        Text(title)
+            .font(.title3.weight(.semibold))
+            // The same little inset the chrome-less rows carry.
+            .padding(.horizontal, 6)
+        content()
+    }
+    // Horizontal margins come from the inset-grouped list itself;
+    // top padding spaces the summary off the screen edge under the
+    // large title — the bottom stays flush so the summary-to-list gap
+    // matches the day cards' section rhythm (the system's 20pt
+    // section spacing + header lead already read like one more
+    // day-card gap).
+    .padding(.top, 8)
+}
+
+extension View {
+    /// One summary card's share of the card-to-card rhythm: base VStack
+    /// 10 + this 10 = the journal list's 20pt day-card spacing. Every
+    /// summary card but the first carries it.
+    func summaryCardGap() -> some View {
+        padding(.top, 10)
     }
 }

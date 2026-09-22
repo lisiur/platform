@@ -57,6 +57,8 @@ struct QianlaiApp: App {
                     TrendCardDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-calendar-card") {
                     CalendarCardDemo()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-range-card") {
+                    RangeCardDemo()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -448,5 +450,99 @@ private struct CalendarCardDemo: View {
             expenseCents: day == 15 ? 0 : 8_000 + (day * 37 % 190) * 1_000
         )
     }
+}
+
+/// Screenshot harness for the dashboard's today/week/year card and the
+/// summary-to-list gap (`--ui-demo-range-card`): the summary as the
+/// EntryListView topContent row renders it — month title + range card
+/// under the same listRow modifiers — followed by two day sections with
+/// headers and card rows, so the gap and the card's bottom-corner
+/// masking measure against real list metrics. The summary stacks through
+/// the same `dashboardSummaryStack` chrome the real page uses (minus the
+/// budget/stats cards). No login or backend.
+private struct RangeCardDemo: View {
+    @State private var rangeStore = RangeTotalsStore(days: RangeCardDemo.days)
+
+    var body: some View {
+        NavigationStack {
+            List {
+                summary
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                ForEach(0..<2, id: \.self) { day in
+                    Section {
+                        ForEach(0..<2, id: \.self) { row in
+                            entryRow(day: day, row: row)
+                                .appCardRow()
+                        }
+                    } header: {
+                        dayHeader(day)
+                    }
+                }
+            }
+            .appBackgroundSink()
+            .navigationTitle(Text(verbatim: "演示账本"))
+        }
+    }
+
+    private var summary: some View {
+        dashboardSummaryStack(title: AppDates.formatMonthTitle(.current, locale: Self.locale)) {
+            RangeTotalsCard(
+                store: rangeStore,
+                currency: "CNY",
+                locale: Self.locale
+            )
+            .summaryCardGap()
+        }
+    }
+
+    private func dayHeader(_ day: Int) -> some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Text(verbatim: "9月\(day + 1)日")
+                Text(verbatim: "周\(["一", "二", "三", "四"][day])")
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 12)
+            // The section's rows sum, so the filler figures agree.
+            Text(verbatim: "−¥\(day * 20 + 25).00")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Color.expense)
+        }
+    }
+
+    private func entryRow(day: Int, row: Int) -> some View {
+        HStack(spacing: 10) {
+            Text(verbatim: "🍜 餐饮 · 示例\(day + 1)-\(row + 1)")
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            Text(verbatim: "−¥\(day * 10 + row + 12).00")
+                .font(.callout.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Color.expense)
+        }
+    }
+
+    private static let locale = Locale(identifier: "zh-Hans")
+
+    /// Twenty days back from today so the 今天/本周/本年 rows all carry
+    /// non-zero figures (the year row needs pre-month days).
+    static let days: [DayIncomeExpense] = {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        return (0..<20).map { offset in
+            let day = calendar.date(byAdding: .day, value: -offset, to: today)
+                ?? today
+            let components = calendar.dateComponents([.year, .month, .day], from: day)
+            return DayIncomeExpense(
+                day: String(
+                    format: "%04d-%02d-%02d",
+                    components.year ?? 0, components.month ?? 0, components.day ?? 0
+                ),
+                incomeCents: offset % 4 == 0 ? 128_000 : 0,
+                expenseCents: 8_600 + offset * 3_700
+            )
+        }
+    }()
 }
 

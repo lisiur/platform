@@ -113,7 +113,6 @@ struct RangeTotalsCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
                 Text(caption)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -140,9 +139,9 @@ struct RangeTotalsCard: View {
         )))
     }
 
-    /// One labeled amount line — the 总收入/总支出 caption in the stat
-    /// block's label gray, the semibold figure beside it in the semantic
-    /// color (the journal day headers' look). No hand-signed prefix:
+    /// One labeled amount line — the 总收入/总支出 caption and the
+    /// semibold figure beside it both ride the semantic color, exactly the
+    /// journal day headers' `dayTotal` rendering. No hand-signed prefix:
     /// `Money.format` speaks for itself, and a refund-heavy day's
     /// negative shows as-is. A nil figure renders the dash placeholder at
     /// the same typographic slot.
@@ -150,11 +149,10 @@ struct RangeTotalsCard: View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
             Text(cents.map { Money.format(cents: $0, currency: currency) } ?? "–")
                 .font(.footnote.weight(.semibold).monospacedDigit())
-                .foregroundStyle(color)
         }
+        .foregroundStyle(color)
     }
 }
 
@@ -170,6 +168,12 @@ final class RangeTotalsStore {
 
     private var ledgerId: String?
     private var window: MonthWindow?
+
+    /// Seeds the payload directly — the screenshot harness renders real
+    /// figures without a backend; production callers start empty and load.
+    init(days: [DayIncomeExpense]? = nil) {
+        self.days = days
+    }
 
     func load(ledgerId: String) async {
         let window = RangeTotalsMath.window(for: .now, calendar: .current)
