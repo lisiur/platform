@@ -120,7 +120,7 @@ struct LedgersView: View {
             } else if !hasVisibleContent {
                 EmptyStateView(
                     message: L10n.string("ledgers.empty", defaultValue: "No ledgers yet. Create one or join with a share code."),
-                    systemImage: "book"
+                    systemImage: "text.book.closed"
                 )
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)

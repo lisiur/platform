@@ -175,7 +175,7 @@ struct DashboardView: View {
                 VStack(spacing: 28) {
                     EmptyStateView(
                         message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),
-                        systemImage: "book"
+                        systemImage: "text.book.closed"
                     )
                     VStack(spacing: 24) {
                         Button {

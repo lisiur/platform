@@ -136,7 +136,7 @@ struct ProfileView: View {
                 LedgersView(expandGuestLedgers: isGuest)
                     .appBackgroundSink()
             } label: {
-                Label(L10n.string("ledgers.title", defaultValue: "Ledgers"), systemImage: "book")
+                Label(L10n.string("ledgers.title", defaultValue: "Ledgers"), systemImage: "text.book.closed")
             }
             .appCardRow()
         }

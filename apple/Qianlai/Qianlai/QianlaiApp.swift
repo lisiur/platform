@@ -217,7 +217,7 @@ private enum WallpaperDemoTab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .ledger: "book"
+        case .ledger: "text.book.closed"
         case .stats: "chart.pie"
         case .profile: "person.crop.circle"
         }

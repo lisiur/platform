@@ -146,7 +146,7 @@ struct LedgerSwitcherMenu: View {
                     )
             } else {
                 HStack(spacing: 4) {
-                    Image(systemName: isGuestActive ? "folder.badge.person.crop" : (isProjectScoped ? "folder" : "book"))
+                    Image(systemName: isGuestActive ? "folder.badge.person.crop" : (isProjectScoped ? "folder" : "text.book.closed"))
                     Text(switcherLabel)
                         .lineLimit(1)
                     Image(systemName: "chevron.down")
@@ -218,7 +218,7 @@ struct LedgerSwitcherMenu: View {
             // documented for menus but silently ignored on iOS toolbar
             // menus — the subtitle slot is the only reliable place for the
             // role.)
-            Image(systemName: "book")
+            Image(systemName: "text.book.closed")
             Text(ledger.name)
             Text([ledger.description, ledger.currency, ledger.myRole.label]
                 .compactMap { $0 }

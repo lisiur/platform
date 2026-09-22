@@ -52,14 +52,14 @@ struct QuickTargetEntity: AppEntity {
             : nil
     }
 
-    /// Ledger rows carry the switcher's "book" glyph, project rows its
+    /// Ledger rows carry the switcher's "text.book.closed" glyph, project rows its
     /// "folder" — the same marks the app uses for the two scopes. A guest's
     /// shared project gets the person-badged folder to set it apart.
     var image: DisplayRepresentation.Image {
         if projectName != nil {
             return .init(systemName: isGuestLedger ? "folder.badge.person.crop" : "folder")
         }
-        return .init(systemName: "book")
+        return .init(systemName: "text.book.closed")
     }
 
     var displayRepresentation: DisplayRepresentation {

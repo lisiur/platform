@@ -45,7 +45,7 @@ struct CategoriesManageView: View {
             } else {
                 EmptyStateView(
                     message: L10n.string("dashboard.selectLedger", defaultValue: "Select a ledger to get started"),
-                    systemImage: "book"
+                    systemImage: "text.book.closed"
                 )
             }
         }

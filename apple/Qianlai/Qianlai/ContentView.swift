@@ -83,7 +83,7 @@ enum AppTab: String, Hashable, Codable {
 
     var icon: String {
         switch self {
-        case .dashboard: "square.grid.2x2"
+        case .dashboard: "text.book.closed"
         case .journal: "list.bullet.rectangle"
         case .members: "person.2"
         case .assets: "creditcard"

@@ -1887,7 +1887,7 @@ struct QuickEntryView: View {
                 if binding.projectId != nil {
                     Image(systemName: binding.ledger.isGuest ? "folder.badge.person.crop" : "folder")
                 } else {
-                    Image(systemName: "book")
+                    Image(systemName: "text.book.closed")
                 }
                 Text(boundScopeName)
             }
