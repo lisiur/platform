@@ -101,10 +101,10 @@ struct MonthCalendarView: View {
                 _ = await (entries, calendar)
             }
         }
-        // No title of its own — the stepper carries the month — but an
-        // explicit empty one: left unset, the dashboard's title would pass
-        // through as this page's (the nested-title rule).
-        .navigationTitle(Text(verbatim: ""))
+        // "Month view" — still set explicitly: left unset, the dashboard's
+        // title would pass through as this page's (the nested-title rule);
+        // the month itself stays in the stepper below.
+        .navigationTitle(L10n.string("dashboard.monthView", defaultValue: "Month view"))
         .inlineNavigationBarTitle()
     }
 
