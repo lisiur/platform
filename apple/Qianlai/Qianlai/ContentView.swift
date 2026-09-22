@@ -33,8 +33,8 @@ enum AppTab: String, Hashable, Codable {
         case .dashboard:
             LocalizedStringResource(
                 "tab.dashboard",
-                defaultValue: "Dashboard",
-                comment: "Bottom tab: ledger overview (Chinese 仪表盘)"
+                defaultValue: "Ledger",
+                comment: "Bottom tab: ledger overview (Chinese 账本)"
             )
         case .journal:
             LocalizedStringResource(

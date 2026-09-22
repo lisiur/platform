@@ -21,25 +21,37 @@ struct StatSummaryBlock: View {
     /// journal's own stat card passes nothing and stays inert.
     var expenseAction: (() -> Void)? = nil
     var incomeAction: (() -> Void)? = nil
+    /// Prefixes the three labels with 月 (月支出/月收入/月结余) — the
+    /// dashboard's month-stepped block, so its figures can't be misread
+    /// against the today/week/year card below it. Window-agnostic
+    /// surfaces (the journal's week/range tabs) keep the bare labels —
+    /// a week's figures are not 月-anything.
+    var monthPrefixedLabels = false
 
     var body: some View {
         StatCard(
             icon: "wallet.bifold",
-            label: L10n.string("account.type.expense", defaultValue: "Expense"),
+            label: monthPrefixedLabels
+                ? L10n.string("dashboard.stat.monthExpense", defaultValue: "Month expense")
+                : L10n.string("account.type.expense", defaultValue: "Expense"),
             value: totals?.totalExpense,
             currency: currency,
             tone: .negative,
             footer: AnyView(
                 HStack(spacing: 12) {
                     column(
-                        L10n.string("account.type.income", defaultValue: "Income"),
+                        monthPrefixedLabels
+                            ? L10n.string("dashboard.stat.monthIncome", defaultValue: "Month income")
+                            : L10n.string("account.type.income", defaultValue: "Income"),
                         value: totals?.totalIncome,
                         tone: .positive,
                         alignment: .leading,
                         action: incomeAction
                     )
                     column(
-                        L10n.string("common.net", defaultValue: "Net"),
+                        monthPrefixedLabels
+                            ? L10n.string("dashboard.stat.monthNet", defaultValue: "Month net")
+                            : L10n.string("common.net", defaultValue: "Net"),
                         value: totals?.net,
                         // Finance convention: negative net green (绿跌),
                         // non-negative red (红涨).

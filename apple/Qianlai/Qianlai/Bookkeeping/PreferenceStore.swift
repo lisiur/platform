@@ -53,7 +53,7 @@ final class PreferenceStore {
     static let defaultTabs: [AppTab] = [.journal, .members]
 
     /// The bottom bar where the arrangement doesn't apply — a project claims
-    /// scope or the ledger is guest: 仪表盘/流水/成员/我的, always.
+    /// scope or the ledger is guest: 账本/流水/成员/我的, always.
     static let fixedTabs: [AppTab] = [.dashboard, .journal, .members, .profile]
 
     /// Whether the current context pins the bar to `fixedTabs`: guests and

@@ -7,11 +7,13 @@
 
 import SwiftUI
 
-/// The reusable stats component: a window's overview stat block, month
-/// calendar, trend chart, and composition chart, stacked in the
-/// dashboard's card rhythm for ANY local date range. The dashboard mounts
-/// it for the selected month; the future journal stats page mounts the
-/// same component for a week or custom range.
+/// The reusable stats component: a window's overview stat block — plus,
+/// when the host mounts them, the month calendar, the trend chart, and
+/// the composition chart — stacked in the dashboard's card rhythm for
+/// ANY local date range. The dashboard mounts the stat block alone for
+/// the selected month (the calendar lives on the month view page, the
+/// charts on the journal's chart page); the journal chart page mounts
+/// the full set for a week or custom range.
 ///
 /// Data: the component drives an injected `StatsStore` — one instance per
 /// mounted surface, so a stats page pushed above the dashboard tab can
@@ -41,6 +43,19 @@ struct StatsCardsView: View {
     var currency: String?
     /// false skips every fetch — guests' report endpoints 403.
     var isReportingEnabled = true
+    /// false hides the month calendar card and skips the daily fetch it
+    /// shares with the trend chart. The journal chart page keeps the
+    /// default; the dashboard's calendar lives on the month view page now.
+    var showsCalendar = true
+    /// Month-prefixed stat labels (月支出/月收入/月结余) — the dashboard's
+    /// month-stepped block only; the journal chart page's window varies
+    /// with the list's tabs and keeps the bare labels.
+    var monthPrefixedLabels = false
+    /// false hides the trend chart and the composition chart (the
+    /// dashboard's layout: overview block only) and skips the
+    /// category-summary fetch that feeds the latter. The journal chart
+    /// page keeps the default.
+    var showsTrendAndComposition = true
     /// The LOCAL window the cards summarize. A window that is exactly one
     /// natural month additionally mounts the calendar card; wider ranges
     /// hide it (a calendar grid is month-shaped).
@@ -78,6 +93,16 @@ struct StatsCardsView: View {
         window.singleMonth
     }
 
+    /// The fetch-skip derivation, stated once — both load sites read
+    /// these instead of re-deriving from the mount flags.
+    private var includesDaily: Bool {
+        showsCalendar || showsTrendAndComposition
+    }
+
+    private var includesCategories: Bool {
+        showsTrendAndComposition
+    }
+
     /// The previous load key this identity saw — nil until the first
     /// load, so mounts and same-key re-appearances are distinguishable
     /// from real window changes (which debounce).
@@ -89,9 +114,10 @@ struct StatsCardsView: View {
                 totals: store.overview?.month,
                 currency: currency,
                 expenseAction: expenseAction,
-                incomeAction: incomeAction
+                incomeAction: incomeAction,
+                monthPrefixedLabels: monthPrefixedLabels
             )
-            if let calendarMonth, let daily = store.daily {
+            if showsCalendar, let calendarMonth, let daily = store.daily {
                 MonthCalendarCard(
                     days: daily,
                     month: calendarMonth,
@@ -99,7 +125,7 @@ struct StatsCardsView: View {
                     onSelectDay: { onSelectDay?($0, nil) }
                 )
             }
-            if let daily = store.daily {
+            if showsTrendAndComposition, let daily = store.daily {
                 TrendChartCard(
                     days: daily,
                     window: window,
@@ -108,7 +134,7 @@ struct StatsCardsView: View {
                     onSelectDay: { onSelectDay?($0, $1) }
                 )
             }
-            if let categories = store.categories {
+            if showsTrendAndComposition, let categories = store.categories {
                 CategoryBreakdownCard(
                     summary: categories,
                     currency: currency,
@@ -131,7 +157,9 @@ struct StatsCardsView: View {
                 guard !Task.isCancelled else { return }
             }
             await store.load(
-                ledgerId: ledgerId, window: window, filters: filters
+                ledgerId: ledgerId, window: window, filters: filters,
+                includesDaily: includesDaily,
+                includesCategories: includesCategories
             )
         }
         // A post/update/delete anywhere bumps the shared epoch — refetch
@@ -140,7 +168,9 @@ struct StatsCardsView: View {
             guard isReportingEnabled else { return }
             Task {
                 await store.load(
-                    ledgerId: ledgerId, window: window, filters: filters
+                    ledgerId: ledgerId, window: window, filters: filters,
+                    includesDaily: includesDaily,
+                    includesCategories: includesCategories
                 )
             }
         }

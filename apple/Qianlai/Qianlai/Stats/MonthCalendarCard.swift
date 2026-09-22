@@ -39,6 +39,10 @@ struct MonthCalendarCard: View {
     /// A tapped in-month day drills into that day's journal (the pushed
     /// day page). nil keeps the cells inert — the screenshot harness.
     var onSelectDay: ((Date) -> Void)? = nil
+    /// The currently selected day, rendered as an accent-tinted cell (the
+    /// month view page's tap-to-select; the dashboard never passes it —
+    /// its taps push instead). nil leaves every cell on the neutral fill.
+    var selectedDay: Date? = nil
 
     /// One amount line's reserved height — the caption2 text lives in a
     /// fixed slot so every cell is the same three-line skeleton (day
@@ -105,6 +109,7 @@ struct MonthCalendarCard: View {
     @ViewBuilder
     private func dayCell(_ day: MonthGrid.Day, totals: [String: DayIncomeExpense]) -> some View {
         let isToday = Calendar.current.isDateInToday(day.date)
+        let isSelected = selectedDay.map { Calendar.current.isDate($0, inSameDayAs: day.date) } ?? false
         let dayTotals = day.isInMonth ? totals[Self.dayKey(day.date)] : nil
         VStack(spacing: 1) {
             // Today's number rides the accent dot in white; otherwise the
@@ -156,7 +161,11 @@ struct MonthCalendarCard: View {
         .background {
             if day.isInMonth {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.primary.opacity(0.05))
+                    .fill(
+                        isSelected
+                            ? AnyShapeStyle(Color.accentColor.opacity(0.16))
+                            : AnyShapeStyle(Color.primary.opacity(0.05))
+                    )
             }
         }
         .accessibilityElement(children: .combine)

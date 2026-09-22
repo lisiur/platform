@@ -707,6 +707,24 @@ final class JournalStore {
         suppressReload = false
     }
 
+    /// Re-aims the store at one ledger+window. A ledger switch goes
+    /// through the batched setWindow + switching load; a same-ledger
+    /// re-aim (a page re-pointing at another day or month) moves the
+    /// reactive date fields — the Journal tab's own stepping path, where
+    /// same-value writes skip and changes debounce one reload. `load`
+    /// alone can't serve the re-aim: its guard early-returns on an
+    /// unchanged ledger, which is exactly the dead-tap trap the month
+    /// view page first shipped with.
+    func aim(ledgerId: String, window: MonthWindow) async {
+        if self.ledgerId != ledgerId {
+            setWindow(window)
+            await load(ledgerId: ledgerId)
+        } else {
+            fromDate = window.from
+            toDate = window.to
+        }
+    }
+
     /// Refreshes the per-day income/expense totals the date-section headers
     /// render: one small request mirroring the list's filters, so a header
     /// total always describes the rows beneath it — the WHOLE day, not just

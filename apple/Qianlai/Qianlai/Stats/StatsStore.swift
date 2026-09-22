@@ -95,9 +95,15 @@ final class StatsStore {
 
     private var ledgerId: String?
 
-    /// Fetches all three payloads for `window`, scoped to `filters` when
-    /// the surface carries the journal's structural filters (nil = the
-    /// dashboard tab's unfiltered ledger stats). The component's
+    /// Fetches the window's payloads for `ledgerId`, scoped to `filters`
+    /// when the surface carries the journal's structural filters (nil = the
+    /// dashboard tab's unfiltered ledger stats). `includesDaily: false`
+    /// skips the per-day series — a surface that mounts neither the
+    /// calendar nor the trend chart (the dashboard's overview-only block).
+    /// `includesCategories: false` skips the per-category totals — a
+    /// surface that doesn't mount the
+    /// composition card. A skipped payload's record field simply keeps
+    /// whatever earlier fetches last merged. The component's
     /// `.task(id:)` calls this on mount, window change, and every
     /// appearance — re-fetching on every appearance is the dashboard's
     /// established refresh rhythm, and `.task`'s restart coalesces rapid
@@ -108,7 +114,9 @@ final class StatsStore {
     func load(
         ledgerId: String,
         window: MonthWindow,
-        filters: StatsFilters? = nil
+        filters: StatsFilters? = nil,
+        includesDaily: Bool = true,
+        includesCategories: Bool = true
     ) async {
         let ledgerChanged = self.ledgerId != ledgerId
         if ledgerChanged {
@@ -124,13 +132,27 @@ final class StatsStore {
         async let overview: () = loadOverview(
             ledgerId: ledgerId, window: window, filters: filters
         )
-        async let daily: () = loadDaily(
-            ledgerId: ledgerId, window: window, filters: filters
-        )
-        async let categories: () = loadCategories(
-            ledgerId: ledgerId, window: window, filters: filters
-        )
-        _ = await (overview, daily, categories)
+        if includesDaily, includesCategories {
+            async let daily: () = loadDaily(
+                ledgerId: ledgerId, window: window, filters: filters
+            )
+            async let categories: () = loadCategories(
+                ledgerId: ledgerId, window: window, filters: filters
+            )
+            _ = await (overview, daily, categories)
+        } else if includesDaily {
+            async let daily: () = loadDaily(
+                ledgerId: ledgerId, window: window, filters: filters
+            )
+            _ = await (overview, daily)
+        } else if includesCategories {
+            async let categories: () = loadCategories(
+                ledgerId: ledgerId, window: window, filters: filters
+            )
+            _ = await (overview, categories)
+        } else {
+            _ = await overview
+        }
     }
 
     // MARK: snapshot cache
@@ -236,7 +258,10 @@ final class StatsStore {
             )
         do {
             let payload: P = try await client.request("GET", path)
-            guard isCurrent(window), !Task.isCancelled else { return }
+            // Both aim fields gate the publish — a ledger switch aimed at
+            // an identical window must drop the old ledger's in-flight
+            // response, or the doc's stale-data promise below is a lie.
+            guard self.ledgerId == ledgerId, self.window == window, !Task.isCancelled else { return }
             publish(payload)
         } catch {
             // Keep the previous window's payload; the next reload retries.
@@ -282,6 +307,21 @@ final class StatsStore {
         }
     }
 
+    /// The daily-summary GET path for one window — the one composition
+    /// of the endpoint, the window/filters pairs, and the day bucketing.
+    /// `loadDaily` fetches the same shape through `fetch`'s parameter-
+    /// ization; the dashboard's range card store reuses this builder
+    /// rather than re-deriving it.
+    nonisolated static func dailySummaryPath(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) -> String {
+        "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary"
+            + ApiQuery.build(
+                baseQueryPairs(window: window, filters: filters)
+                    + [("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes))]
+            )
+    }
+
     /// The daily-summary fetch — the trend card's numerator, matching the
     /// stat block; `tzOffsetMinutes` is the day bucketing.
     private func loadDaily(
@@ -316,11 +356,6 @@ final class StatsStore {
                 ledgerId: ledgerId, window: window, filters: filters
             ) { $0.categories = summary }
         }
-    }
-
-    /// Whether `window` is still the load the store is aimed at.
-    private func isCurrent(_ window: MonthWindow) -> Bool {
-        self.window == window
     }
 }
 

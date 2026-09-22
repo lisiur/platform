@@ -8,10 +8,11 @@
 import SwiftUI
 
 /// Overview of the active ledger: a scrolling month summary — month
-/// header, budget card, then the reusable stats component (overview
-/// block, month calendar, trend chart, composition chart) for the
-/// selected month. The entries list that used to ride beneath the summary
-/// lives on the Journal tab only; this page summarizes, it doesn't list.
+/// header, budget card, the reusable stats component's overview stat
+/// block, the today/week/year card — over the selected month's records.
+/// The summary rides the shared entry list's topContent row (the same
+/// composition the month view page uses); the list below is that
+/// selected month's journal, stepped by the same month header.
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard
@@ -32,13 +33,21 @@ struct DashboardView: View {
     /// on the page rather than inside a lazy container, per the
     /// navigationDestination contract.
     @State private var isShowingYearDetail = false
-    /// Month the cards summarize; stepped with the chevrons in the month
-    /// header, capped at the current month.
-    @State private var selectedMonth = YearMonth.current
+    /// Push flag for the month view page (the toolbar calendar button) —
+    /// registered on the page for the same lazy-container contract.
+    @State private var isShowingMonthCalendar = false
     /// The stats component's payloads (overview, daily, categories), one
     /// windowed store for this surface. Caller-owned so the page's
     /// pull-to-refresh reloads the same store the cards read.
     @State private var statsStore = StatsStore()
+    /// The today/week/year card's day list — its own year-wide
+    /// daily-summary fetch, independent of the month stepper.
+    @State private var rangeStore = RangeTotalsStore()
+    /// The selected month's records — a private store so the dashboard's
+    /// rows act on this page without clashing with the Journal tab's
+    /// root store (the drill-down rule). Windowed to the month header's
+    /// selection; guests read it too.
+    @State private var monthEntryStore = JournalStore()
     /// Target of the dashboard's drill-down — the tapped figure's
     /// filter (kind + optional category drill) plus the ledger snapshot it
     /// drills into. nil = drill-down popped. The payload type is shared
@@ -202,7 +211,7 @@ struct DashboardView: View {
             Text(
                 activeProject?.name ?? loadingScopeName ?? ledgerStore.activeLedger?.name
                     ?? restoredScopeName
-                    ?? L10n.string("dashboard.title", defaultValue: "Dashboard")
+                    ?? L10n.string("dashboard.title", defaultValue: "Ledger")
             )
         )
         .toolbar {
@@ -211,11 +220,17 @@ struct DashboardView: View {
                 LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
             }
             ToolbarItem(placement: .topBarTrailing) {
+                monthCalendarButton
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 collaborationMenu
             }
             #else
             ToolbarItem(placement: .navigation) {
                 LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                monthCalendarButton
             }
             ToolbarItem(placement: .primaryAction) {
                 collaborationMenu
@@ -230,6 +245,11 @@ struct DashboardView: View {
         .navigationDestination(isPresented: $isShowingYearDetail) {
             BudgetYearDetailView()
         }
+        .navigationDestination(isPresented: $isShowingMonthCalendar) {
+            if let ledger = ledgerStore.activeLedger {
+                MonthCalendarView(ledger: ledger)
+            }
+        }
         .task(id: dashboardTaskKey) {
             // In project scope the detail view drives its own loading, so
             // we skip the dashboard fetches to avoid double-loading the
@@ -237,7 +257,14 @@ struct DashboardView: View {
             // settles, so a skip during the loading window is retried
             // after it resolves.
             if showsProjectDetail { return }
-            guard let ledger = ledgerStore.activeLedger, !ledger.isGuest else { return }
+            guard let ledger = ledgerStore.activeLedger else { return }
+            // The month's records load for every reader — guests included
+            // (the list endpoint works for them); the report endpoints
+            // below 403 guests, so the budget/stat/spending fetches stay
+            // behind the role guard.
+            await monthEntryStore.aim(
+                ledgerId: ledger.id, window: AppDates.monthWindow()
+            )
             // Month writes go through the silent setter: this task fetches
             // immediately below, so the didSet-driven debounced reload
             // would only duplicate the request. This page's share of the
@@ -248,21 +275,34 @@ struct DashboardView: View {
             // The ledger-wide report endpoints require viewer+ and always
             // 403 guests, so guests fetch nothing here — their stats live
             // in the project detail view.
-            store.setBudgetMonthSilently(selectedMonth)
+            guard !ledger.isGuest else { return }
+            store.setBudgetMonthSilently(.current)
             await store.load(ledgerId: ledger.id)
             // The category budget card is annual — it re-aims on neither
             // the month stepper (this task key excludes it) nor the
             // windowed reloads, only on ledger change (this task re-fires),
             // pull-to-refresh, posting, and the settings page's writes.
             await store.loadCategoryBudget(ledgerId: ledger.id, year: AppDates.currentYear)
+            // The spending card's year window is stepper-independent the
+            // same way — ledger change and this task's re-runs re-aim it;
+            // posts and edits re-summarize it through the epoch below.
+            await rangeStore.load(ledgerId: ledger.id)
         }
-        .onChange(of: selectedMonth) { _, month in
-            // budgetMonth's didSet schedules the debounced budget
-            // reload (skipped for guests — the report endpoint 403s
-            // them); the stats cards re-aim through their own task key.
-            if showsProjectDetail { return }
-            if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
-                store.budgetMonth = month
+        // A post/update/delete anywhere bumps the shared epoch — the
+        // spending card and the month list both move with it (the list
+        // re-read is the Journal tab's own epoch rule, so a fresh post
+        // lands without a pull). Guests get the list refresh only; the
+        // report endpoints 403 them.
+        .onChange(of: store.journalEpoch) {
+            guard !showsProjectDetail, let ledger = ledgerStore.activeLedger else { return }
+            if ledger.isGuest {
+                Task { await monthEntryStore.reload() }
+            } else {
+                Task {
+                    async let entries: () = monthEntryStore.reload()
+                    async let range: () = rangeStore.load(ledgerId: ledger.id)
+                    _ = await (entries, range)
+                }
             }
         }
         .refreshable {
@@ -270,16 +310,23 @@ struct DashboardView: View {
                 // ProjectDetailView owns its own refresh path.
                 return
             }
-            if let ledger = ledgerStore.activeLedger, !ledger.isGuest {
-                async let budget: () = store.refreshBudget()
-                async let categoryBudget: () = store.loadCategoryBudget(
-                    ledgerId: ledger.id, year: AppDates.currentYear
-                )
-                async let stats: () = statsStore.load(
-                    ledgerId: ledger.id, window: statsWindow
-                )
-                _ = await (budget, categoryBudget, stats)
+            guard let ledger = ledgerStore.activeLedger else { return }
+            if ledger.isGuest {
+                // The records are the guest dashboard's only live data.
+                await monthEntryStore.reload()
+                return
             }
+            async let budget: () = store.refreshBudget()
+            async let categoryBudget: () = store.loadCategoryBudget(
+                ledgerId: ledger.id, year: AppDates.currentYear
+            )
+            async let stats: () = statsStore.load(
+                ledgerId: ledger.id, window: statsWindow,
+                includesDaily: false, includesCategories: false
+            )
+            async let range: () = rangeStore.load(ledgerId: ledger.id)
+            async let entries: () = monthEntryStore.reload()
+            _ = await (budget, categoryBudget, stats, range, entries)
         }
         .sheet(isPresented: $isShowingLedgerForm) {
             NavigationStack {
@@ -312,7 +359,7 @@ struct DashboardView: View {
         }
         // The stat card's drill-downs: the selected month's journal
         // filtered to the tapped figure, PUSHED rather than sheet-mounted.
-        // The window is the month header's `selectedMonth` — NOT the
+        // The window is the dashboard's current month — NOT the
         // payload's echoed `dashboard.month`, which is a UTC bucket and can
         // read one month early east of UTC. Push, not sheet: a searchable
         // sheet below the edit cover's sub-presentation remounts the
@@ -334,6 +381,25 @@ struct DashboardView: View {
     /// mirrors the projects list gate), and join someone else's ledger
     /// with a share code. Inviting lives on the members page (ledger)
     /// and the projects list (project).
+    /// The month view page's toolbar button (calendar icon, before the
+    /// plus menu). Ledger scope only: the page summarizes the ledger-wide
+    /// month — project scope swaps this whole page — and guests 403 the
+    /// report endpoints its amounts come from.
+    @ViewBuilder
+    private var monthCalendarButton: some View {
+        if !showsProjectDetail, ledgerStore.activeLedger?.isGuest == false {
+            Button {
+                isShowingMonthCalendar = true
+            } label: {
+                Image(systemName: "calendar")
+            }
+            .accessibilityLabel(Text(L10n.string(
+                "dashboard.monthView",
+                defaultValue: "Month view"
+            )))
+        }
+    }
+
     private var collaborationMenu: some View {
         Menu {
             Button {
@@ -394,65 +460,43 @@ struct DashboardView: View {
         )
     }
 
-    /// Opens a day drill: that LOCAL day's entries — all kinds by
-    /// default (the calendar card), or one kind when the caller scopes
-    /// it (the trend card's metric bubble; 结余 passes nil = all kinds).
-    private func openDayDetail(_ day: Date, kind: QuickEntryKind? = nil) {
-        openStatDetail(JournalDrillDown(kind: kind), day: day)
-    }
-
     /// The month window the cards (and drill-downs) summarize — the
     /// header's selected month as a `MonthWindow`, the same shape the
     /// stats component and the drill page take.
     private var statsWindow: MonthWindow {
-        AppDates.monthWindow(containing: selectedMonth.start)
+        AppDates.monthWindow()
     }
 
-    /// The month summary stands alone on the page — one chrome-free list
-    /// row so the cards keep the inset-grouped metrics they were tuned
-    /// against (horizontal margins from the list itself, wallpaper behind),
-    /// the same row chrome `EntryListView` gave the summary when it rode
-    /// above the records.
+    /// The month summary above the selected month's records — the
+    /// summary as one chrome-free topContent row of the shared entry
+    /// list (the same composition the month view page uses), so the
+    /// cards keep the inset-grouped metrics they were tuned against
+    /// (horizontal margins from the list itself, wallpaper behind).
     private func dashboardSummary(_ ledger: QianlaiLedger) -> some View {
-        List {
-            monthSummary(ledger)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-        }
-        .appBackgroundSink()
+        EntryListView(
+            ledger: ledger,
+            emptyMessage: L10n.string("journal.empty", defaultValue: "No entries yet"),
+            // A browsing surface like the drill pages: no posting
+            // footnote; posters keep the swipe actions.
+            showsPostHint: false,
+            topContent: AnyView(monthSummary(ledger)),
+            showsShareCaption: true
+        )
+        .environment(monthEntryStore)
         .scrollBounceBehavior(.basedOnSize)
     }
 
-    /// Month header, budget card, and the reusable stats component's four
-    /// cards (overview block, month calendar, trend chart, composition).
+    /// Current-month title, budget card, and the reusable stats
+    /// component's overview stat block.
     private func monthSummary(_ ledger: QianlaiLedger) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Arrows hug the title; nothing trails the header anymore —
-            // the filter/sort menus acted on the removed entry list.
-            HStack(spacing: 8) {
-                Button {
-                    selectedMonth = selectedMonth.previous
-                } label: {
-                    CircleIcon(systemName: "chevron.left")
-                }
-                // Borderless: with the default style a tap on the List row
-                // fires BOTH chevrons, canceling each other out.
-                .buttonStyle(.borderless)
-                Text(AppDates.formatMonthTitle(selectedMonth, locale: locale))
-                    .font(.title3.weight(.semibold))
-                Button {
-                    selectedMonth = selectedMonth.next
-                } label: {
-                    CircleIcon(systemName: "chevron.right")
-                }
-                .buttonStyle(.borderless)
-                .disabled(selectedMonth >= YearMonth.current)
-                Spacer()
-            }
-            // The expense card spans the summary's width; the chrome-less
-            // rows above and below it are inset a little instead.
-            .padding(.horizontal, 6)
+            // A static label, not a stepper: the dashboard is pinned to
+            // the current month — history browsing lives on the month
+            // view page, which steps its own header.
+            Text(AppDates.formatMonthTitle(.current, locale: locale))
+                .font(.title3.weight(.semibold))
+                // The same little inset the chrome-less rows carry.
+                .padding(.horizontal, 6)
             // The budget card rides directly under the month header so the
             // "how much is left" answer is the first thing on the page. It
             // renders only when a budget is set (nil report / nil month =
@@ -464,7 +508,7 @@ struct DashboardView: View {
                     month: month,
                     year: budget.year,
                     currency: ledger.currency,
-                    isCurrentMonth: selectedMonth == YearMonth.current,
+                    isCurrentMonth: true,
                     // The two budget figures drill like the stat block:
                     // the selected month's EXPENSE entries on one side of
                     // the per-entry budget flag — the exact set each
@@ -505,11 +549,17 @@ struct DashboardView: View {
                         windowOverride: AppDates.yearWindow(categoryBudget.year)
                     )
                 }
+                // The summary's card-to-card rhythm matches the journal
+                // list's day-card gap (the inset-grouped 20pt section
+                // spacing): base VStack 10 + this 10.
+                .padding(.top, 10)
             }
-            // The stats component: overview block, month calendar, trend
-            // chart, composition chart for the selected month. Guests pass
+            // The stats component's overview block for the selected
+            // month — the calendar lives on the month view page (the
+            // toolbar calendar button), the trend/composition charts on
+            // the journal's chart page. Guests pass
             // isReportingEnabled: false — every report endpoint 403s them,
-            // so their cards stay in the placeholder/empty states the old
+            // so their card stays in the placeholder/empty states the old
             // nil payloads produced. The drills capture the active ledger
             // and push `StatKindDetailView` (see the destination above).
             StatsCardsView(
@@ -517,12 +567,47 @@ struct DashboardView: View {
                 ledgerId: ledger.id,
                 currency: ledger.currency,
                 isReportingEnabled: !ledger.isGuest,
+                showsCalendar: false,
+                monthPrefixedLabels: true,
+                showsTrendAndComposition: false,
                 window: statsWindow,
                 expenseAction: { openStatDetail(kind: .expense) },
                 incomeAction: { openStatDetail(kind: .income) },
-                onSelectDay: { day, kind in openDayDetail(day, kind: kind) },
                 onSelectCategory: { openStatDetail($0) }
             )
+            // Same card rhythm as above.
+            .padding(.top, 10)
+            // The today/week/year card — anchored to NOW, not a month
+            // stepper. Each row drills into the period's journal. Guests
+            // never see it: the daily-summary endpoint 403s them.
+            if !ledger.isGuest {
+                RangeTotalsCard(
+                    store: rangeStore,
+                    currency: ledger.currency,
+                    locale: locale,
+                    todayAction: {
+                        openStatDetail(JournalDrillDown(kind: nil), day: .now)
+                    },
+                    weekAction: {
+                        openStatDetail(
+                            JournalDrillDown(kind: nil),
+                            windowOverride: RangeTotalsMath.weekWindow(
+                                for: .now, calendar: .current
+                            )
+                        )
+                    },
+                    yearAction: {
+                        openStatDetail(
+                            JournalDrillDown(kind: nil),
+                            windowOverride: RangeTotalsMath.yearWindow(
+                                for: .now, calendar: .current
+                            )
+                        )
+                    }
+                )
+                // Same card rhythm as above.
+                .padding(.top, 10)
+            }
         }
         // Horizontal margins come from the inset-grouped list itself;
         // vertical padding spaces the summary off the screen edges under
