@@ -39,6 +39,7 @@ struct BudgetSettingsView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ReportStore.self) private var reportStore
     @Environment(ToastCenter.self) private var toast
+    @Environment(\.locale) private var locale
 
     /// The two budget systems the page configures.
     enum BudgetTab: Hashable {
@@ -280,7 +281,7 @@ struct BudgetSettingsView: View {
         return HStack(spacing: 8) {
             Text(AppDates.formatMonthShort(
                 YearMonth(year: settingsYear, month: month),
-                locale: Locale.current
+                locale: locale
             ))
             .foregroundStyle(Color.primary)
             if isAdjusted {
@@ -606,7 +607,7 @@ struct BudgetSettingsView: View {
         case .month(let month):
             Text(AppDates.formatMonthShort(
                 YearMonth(year: settingsYear, month: month),
-                locale: Locale.current
+                locale: locale
             ))
         }
     }
