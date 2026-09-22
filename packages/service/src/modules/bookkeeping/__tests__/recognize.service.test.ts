@@ -30,9 +30,9 @@ import { prisma } from "#lib/db";
 import { resolveAgentModel } from "#modules/agent/agent-resolution.service";
 import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import { resolveBilling } from "#modules/billing/billing.service";
+import { accountRepository } from "../account.repository";
 import {
   buildRecognitionPrompt,
-  listLedgerCategoryPaths,
   recognizeScreenshot,
   screenshotRecognitionSchema,
 } from "../recognize.service";
@@ -49,8 +49,9 @@ function account(
   type: string,
   name: string | null,
   parentId: string | null,
+  code: string | null = null,
 ) {
-  return { id, type, name, parentId, sortOrder: 0 };
+  return { id, type, name, parentId, code, sortOrder: 0 };
 }
 
 const resolvedRuntime = {
@@ -104,44 +105,59 @@ beforeEach(() => {
   );
 });
 
-describe("listLedgerCategoryPaths", () => {
-  it("lists leaves as full slash-joined paths, unnamed branches dropped", async () => {
+describe("accountRepository.listRecognitionCategoryPaths", () => {
+  it("lists leaves as stable-key paths — code for seeded, name for user-created", async () => {
     findMany.mockResolvedValue([
-      account("food", "expense", "食品", null),
-      account("meal", "expense", "餐饮", "food"),
-      // 同名叶子 under different parents — the path is the disambiguator.
+      // Seeded i18n pair: name stays null server-side, code carries the path.
+      account("food", "expense", null, null, "food"),
+      account("meals", "expense", null, "food", "meals"),
+      // User-created leaves keep name-keyed paths.
       account("apparel", "expense", "服饰", null),
       account("clothes", "expense", "衣服", "apparel"),
+      // 同名叶子 under different parents — the path is the disambiguator.
       account("kids", "expense", "育儿", null),
       account("kidsclothes", "expense", "衣服", "kids"),
-      // An unnamed (seeded i18n) parent breaks the path → leaf dropped.
-      account("coded", "expense", null, null),
-      account("under-coded", "expense", "孤儿", "coded"),
+      // A renamed seeded account still keys on its permanent code.
+      account("transport", "expense", "出行", null, "transport"),
+      // Mixed chain: user-created parent over a seeded leaf.
+      account("market", "expense", "买菜", null),
+      account("groceries", "expense", null, "market", "groceries"),
+      // A node with neither code nor name breaks the path → leaf dropped.
+      account("broken", "expense", null, null, null),
+      account("orphan", "expense", "孤儿", "broken"),
       account("pocket", "asset", "现金", null),
       account("salary", "income", "工资", null),
     ] as never);
     // The status filter lives in the query (asserted below); the service
-    // trusts it and only applies leaf/path/cap logic here.
-    const paths = await listLedgerCategoryPaths("ledger-1");
-    expect(paths.expense).toEqual(["食品/餐饮", "服饰/衣服", "育儿/衣服"]);
+    // trusts it and only applies leaf/path logic here.
+    const paths =
+      await accountRepository.listRecognitionCategoryPaths("ledger-1");
+    expect(paths.expense).toEqual([
+      "food/meals",
+      "服饰/衣服",
+      "育儿/衣服",
+      "transport",
+      "买菜/groceries",
+    ]);
     expect(paths.income).toEqual(["工资"]);
   });
 
-  it("caps each kind at 100 names", async () => {
+  it("lists every leaf — no per-kind cap", async () => {
     const rows = Array.from({ length: 130 }, (_, i) =>
       account(`e${i}`, "expense", `分类${i}`, null),
     );
     rows.push(account("inc", "income", "工资", null));
     findMany.mockResolvedValue(rows as never);
 
-    const paths = await listLedgerCategoryPaths("ledger-1");
-    expect(paths.expense).toHaveLength(100);
+    const paths =
+      await accountRepository.listRecognitionCategoryPaths("ledger-1");
+    expect(paths.expense).toHaveLength(130);
     expect(paths.income).toEqual(["工资"]);
   });
 
   it("queries only active expense/income accounts of the ledger", async () => {
     findMany.mockResolvedValue([]);
-    await listLedgerCategoryPaths("ledger-1");
+    await accountRepository.listRecognitionCategoryPaths("ledger-1");
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -165,6 +181,10 @@ describe("buildRecognitionPrompt", () => {
     expect(prompt).toContain("- 餐饮");
     expect(prompt).toContain("- 服饰/衣服");
     expect(prompt).toContain("- 工资");
+    // The stable-key contract is spelled out so json_object-mode models
+    // don't translate the internal codes.
+    expect(prompt).toContain('"food/meals"');
+    expect(prompt).toContain("stable identifiers");
     // Alternates contract is spelled out for the json_object-mode model.
     expect(prompt).toContain("amountAlternatives");
     expect(prompt).toContain("categoryAlternatives");

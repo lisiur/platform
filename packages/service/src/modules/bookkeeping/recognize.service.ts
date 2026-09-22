@@ -5,21 +5,18 @@ import {
   buildDisableThinkingOptions,
   createProviderModel,
 } from "#lib/ai-agent/provider-adapter";
-import { prisma } from "#lib/db";
 import { resolveAgentModel } from "#modules/agent/agent-resolution.service";
 import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import {
   BILLING_RESOURCE_AI_AGENT,
   resolveBilling,
 } from "#modules/billing/billing.service";
+import { accountRepository } from "./account.repository";
 
 export const QIANLAI_RECEIPT_AGENT_CODE = "qianlai_receipt";
 
 const SUB_AGENT = "default";
 const REQUIRED_CAPABILITY = "vision";
-/** Per-kind display-name budget for the prompt; beyond this the model simply
- * sees a truncated list and the client's fuzzy match still catches the rest. */
-const MAX_CATEGORY_NAMES_PER_KIND = 100;
 
 /**
  * The one-transaction extraction contract, mirrored 1:1 in the user prompt's
@@ -76,67 +73,8 @@ export interface RecognitionTile {
   mediaType: string;
 }
 
-/**
- * Active expense/income category LEAF paths for the prompt — the selectable
- * range is leaves only, but each leaf is listed as its full "/"-joined path
- * (服饰/衣服 vs 育儿/衣服) so same-named leaves under different parents
- * stay distinguishable. Unnamed (seeded i18n) segments break the path and
- * drop the leaf; per-kind capped on leaves, and the client re-walks the
- * path against its own tree, so truncation degrades suggestion quality,
- * never correctness.
- */
-export async function listLedgerCategoryPaths(ledgerId: string): Promise<{
-  expense: string[];
-  income: string[];
-}> {
-  const accounts = await prisma.bookAccount.findMany({
-    where: {
-      ledgerId,
-      status: "active",
-      type: { in: ["expense", "income"] },
-    },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      parentId: true,
-      sortOrder: true,
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-  });
-  const byId = new Map(accounts.map((account) => [account.id, account]));
-  const pathOf = (account: (typeof accounts)[number]): string | null => {
-    const segments: string[] = [];
-    const visited = new Set<string>();
-    let cursor: (typeof accounts)[number] | undefined = account;
-    while (cursor) {
-      if (visited.has(cursor.id)) return null; // corrupt tree, cycle guard
-      visited.add(cursor.id);
-      if (cursor.name === null) return null; // unnamed segment → unmatchable
-      segments.unshift(cursor.name);
-      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
-    }
-    return segments.join("/");
-  };
-  const paths = (type: string) => {
-    const out: string[] = [];
-    for (const account of accounts) {
-      if (account.type !== type) continue;
-      const hasChildren = accounts.some(
-        (other) => other.parentId === account.id,
-      );
-      if (hasChildren) continue;
-      const path = pathOf(account);
-      if (path !== null) out.push(path);
-      if (out.length >= MAX_CATEGORY_NAMES_PER_KIND) break;
-    }
-    return out;
-  };
-  return { expense: paths("expense"), income: paths("income") };
-}
-
 const RECOGNITION_SHAPE_HINT =
-  '{"recognized":true,"kind":"expense","amount":0,"amountAlternatives":[],"occurredAt":"YYYY-MM-DDTHH:mm:ss","merchant":"","memo":"","categoryName":"parent/leaf","categoryAlternatives":[],"confidence":"high"}';
+  '{"recognized":true,"kind":"expense","amount":0,"amountAlternatives":[],"occurredAt":"YYYY-MM-DDTHH:mm:ss","merchant":"","memo":"","categoryName":"food/meals","categoryAlternatives":[],"confidence":"high"}';
 
 export function buildRecognitionPrompt(categories: {
   expense: string[];
@@ -155,7 +93,7 @@ export function buildRecognitionPrompt(categories: {
     '- occurredAt: the transaction time exactly as shown, ISO 8601 "YYYY-MM-DDTHH:mm:ss" without timezone offset. Date only → "YYYY-MM-DDT00:00:00"; no date visible → null.',
     "- merchant: the counterparty name (商家/收款方/付款方/对方) verbatim; null if absent.",
     "- memo: the item name or note (商品/备注) verbatim, trimmed; null if absent.",
-    '- categoryName: copy exactly one entry from the category list matching kind below, verbatim. Entries are "/"-joined paths from the top-level parent to the leaf category (e.g. "服饰/衣服"); the LAST segment is the actual category, so always answer the full path — never a bare leaf name, never a parent alone. If nothing fits, null.',
+    '- categoryName: copy exactly one entry from the category list matching kind below, verbatim. Entries are "/"-joined paths from the top-level parent to the leaf category (e.g. "food/meals"), written in stable identifiers — built-in categories appear as their internal English code, user-created ones as their current name — so match by meaning, not by language. The LAST segment is the actual category, so always answer the full path — never a bare leaf name, never a parent alone. If nothing fits, null.',
     "- categoryAlternatives: when two or more entries from the list could fit, keep the best in categoryName and put up to 3 runner-up paths here (verbatim from the same kind list, excluding categoryName). [] when unambiguous.",
     '- confidence: "high" when the amount and counterparty are both clearly legible; "medium" when the amount is legible but other fields are missing or ambiguous; "low" when the image is blurry, cropped, or the amount itself is hard to read; null when recognized is false.',
     "",
@@ -198,7 +136,9 @@ export async function recognizeScreenshot(params: {
     requireCapability: REQUIRED_CAPABILITY,
   });
 
-  const categories = await listLedgerCategoryPaths(params.ledgerId);
+  const categories = await accountRepository.listRecognitionCategoryPaths(
+    params.ledgerId,
+  );
   const system = resolved.agent.systemPrompt ?? undefined;
   const prompt = buildRecognitionPrompt(categories);
   const genParams = {

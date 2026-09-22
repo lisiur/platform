@@ -235,10 +235,16 @@ struct AccountTreeEntry: Identifiable, Hashable {
 
 /// Resolves the recognition prompt's category suggestion against a built
 /// tree (the `AccountTreeEntry.build` output). The model answers with a
-/// "/"-joined path from the top-level parent to the leaf — 服饰/衣服 vs
-/// 育儿/衣服 — because the bare leaf name alone is ambiguous across
-/// branches; the selectable range is leaves only, so a path that lands on a
-/// parent resolves to nothing.
+/// "/"-joined path from the top-level parent to the leaf, written in the
+/// stable keys the server's prompt lists — the permanent `code` for seeded
+/// accounts (their localized display name only exists client-side), the
+/// current name for user-created ones. Segment keys mirror the server's
+/// `accountRepository.listRecognitionCategoryPaths` (`code ?? name` there;
+/// matching either key here is a deliberate superset) — change the two
+/// contracts together. Each segment matches either key, so mixed chains
+/// and renames keep resolving; the bare leaf fallback still demands a
+/// unique leaf, because a bare leaf name alone is ambiguous across
+/// branches and the selectable range is leaves only.
 enum CategoryPathResolver {
     nonisolated static func leafAccountId(
         forSuggestion suggestion: String,
@@ -251,28 +257,39 @@ enum CategoryPathResolver {
             .filter { !$0.isEmpty }
         guard !segments.isEmpty else { return nil }
 
+        // Codes are camelCase ("redPacket") — lowercase both sides so the
+        // model's transcription case can't break the walk.
+        func matches(_ account: BookAccount, _ segment: String) -> Bool {
+            account.code?.lowercased() == segment
+                || account.name?.lowercased() == segment
+        }
+
         // Top-level entries group under "" (nil parent).
         let childrenByParent = Dictionary(grouping: tree) {
             $0.account.parentId ?? ""
         }
         var scope = childrenByParent[""] ?? []
         var matched: AccountTreeEntry?
+        var walkComplete = true
         for segment in segments {
-            guard let hit = scope.first(where: {
-                $0.account.name?.lowercased() == segment
-            }) else { return nil }
+            guard let hit = scope.first(where: { matches($0.account, segment) }) else {
+                walkComplete = false
+                break
+            }
             matched = hit
             scope = childrenByParent[hit.account.id] ?? []
         }
-        if let matched, (childrenByParent[matched.account.id] ?? []).isEmpty {
+        if walkComplete, let matched, (childrenByParent[matched.account.id] ?? []).isEmpty {
             return matched.account.id
         }
-        // A bare leaf name without its path: acceptable only when exactly
-        // one leaf carries the name — two 衣服 under different parents stay
-        // ambiguous on purpose.
+        // A bare leaf key without its path: acceptable only when exactly one
+        // leaf carries it — two 衣服 under different parents stay ambiguous
+        // on purpose. Reachable both when the walk landed on a parent and
+        // when it found no top-level match at all (a bare "meals" with the
+        // leaf nested under food).
         if segments.count == 1 {
             let leaves = tree.filter {
-                $0.account.name?.lowercased() == segments[0]
+                matches($0.account, segments[0])
                     && (childrenByParent[$0.account.id] ?? []).isEmpty
             }
             if leaves.count == 1, let only = leaves.first {

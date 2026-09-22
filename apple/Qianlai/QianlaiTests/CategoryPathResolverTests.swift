@@ -98,16 +98,79 @@ final class CategoryPathResolverTests: XCTestCase {
         )
     }
 
+    /// Seeded i18n accounts have no server-side name — their prompt paths
+    /// are the permanent codes, and the resolver walks them against `code`.
+    func testSeededCodePathResolves() {
+        let tree = AccountTreeEntry.build([
+            makeAccount(id: "food", name: nil, code: "food"),
+            makeAccount(id: "meals", name: nil, code: "meals", parentId: "food"),
+            makeAccount(id: "transport", name: nil, code: "transport"),
+        ])
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "food/meals", tree: tree),
+            "meals"
+        )
+        // Codes are camelCase; transcription case can't break the walk.
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "Food/Meals", tree: tree),
+            "meals"
+        )
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "transport", tree: tree),
+            "transport"
+        )
+    }
+
+    /// A user rename sets `name` above the label but the prompt still lists
+    /// the code — the renamed built-in must keep resolving by code.
+    func testRenamedSeededAccountStillResolvesByCode() {
+        let tree = AccountTreeEntry.build([
+            makeAccount(id: "food", name: "吃货", code: "food"),
+            makeAccount(id: "meals", name: "正餐", code: "meals", parentId: "food"),
+        ])
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "food/meals", tree: tree),
+            "meals"
+        )
+    }
+
+    /// Mixed chains — user-created parent (name) over a seeded leaf (code)
+    /// — walk segment by segment against either key.
+    func testMixedNameAndCodeChainResolves() {
+        let tree = AccountTreeEntry.build([
+            makeAccount(id: "market", name: "买菜"),
+            makeAccount(id: "groceries", name: nil, code: "groceries", parentId: "market"),
+        ])
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "买菜/groceries", tree: tree),
+            "groceries"
+        )
+    }
+
+    /// The bare-key fallback accepts a unique code leaf the same way it
+    /// accepts a unique name leaf.
+    func testBareUniqueCodeLeafResolves() {
+        let tree = AccountTreeEntry.build([
+            makeAccount(id: "food", name: nil, code: "food"),
+            makeAccount(id: "meals", name: nil, code: "meals", parentId: "food"),
+        ])
+        XCTAssertEqual(
+            CategoryPathResolver.leafAccountId(forSuggestion: "meals", tree: tree),
+            "meals"
+        )
+    }
+
     private func makeAccount(
         id: String,
         name: String?,
+        code: String? = nil,
         parentId: String? = nil
     ) -> BookAccount {
         BookAccount(
             id: id,
             ledgerId: "l1",
             name: name,
-            code: nil,
+            code: code,
             type: .expense,
             sortOrder: 0,
             parentId: parentId,

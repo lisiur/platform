@@ -228,4 +228,71 @@ export const accountRepository = {
       where: { parentId: id, status: "active" },
     });
   },
+
+  /**
+   * Active expense/income category LEAF paths for the recognition prompt —
+   * the selectable range is leaves only, but each leaf is listed as its
+   * full "/"-joined path so same-named leaves under different parents stay
+   * distinguishable. Segments are STABLE KEYS, not display names: seeded
+   * i18n accounts render their localized label client-side and carry no
+   * server-side name, so the path uses `code ?? name` — the permanent
+   * `code` for built-in categories (e.g. "food/meals"), the current name
+   * for user-created ones. The list is uncut — every active leaf the
+   * ledger has. The iOS side re-walks each segment against code OR name
+   * (`CategoryPathResolver` in QianlaiShared/BookkeepingModels.swift) —
+   * change the two contracts together.
+   */
+  async listRecognitionCategoryPaths(
+    ledgerId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ): Promise<{ expense: string[]; income: string[] }> {
+    const accounts = await tx.bookAccount.findMany({
+      where: {
+        ledgerId,
+        status: "active",
+        type: { in: ["expense", "income"] },
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        type: true,
+        parentId: true,
+        sortOrder: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    });
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+    const pathOf = (account: (typeof accounts)[number]): string | null => {
+      const segments: string[] = [];
+      const visited = new Set<string>();
+      let cursor: (typeof accounts)[number] | undefined = account;
+      while (cursor) {
+        if (visited.has(cursor.id)) return null; // corrupt tree, cycle guard
+        visited.add(cursor.id);
+        // Seeded accounts carry a permanent `code` and no name (the
+        // localized label lives client-side), so only a code-less AND
+        // name-less node breaks the path.
+        const segment = cursor.code ?? cursor.name;
+        if (segment === null) return null;
+        segments.unshift(segment);
+        cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+      }
+      return segments.join("/");
+    };
+    const paths = (type: string) => {
+      const out: string[] = [];
+      for (const account of accounts) {
+        if (account.type !== type) continue;
+        const hasChildren = accounts.some(
+          (other) => other.parentId === account.id,
+        );
+        if (hasChildren) continue;
+        const path = pathOf(account);
+        if (path !== null) out.push(path);
+      }
+      return out;
+    };
+    return { expense: paths("expense"), income: paths("income") };
+  },
 };
