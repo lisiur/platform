@@ -34,7 +34,17 @@ struct QianlaiApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             Group {
-                if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
+                if ProcessInfo.processInfo.isTabShellDemo {
+                    // Offline tab-shell harness: the real ContentView —
+                    // TabView, liquid-glass bar, QuickAddTabBarProxy —
+                    // without restoring the session, so bar-adjacent work
+                    // probes identical code paths on any runtime. A
+                    // persisted (still-valid) session still shows through;
+                    // the skip matters on logged-out sims, where the
+                    // restore's failing fetches took this shell down
+                    // within ~20 s (2026-09-22 pill long-press probe).
+                    ContentView()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry") {
                     QuickEntryDemoScreen()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-quick-entry-recognition") {
                     // AI-mode variant: the same sheet seeded with a fake
@@ -111,7 +121,11 @@ struct QianlaiApp: App {
             .frame(minWidth: 640, minHeight: 640)
             #endif
             .task {
-                await authManager.restoreSession()
+                // The tab-shell harness must stay un-restored — see the
+                // render branch for why.
+                if !ProcessInfo.processInfo.isTabShellDemo {
+                    await authManager.restoreSession()
+                }
             }
             .task(id: authManager.isLoggedIn) {
                 // Ledgers load once per login; the switcher and views refresh
@@ -135,6 +149,12 @@ struct QianlaiApp: App {
 extension ProcessInfo {
     func hasLaunchFlag(_ flag: String) -> Bool {
         arguments.contains(flag)
+    }
+
+    /// `--ui-demo-tab-shell`: the offline ContentView harness — both its
+    /// render branch and the session-restore skip key off this one flag.
+    var isTabShellDemo: Bool {
+        hasLaunchFlag("--ui-demo-tab-shell")
     }
 }
 

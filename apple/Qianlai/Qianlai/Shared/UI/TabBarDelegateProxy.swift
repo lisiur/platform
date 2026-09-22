@@ -21,29 +21,32 @@ import SwiftUI
 /// tab never leaves the origin — no deferred parking, no highlight
 /// resync, no dismissal branches.
 ///
-/// The proxy also owns the pill's LONG PRESS: a bar-level
-/// UILongPressGestureRecognizer (see installLongPressIfNeeded) hit-tests
-/// the hold to the trailing capsule and runs `pillLongPressed`. A
-/// recognized hold cancels the button's touch, so a hold never leaks into
-/// the tap interception above, and a quick lift fails the recognizer, so
-/// taps never leak into it either.
+/// The pill's LONG PRESS lives on the pill capsule itself (see
+/// installPillGestureIfNeeded): a 0.5 s hold whose touchdown suppresses
+/// the bar-subtree recognizers for that touch only — the native
+/// continuous-selection recognizer would otherwise begin on the pill and
+/// commit a pill selection mid-hold, leaking the tap action into the
+/// hold. This replaces the earlier bar-level recognizer + bar-wide
+/// require(toFail:) web, which gated EVERY bar touch behind the pill's
+/// long press: the bar's press highlight could not begin until the hold
+/// failed at lift, so every tab press ran mute, and on iOS 27 the same
+/// replay chain cost ~20-30 ms of post-lift commit (2026-09-22 probe,
+/// 26.5 + 27.0 simulators). A quick pill lift is the TAP: it commits
+/// through the same native path as before and lands in the delegate
+/// interception below — with suppression active the native pill commit
+/// still fires at lift, because it is not one of the suppressible
+/// recognizers (probe-verified). The capsule's UITapGestureRecognizer is
+/// a backstop for OS versions where that native path stops firing;
+/// whichever of the two wins cancels the other, and the app-level
+/// pillTapped is idempotent if both ever fire.
 final class QuickAddTabBarProxy: NSObject, UITabBarControllerDelegate, UIGestureRecognizerDelegate {
     /// SwiftUI's original delegate; everything unintercepted forwards here.
     weak var original: NSObject?
     /// Runs when the pill is tapped; the interception then returns false,
     /// so the pill never becomes the selected tab.
     var pillTapped: (() -> Void)?
-    /// Runs when the pill is long-pressed (~0.5 s hold). A recognized hold
-    /// cancels the button's touch, so the tap interception above never
-    /// fires for it — tap and long press are cleanly exclusive.
+    /// Runs when the pill is long-pressed (~0.5 s hold).
     var pillLongPressed: (() -> Void)?
-    /// The bar our recognizer lives on (re-resolved per install pass).
-    private weak var tabBar: UITabBar?
-    /// Our long-press recognizer, tracked on the PROXY, not on the finder
-    /// view: every tab page carries its own introspection view, so the
-    /// finder is recreated on each page switch — a finder-tracked
-    /// recognizer would duplicate on every switch.
-    private var longPress: UILongPressGestureRecognizer?
 
     override func responds(to aSelector: Selector!) -> Bool {
         super.responds(to: aSelector) || (original?.responds(to: aSelector) ?? false)
@@ -53,90 +56,48 @@ final class QuickAddTabBarProxy: NSObject, UITabBarControllerDelegate, UIGesture
         original
     }
 
-    // MARK: - Long press on the pill
+    // MARK: - Pill gestures (scoped to the capsule)
 
-    /// Installs the bar-level long-press recognizer (idempotent — tracked
-    /// on the proxy) and re-asserts the failure relationships. Probe
-    /// findings (2026-09-22, iOS 26.5 + 27.0 simulators):
-    ///  - The liquid-glass bar ships its own recognizers, among them
-    ///    native UILongPressGestureRecognizers — presence-by-type can
-    ///    never be the "already installed" check.
-    ///  - Without `require(toFail:)` the bar's
-    ///    _UIContinuousSelectionGestureRecognizer recognizes a hold on a
-    ///    NORMAL tab first and switches tabs. The failure relationship
-    ///    hands holds to us; a quick lift fails our recognizer instantly,
-    ///    so ordinary taps are unimpaired (probe regression steps).
-    ///
-    /// The recognizer must stay scoped to the pill — see
-    /// gestureRecognizerShouldBegin. A bar-wide armed hold would deny the
-    /// native continuous selection its shot at normal-tab holds.
-    func installLongPressIfNeeded(on bar: UITabBar) {
-        tabBar = bar
-        if longPress == nil {
-            let recognizer = UILongPressGestureRecognizer(
-                target: self,
-                action: #selector(tabBarLongPressed(_:))
-            )
-            recognizer.minimumPressDuration = 0.5
-            recognizer.delegate = self
-            bar.addGestureRecognizer(recognizer)
-            longPress = recognizer
-        }
-        // Re-applied per pass: SwiftUI can install fresh recognizers on
-        // bar updates, and the call is harmless to repeat.
-        if let longPress {
-            for other in bar.gestureRecognizers ?? [] where other !== longPress {
-                other.require(toFail: longPress)
-            }
-        }
+    /// Installs the pill's hold + tap recognizers. Deduped against the
+    /// capsule ITSELF, not a remembered reference: relayouts can hand the
+    /// same capsule view back after a different view was installed in
+    /// between (A→B→A), and a remembered-reference check would attach a
+    /// second pair to the live view — duplicate haptics, double fires.
+    /// A missing capsule (an unprobed bar shape) installs nothing: taps
+    /// still work through the delegate interception and only the long
+    /// press goes quiet — degrade, never a wrong hit.
+    func installPillGestureIfNeeded(on bar: UITabBar) {
+        guard let capsule = pillCapsuleView(in: bar),
+            capsule.gestureRecognizers?.contains(where: { $0 is PillHoldGestureRecognizer }) != true
+        else { return }
+        let hold = PillHoldGestureRecognizer(
+            target: self,
+            action: #selector(pillLongPressed(_:))
+        )
+        hold.minimumPressDuration = 0.5
+        hold.bar = bar
+        hold.delegate = self
+        capsule.addGestureRecognizer(hold)
+        let tap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(pillTappedBackstop(_:))
+        )
+        tap.require(toFail: hold)
+        tap.delegate = self
+        capsule.addGestureRecognizer(tap)
     }
 
-    /// Arms the hold only when it started on the pill. Without this, a
-    /// ≥0.5 s hold on a normal tab would begin OUR recognizer (hit-test
-    /// miss → no-op) while the require(toFail:) relationship permanently
-    /// denies the bar's _UIContinuousSelectionGestureRecognizer — native
-    /// hold-to-switch would silently die, and slow lifts would do nothing.
-    /// Failing here unblocks the dependent recognizers mid-touch, so the
-    /// native recognizer still recognizes the ongoing press.
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard gestureRecognizer === longPress, let tabBar else { return true }
-        return pillHitTest(gestureRecognizer.location(in: tabBar), in: tabBar)
-    }
-
-    @objc private func tabBarLongPressed(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began, let tabBar else { return }
-        guard pillHitTest(gesture.location(in: tabBar), in: tabBar) else { return }
+    @objc private func pillLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         pillLongPressed?()
     }
 
-    /// True when the press landed on the pill. The liquid-glass bar
-    /// (iOS 26+, both the search and prominent roles) has NO
-    /// UITabBarButton subviews — the pill is the trailing accessory
-    /// capsule: a direct bar subview sitting right of the main platter.
-    /// The classic button list is kept as the pre-26 fallback; anything
-    /// unrecognized (no platter anchor, no capsule) degrades to "no long
-    /// press" — never a wrong hit.
-    private func pillHitTest(_ point: CGPoint, in bar: UITabBar) -> Bool {
-        let className: (UIView) -> String = { String(describing: type(of: $0)) }
-        let directSubviews = bar.subviews
-        if let pill = directSubviews.last(where: { className($0).hasPrefix("UITabBarButton") }) {
-            return pill.frame.contains(point)
-        }
-        let platters = directSubviews.filter { className($0).contains("Platter") }
-        // No platter anchor → the layout isn't the probed shape (early
-        // pass or a future bar redesign); refusing beats guessing.
-        guard let platterMaxX = platters.map(\.frame.maxX).max(), platterMaxX > 0 else {
-            return false
-        }
-        let capsule = directSubviews
-            .filter {
-                !className($0).contains("Platter")
-                    && $0.frame.minX >= platterMaxX - 1
-                    && $0.frame.width < bar.bounds.width
-            }
-            .min { $0.frame.minX < $1.frame.minX }
-        return capsule?.frame.contains(point) ?? false
+    /// Backstop tap path — see the class comment. The recognizer's
+    /// lift-time Began cancels the capsule's own touch stream, so when
+    /// this fires the native commit does not.
+    @objc private func pillTappedBackstop(_ gesture: UITapGestureRecognizer) {
+        pillTapped?()
     }
 
     func gestureRecognizer(
@@ -144,6 +105,34 @@ final class QuickAddTabBarProxy: NSObject, UITabBarControllerDelegate, UIGesture
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
         false
+    }
+
+    /// The pill's own view — the same anatomy walk the old pillHitTest
+    /// used. The liquid-glass bar (iOS 26+, both the search and prominent
+    /// roles) has NO UITabBarButton subviews: the pill is the trailing
+    /// accessory capsule, a direct bar subview sitting right of the main
+    /// platter. The classic button list is kept as the pre-26 fallback;
+    /// anything unrecognized (no platter anchor, no capsule) returns nil.
+    private func pillCapsuleView(in bar: UITabBar) -> UIView? {
+        let className: (UIView) -> String = { String(describing: type(of: $0)) }
+        let directSubviews = bar.subviews
+        if let pill = directSubviews.last(where: { className($0).hasPrefix("UITabBarButton") }) {
+            return pill
+        }
+        let platters = directSubviews
+            .filter { className($0).contains("Platter") }
+        // No platter anchor → the layout isn't the probed shape (early
+        // pass or a future bar redesign); refusing beats guessing.
+        guard let platterMaxX = platters.map(\.frame.maxX).max(), platterMaxX > 0 else {
+            return nil
+        }
+        return directSubviews
+            .filter {
+                !className($0).contains("Platter")
+                    && $0.frame.minX >= platterMaxX - 1
+                    && $0.frame.width < bar.bounds.width
+            }
+            .min { $0.frame.minX < $1.frame.minX }
     }
 
     // MARK: - Tap interception
@@ -182,6 +171,64 @@ final class QuickAddTabBarProxy: NSObject, UITabBarControllerDelegate, UIGesture
             return false
         }
         return forwardShouldSelectTab(tabBarController, tab: tab)
+    }
+}
+
+/// The pill's hold recognizer. Attached to the pill capsule, so it only
+/// ever sees pill touches. On touchdown it suppresses every gesture
+/// recognizer in the bar's tree for as long as the sequence runs (the
+/// liquid-glass bar keeps selection recognizers on the item subviews too,
+/// so the walk is recursive): the native continuous-selection recognizer
+/// would otherwise begin on the pill and commit a pill selection
+/// mid-hold, leaking the tap action into the hold. Everything attached
+/// within the capsule's own subtree — our sibling backstop tap included —
+/// stays live; the capsule's non-gesture selection path dies at the
+/// hold's Began via cancelsTouchesInView instead. Batches from overlapping
+/// touches MERGE (already-disabled recognizers are naturally skipped), so
+/// a second finger can never strand the first batch disabled, and one
+/// restore when the sequence closes puts everything back. That restore
+/// rides the next runloop because a synchronous one let the closing touch
+/// stream leak back into the just-revived recognizers and commit a stray
+/// pill selection at lift (probe-verified); recognizers disabled while a
+/// later touch began had their touches cancelled at that touch's start,
+/// so the early restore cannot inject them into an in-flight touch. A
+/// quick lift fails this recognizer and restores everything before the
+/// next touch — normal tabs are never gated on anything.
+final class PillHoldGestureRecognizer: UILongPressGestureRecognizer {
+    /// The bar whose subtree gets suppressed for the current sequence.
+    weak var bar: UITabBar?
+    private var suppressed: [UIGestureRecognizer] = []
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        suppressBarRecognizers()
+    }
+
+    override func reset() {
+        let suppressed = self.suppressed
+        self.suppressed = []
+        DispatchQueue.main.async { suppressed.forEach { $0.isEnabled = true } }
+        super.reset()
+    }
+
+    private func suppressBarRecognizers() {
+        guard let bar else { return }
+        let capsule = self.view
+        var found: [UIGestureRecognizer] = []
+        var stack: [UIView] = [bar]
+        while let view = stack.popLast() {
+            if view !== capsule {
+                for recognizer in view.gestureRecognizers ?? []
+                where recognizer !== self && recognizer.isEnabled {
+                    found.append(recognizer)
+                }
+                stack.append(contentsOf: view.subviews)
+            }
+        }
+        // Merge, not replace: an overlapping touch must not drop the
+        // first batch from the restore set.
+        suppressed.append(contentsOf: found)
+        found.forEach { $0.isEnabled = false }
     }
 }
 
@@ -238,7 +285,7 @@ final class FinderUIView: UIView {
                 proxy?.original = tabBarController.delegate as? NSObject
                 tabBarController.delegate = proxy
             }
-            proxy?.installLongPressIfNeeded(on: tabBarController.tabBar)
+            proxy?.installPillGestureIfNeeded(on: tabBarController.tabBar)
             installedController = tabBarController
             return
         }
@@ -246,7 +293,7 @@ final class FinderUIView: UIView {
             if let tabBarController = findTabBarController(in: root) {
                 proxy?.original = tabBarController.delegate as? NSObject
                 tabBarController.delegate = proxy
-                proxy?.installLongPressIfNeeded(on: tabBarController.tabBar)
+                proxy?.installPillGestureIfNeeded(on: tabBarController.tabBar)
                 installedController = tabBarController
             }
         }
