@@ -4988,6 +4988,57 @@
         }
       }
     },
+    "journal.filterKind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
+          }
+        }
+      }
+    },
+    "journal.filterNotBudget" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only Budget-Excluded"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只看不计预算"
+          }
+        }
+      }
+    },
+    "journal.filterNotCounted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only Not-Counted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只看不计收支"
+          }
+        }
+      }
+    },
     "journal.filterParticipant" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5017,23 +5068,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "项目"
-          }
-        }
-      }
-    },
-    "journal.filterShow" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示"
           }
         }
       }
@@ -5153,40 +5187,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索…"
-          }
-        }
-      }
-    },
-    "journal.show.all" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All Entries"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部记录"
-          }
-        }
-      }
-    },
-    "journal.show.excludeNotCounted" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Excluding Not-Counted Entries"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "排除不计入收支"
           }
         }
       }

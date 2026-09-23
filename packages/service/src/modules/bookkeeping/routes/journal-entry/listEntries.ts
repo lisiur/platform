@@ -24,7 +24,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
     tags: ["QianlaiJournal"],
     summary: "List journal entries",
     description:
-      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely. Ledger-wide listing shows the ledger's activity — every member entry the creator kept in plus every guest post (guest entries feed the share-based statement, so they stay visible and drillable here) — and excludes only entries the creator opted out via countsInLedger=false unless includeExcluded=true. Project-scoped queries always include every entry of the project. excludedFromBudget scopes the set to one side of the per-entry budget flag (the budget card's two drill-downs).",
+      "Lists the ledger's journal entries. Guests only see entries of the projects they belong to (any projectId filter is clamped to that scope); full roles may filter by projectId freely. Ledger-wide listing shows the ledger's activity — every member entry the creator kept in plus every guest post (guest entries feed the share-based statement, so they stay visible and drillable here) — and excludes only entries the creator opted out via countsInLedger=false unless includeExcluded=true. Project-scoped queries always include every entry of the project. excludedFromBudget scopes the set to one side of the per-entry budget flag (the budget card's two drill-downs). The countsInLedger query param scopes the set to one side of the creator's opt-out (false = only entries recorded 不计收支, the funnel's not-counted toggle) and is honored on project-scoped queries too.",
     request: {
       params: ledgerIdParamSchema,
       query: listEntriesQuerySchema,
@@ -67,6 +67,7 @@ export const listEntriesRoute = defineOpenAPIRoute({
         memberUserId: query.memberUserId,
         scopeProjectIds,
         includeExcluded: queryFlag(query.includeExcluded),
+        countsInLedger: triStateQueryFlag(query.countsInLedger),
         excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
         sort: query.sort,
         order: query.order,

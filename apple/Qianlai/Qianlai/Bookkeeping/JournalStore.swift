@@ -91,14 +91,16 @@ final class JournalStore {
     /// Creation alone doesn't qualify: it carries no settlement weight, so
     /// a created-only entry would render an all-zero row.
     var memberUserId: String? { didSet { guard !suppressReload, oldValue != memberUserId else { return }; scheduleReload() } }
-    /// Entry-kind filter (the dashboard's month-header menu): classified
+    /// Entry-kind filter (the drill pages' kind scope, and the funnel
+    /// sheet's 类型 pick): classified
     /// the way rows render them — an expense line makes the entry an
     /// expense, otherwise an income line makes it income, otherwise it is
     /// a transfer. nil lists every kind.
     var kind: QuickEntryKind? { didSet { guard !suppressReload, oldValue != kind else { return }; scheduleReload() } }
-    /// Budget-flag drill axis (the budget card's two drill-downs): true
-    /// lists only entries marked 不计入日常预算, false only entries the budget
-    /// counts (日常已花). nil lists every entry — the ledger's default.
+    /// Budget-flag axis (the budget card's two drill-downs, and the
+    /// funnel sheet's 不计预算 toggle): true lists only entries marked
+    /// 不计入日常预算, false only entries the budget counts (日常已花).
+    /// nil lists every entry — the ledger's default.
     /// Always paired with `kind = .expense`: the budget pools are
     /// expense-only, so the drill's rows reconcile with the tapped figure.
     var budgetExcluded: Bool? { didSet { guard !suppressReload, oldValue != budgetExcluded else { return }; scheduleReload() } }
@@ -106,8 +108,17 @@ final class JournalStore {
     /// activity entry — member kept-in, guest posts, and entries the
     /// creator opted out of the ledger's books (e.g. repayments); false
     /// hides those opted-out entries. Irrelevant while a project filter is
-    /// active — a project always shows all its entries.
+    /// active — a project always shows all its entries. No UI flips this
+    /// anymore: the funnel's 不计收支 toggle is the isolating
+    /// `notCountedOnly` axis, so this rests at true on the user surfaces.
     var includeExcluded = true { didSet { guard !suppressReload, oldValue != includeExcluded else { return }; scheduleReload() } }
+    /// The funnel's 不计收支 toggle as an ISOLATING axis: true narrows the
+    /// list to entries recorded 不计收支 (`countsInLedger=false`); false
+    /// (default) lists everything. Distinct from `includeExcluded` — the
+    /// set-wide escape hatch this toggle used to flip, which now simply
+    /// stays true: isolation is the server's countsInLedger axis, not the
+    /// absence of inclusion.
+    var notCountedOnly = false { didSet { guard !suppressReload, oldValue != notCountedOnly else { return }; scheduleReload() } }
     /// Project the page is hard-scoped to (the Journal follows the ledger
     /// switcher's scope). Not a user filter: the filter sheet can't change
     /// it, `clearFilters` restores it instead of lifting it. nil =
@@ -119,9 +130,10 @@ final class JournalStore {
     /// inputs; the signature check is what keeps that re-run from wiping a
     /// manual project filter (see the method's doc).
     private var scopeSyncSignature: String?
-    /// Row ordering, driven by the dashboard's month header (every other
-    /// surface stays on `.date`). Not part of `clearFilters`: it's
-    /// presentation intent, not a filter.
+    /// Row ordering, driven by the journal header's amount-order menu and
+    /// the dashboard's month header (the shared sort menu). Not part of
+    /// `clearFilters` or `clearStructuralFilters`: it's presentation
+    /// intent, not a filter.
     var sort: EntrySort = .date { didSet { guard !suppressReload, oldValue != sort else { return }; scheduleReload() } }
 
     /// Coalesces filter bursts (a preset writes two bounds, Clear four+) into
@@ -691,6 +703,27 @@ final class JournalStore {
         if kind != nil { kind = nil }
         if budgetExcluded != nil { budgetExcluded = nil }
         if !includeExcluded { includeExcluded = true }
+        if notCountedOnly { notCountedOnly = false }
+        suppressReload = false
+        scheduleReload()
+    }
+
+    /// Batched clear of the funnel sheet's structural picks only —
+    /// participant, project, the two toggles (not-counted, budget), and
+    /// the kind pick. The window, the search field, and the remaining
+    /// drill axes stay: the dashboard's Clear runs this, because its
+    /// month window is the page's identity (pinned at aim time), not a
+    /// user selection the sheet may lift — clearing the bounds here
+    /// would silently unpin the list onto all-time.
+    func clearStructuralFilters() {
+        suppressReload = true
+        if participantUserId != nil { participantUserId = nil }
+        // A scoped page keeps its scope; an unscoped one drops the pick.
+        if projectFilterId != scopeProjectId { projectFilterId = scopeProjectId }
+        if !includeExcluded { includeExcluded = true }
+        if budgetExcluded != nil { budgetExcluded = nil }
+        if kind != nil { kind = nil }
+        if notCountedOnly { notCountedOnly = false }
         suppressReload = false
         scheduleReload()
     }
@@ -924,6 +957,10 @@ final class JournalStore {
         /// The budget-flag drill axis — both requests carry it so a day
         /// header totals exactly the rows beneath it.
         var budgetExcluded: Bool?
+        /// The funnel's 不计收支 isolate axis — same ride-along rule as
+        /// the budget flag: the day headers must total exactly the rows
+        /// beneath them.
+        var notCountedOnly: Bool
 
         /// The aggregation's numerator the daily summary must pass
         /// explicitly (the endpoint has no default). The ruling: a ledger's
@@ -950,6 +987,7 @@ final class JournalStore {
                 ("memberUserId", memberUserId),
                 ("kind", kind?.rawValue),
                 ("excludedFromBudget", budgetExcluded.map { $0 ? "true" : "false" }),
+                ("countsInLedger", notCountedOnly ? "false" : nil),
             ]
         }
     }
@@ -967,7 +1005,8 @@ final class JournalStore {
             accountType: accountType,
             memberUserId: memberUserId,
             kind: kind,
-            budgetExcluded: budgetExcluded
+            budgetExcluded: budgetExcluded,
+            notCountedOnly: notCountedOnly
         )
     }
 
@@ -991,8 +1030,10 @@ final class JournalStore {
     /// opt-outs (the budget pool counts them, and the list rides the
     /// store's includeExcluded=true), so the day headers must too — or a
     /// header would silently drop the very entries the tapped figure
-    /// counts. The flag rides only while the axis is set, leaving every
-    /// other surface's header contract untouched.
+    /// counts. The flag rides only while that axis is set, leaving every
+    /// other surface's header contract untouched. The 不计收支 isolate
+    /// needs no such ride-along: the server lifts its activity predicate
+    /// whenever the countsInLedger axis is present.
     private static func dailySummaryQuery(filters: Filters) -> String {
         ApiQuery.build(
             filters.queryPairs + [

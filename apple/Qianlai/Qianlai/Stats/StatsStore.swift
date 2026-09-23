@@ -10,20 +10,38 @@ import Observation
 
 /// The journal's structural filters a chart page carries, captured at
 /// push time (the funnel sheet's picks). Deliberately absent: the search
-/// text (a list mechanic, not a chart dimension) and the show/hide opt-out
-/// toggle — a 不计收支 entry's amounts stay out of every stat the ledger
-/// speaks, charts included, however the list displays it; that caliber is
-/// pinned server-side. nil = the unfiltered ledger stats the dashboard tab
-/// fetches: unchanged snapshot keys, and the widget-snapshot publish duty.
-/// nonisolated — its members feed the pure key/query builders below, the
-/// same convention as `MonthWindow`.
+/// text (a list mechanic, not a chart dimension). The isolating toggles
+/// ride as narrow-the-set axes: 不计预算 via `excludedFromBudget`, 不计收支
+/// via `countsInLedger=false` — the server lifts its ledger-activity
+/// predicate whenever the countsInLedger axis is present, so no caller
+/// needs an includeExcluded ride-along. The budget opt-out counts in the
+/// ledger stats by default, so isolating it is a real narrowing the cards
+/// must follow to reconcile with the funnel-filtered list. nil = the
+/// unfiltered ledger stats the dashboard tab fetches: unchanged snapshot
+/// keys, and the widget-snapshot publish duty. nonisolated — its members
+/// feed the pure key/query builders below, the same convention as
+/// `MonthWindow`.
 nonisolated struct StatsFilters: Hashable {
     var participantUserId: String?
     var projectId: String?
+    /// true = only entries marked 不计入日常预算 (the funnel's 只看不计预算
+    /// toggle); nil = no budget filtering.
+    var budgetExcluded: Bool? = nil
+    /// true = only entries recorded 不计收支 (the funnel's 只看不计收支
+    /// toggle); nil = no not-counted filtering.
+    var notCountedOnly: Bool? = nil
+    /// The kind pick (the funnel's 全部/支出/收入): the window's totals
+    /// narrow to entries classified that way — the same server
+    /// classification the list rows render by. nil = every kind
+    /// (transfer included).
+    var kind: QuickEntryKind? = nil
 
     /// Capture sites collapse empty filters to nil so an unfiltered chart
     /// page stays wire- and cache-identical to the dashboard tab's.
-    var isEmpty: Bool { participantUserId == nil && projectId == nil }
+    var isEmpty: Bool {
+        participantUserId == nil && projectId == nil
+            && budgetExcluded == nil && notCountedOnly == nil && kind == nil
+    }
 
     /// The aggregation's numerator, the journal day headers' rule: a
     /// project's books speak raw lines, the ledger speaks the members'
@@ -35,6 +53,9 @@ nonisolated struct StatsFilters: Hashable {
         [
             ("participantUserId", participantUserId),
             ("projectId", projectId),
+            ("excludedFromBudget", budgetExcluded.map { $0 ? "true" : "false" }),
+            ("countsInLedger", notCountedOnly == true ? "false" : nil),
+            ("kind", kind?.rawValue),
         ]
     }
 
@@ -47,6 +68,25 @@ nonisolated struct StatsFilters: Hashable {
         return ApiQuery.build(
             filters.queryPairs + [("shareMode", filters.shareMode.rawValue)]
         )
+    }
+}
+
+/// The store's structural filters as one stats capture — the read every
+/// host surface (dashboard, journal, stats tab) shares, so a new axis
+/// lands here and nowhere else. The search stays out (a list mechanic);
+/// every axis the funnel sheet offers now isolates a set the cards must
+/// reconcile with. An empty capture collapses to nil so an unfiltered
+/// surface stays wire- and cache-identical to the dashboard tab's.
+extension JournalStore {
+    var statsFilters: StatsFilters? {
+        let filters = StatsFilters(
+            participantUserId: participantUserId,
+            projectId: projectFilterId,
+            budgetExcluded: budgetExcluded,
+            notCountedOnly: notCountedOnly ? true : nil,
+            kind: kind
+        )
+        return filters.isEmpty ? nil : filters
     }
 }
 
@@ -94,6 +134,12 @@ final class StatsStore {
     private(set) var window: MonthWindow?
 
     private var ledgerId: String?
+
+    /// The filters the published payloads describe — the staleness guard's
+    /// third axis: two loads sharing a ledger and window but differing in
+    /// filters (the funnel's toggles flip them) must not let an in-flight
+    /// response shaped for the old shape publish over the newer aim.
+    private var filters: StatsFilters?
 
     /// The default empty store — the pushed surfaces (month view, chart
     /// page) and the tests. Their cold hydrate runs in the task-driven
@@ -162,6 +208,7 @@ final class StatsStore {
         }
         self.ledgerId = ledgerId
         self.window = window
+        self.filters = filters
         hydrate(ledgerId: ledgerId, window: window, filters: filters)
         isLoading = true
         defer { isLoading = false }
@@ -306,7 +353,17 @@ final class StatsStore {
             // Both aim fields gate the publish — a ledger switch aimed at
             // an identical window must drop the old ledger's in-flight
             // response, or the doc's stale-data promise below is a lie.
-            guard self.ledgerId == ledgerId, self.window == window, !Task.isCancelled else { return }
+            // All three aim fields gate the publish: a ledger switch, a
+            // window step, or a filter flip must drop an in-flight
+            // response shaped for the old aim — same-window/different-
+            // filters is a real toggle race (RangeTotalsStore guards the
+            // same way).
+            guard
+                self.ledgerId == ledgerId,
+                self.window == window,
+                self.filters == filters,
+                !Task.isCancelled
+            else { return }
             publish(payload)
         } catch {
             // Keep the previous window's payload; the next reload retries.

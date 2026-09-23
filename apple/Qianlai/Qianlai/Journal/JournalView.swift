@@ -207,7 +207,8 @@ struct JournalView: View {
     }
 
     /// The header row's trailing controls: the funnel button (the shared
-    /// component, sheet included) and the amount-order menu beside it.
+    /// component, sheet included) and the amount-order menu beside it
+    /// (the shared sort menu).
     private var filterButtonSortMenu: some View {
         HStack(spacing: 8) {
             JournalFilterButton(
@@ -216,7 +217,7 @@ struct JournalView: View {
                 projectStore: appProjectStore,
                 memberStore: memberStore
             )
-            sortMenu
+            JournalSortMenu(store: store)
                 .buttonStyle(.borderless)
         }
     }
@@ -231,17 +232,10 @@ struct JournalView: View {
         return !ledger.isGuest && scopedProject == nil
     }
 
-    /// The journal's structural filters as they read right now — the
-    /// chart page's push payload and the stat card's summary fetch share
-    /// the same live capture (an empty capture collapses to nil so an
-    /// unfiltered chart page stays wire- and cache-identical to the
-    /// dashboard tab's).
+    /// The chart page's push payload and the stat card's summary fetch
+    /// share the store's live capture (see `JournalStore.statsFilters`).
     private var statsFilters: StatsFilters? {
-        let filters = StatsFilters(
-            participantUserId: store.participantUserId,
-            projectId: store.projectFilterId
-        )
-        return filters.isEmpty ? nil : filters
+        store.statsFilters
     }
 
     /// The month view page's toolbar button (calendar icon, before the
@@ -331,49 +325,6 @@ struct JournalView: View {
             guard !Task.isCancelled, ledgerId == ledgerStore.activeLedger?.id else { return }
             windowSummary = summary
         }
-    }
-
-    /// Amount-order menu, beside the filter button — same items, state
-    /// column and tint signal as the dashboard's month header (the default
-    /// order never carries the checkmark; a non-default sort tints the
-    /// icon accent and gets marked). Presentation intent, not a filter: it
-    /// never tints the funnel. The amount orders carry their on-state as
-    /// Toggles — UIKit's own selection-state channel, so the checkmark
-    /// renders in the menu's trailing state column on every OS build; the
-    /// hand-drawn Label icon this replaces is placed per-build by SwiftUI
-    /// (column on the 26.5 simulator, inline against the title on device).
-    private var sortMenu: some View {
-        Menu {
-            // The default `.date` stays a plain Button and never carries
-            // the checkmark — it's the list's natural state, so only a
-            // deviation from it gets marked.
-            Button {
-                store.sort = .date
-            } label: {
-                Text(L10n.string("journal.sortDefault", defaultValue: "Default"))
-            }
-            Toggle(
-                L10n.string("journal.sortAmountDesc", defaultValue: "Amount: high to low"),
-                isOn: sortActiveBinding(.amountDescending)
-            )
-            Toggle(
-                L10n.string("journal.sortAmountAsc", defaultValue: "Amount: low to high"),
-                isOn: sortActiveBinding(.amountAscending)
-            )
-        } label: {
-            CircleIcon(systemName: "arrow.up.arrow.down", isActive: store.sort != .date)
-        }
-        .accessibilityLabel(Text(L10n.string("journal.sort", defaultValue: "Sort")))
-    }
-
-    /// Radio-style on-state for one amount order: on only while `sort` is
-    /// that order, and writes only ever turn an order ON — tapping the
-    /// already-active row just closes the menu with the selection intact.
-    private func sortActiveBinding(_ sort: JournalStore.EntrySort) -> Binding<Bool> {
-        Binding(
-            get: { store.sort == sort },
-            set: { if $0 { store.sort = sort } }
-        )
     }
 
     /// Projects of the active ledger, from the app-level per-ledger cache —

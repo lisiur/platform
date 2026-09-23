@@ -181,6 +181,14 @@ struct RangeTotalsCard: View {
 /// ledger nils the seed (the aim rule) and refills from that ledger's
 /// own record. The fetch always follows and silently corrects — today's
 /// row included, which a persisted cache can only seed stale.
+///
+/// The fetch carries the host surface's structural filters (`StatsFilters`,
+/// the funnel sheet's picks — the dashboard's list, stat block, and this
+/// card move as one): the cache key gains a filters segment so a filtered
+/// day list never reads as (or poisons) the ledger's record, while the
+/// "last" meta stays a plain ledger pointer — filters are session state,
+/// so the launch seed always reads the unfiltered shape the launch
+/// surface fetches.
 @MainActor
 @Observable
 final class RangeTotalsStore {
@@ -188,6 +196,7 @@ final class RangeTotalsStore {
 
     private var ledgerId: String?
     private var window: MonthWindow?
+    private var filters: StatsFilters?
 
     /// Seeds the payload directly — the screenshot harness renders real
     /// figures without a backend; production callers start empty BUT
@@ -200,26 +209,34 @@ final class RangeTotalsStore {
         let seededWindow = MonthWindow(from: meta.from, to: meta.to)
         ledgerId = meta.ledgerId
         window = seededWindow
-        hydrate(ledgerId: meta.ledgerId, window: seededWindow)
+        // The launch surface is always unfiltered (filters are session
+        // state), so the creation seed reads the plain key.
+        hydrate(ledgerId: meta.ledgerId, window: seededWindow, filters: nil)
     }
 
-    func load(ledgerId: String) async {
+    /// Fetches the card's year window for `ledgerId`, scoped to the
+    /// surface's structural `filters` (nil = the ledger-wide figures).
+    /// A filter change keeps the previous day list on screen while the
+    /// fetch runs (keep-previous, the stats component's rule) — only a
+    /// ledger switch drops everything.
+    func load(ledgerId: String, filters: StatsFilters? = nil) async {
         let window = RangeTotalsMath.window(for: .now, calendar: .current)
         if self.ledgerId != ledgerId {
             days = nil
         }
         self.ledgerId = ledgerId
         self.window = window
-        hydrate(ledgerId: ledgerId, window: window)
-        let path = StatsStore.dailySummaryPath(ledgerId: ledgerId, window: window, filters: nil)
+        self.filters = filters
+        hydrate(ledgerId: ledgerId, window: window, filters: filters)
+        let path = StatsStore.dailySummaryPath(ledgerId: ledgerId, window: window, filters: filters)
         do {
             let response: DailySummaryResponse = try await APIClient.shared.request("GET", path)
-            // Both aim fields gate the publish: a ledger switch aimed at
-            // the identical year window must drop the old ledger's
-            // in-flight response, not just a re-aimed window.
-            guard self.ledgerId == ledgerId, self.window == window else { return }
+            // All three aim fields gate the publish: a ledger switch or a
+            // filter change aimed at the identical window must drop the
+            // in-flight response shaped for the old aim.
+            guard self.ledgerId == ledgerId, self.window == window, self.filters == filters else { return }
             days = response.days
-            let key = Self.snapshotKey(ledgerId: ledgerId, window: window)
+            let key = Self.snapshotKey(ledgerId: ledgerId, window: window, filters: filters)
             Self.cache.write(key: key, payload: response.days)
             Self.cache.write(
                 key: Self.lastKey,
@@ -252,11 +269,19 @@ final class RangeTotalsStore {
     /// The cache key: ledger plus the FETCH window's bounds — the
     /// week-widened shape at a year boundary, since that is the span the
     /// cached day list actually covers, and a widened record must never
-    /// read as the plain year's. Pure and nonisolated for tests.
-    nonisolated static func snapshotKey(ledgerId: String, window: MonthWindow) -> String {
-        SnapshotCache.makeKey(
-            SnapshotCache.ledgerWindowTokens(ledgerId: ledgerId, from: window.from, to: window.to)
-        )
+    /// read as the plain year's — plus a filters segment when the fetch
+    /// carries the journal's structural filters, so a participant-scoped
+    /// day list never reads as (or poisons) the ledger's record. The
+    /// unfiltered key is unchanged (already-persisted snapshots stay
+    /// valid). Pure and nonisolated for tests.
+    nonisolated static func snapshotKey(
+        ledgerId: String, window: MonthWindow, filters: StatsFilters?
+    ) -> String {
+        var tokens = SnapshotCache.ledgerWindowTokens(ledgerId: ledgerId, from: window.from, to: window.to)
+        if let segment = StatsFilters.keySegment(filters) {
+            tokens.append(segment)
+        }
+        return SnapshotCache.makeKey(tokens)
     }
 
     /// Fills a nil day list from the persisted snapshot — a cold mount's
@@ -264,10 +289,10 @@ final class RangeTotalsStore {
     /// follows and corrects. A hydrated-but-failed load keeps last-known
     /// figures on screen instead of dashes. (The store CREATION seed runs
     /// earlier, in `init` — this covers a load that aims somewhere new.)
-    private func hydrate(ledgerId: String, window: MonthWindow) {
+    private func hydrate(ledgerId: String, window: MonthWindow, filters: StatsFilters?) {
         guard days == nil,
               let cached: [DayIncomeExpense] = Self.cache.read(
-                  key: Self.snapshotKey(ledgerId: ledgerId, window: window),
+                  key: Self.snapshotKey(ledgerId: ledgerId, window: window, filters: filters),
                   as: [DayIncomeExpense].self
               )
         else { return }

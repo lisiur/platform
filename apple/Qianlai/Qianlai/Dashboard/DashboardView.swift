@@ -12,7 +12,13 @@ import SwiftUI
 /// block, the today/week/year card — over the selected month's records.
 /// The summary rides the shared entry list's topContent row (the same
 /// composition the month view page uses); the list below is that
-/// selected month's journal, stepped by the same month header.
+/// selected month's journal. The month header's trailing edge carries
+/// the journal page's filter funnel and amount sort (the shared journal
+/// filter surface): they move the list and the two actuals cards (stat
+/// block, range card) as one state — the budget cards stay ledger-wide
+/// (their endpoints carry no filters) — while the window itself stays
+/// pinned to the current month (the funnel's Clear keeps the pin;
+/// history browsing lives on the month view page).
 ///
 /// When a project is scoped — a guest ledger's auto-picked/selected
 /// project, or any role's explicit switcher selection — the dashboard
@@ -53,8 +59,15 @@ struct DashboardView: View {
     /// The selected month's records — a private store so the dashboard's
     /// rows act on this page without clashing with the Journal tab's
     /// root store (the drill-down rule). Windowed to the month header's
-    /// selection; guests read it too.
+    /// selection; guests read it too. The header's funnel and sort
+    /// write their picks here, and every surface below reads the same
+    /// state back (the list rows, their day headers, the stat block,
+    /// the range card).
     @State private var monthEntryStore = JournalStore()
+    /// The member roster behind the funnel sheet's participant picker —
+    /// host-owned, the journal page's rule (the sheet reads whatever
+    /// store the host already keeps loaded for its own lifetime).
+    @State private var memberStore = MemberStore()
     /// Target of the dashboard's drill-down — the tapped figure's
     /// filter (kind + optional category drill) plus the ledger snapshot it
     /// drills into. nil = drill-down popped. The payload type is shared
@@ -269,9 +282,19 @@ struct DashboardView: View {
             // (the list endpoint works for them); the report endpoints
             // below 403 guests, so the budget/stat/spending fetches stay
             // behind the role guard.
+            // A ledger switch must not carry the previous ledger's manual
+            // project filter into this one's list (its id is meaningless
+            // here) — the same projection rule the journal page runs
+            // before its load. The dashboard is always ledger-scope, so
+            // the scope side is permanently nil.
+            monthEntryStore.syncScopeProjection(ledgerId: ledger.id, scopeProjectId: nil)
             await monthEntryStore.aim(
                 ledgerId: ledger.id, window: AppDates.monthWindow()
             )
+            // The funnel sheet's participant picker reads this roster;
+            // guests load it too (their fixed members tab proves the
+            // endpoint works for them).
+            await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             // Month writes go through the silent setter: this task fetches
             // immediately below, so the didSet-driven debounced reload
             // would only duplicate the request. This page's share of the
@@ -293,7 +316,8 @@ struct DashboardView: View {
             // The spending card's year window is stepper-independent the
             // same way — ledger change and this task's re-runs re-aim it;
             // posts and edits re-summarize it through the epoch below.
-            await rangeStore.load(ledgerId: ledger.id)
+            // It follows the header filters like the stat block does.
+            await rangeStore.load(ledgerId: ledger.id, filters: statsFilters)
         }
         // A post/update/delete anywhere bumps the shared epoch — the
         // spending card and the month list both move with it (the list
@@ -307,10 +331,29 @@ struct DashboardView: View {
             } else {
                 Task {
                     async let entries: () = monthEntryStore.reload()
-                    async let range: () = rangeStore.load(ledgerId: ledger.id)
+                    async let range: () = rangeStore.load(
+                        ledgerId: ledger.id, filters: statsFilters
+                    )
                     _ = await (entries, range)
                 }
             }
+        }
+        // Any structural pick reshapes the range card's fetch the way it
+        // reshapes the list: the overview stat block re-fetches through
+        // the cards' own load key (its mount carries the live capture),
+        // the list through the store's didSet reloads. Watching the
+        // capture (not individual fields) keeps the card glued to every
+        // axis the sheet grows; the search field doesn't fire it — the
+        // search stays a list mechanic.
+        .onChange(of: statsFilters) {
+            reloadRangeCard()
+        }
+        // The projects cache refreshing is also when a project can flip
+        // to archived elsewhere — drop a manual filter it carried, or
+        // the sheet would render its row blank over a still-filtered
+        // list (the journal page's same upkeep).
+        .onChange(of: projectFilterOptions.map(\.id)) {
+            dropArchivedProjectFilter()
         }
         .refreshable {
             if showsProjectDetail {
@@ -329,9 +372,12 @@ struct DashboardView: View {
             )
             async let stats: () = statsStore.load(
                 ledgerId: ledger.id, window: statsWindow,
+                filters: statsFilters,
                 includesDaily: false, includesCategories: false
             )
-            async let range: () = rangeStore.load(ledgerId: ledger.id)
+            async let range: () = rangeStore.load(
+                ledgerId: ledger.id, filters: statsFilters
+            )
             async let entries: () = monthEntryStore.reload()
             _ = await (budget, categoryBudget, stats, range, entries)
         }
@@ -365,20 +411,22 @@ struct DashboardView: View {
             }
         }
         // The stat card's drill-downs: the selected month's journal
-        // filtered to the tapped figure, PUSHED rather than sheet-mounted.
-        // The window is the dashboard's current month — NOT the
-        // payload's echoed `dashboard.month`, which is a UTC bucket and can
-        // read one month early east of UTC. Push, not sheet: a searchable
-        // sheet below the edit cover's sub-presentation remounts the
-        // cover's content on every presentation edge (iOS 26 quirk — the
-        // full story on StatKindDetailView); a push adds no presentation
-        // host, so this chain matches the journal tab's.
+        // filtered to the tapped figure (and to the header's structural
+        // filters, so the rows reconcile with it), PUSHED rather than
+        // sheet-mounted. The window is the dashboard's current month —
+        // NOT the payload's echoed `dashboard.month`, which is a UTC
+        // bucket and can read one month early east of UTC. Push, not
+        // sheet: a searchable sheet below the edit cover's sub-presentation
+        // remounts the cover's content on every presentation edge (iOS 26
+        // quirk — the full story on StatKindDetailView); a push adds no
+        // presentation host, so this chain matches the journal tab's.
         .navigationDestination(item: $statDetailTarget) { target in
             StatKindDetailView(
                 ledger: target.ledger,
                 filter: target.filter,
                 window: target.windowOverride ?? statsWindow,
-                day: target.day
+                day: target.day,
+                filters: target.filters
             )
         }
     }
@@ -456,15 +504,68 @@ struct DashboardView: View {
     /// never present target-less. `categoryLabel`, when set, swaps the
     /// page title to "时间 · 分类" instead of the kind. `day`, when set,
     /// windows to that single LOCAL day (the calendar card's cell and the
-    /// trend card's bubble) instead of the month.
+    /// trend card's bubble) instead of the month. The header filters ride
+    /// along (the live capture at tap time): the drill's rows must
+    /// reconcile with the filtered figure the user tapped.
     private func openStatDetail(_ drill: JournalDrillDown, day: Date? = nil, windowOverride: MonthWindow? = nil) {
+        pushStatDetail(drill, day: day, windowOverride: windowOverride, filters: statsFilters)
+    }
+
+    /// The budget cards' drill — the same push but always UNFILTERED: the
+    /// budget figures are ledger-wide (the budget endpoints carry no
+    /// filter params), so the drill page must count the same set the
+    /// tapped figure did.
+    private func openBudgetDetail(_ drill: JournalDrillDown, windowOverride: MonthWindow? = nil) {
+        pushStatDetail(drill, day: nil, windowOverride: windowOverride, filters: nil)
+    }
+
+    private func pushStatDetail(
+        _ drill: JournalDrillDown,
+        day: Date?,
+        windowOverride: MonthWindow?,
+        filters: StatsFilters?
+    ) {
         guard let ledger = ledgerStore.activeLedger else { return }
         statDetailTarget = StatDetailTarget(
             ledger: ledger,
             filter: drill,
             day: day,
-            windowOverride: windowOverride
+            windowOverride: windowOverride,
+            filters: filters
         )
+    }
+
+    /// The list's structural filters as they read right now — the cards'
+    /// fetches (overview stat block, range card) and the stat drills
+    /// share the store's live capture (see `JournalStore.statsFilters`).
+    private var statsFilters: StatsFilters? {
+        monthEntryStore.statsFilters
+    }
+
+    /// Re-fetches the range card for the filters' current shape. Guests
+    /// never fetch it (the endpoint 403s them); in project scope the
+    /// whole summary is off the screen.
+    private func reloadRangeCard() {
+        guard !showsProjectDetail, let ledger = ledgerStore.activeLedger, !ledger.isGuest else { return }
+        Task { await rangeStore.load(ledgerId: ledger.id, filters: statsFilters) }
+    }
+
+    /// Projects of the active ledger, from the app-level per-ledger cache
+    /// — kept warm by the ledger switcher's own load. Read here only for
+    /// the archived-filter drop; the funnel sheet derives its own options.
+    private var projectFilterOptions: [QianlaiProject] {
+        guard let ledger = ledgerStore.activeLedger else { return [] }
+        return projectStore.activeProjects(for: ledger.id)
+    }
+
+    /// Drops a manual project filter that no longer points at an active
+    /// project. The dashboard is never scoped, so every pick here is
+    /// manual (the journal page exempts its scoped sessions).
+    private func dropArchivedProjectFilter() {
+        guard let filterId = monthEntryStore.projectFilterId,
+              !projectFilterOptions.contains(where: { $0.id == filterId })
+        else { return }
+        monthEntryStore.projectFilterId = nil
     }
 
     /// The month window the cards (and drill-downs) summarize — the
@@ -493,12 +594,37 @@ struct DashboardView: View {
         .scrollBounceBehavior(.basedOnSize)
     }
 
+    /// The month header's trailing controls — the journal header's
+    /// arrangement (filter funnel + amount sort, borderless, hugging the
+    /// list's small inset). They drive the private month entry store, so
+    /// the list, its day headers, the stat block, and the range card all
+    /// follow one filter state. The window stays out of their reach: the
+    /// dashboard is pinned to the current month, so the funnel's Clear
+    /// runs the structural-only clear — the sheet may never unpin the
+    /// page.
+    private var headerControls: some View {
+        HStack(spacing: 8) {
+            JournalFilterButton(
+                store: monthEntryStore,
+                ledgerStore: ledgerStore,
+                projectStore: projectStore,
+                memberStore: memberStore,
+                clearAction: { monthEntryStore.clearStructuralFilters() }
+            )
+            JournalSortMenu(store: monthEntryStore)
+                .buttonStyle(.borderless)
+        }
+    }
+
     /// Current-month title, budget card, and the reusable stats
     /// component's overview stat block — laid out by the shared
     /// summary chrome (the screenshot harness stacks the same way, so
     /// the spacings can't drift between the two).
     private func monthSummary(_ ledger: QianlaiLedger) -> some View {
-        dashboardSummaryStack(title: AppDates.formatMonthTitle(.current, locale: locale)) {
+        dashboardSummaryStack(
+            title: AppDates.formatMonthTitle(.current, locale: locale),
+            trailing: { headerControls }
+        ) {
             // The budget card rides directly under the month header so
             // the "how much is left" answer is the first thing on the
             // page. It renders only when a budget is set (nil report /
@@ -521,12 +647,12 @@ struct DashboardView: View {
                     // top-up-card payment kept out of income/expense
                     // still drills here).
                     spentAction: {
-                        openStatDetail(
+                        openBudgetDetail(
                             JournalDrillDown(kind: .expense, isBudgetExcluded: false)
                         )
                     },
                     excludedAction: {
-                        openStatDetail(
+                        openBudgetDetail(
                             JournalDrillDown(kind: .expense, isBudgetExcluded: true)
                         )
                     }
@@ -543,7 +669,7 @@ struct DashboardView: View {
             // leaf, the composition card's rollup drill for a parent.
             if let categoryBudget = store.categoryBudget, !categoryBudget.categories.isEmpty {
                 CategoryBudgetCardView(report: categoryBudget) { row in
-                    openStatDetail(
+                    openBudgetDetail(
                         JournalDrillDown(
                             kind: .expense,
                             parentAccountId: row.accountId,
@@ -574,6 +700,13 @@ struct DashboardView: View {
                 monthPrefixedLabels: true,
                 showsTrendAndComposition: false,
                 window: statsWindow,
+                // The header's live capture: the component's load key
+                // carries the filter token, so a funnel pick re-fetches
+                // the block the same way a window step would. Filtered
+                // fetches never republish the widget snapshot (the
+                // store-side rule), and the creation seed above stays
+                // the unfiltered record — the launch surface's shape.
+                filters: statsFilters,
                 expenseAction: { openStatDetail(kind: .expense) },
                 incomeAction: { openStatDetail(kind: .income) },
                 onSelectCategory: { openStatDetail($0) }
@@ -613,22 +746,30 @@ struct DashboardView: View {
     }
 }
 
-/// The dashboard summary's shared chrome — the month title, the base
-/// stack rhythm, and the outer top padding — used by the real page AND
-/// the `--ui-demo-range-card` screenshot harness, so the demo measures
-/// the real geometry by construction instead of by keeping copies in
-/// step. Cards after the first carry `.summaryCardGap()` themselves.
+/// The dashboard summary's shared chrome — the month title (with an
+/// optional trailing control slot on the same row), the base stack
+/// rhythm, and the outer top padding — used by the real page AND the
+/// `--ui-demo-range-card` screenshot harness, so the demo measures the
+/// real geometry by construction instead of by keeping copies in step.
+/// Cards after the first carry `.summaryCardGap()` themselves.
 func dashboardSummaryStack(
-    title: String, @ViewBuilder content: () -> some View
+    title: String,
+    @ViewBuilder trailing: () -> some View = { EmptyView() },
+    @ViewBuilder content: () -> some View
 ) -> some View {
     VStack(alignment: .leading, spacing: 10) {
         // A static label, not a stepper: the dashboard is pinned to the
         // current month — history browsing lives on the month view page,
-        // which steps its own header.
-        Text(title)
-            .font(.title3.weight(.semibold))
-            // The same little inset the chrome-less rows carry.
-            .padding(.horizontal, 6)
+        // which steps its own header. The trailing slot carries the
+        // header's controls on the surfaces that mount them.
+        HStack {
+            Text(title)
+                .font(.title3.weight(.semibold))
+            Spacer(minLength: 12)
+            trailing()
+        }
+        // The same little inset the chrome-less rows carry.
+        .padding(.horizontal, 6)
         content()
     }
     // Horizontal margins come from the inset-grouped list itself;

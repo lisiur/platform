@@ -8,6 +8,7 @@ vi.mock("#lib/db", () => ({
 import {
   categorySummaryFromLines,
   dailySummaryFromLines,
+  entryFilterWhere,
   entryKindLines,
   journalRepository,
   orderByAmount,
@@ -642,5 +643,52 @@ describe("sumLinesByCategory", () => {
         OR: [{ accountId: "acc-food" }, { account: { parentId: "acc-food" } }],
       },
     });
+  });
+});
+
+describe("entryFilterWhere", () => {
+  it("scopes to the countsInLedger=false side when the axis is set", () => {
+    const where = JSON.stringify(
+      entryFilterWhere("l1", { countsInLedger: false }),
+    );
+    expect(where).toContain('"countsInLedger":false');
+  });
+
+  it("lifts the ledger-activity predicate on the axis alone", () => {
+    // countsInLedger:false without any includeExcluded ride-along: the
+    // predicate's OR would zero the narrowed set, so the where-builder
+    // lifts it itself — a caller that forgets the pairing stays correct.
+    const where = JSON.stringify(
+      entryFilterWhere("l1", { countsInLedger: false }),
+    );
+    expect(where).toContain('"countsInLedger":false');
+    expect(where).not.toContain("guestCreated");
+  });
+
+  it("keeps every entry when the axis is absent", () => {
+    // Top-level only: the ledger-activity predicate's own OR branch
+    // legitimately mentions countsInLedger(true) — that's the caliber,
+    // not the axis.
+    const where = entryFilterWhere("l1", {});
+    expect(where).not.toHaveProperty("countsInLedger");
+  });
+
+  it("lets the not-counted isolation coexist with the includeExcluded escape hatch", () => {
+    // The funnel's 不计收支 toggle sends both: without includeExcluded the
+    // ledger-activity predicate would drop exactly the set being isolated
+    // (its OR requires countsInLedger true or a guest post), zeroing the
+    // narrowed window.
+    const where = JSON.stringify(
+      entryFilterWhere("l1", { countsInLedger: false, includeExcluded: true }),
+    );
+    expect(where).toContain('"countsInLedger":false');
+    expect(where).not.toContain("guestCreated");
+  });
+
+  it("keeps the ledger-activity predicate while the escape hatch is closed", () => {
+    const where = JSON.stringify(
+      entryFilterWhere("l1", { includeExcluded: false }),
+    );
+    expect(where).toContain("guestCreated");
   });
 });

@@ -48,6 +48,11 @@ struct StatDetailTarget: Identifiable, Hashable {
     /// card's rows drill the YEAR, not the host's selected month. nil
     /// keeps the host's window.
     var windowOverride: MonthWindow? = nil
+    /// The host surface's structural filters, captured at tap time — the
+    /// drill's rows (and their day headers) must reconcile with the
+    /// filtered figures the user tapped. nil = an unfiltered surface
+    /// (the budget cards' drills: their figures are ledger-wide).
+    var filters: StatsFilters? = nil
 
     var id: String {
         let dayKey = day.map { String($0.timeIntervalSince1970) } ?? "-"
@@ -57,7 +62,8 @@ struct StatDetailTarget: Identifiable, Hashable {
         // of the same category are different items, so a quick re-tap of
         // the other one re-pushes cleanly.
         let windowKey = windowOverride.map { "\($0.from.timeIntervalSince1970)-\($0.to.timeIntervalSince1970)" } ?? "-"
-        return "\(ledger.id)|\(dayKey)|\(kindKey)|\(budgetKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")|\(windowKey)"
+        let filterKey = filters.flatMap(StatsFilters.keySegment) ?? "-"
+        return "\(ledger.id)|\(dayKey)|\(kindKey)|\(budgetKey)|\(filter.accountId ?? "")|\(filter.parentAccountId ?? "")|\(filter.categoryLabel ?? "")|\(windowKey)|\(filterKey)"
     }
 }
 
@@ -97,10 +103,12 @@ struct StatKindDetailView: View {
     /// month; `filter.kind` still scopes within the day when set (the
     /// calendar drills all kinds, the trend card drills its metric).
     var day: Date? = nil
-    /// The journal chart page's captured structural filters, seeded onto
-    /// the private store so the drill's rows (and their day headers)
-    /// reconcile with the filtered figures the user tapped. The dashboard's
-    /// drills leave it nil — its cards summarize the unfiltered ledger.
+    /// The host surface's captured structural filters, seeded onto the
+    /// private store so the drill's rows (and their day headers)
+    /// reconcile with the filtered figures the user tapped. nil on the
+    /// unfiltered surfaces — the budget cards' drills above all (their
+    /// figures are ledger-wide, and the budget endpoints carry no
+    /// filters).
     var filters: StatsFilters? = nil
 
     /// Private entry store, injected below so the rows act on this
@@ -143,10 +151,15 @@ struct StatKindDetailView: View {
             } else {
                 store.setWindow(window)
             }
-            store.kind = filter.kind
+            // The drill's own axes (the budget cards' two columns, the
+            // kind drill) win; a plain drill carries none and inherits
+            // the host surface's capture instead (the funnel's toggles
+            // and kind pick).
+            store.kind = filter.kind ?? filters?.kind
             store.accountId = filter.accountId
             store.parentAccountId = filter.parentAccountId
-            store.budgetExcluded = filter.isBudgetExcluded
+            store.budgetExcluded = filter.isBudgetExcluded ?? filters?.budgetExcluded
+            store.notCountedOnly = filters?.notCountedOnly == true
             store.participantUserId = filters?.participantUserId
             store.projectFilterId = filters?.projectId
             await store.load(ledgerId: ledger.id)

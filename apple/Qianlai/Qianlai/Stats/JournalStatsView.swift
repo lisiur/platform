@@ -72,7 +72,7 @@ struct JournalStatsView: View {
                 filter: target.filter,
                 window: window,
                 day: target.day,
-                filters: filters
+                filters: target.filters
             )
         }
         // The component's own task fetches on mount, window change, and
@@ -80,6 +80,8 @@ struct JournalStatsView: View {
     }
 
     private func openDrill(_ drill: JournalDrillDown, day: Date? = nil) {
-        drillTarget = StatDetailTarget(ledger: ledger, filter: drill, day: day)
+        drillTarget = StatDetailTarget(
+            ledger: ledger, filter: drill, day: day, filters: filters
+        )
     }
 }

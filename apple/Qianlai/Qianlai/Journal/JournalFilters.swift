@@ -9,10 +9,11 @@ import SwiftUI
 
 /// The journal filter surface, shared by every page that filters a
 /// ledger's entries the journal way: the period tabs (Week/Month/Year/
-/// All/Range), the window stepper/range editor, and the funnel button
-/// opening the structural-filter sheet (project / counted / participant).
-/// The journal tab and the stats tab mount the identical set; a future
-/// surface mounts the same — extract here instead of copying again.
+/// All/Range), the window stepper/range editor, the funnel button
+/// opening the structural-filter sheet (project / not-counted /
+/// participant), and the amount-order menu beside it. The journal tab
+/// and the stats tab mount the identical set; a future surface mounts
+/// the same — extract here instead of copying again.
 ///
 /// Shape: `JournalWindowModel` owns the selection-side state (the range
 /// pin and the once-per-session default), reading and writing the window
@@ -369,9 +370,9 @@ struct JournalWindowControl: View {
 }
 
 /// The funnel: the filter button (tinted while any structural filter is
-/// active) and the sheet it opens — the project pick, the counted/all
-/// choice, and the participant pick, all live-bound to the store (a
-/// picker change reloads at once; Done merely dismisses). The option
+/// active) and the sheet it opens — the project pick, the not-counted
+/// toggle, and the participant pick, all live-bound to the store (a
+/// control change reloads at once; Done merely dismisses). The option
 /// lists derive from the injected stores; the member roster is
 /// host-owned (`MemberStore`) because the host already loads it for its
 /// own lifetime. The window and search live outside this sheet and
@@ -381,6 +382,14 @@ struct JournalFilterButton: View {
     let ledgerStore: LedgerStore
     let projectStore: ProjectStore
     let memberStore: MemberStore
+    /// The Clear button's action. nil (the journal default) runs the
+    /// page-wide reset — `store.clearFilters()` also lifts the header's
+    /// date range and the search field. A surface whose window is the
+    /// page's identity rather than a user selection (the dashboard's
+    /// pinned current month) passes its own: clear the sheet's three
+    /// picks only (`clearStructuralFilters`), so clearing can never
+    /// unpin the page.
+    var clearAction: (() -> Void)? = nil
 
     @State private var isPresented = false
 
@@ -398,11 +407,15 @@ struct JournalFilterButton: View {
     }
 
     /// Whether the structural filters are active — the project pick, the
-    /// counted/excluded choice, or the participant pick.
+    /// not-counted toggle (on = isolating 不计收支), the budget toggle
+    /// (on = isolating 不计入日常预算), the kind pick, or the participant
+    /// pick. The toggles only ever carry their isolating state here.
     private var hasListFilters: Bool {
         store.participantUserId != nil
             || store.projectFilterId != store.scopeProjectId
-            || !store.includeExcluded
+            || store.notCountedOnly
+            || store.budgetExcluded == true
+            || store.kind != nil
     }
 
     /// The active ledger's projects, from the app-level per-ledger cache —
@@ -440,12 +453,53 @@ struct JournalFilterButton: View {
     }
 
     /// The sheet itself. The scope-claimed project is visible but locked
-    /// (the switcher owns it); with no project filter the counted/all
-    /// choice appears — a project filter always shows every entry of that
-    /// project, so the flag would be a no-op.
+    /// (the switcher owns it); with no project filter the not-counted
+    /// toggle appears — a project filter always shows every entry of
+    /// that project, so the flag would be a no-op.
     private var filterSheet: some View {
         NavigationStack {
             Form {
+                // The kind axis leads the sheet (Lisiur's order): all /
+                // expense / income (transfer stays drill-only — the panel
+                // offers the trio the ledger speaks). On a non-all pick
+                // the list narrows to entries classified that way, the
+                // same server classification the rows render by, and the
+                // cards follow through the StatsFilters capture.
+                Section {
+                    Picker(
+                        L10n.string("journal.filterKind", defaultValue: "Type"),
+                        selection: Binding(
+                            get: { store.kind?.rawValue ?? "" },
+                            // An unknown/empty pick lands back on All
+                            // (init failure = nil), the same "" sentinel
+                            // style the id pickers on this sheet use.
+                            set: { store.kind = QuickEntryKind(rawValue: $0) }
+                        )
+                    ) {
+                        Text(L10n.string("filters.all", defaultValue: "All")).tag("")
+                        Text(L10n.string("quick.kind.expense", defaultValue: "Expense")).tag(QuickEntryKind.expense.rawValue)
+                        Text(L10n.string("quick.kind.income", defaultValue: "Income")).tag(QuickEntryKind.income.rawValue)
+                    }
+                }
+                // The participant pick rides right under the kind axis
+                // (Lisiur's order): options scoped to the active project
+                // filter when one is set, else the full ledger roster.
+                if !participantCandidates.isEmpty {
+                    Section {
+                        Picker(
+                            L10n.string("journal.filterParticipant", defaultValue: "Participant"),
+                            selection: Binding(
+                                get: { store.participantUserId ?? "" },
+                                set: { store.participantUserId = $0.isEmpty ? nil : $0 }
+                            )
+                        ) {
+                            Text(L10n.string("journal.filterAllMembers", defaultValue: "All Members")).tag("")
+                            ForEach(participantCandidates) { member in
+                                Text(member.displayName).tag(member.id)
+                            }
+                        }
+                    }
+                }
                 if !projectFilterOptions.isEmpty {
                     Section {
                         Picker(
@@ -470,47 +524,57 @@ struct JournalFilterButton: View {
                         }
                     }
                 }
-                if store.projectFilterId == nil {
-                    Section {
-                        Picker(
-                            L10n.string("journal.filterShow", defaultValue: "Show"),
-                            selection: Binding(
-                                get: { store.includeExcluded ? "all" : "counted" },
-                                set: { store.includeExcluded = $0 == "all" }
-                            )
-                        ) {
-                            Text(L10n.string("journal.show.excludeNotCounted", defaultValue: "Excluding Not-Counted Entries")).tag("counted")
-                            Text(L10n.string("journal.show.all", defaultValue: "All Entries")).tag("all")
-                        }
-                    }
+                // Mirror of the budget toggle, on the other opt-out: on,
+                // the list narrows to entries recorded 不计收支; off
+                // (default) lists everything. The per-entry flag exists
+                // within projects too — the server honors the axis on
+                // project-scoped queries — so the row always shows.
+                Section {
+                    Toggle(
+                        L10n.string("journal.filterNotCounted", defaultValue: "Only Not-Counted"),
+                        isOn: Binding(
+                            get: { store.notCountedOnly },
+                            set: { store.notCountedOnly = $0 }
+                        )
+                    )
                 }
-                if !participantCandidates.isEmpty {
-                    Section {
-                        Picker(
-                            L10n.string("journal.filterParticipant", defaultValue: "Participant"),
-                            selection: Binding(
-                                get: { store.participantUserId ?? "" },
-                                set: { store.participantUserId = $0.isEmpty ? nil : $0 }
-                            )
-                        ) {
-                            Text(L10n.string("journal.filterAllMembers", defaultValue: "All Members")).tag("")
-                            ForEach(participantCandidates) { member in
-                                Text(member.displayName).tag(member.id)
-                            }
-                        }
-                    }
+                // The budget opt-out as its own axis: on, the list narrows
+                // to entries marked 不计入日常预算 (the budget card's
+                // excluded column's caliber); off (default) lists every
+                // entry. Like the not-counted toggle, a project filter
+                // does not mute it — the per-entry flag exists within
+                // projects too, so the row always shows.
+                Section {
+                    Toggle(
+                        L10n.string("journal.filterNotBudget", defaultValue: "Only Budget-Excluded"),
+                        isOn: Binding(
+                            get: { store.budgetExcluded == true },
+                            set: { store.budgetExcluded = $0 ? true : nil }
+                        )
+                    )
                 }
             }
             .navigationTitle(Text(L10n.string("filters.title", defaultValue: "Filters")))
             .inlineNavigationBarTitle()
+            // One row per Section reads as separate cards; the compact
+            // section spacing keeps them a tight stack instead of the
+            // default airiness a five-row sheet floats in.
+            .listSectionSpacing(.compact)
             .toolbar {
                 if hasListFilters {
                     ToolbarItem(placement: .cancellationAction) {
-                        // The page-wide reset: besides this sheet's picks it
-                        // also lifts the header's date range and the search
-                        // field (store.clearFilters).
+                        // nil clearAction = the page-wide reset: besides
+                        // this sheet's picks it also lifts the header's
+                        // date range and the search field
+                        // (store.clearFilters). A host override swaps the
+                        // action; the button's visibility still tracks the
+                        // structural picks only.
                         Button(role: .destructive) {
-                            store.clearFilters()
+                            if let clearAction {
+                                clearAction()
+                            } else {
+                                store.clearFilters()
+                            }
                             isPresented = false
                         } label: {
                             Text(L10n.string("filters.clear", defaultValue: "Clear"))
@@ -527,6 +591,53 @@ struct JournalFilterButton: View {
         #if os(iOS)
         .presentationDetents([.medium, .large])
         #endif
+    }
+}
+
+/// The amount-order menu that sits beside the funnel on every journal-
+/// filtered surface: default (date) order, amount high-to-low, amount
+/// low-to-high — written straight onto the store, whose debounced
+/// didSet owns the reload. Presentation intent, not a filter: it never
+/// tints the funnel. The default `.date` stays a plain Button and never
+/// carries the checkmark — it's the list's natural state, so only a
+/// deviation from it gets marked; the amount orders carry their
+/// on-state as Toggles — UIKit's own selection-state channel, so the
+/// checkmark renders in the menu's trailing state column on every OS
+/// build (the hand-drawn Label icon this replaces is placed per-build
+/// by SwiftUI: column on the 26.5 simulator, inline against the title
+/// on device). A non-default sort tints the icon accent.
+struct JournalSortMenu: View {
+    let store: JournalStore
+
+    var body: some View {
+        Menu {
+            Button {
+                store.sort = .date
+            } label: {
+                Text(L10n.string("journal.sortDefault", defaultValue: "Default"))
+            }
+            Toggle(
+                L10n.string("journal.sortAmountDesc", defaultValue: "Amount: high to low"),
+                isOn: sortActiveBinding(.amountDescending)
+            )
+            Toggle(
+                L10n.string("journal.sortAmountAsc", defaultValue: "Amount: low to high"),
+                isOn: sortActiveBinding(.amountAscending)
+            )
+        } label: {
+            CircleIcon(systemName: "arrow.up.arrow.down", isActive: store.sort != .date)
+        }
+        .accessibilityLabel(Text(L10n.string("journal.sort", defaultValue: "Sort")))
+    }
+
+    /// Radio-style on-state for one amount order: on only while `sort` is
+    /// that order, and writes only ever turn an order ON — tapping the
+    /// already-active row just closes the menu with the selection intact.
+    private func sortActiveBinding(_ sort: JournalStore.EntrySort) -> Binding<Bool> {
+        Binding(
+            get: { store.sort == sort },
+            set: { if $0 { store.sort = sort } }
+        )
     }
 }
 

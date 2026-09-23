@@ -42,7 +42,9 @@ export type EntryWindow = {
    * Ledger-wide escape hatch: also return entries the creator opted out of
    * the ledger's surfaces (`countsInLedger = false`). Never honored for
    * project-scoped queries — a project's books always show all of its
-   * entries.
+   * entries. The funnel's not-counted toggle no longer flips this — its
+   * isolating pick is the `countsInLedger` axis below; this stays true on
+   * the ledger-wide surfaces.
    */
   includeExcluded?: boolean;
   /**
@@ -60,6 +62,14 @@ export type EntryWindow = {
    * a set-wide view toggle with no per-side scoping.
    */
   excludedFromBudget?: boolean;
+  /**
+   * Filter to one side of the creator's countsInLedger opt-out: false =
+   * only entries recorded "不计入收支" (the funnel's not-counted toggle),
+   * true = only entries counted in the ledger's surfaces. Undefined keeps
+   * every entry. Distinct from `includeExcluded`, a set-wide view toggle
+   * (include the opted-out set) with no per-side scoping.
+   */
+  countsInLedger?: boolean;
 };
 
 /**
@@ -210,7 +220,7 @@ const entryInclude = {
   project: { select: { id: true, name: true, status: true } },
 } as const satisfies Prisma.JournalEntryInclude;
 
-function entryFilterWhere(ledgerId: string, window: EntryWindow) {
+export function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   // The two budget-flag modes are mutually exclusive: the view toggle
   // (includeBudgetExcluded) drops the excluded side wholesale, the drill
   // axis (excludedFromBudget) scopes to ONE side. Combined they are either
@@ -270,7 +280,16 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     // are excluded (and even those return via `includeExcluded`). Project
     // books always show all of their entries — settlement depends on them —
     // so the filter is skipped whenever the query is pinned to project(s).
-    ...(!projectScoped && !window.includeExcluded ? ledgerActivityWhere : {}),
+    // The countsInLedger axis lifts it too: scoped to
+    // `countsInLedger: false`, the predicate's own OR (which requires
+    // countsInLedger true or a guest post) would zero the narrowed set, so
+    // the funnel's 不计收支 isolation needs no includeExcluded ride-along —
+    // a caller that forgets it still gets the right set.
+    ...(window.countsInLedger !== undefined ||
+    projectScoped ||
+    window.includeExcluded
+      ? {}
+      : ledgerActivityWhere),
     // The per-entry budget opt-out drops only when the caller asks — the
     // route-level default keeps budget-excluded entries in (bookkeeping
     // views count them; only budget-flavored callers flip this).
@@ -283,6 +302,14 @@ function entryFilterWhere(ledgerId: string, window: EntryWindow) {
     ...(window.excludedFromBudget === undefined
       ? {}
       : { excludedFromBudget: window.excludedFromBudget }),
+    // The countsInLedger flag as a drill axis: an explicit boolean scopes
+    // the set to one side of the creator's opt-out (the funnel's 不计收支
+    // toggle rides false); absent keeps the whole set. Honored on
+    // project-scoped queries too — the per-entry flag exists within
+    // projects, unlike the set-wide activity predicate above.
+    ...(window.countsInLedger === undefined
+      ? {}
+      : { countsInLedger: window.countsInLedger }),
     ...(window.from || window.to
       ? {
           date: {
@@ -694,8 +721,11 @@ export const journalRepository = {
    * the month calendar aggregate precisely what the list shows. The window
    * is the caller's contract: the route's defaults (includeExcluded off,
    * includeBudgetExcluded on) reproduce the ledger-activity stats set, and
-   * a project-scoped query counts everything, like the list does. Splitting
-   * and day bucketing live in `dailySummaryFromLines`.
+   * a project-scoped query counts everything, like the list does. The
+   * 不计收支 isolate axis (`countsInLedger=false`) needs no
+   * `includeExcluded` ride-along — the where-builder lifts the
+   * ledger-activity predicate while the axis is present. Splitting and
+   * day bucketing live in `dailySummaryFromLines`.
    */
   sumLinesByDay(
     ledgerId: string,

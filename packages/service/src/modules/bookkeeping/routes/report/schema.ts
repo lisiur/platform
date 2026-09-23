@@ -193,6 +193,7 @@ const statFilterFields = {
   kind: z.enum(ENTRY_KINDS).optional(),
   memberUserId: z.string().optional(),
   excludedFromBudget: z.enum(["true", "false"]).optional(),
+  countsInLedger: z.enum(["true", "false"]).optional(),
 };
 
 const statViewFlagFields = {
@@ -265,6 +266,7 @@ export function statWindowArgs(
     kind: query.kind,
     memberUserId: query.memberUserId,
     excludedFromBudget: triStateQueryFlag(query.excludedFromBudget),
+    countsInLedger: triStateQueryFlag(query.countsInLedger),
     scopeProjectIds,
     shareMode: query.shareMode,
     ...statViewFlags(query),

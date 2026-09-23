@@ -245,15 +245,10 @@ struct StatsTabPageView: View {
 
     // MARK: - Cards
 
-    /// The structural filters as they read right now (the journal's live
-    /// capture): empty collapses to nil so an unfiltered surface stays
-    /// wire- and cache-identical to the dashboard's.
+    /// The cards' fetches read the store's live capture
+    /// (`JournalStore.statsFilters`).
     private var statsFilters: StatsFilters? {
-        let filters = StatsFilters(
-            participantUserId: store.participantUserId,
-            projectId: store.projectFilterId
-        )
-        return filters.isEmpty ? nil : filters
+        store.statsFilters
     }
 
     /// The window the cards summarize: the active bounds normalized to the

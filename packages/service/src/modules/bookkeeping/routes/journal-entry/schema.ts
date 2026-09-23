@@ -205,6 +205,10 @@ export const listEntriesQuerySchema = paginationQuerySchema
       description:
         "Also return entries the creator opted out of the ledger's surfaces (countsInLedger=false). Ignored when projectId is set — a project's books always show all of its entries.",
     }),
+    countsInLedger: z.enum(["true", "false"]).optional().openapi({
+      description:
+        "Filter to one side of the creator's countsInLedger opt-out: false lists only entries recorded 不计入收支 (the funnel's not-counted toggle), true only entries counted in the ledger's surfaces. Absent lists every entry. Honored on project-scoped queries too.",
+    }),
     excludedFromBudget: z.enum(["true", "false"]).optional().openapi({
       description:
         "Filter to one side of the per-entry budget flag: true lists only entries marked excluded from budget (the budget card's 不计入预算 pool), false only entries the budget counts (日常已花). Absent lists every entry.",

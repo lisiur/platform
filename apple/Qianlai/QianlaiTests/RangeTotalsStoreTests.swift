@@ -37,8 +37,8 @@ final class RangeTotalsStoreTests: XCTestCase {
 
     func testKeysAreLedgerScoped() {
         XCTAssertNotEqual(
-            RangeTotalsStore.snapshotKey(ledgerId: "led-a", window: yearWindow),
-            RangeTotalsStore.snapshotKey(ledgerId: "led-b", window: yearWindow),
+            RangeTotalsStore.snapshotKey(ledgerId: "led-a", window: yearWindow, filters: nil),
+            RangeTotalsStore.snapshotKey(ledgerId: "led-b", window: yearWindow, filters: nil),
             "one ledger's day list must never hydrate another's card"
         )
     }
@@ -52,8 +52,36 @@ final class RangeTotalsStoreTests: XCTestCase {
             to: date(2026, 12, 31).addingTimeInterval(86_399)
         )
         XCTAssertNotEqual(
-            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow),
-            RangeTotalsStore.snapshotKey(ledgerId: "led", window: widened)
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow, filters: nil),
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: widened, filters: nil)
+        )
+    }
+
+    func testFilteredFetchKeysApartFromTheLedgerRecord() {
+        // A participant-scoped day list must persist under its own key —
+        // never read as, or poison, the ledger's unfiltered record (the
+        // launch seed's shape).
+        let filters = StatsFilters(participantUserId: "u1", projectId: nil)
+        XCTAssertNotEqual(
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow, filters: nil),
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow, filters: filters)
+        )
+        // Two different filtered surfaces separate too.
+        XCTAssertNotEqual(
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow, filters: filters),
+            RangeTotalsStore.snapshotKey(
+                ledgerId: "led", window: yearWindow,
+                filters: StatsFilters(participantUserId: nil, projectId: "p1")
+            )
+        )
+        // An EMPTY capture collapses to the plain key (nil collapse rule),
+        // so an unfiltered surface stays cache-identical to today's.
+        XCTAssertEqual(
+            RangeTotalsStore.snapshotKey(ledgerId: "led", window: yearWindow, filters: nil),
+            RangeTotalsStore.snapshotKey(
+                ledgerId: "led", window: yearWindow,
+                filters: StatsFilters(participantUserId: nil, projectId: nil)
+            )
         )
     }
 }
