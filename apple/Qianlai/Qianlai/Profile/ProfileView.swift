@@ -25,6 +25,9 @@ struct ProfileView: View {
     @Environment(AccentSettings.self) private var accentSettings
     @Environment(ToastCenter.self) private var toast
     @State private var store = ProfileStore()
+    @State private var isShowingLedgerForm = false
+    @State private var isShowingNewProject = false
+    @State private var isShowingJoin = false
     @State private var isShowingNameSheet = false
     @State private var isShowingPasswordSheet = false
     @State private var isShowingImporter = false
@@ -44,6 +47,46 @@ struct ProfileView: View {
         let isProjectScoped = projectStore
             .scopedProject(in: ledger.id, isGuestLedger: ledger.isGuest) != nil
         return !PreferenceStore.isTabBarFixed(isGuest: isGuest, isProjectScoped: isProjectScoped)
+    }
+
+    /// Mirrors the projects list's create gate exactly: the project form
+    /// posts into the active ledger, so it needs one, active, with the
+    /// caller at editor or above.
+    private var canCreateProject: Bool {
+        guard let ledger = ledgerStore.activeLedger else { return false }
+        return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
+    }
+
+    /// The relocated create/join menu (bare plus icon) — the gates live
+    /// in the toolbar comment above.
+    private var collaborationMenu: some View {
+        Menu {
+            Button {
+                isShowingLedgerForm = true
+            } label: {
+                Label(
+                    L10n.string("ledgers.create", defaultValue: "Create Ledger"),
+                    systemImage: "book.badge.plus"
+                )
+            }
+            if canCreateProject {
+                Button {
+                    isShowingNewProject = true
+                } label: {
+                    Label(
+                        L10n.string("projects.create", defaultValue: "New Project"),
+                        systemImage: "folder.badge.plus"
+                    )
+                }
+            }
+            Button {
+                isShowingJoin = true
+            } label: {
+                Label(L10n.string("dashboard.joinViaQrcode", defaultValue: "Join via qrcode"), systemImage: "qrcode")
+            }
+        } label: {
+            Image(systemName: "plus")
+        }
     }
 
     var body: some View {
@@ -66,6 +109,41 @@ struct ProfileView: View {
         }
         .appBackgroundSink()
         .navigationTitle(Text(L10n.string("profile.title", defaultValue: "Me")))
+        .toolbar {
+            // The dashboard toolbar's former plus menu, relocated here:
+            // create a ledger (any signed-in user can own one), create a
+            // project in the active ledger (editor+, the same gate the
+            // projects list uses), and join someone else's ledger with a
+            // share code. Inviting lives on the members page (ledger) and
+            // the projects list (project).
+            #if os(iOS)
+            ToolbarItem(placement: .topBarTrailing) {
+                collaborationMenu
+            }
+            #else
+            ToolbarItem(placement: .primaryAction) {
+                collaborationMenu
+            }
+            #endif
+        }
+        .sheet(isPresented: $isShowingLedgerForm) {
+            NavigationStack {
+                LedgerFormView(ledger: nil)
+            }
+        }
+        .sheet(isPresented: $isShowingNewProject) {
+            // The form posts into the active ledger; the menu item is only
+            // reachable when one exists, but re-check so a ledger switch
+            // mid-presentation can't present a target-less form.
+            if ledgerStore.activeLedger != nil {
+                NavigationStack {
+                    ProjectFormView(project: nil)
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingJoin) {
+            JoinLedgerScanView()
+        }
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
                 EditNameView(store: store)

@@ -73,10 +73,7 @@ struct JournalView: View {
         .toolbar {
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
-                monthCalendarButton
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                statsButton
+                calendarStatsGroup
             }
             #else
             ToolbarItem(placement: .primaryAction) {
@@ -224,22 +221,19 @@ struct JournalView: View {
     }
 
     /// The month view page's toolbar button (calendar icon, before the
-    /// chart button) — the dashboard's entry, re-surfaced here. Guests only:
-    /// the page's per-day amounts come from the daily-summary report whose
-    /// endpoint 403s guests (the same gate the dashboard applies).
-    @ViewBuilder
+    /// chart button) — the dashboard's entry, re-surfaced here. Ungated
+    /// here: the capsule group below owns the non-guest gate (guests 403
+    /// the daily-summary report the calendar's days come from).
     private var monthCalendarButton: some View {
-        if ledgerStore.activeLedger?.isGuest == false {
-            Button {
-                isShowingMonthCalendar = true
-            } label: {
-                Image(systemName: "calendar")
-            }
-            .accessibilityLabel(Text(L10n.string(
-                "dashboard.monthView",
-                defaultValue: "Month view"
-            )))
+        Button {
+            isShowingMonthCalendar = true
+        } label: {
+            Image(systemName: "calendar")
         }
+        .accessibilityLabel(Text(L10n.string(
+            "dashboard.monthView",
+            defaultValue: "Month view"
+        )))
     }
 
     /// The chart-page button (toolbar, trailing): opens the stats
@@ -259,6 +253,24 @@ struct JournalView: View {
                         filters: statsFilters
                     )
                 }
+            }
+        }
+    }
+
+    /// The calendar and stats buttons as ONE trailing capsule with a
+    /// hairline divider between them (the shared ToolbarDividerGroup).
+    /// The calendar needs any non-guest ledger (the group's gate); the
+    /// stats button additionally hides in project scope (showsStats —
+    /// the report endpoints 403 guests and the ledger-wide numerals
+    /// would misdescribe a project-only list), and the divider follows
+    /// that gate so no lone hairline survives a hide.
+    @ViewBuilder
+    private var calendarStatsGroup: some View {
+        if ledgerStore.activeLedger?.isGuest == false {
+            ToolbarDividerGroup(showsDivider: showsStats) {
+                monthCalendarButton
+            } trailing: {
+                statsButton
             }
         }
     }

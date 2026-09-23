@@ -31,7 +31,6 @@ struct DashboardView: View {
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale
     @State private var isShowingLedgerForm = false
-    @State private var isShowingNewProject = false
     @State private var isShowingJoin = false
     @State private var isShowingLedgerManager = false
     /// Push flag for the budget card's yearly breakdown. Owned here, not in
@@ -247,18 +246,7 @@ struct DashboardView: View {
                 LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                monthCalendarButton
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                statsButton
-            }
-            // Liquid Glass merges adjacent trailing items into one shared
-            // capsule — the fixed spacer breaks that grouping so the
-            // calendar/stats pair and the plus menu render as two
-            // independent pills.
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            ToolbarItem(placement: .topBarTrailing) {
-                collaborationMenu
+                calendarStatsGroup
             }
             #else
             ToolbarItem(placement: .navigation) {
@@ -269,9 +257,6 @@ struct DashboardView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 statsButton
-            }
-            ToolbarItem(placement: .primaryAction) {
-                collaborationMenu
             }
             #endif
         }
@@ -415,16 +400,6 @@ struct DashboardView: View {
                 LedgerFormView(ledger: nil)
             }
         }
-        .sheet(isPresented: $isShowingNewProject) {
-            // The form posts into the active ledger; the menu item is only
-            // reachable when one exists, but re-check so a scope switch
-            // mid-presentation can't present a target-less form.
-            if ledgerStore.activeLedger != nil {
-                NavigationStack {
-                    ProjectFormView(project: nil)
-                }
-            }
-        }
         .sheet(isPresented: $isShowingJoin) {
             JoinLedgerScanView()
         }
@@ -460,86 +435,51 @@ struct DashboardView: View {
         }
     }
 
-    /// Top-right collaboration menu: create a ledger (any signed-in user
-    /// can own one), create a project in the active ledger (editor+,
-    /// mirrors the projects list gate), and join someone else's ledger
-    /// with a share code. Inviting lives on the members page (ledger)
-    /// and the projects list (project).
-    /// The month view page's toolbar button (calendar icon, before the
-    /// plus menu). Ledger scope only: the page summarizes the ledger-wide
-    /// month — project scope swaps this whole page — and guests 403 the
-    /// report endpoints its amounts come from.
-    @ViewBuilder
+    /// The month view page's toolbar button (calendar icon, left of the
+    /// stats button). Ungated here — the capsule group below owns the
+    /// ledger-scope gate both buttons share.
     private var monthCalendarButton: some View {
-        if !showsProjectDetail, ledgerStore.activeLedger?.isGuest == false {
-            Button {
-                isShowingMonthCalendar = true
-            } label: {
-                Image(systemName: "calendar")
-            }
-            .accessibilityLabel(Text(L10n.string(
-                "dashboard.monthView",
-                defaultValue: "Month view"
-            )))
+        Button {
+            isShowingMonthCalendar = true
+        } label: {
+            Image(systemName: "calendar")
         }
+        .accessibilityLabel(Text(L10n.string(
+            "dashboard.monthView",
+            defaultValue: "Month view"
+        )))
     }
 
     /// The chart page's toolbar button (chart icon, right of the
     /// calendar) — the same push the journal page's button makes: the
     /// stats component for the month window and the filters active at
-    /// tap time. Same gate as the calendar button: ledger scope only
-    /// (project scope swaps this whole page) and guests 403 the report
-    /// endpoints the cards' amounts come from.
-    @ViewBuilder
+    /// tap time. Ungated here — the capsule group below owns the gate.
     private var statsButton: some View {
+        StatsEntryButton {
+            guard let ledger = ledgerStore.activeLedger else { return }
+            statsTarget = StatsTarget(
+                ledger: ledger,
+                window: statsWindow,
+                filters: statsFilters
+            )
+        }
+    }
+
+    /// The calendar and stats buttons as ONE trailing capsule with a
+    /// hairline divider between them (the shared ToolbarDividerGroup).
+    /// Ledger scope only: the page summarizes the ledger-wide month —
+    /// project scope swaps this whole page — and guests 403 the report
+    /// endpoints the buttons' pages fetch from. Both buttons hide with
+    /// this one gate, so the divider can never outlive either side.
+    @ViewBuilder
+    private var calendarStatsGroup: some View {
         if !showsProjectDetail, ledgerStore.activeLedger?.isGuest == false {
-            StatsEntryButton {
-                guard let ledger = ledgerStore.activeLedger else { return }
-                statsTarget = StatsTarget(
-                    ledger: ledger,
-                    window: statsWindow,
-                    filters: statsFilters
-                )
+            ToolbarDividerGroup(showsDivider: true) {
+                monthCalendarButton
+            } trailing: {
+                statsButton
             }
         }
-    }
-
-    private var collaborationMenu: some View {
-        Menu {
-            Button {
-                isShowingLedgerForm = true
-            } label: {
-                Label(
-                    L10n.string("ledgers.create", defaultValue: "Create Ledger"),
-                    systemImage: "book.badge.plus"
-                )
-            }
-            if canCreateProject {
-                Button {
-                    isShowingNewProject = true
-                } label: {
-                    Label(
-                        L10n.string("projects.create", defaultValue: "New Project"),
-                        systemImage: "folder.badge.plus"
-                    )
-                }
-            }
-            Button {
-                isShowingJoin = true
-            } label: {
-                Label(L10n.string("dashboard.joinViaQrcode", defaultValue: "Join via qrcode"), systemImage: "qrcode")
-            }
-        } label: {
-            Image(systemName: "plus")
-        }
-    }
-
-    /// Mirrors the projects list's create gate exactly: the project form
-    /// posts into the active ledger, so it needs one, active, with the
-    /// caller at editor or above.
-    private var canCreateProject: Bool {
-        guard let ledger = ledgerStore.activeLedger else { return false }
-        return LedgerPolicy.canManageProjects(role: ledger.myRole, ledgerActive: ledger.isActive)
     }
 
     /// Opens a month drill for one kind (the stat card's expense hero /
