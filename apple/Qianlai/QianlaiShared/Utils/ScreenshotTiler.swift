@@ -12,28 +12,43 @@ import UniformTypeIdentifiers
 
 /// Splits a payment screenshot into model-sized JPEG tiles.
 ///
-/// The recognition model reads images at 800×800, so a full-height screenshot
-/// squashed into one frame blurs its text beyond recognition. Tiling keeps
-/// every row legible: scale to 800 wide, slice vertically with a 10% overlap
-/// so a line straddling a cut survives whole in at least one tile. Extremely
-/// tall captures step down a width ladder instead of growing the tile count
-/// past the request cap.
+/// The recognition model (DeepSeek vision) auto-resizes every input before
+/// inference: anything beyond roughly a 1300×1300 pixel budget is scaled
+/// down to it, anything at or below passes through untouched, and each
+/// image bills at most 1024 tokens. Tiling keeps every row inside that
+/// budget at native sharpness: tile at the source's own width when it fits
+/// (≤ 1300 wide — beyond it the model would just scale back down), slice
+/// vertically with a 10% overlap so a line straddling a cut survives whole
+/// in at least one tile. Extremely tall captures step down a width ladder
+/// instead of growing the tile count past the request cap.
 enum ScreenshotTiler {
-    static let maxEdge = 800
+    /// Tile edge cap matching the model's ~1300×1300 no-resize budget —
+    /// a tile at or under it is not resampled before inference.
+    static let maxEdge = 1300
     /// Hard cap on tiles per recognition — the service rejects more.
     static let maxTileCount = 6
-    /// Overlap between consecutive tiles, in target pixels.
-    static let overlap: CGFloat = 80
+    /// Overlap between consecutive tiles, in target pixels — 10% of the
+    /// tile edge, one text row plus margin at native screenshot scale.
+    static let overlap = CGFloat(maxEdge) / 10
     /// The shrink-to-fit ladder: the first width whose full-height slicing
     /// fits in `maxTileCount` wins. Never upscaled past the source width.
-    static let candidateWidths: [CGFloat] = [800, 640, 512, 400, 320, 240, 160, 120]
+    static let candidateWidths: [CGFloat] = [
+        CGFloat(maxEdge), 1024, 800, 640, 512, 400, 320, 240, 160, 120,
+    ]
 
     /// Pure geometry: target-scale tile frames (top-left origin) for a
     /// source image. Unit-tested without any image decoding.
     static func plan(sourceWidth: Int, sourceHeight: Int) -> Plan? {
         guard sourceWidth > 0, sourceHeight > 0 else { return nil }
         let width = CGFloat(sourceWidth)
-        for candidate in candidateWidths where candidate <= width {
+        // The source's own width leads the ladder when it is within the
+        // budget-equivalent edge — resampling down to a ladder stop would
+        // only spend pixels the model would have kept.
+        var candidates = candidateWidths
+        if width <= CGFloat(maxEdge) {
+            candidates.insert(width, at: 0)
+        }
+        for candidate in candidates where candidate <= width {
             let frames = scaledFrames(targetWidth: candidate, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
             if frames.count <= maxTileCount {
                 return Plan(targetWidth: candidate, frames: frames)
@@ -74,6 +89,20 @@ enum ScreenshotTiler {
             let height = min(CGFloat(maxEdge), targetHeight - y)
             frames.append(CGRect(x: 0, y: y, width: targetWidth, height: height))
             y += step
+        }
+        // A remainder no taller than the overlap sits fully inside the
+        // previous tile's bottom band — fold it in rather than ship a
+        // sliver tile that mostly duplicates its neighbor. The folded
+        // frame stays ≤ maxEdge: targetHeight ≤ prev.maxY ≤ prev.y + maxEdge.
+        if frames.count > 1, let last = frames.last, last.height <= overlap {
+            frames.removeLast()
+            let prev = frames[frames.count - 1]
+            frames[frames.count - 1] = CGRect(
+                x: prev.minX,
+                y: prev.minY,
+                width: prev.width,
+                height: targetHeight - prev.minY
+            )
         }
         return frames
     }

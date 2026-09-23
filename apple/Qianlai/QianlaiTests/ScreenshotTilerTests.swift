@@ -7,26 +7,47 @@ import XCTest
 @testable import Qianlai
 
 final class ScreenshotTilerTests: XCTestCase {
-    /// A full-height iPhone screenshot scales to 800 wide and slices into
-    /// three ≤800 tiles with an 80px overlap between consecutive frames.
+    /// A full-height iPhone screenshot tiles at its native width — inside
+    /// the model's no-resize budget, no resampling — into three ≤1300-tall
+    /// slices with a 130px overlap between consecutive frames.
     func testTallScreenshotSlicesWithOverlap() {
         let plan = ScreenshotTiler.plan(sourceWidth: 1179, sourceHeight: 2556)
         XCTAssertNotNil(plan)
-        XCTAssertEqual(plan?.targetWidth, 800)
+        XCTAssertEqual(plan?.targetWidth, 1179)
 
         let frames = plan?.frames ?? []
         XCTAssertEqual(frames.count, 3)
-        // Every frame stays within the model's 800×800 window.
+        // Every frame stays inside the model's ~1300×1300 pixel budget.
         for frame in frames {
-            XCTAssertLessThanOrEqual(frame.height, 800)
-            XCTAssertEqual(frame.width, 800)
+            XCTAssertLessThanOrEqual(frame.height, CGFloat(ScreenshotTiler.maxEdge))
+            XCTAssertEqual(frame.width, 1179)
+            XCTAssertLessThanOrEqual(
+                frame.width * frame.height,
+                CGFloat(ScreenshotTiler.maxEdge * ScreenshotTiler.maxEdge)
+            )
         }
-        // Consecutive frames share exactly the 80px overlap band.
-        XCTAssertEqual(frames[0].maxY - frames[1].minY, 80, accuracy: 1)
-        XCTAssertEqual(frames[1].maxY - frames[2].minY, 80, accuracy: 1)
+        // Consecutive frames share exactly the configured overlap band.
+        XCTAssertEqual(frames[0].maxY - frames[1].minY, ScreenshotTiler.overlap, accuracy: 1)
+        XCTAssertEqual(frames[1].maxY - frames[2].minY, ScreenshotTiler.overlap, accuracy: 1)
         // The tiles cover the scaled height top to bottom without a gap.
-        let scaledHeight = (2556.0 * 800.0 / 1179.0).rounded(.up)
-        XCTAssertEqual(frames.last?.maxY ?? 0, scaledHeight, accuracy: 1)
+        XCTAssertEqual(frames.last?.maxY ?? 0, 2556, accuracy: 1)
+    }
+
+    /// A remainder slice no taller than the overlap is fully duplicated in
+    /// the previous tile's bottom band, so it folds in instead of shipping
+    /// a sliver tile: 2400 tall slices into two frames, the second one
+    /// stretched to the bottom edge (y: 0–1300, 1170–2400).
+    func testRemainderShorterThanOverlapFoldsIntoPreviousTile() {
+        let plan = ScreenshotTiler.plan(sourceWidth: 1179, sourceHeight: 2400)
+        XCTAssertNotNil(plan)
+        let frames = plan?.frames ?? []
+        XCTAssertEqual(frames.count, 2)
+        for frame in frames {
+            XCTAssertGreaterThanOrEqual(frame.height, ScreenshotTiler.overlap)
+            XCTAssertLessThanOrEqual(frame.height, CGFloat(ScreenshotTiler.maxEdge))
+        }
+        // Coverage stays exact through the fold.
+        XCTAssertEqual(frames.last?.maxY ?? 0, 2400, accuracy: 1)
     }
 
     /// A short payment-result screenshot fits in one tile — the common case
@@ -34,8 +55,8 @@ final class ScreenshotTilerTests: XCTestCase {
     func testShortScreenshotIsSingleTile() {
         let plan = ScreenshotTiler.plan(sourceWidth: 1179, sourceHeight: 1000)
         XCTAssertEqual(plan?.frames.count, 1)
-        XCTAssertEqual(plan?.targetWidth, 800)
-        XCTAssertEqual(plan?.frames.first?.width, 800)
+        XCTAssertEqual(plan?.targetWidth, 1179)
+        XCTAssertEqual(plan?.frames.first?.width, 1179)
     }
 
     /// Small images are never upscaled.
@@ -78,10 +99,9 @@ final class ScreenshotTilerTests: XCTestCase {
     func testJpegTilesRoundTrip() throws {
         let data = try Self.makePNG(width: 600, height: 1200)
         let tiles = try XCTUnwrap(ScreenshotTiler.jpegTiles(from: data))
-        // 600 wide never upscales to the 800 ladder head: 512 is the first
-        // step ≤ source width, scaling to 512×1024 → two frames
-        // (y: 0–800, 720–1024).
-        XCTAssertEqual(tiles.count, 2)
+        // 600 wide tiles at its native width (≤1300, no resampling) and
+        // the 1200 height fits a single slice — one tile, no seams.
+        XCTAssertEqual(tiles.count, 1)
         for tile in tiles {
             let source = CGImageSourceCreateWithData(tile as CFData, nil)
             XCTAssertNotNil(source)
@@ -90,17 +110,31 @@ final class ScreenshotTilerTests: XCTestCase {
             )
             let image = CGImageSourceCreateImageAtIndex(source!, 0, nil)
             XCTAssertNotNil(image)
-            // Every tile is model-sized on its long edge.
-            XCTAssertLessThanOrEqual(max(image!.width, image!.height), 800)
+            // The tile is the full image at native size, inside the budget.
+            XCTAssertEqual(image!.width, 600)
+            XCTAssertEqual(image!.height, 1200)
+            XCTAssertLessThanOrEqual(max(image!.width, image!.height), 1300)
         }
-        // The bottom tile is the shorter one (the remainder slice).
-        let first = CGImageSourceCreateImageAtIndex(
-            CGImageSourceCreateWithData(tiles[0] as CFData, nil)!, 0, nil
-        )!
-        let second = CGImageSourceCreateImageAtIndex(
-            CGImageSourceCreateWithData(tiles[1] as CFData, nil)!, 0, nil
-        )!
-        XCTAssertGreaterThan(first.height, second.height)
+    }
+
+    /// Multi-tile round-trip through ImageIO: a tall gradient PNG slices
+    /// into decodable JPEG bytes whose seams match the plan — the first
+    /// tile is full-height, the second the shorter remainder (600 wide is
+    /// native, 2000 tall → y: 0–1300, 1170–2000).
+    func testJpegTilesMultiTileRoundTrip() throws {
+        let data = try Self.makePNG(width: 600, height: 2000)
+        let tiles = try XCTUnwrap(ScreenshotTiler.jpegTiles(from: data))
+        XCTAssertEqual(tiles.count, 2)
+        var heights: [Int] = []
+        for tile in tiles {
+            let source = try XCTUnwrap(CGImageSourceCreateWithData(tile as CFData, nil))
+            XCTAssertEqual(CGImageSourceGetType(source) as String?, "public.jpeg")
+            let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+            XCTAssertEqual(image.width, 600)
+            XCTAssertLessThanOrEqual(image.height, ScreenshotTiler.maxEdge)
+            heights.append(image.height)
+        }
+        XCTAssertEqual(heights, [ScreenshotTiler.maxEdge, 830])
     }
 
     /// Garbage bytes fail cleanly instead of throwing.
