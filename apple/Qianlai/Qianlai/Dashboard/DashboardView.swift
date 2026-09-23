@@ -38,8 +38,15 @@ struct DashboardView: View {
     @State private var isShowingMonthCalendar = false
     /// The stats component's payloads (overview, daily, categories), one
     /// windowed store for this surface. Caller-owned so the page's
-    /// pull-to-refresh reloads the same store the cards read.
-    @State private var statsStore = StatsStore()
+    /// pull-to-refresh reloads the same store the cards read. Seeded at
+    /// creation from the snapshot cache (the ledger via the "last" meta
+    /// record, this page's own current-month unfiltered window), so the
+    /// launch tab's first frame carries last-known figures — the
+    /// task-time hydrate below runs a frame or more late and flashed the
+    /// placeholders.
+    @State private var statsStore = StatsStore(
+        seedLastLedger: true, window: AppDates.monthWindow(), filters: nil
+    )
     /// The today/week/year card's day list — its own year-wide
     /// daily-summary fetch, independent of the month stepper.
     @State private var rangeStore = RangeTotalsStore()

@@ -10,8 +10,8 @@ import Observation
 
 /// The dashboard's today/this-week/this-year card: one row per period —
 /// the iconed period label leading, the 总收入/总支出 labeled figures
-/// stacked trailing in their semantic colors (the journal day headers'
-/// look) — summed client-side off ONE
+/// stacked trailing (labels in the month card's gray, figures in their
+/// semantic colors) — summed client-side off ONE
 /// daily-summary fetch spanning the current year (widened back to the
 /// week's start, for a year-boundary week). Stepper-independent like the
 /// annual category budget card — 今天/本周/本年 anchor to NOW, not the
@@ -149,20 +149,21 @@ struct RangeTotalsCard: View {
         )))
     }
 
-    /// One labeled amount line — the 总收入/总支出 caption and the
-    /// semibold figure beside it both ride the semantic color, exactly the
-    /// journal day headers' `dayTotal` rendering. No hand-signed prefix:
-    /// `Money.format` speaks for itself, and a refund-heavy day's
+    /// One labeled amount line — the 总收入/总支出 caption reads in the
+    /// plain secondary gray (the month card's 月支出/月收入 labels), while
+    /// the semibold figure keeps the semantic color. No hand-signed
+    /// prefix: `Money.format` speaks for itself, and a refund-heavy day's
     /// negative shows as-is. A nil figure renders the dash placeholder at
     /// the same typographic slot.
     private func amountLine(_ label: String, cents: Int?, color: Color) -> some View {
         HStack(spacing: 4) {
             Text(label)
                 .font(.caption2)
+                .foregroundStyle(.secondary)
             Text(cents.map { Money.format(cents: $0, currency: currency) } ?? "–")
                 .font(.footnote.weight(.semibold).monospacedDigit())
+                .foregroundStyle(color)
         }
-        .foregroundStyle(color)
     }
 }
 
@@ -170,7 +171,16 @@ struct RangeTotalsCard: View {
 /// calendar and trend cards chart, aimed at the card's own year window.
 /// Keep-previous on failure like the stats component; a ledger switch
 /// drops everything (stale figures from another ledger are worse than
-/// dashes).
+/// dashes). The snapshot cache (the stats component's pattern) seeds at
+/// STORE CREATION, not at first fetch: a `@State` store initializes
+/// before any view renders, while the task-driven `load` starts a frame
+/// or more later — hydrating there flashed the dash placeholders on
+/// every relaunch even with a hot cache. So the last successful fetch
+/// also records its coordinates (the "last" meta record), and `init`
+/// rehydrates the day list through it; a later `load` for a different
+/// ledger nils the seed (the aim rule) and refills from that ledger's
+/// own record. The fetch always follows and silently corrects — today's
+/// row included, which a persisted cache can only seed stale.
 @MainActor
 @Observable
 final class RangeTotalsStore {
@@ -180,9 +190,17 @@ final class RangeTotalsStore {
     private var window: MonthWindow?
 
     /// Seeds the payload directly — the screenshot harness renders real
-    /// figures without a backend; production callers start empty and load.
+    /// figures without a backend; production callers start empty BUT
+    /// rehydrate through the "last" meta record below, before any frame.
     init(days: [DayIncomeExpense]? = nil) {
         self.days = days
+        guard days == nil,
+              let meta: RangeSnapshotMeta = Self.cache.read(key: Self.lastKey, as: RangeSnapshotMeta.self)
+        else { return }
+        let seededWindow = MonthWindow(from: meta.from, to: meta.to)
+        ledgerId = meta.ledgerId
+        window = seededWindow
+        hydrate(ledgerId: meta.ledgerId, window: seededWindow)
     }
 
     func load(ledgerId: String) async {
@@ -192,6 +210,7 @@ final class RangeTotalsStore {
         }
         self.ledgerId = ledgerId
         self.window = window
+        hydrate(ledgerId: ledgerId, window: window)
         let path = StatsStore.dailySummaryPath(ledgerId: ledgerId, window: window, filters: nil)
         do {
             let response: DailySummaryResponse = try await APIClient.shared.request("GET", path)
@@ -200,9 +219,59 @@ final class RangeTotalsStore {
             // in-flight response, not just a re-aimed window.
             guard self.ledgerId == ledgerId, self.window == window else { return }
             days = response.days
+            let key = Self.snapshotKey(ledgerId: ledgerId, window: window)
+            Self.cache.write(key: key, payload: response.days)
+            Self.cache.write(
+                key: Self.lastKey,
+                payload: RangeSnapshotMeta(ledgerId: ledgerId, from: window.from, to: window.to)
+            )
         } catch {
             // Keep the previous payload; the next reload retries.
         }
+    }
+
+    // MARK: snapshot cache
+
+    /// The range card's snapshot-cache binding — namespace and schema
+    /// version live here, not at every call site. Bump `schema` when the
+    /// payload type changes incompatibly.
+    private static let cache = SnapshotCache.namespace("range", schema: 1)
+
+    /// The key under which the last successful fetch's coordinates ride —
+    /// the pointer `init` needs, since a store is created before the
+    /// dashboard knows which ledger it serves.
+    private static let lastKey = "last"
+
+    /// The "last" record's payload.
+    private struct RangeSnapshotMeta: Codable {
+        var ledgerId: String
+        var from: Date
+        var to: Date
+    }
+
+    /// The cache key: ledger plus the FETCH window's bounds — the
+    /// week-widened shape at a year boundary, since that is the span the
+    /// cached day list actually covers, and a widened record must never
+    /// read as the plain year's. Pure and nonisolated for tests.
+    nonisolated static func snapshotKey(ledgerId: String, window: MonthWindow) -> String {
+        SnapshotCache.makeKey(
+            SnapshotCache.ledgerWindowTokens(ledgerId: ledgerId, from: window.from, to: window.to)
+        )
+    }
+
+    /// Fills a nil day list from the persisted snapshot — a cold mount's
+    /// render seed only, never a data source of record: the fetch always
+    /// follows and corrects. A hydrated-but-failed load keeps last-known
+    /// figures on screen instead of dashes. (The store CREATION seed runs
+    /// earlier, in `init` — this covers a load that aims somewhere new.)
+    private func hydrate(ledgerId: String, window: MonthWindow) {
+        guard days == nil,
+              let cached: [DayIncomeExpense] = Self.cache.read(
+                  key: Self.snapshotKey(ledgerId: ledgerId, window: window),
+                  as: [DayIncomeExpense].self
+              )
+        else { return }
+        days = cached
     }
 }
 

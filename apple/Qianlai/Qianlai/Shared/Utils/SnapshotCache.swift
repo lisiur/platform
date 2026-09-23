@@ -89,6 +89,17 @@ nonisolated enum SnapshotCache {
         date.map { String($0.timeIntervalSince1970) } ?? "all"
     }
 
+    /// The shared token tail for a ledger-windowed payload's cache key —
+    /// the ledger id, then the window's optional bounds in `epochOrAll`
+    /// encoding. The stats/range stores' keys and ReportStore's windowed
+    /// report keys (which prefix a report name) all build on it, so the
+    /// segment order can't drift apart between them.
+    static func ledgerWindowTokens(
+        ledgerId: String, from: Date?, to: Date?
+    ) -> [String] {
+        [ledgerId, epochOrAll(from), epochOrAll(to)]
+    }
+
     /// Reads the payload stored under `namespace`/`key`, or nil when
     /// nothing (or an incompatible envelope — other schema, corrupted
     /// data) is there. Any failure is a miss by design.

@@ -41,12 +41,9 @@ final class ReportStore {
     nonisolated static func windowKey(
         _ name: String, ledgerId: String, from: Date?, to: Date?
     ) -> String {
-        SnapshotCache.makeKey([
-            name,
-            ledgerId,
-            SnapshotCache.epochOrAll(from),
-            SnapshotCache.epochOrAll(to),
-        ])
+        SnapshotCache.makeKey(
+            [name] + SnapshotCache.ledgerWindowTokens(ledgerId: ledgerId, from: from, to: to)
+        )
     }
 
     /// The one cached-report load: hydrate the surface from `key` when

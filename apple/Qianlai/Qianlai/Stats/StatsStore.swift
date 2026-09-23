@@ -95,6 +95,39 @@ final class StatsStore {
 
     private var ledgerId: String?
 
+    /// The default empty store — the pushed surfaces (month view, chart
+    /// page) and the tests. Their cold hydrate runs in the task-driven
+    /// `load`, one frame or more after first render; a push transition
+    /// covers that gap.
+    init() {}
+
+    /// The dashboard's cold-start seed — rehydrates at STORE CREATION,
+    /// before any view renders, so the launch tab's stat block never
+    /// flashes its placeholders. A `@State` store initializes before the
+    /// page knows its ledger, so the LEDGER comes from the "last" meta
+    /// record (refreshed by every successful field merge below), while
+    /// the window and filters stay the caller's own: the seed always
+    /// reads the record THIS surface will fetch, never another window's
+    /// figures. Opt-in for exactly that reason — a private drill store
+    /// seeded from "last" could paint a foreign window.
+    ///
+    /// Two honest caveats. The seed itself is ungated: a guest's store
+    /// may hydrate payloads it never renders (guests land in project
+    /// scope, pass `isReportingEnabled: false`, and the guest task never
+    /// fetches), so `hydrate`'s "guests never reach load" invariant
+    /// describes the fetch path only. And "last" is refreshed by every
+    /// surface's merges, so when the active ledger differs from the meta
+    /// one the first frame carries that ledger's figures until the fetch
+    /// corrects — the same fetch-always-follows rule as every cache seed.
+    init(seedLastLedger: Bool, window: MonthWindow, filters: StatsFilters?) {
+        guard seedLastLedger,
+              let meta: LastStatsMeta = Self.cache.read(key: Self.lastKey, as: LastStatsMeta.self)
+        else { return }
+        hydrate(ledgerId: meta.ledgerId, window: window, filters: filters)
+        ledgerId = meta.ledgerId
+        self.window = window
+    }
+
     /// Fetches the window's payloads for `ledgerId`, scoped to `filters`
     /// when the surface carries the journal's structural filters (nil = the
     /// dashboard tab's unfiltered ledger stats). `includesDaily: false`
@@ -110,7 +143,10 @@ final class StatsStore {
     /// window stepping the way the old debounced reload did. A cold
     /// surface first hydrates the nil payloads from the snapshot cache,
     /// so a remounted stats page paints last-known figures instead of
-    /// placeholders while the fetches below silently correct them.
+    /// placeholders while the fetches below silently correct them. (The
+    /// dashboard's store seeds earlier still — at creation, via
+    /// `init(seedLastLedger:window:filters:)` — so the launch tab never
+    /// paints placeholders at all.)
     func load(
         ledgerId: String,
         window: MonthWindow,
@@ -162,6 +198,16 @@ final class StatsStore {
     /// `StatsSnapshot`'s shape changes incompatibly.
     private static let cache = SnapshotCache.namespace("stats", schema: 1)
 
+    /// The key under which the last successful merge's ledger rides — the
+    /// pointer the dashboard's seeding initializer needs, since a `@State`
+    /// store is created before its page knows which ledger is active.
+    private static let lastKey = "last"
+
+    /// The "last" record's payload.
+    private struct LastStatsMeta: Codable {
+        var ledgerId: String
+    }
+
     /// The stats payloads as one cache record.
     private struct StatsSnapshot: Codable {
         var overview: Dashboard? = nil
@@ -180,11 +226,9 @@ final class StatsStore {
         window: MonthWindow,
         filters: StatsFilters?
     ) -> String {
-        var tokens = [
-            ledgerId,
-            SnapshotCache.epochOrAll(window.from),
-            SnapshotCache.epochOrAll(window.to),
-        ]
+        var tokens = SnapshotCache.ledgerWindowTokens(
+            ledgerId: ledgerId, from: window.from, to: window.to
+        )
         if let segment = StatsFilters.keySegment(filters) {
             tokens.append(segment)
         }
@@ -233,6 +277,7 @@ final class StatsStore {
         var snapshot = Self.cache.read(key: key, as: StatsSnapshot.self) ?? StatsSnapshot()
         update(&snapshot)
         Self.cache.write(key: key, payload: snapshot)
+        Self.cache.write(key: Self.lastKey, payload: LastStatsMeta(ledgerId: ledgerId))
     }
 
     /// The three fetches' shared shape. The window pairs and the caller's
