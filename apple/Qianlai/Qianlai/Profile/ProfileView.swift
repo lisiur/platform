@@ -9,8 +9,8 @@ import PhotosUI
 import SwiftUI
 
 /// Account hub: avatar/name/password management plus links to real accounts,
-/// ledger management, and language — with chart of accounts and reports
-/// grouped under the active ledger.
+/// ledger management, and language — with the journal, chart of accounts,
+/// and reports grouped under the active ledger.
 ///
 /// Project-scoped guests don't have ledger chrome to manage — the entire
 /// `ledgerSection` (which uses the active ledger name as its header) is
@@ -142,8 +142,8 @@ struct ProfileView: View {
         }
     }
 
-    /// Accounts and reports belong to a ledger, so they live under the
-    /// active ledger's name.
+    /// The journal, accounts, and reports belong to a ledger, so they live
+    /// under the active ledger's name.
     private var ledgerSection: some View {
         Section {
             NavigationLink {
@@ -183,6 +183,14 @@ struct ProfileView: View {
                 ProjectsView()
             } label: {
                 Label(L10n.string("projects.title", defaultValue: "Projects"), systemImage: "folder")
+            }
+            .appCardRow()
+            // The ledger's journal page — the same view the journal tab
+            // mounts (one shared store, so window and filters carry over).
+            NavigationLink {
+                JournalView()
+            } label: {
+                Label(L10n.string("journal.title", defaultValue: "Journal"), systemImage: "list.bullet.rectangle")
             }
             .appCardRow()
             NavigationLink {
