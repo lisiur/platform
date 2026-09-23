@@ -1336,7 +1336,7 @@ struct ScreenshotRecognition: Codable {
     var confidence: String?
 
     var amountSuggestions: [Double] { amountAlternatives ?? [] }
-    var categorySuggestions: [String] { categoryAlternatives ?? [] }
+    nonisolated var categorySuggestions: [String] { categoryAlternatives ?? [] }
 
     /// The model squinted: show the double-check hint.
     var isLowConfidence: Bool { confidence == "low" }

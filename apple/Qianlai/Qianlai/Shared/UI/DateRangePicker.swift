@@ -30,7 +30,7 @@ private enum DateRangePickerData {
 /// The preset shape behind a date window: a single day, a calendar month,
 /// a calendar year, or the explicit Range editor. The segmented control in
 /// `DateRangeSheet` picks between them.
-enum DateRangeMode: Hashable {
+nonisolated enum DateRangeMode: Hashable {
     case date, month, year, range
 
     var label: String {
