@@ -272,43 +272,6 @@ final class CompositionCardSliceHitTests: XCTestCase {
     }
 }
 
-/// The trend card's sticky-readout default: the bubble opens on today
-/// when the displayed window contains it — regardless of whether
-/// today has data (¥0 is the truthful read; the full-window series makes
-/// every day a target) — else on the window's last day. Pure rule,
-/// pinned here.
-final class TrendCardDefaultSelectionTests: XCTestCase {
-    func testCurrentWindowPicksToday() {
-        XCTAssertEqual(
-            TrendChartCard.defaultSelectionDayIndex(todayIndex: 19, dayCount: 30),
-            19
-        )
-    }
-
-    func testTodayAppliesEvenWithoutData() {
-        // Day 1 with no entries yet still reads — as ¥0.
-        XCTAssertEqual(
-            TrendChartCard.defaultSelectionDayIndex(todayIndex: 1, dayCount: 30),
-            1
-        )
-    }
-
-    func testOtherWindowsDefaultToTheLastDay() {
-        XCTAssertEqual(
-            TrendChartCard.defaultSelectionDayIndex(todayIndex: nil, dayCount: 30),
-            30
-        )
-        XCTAssertEqual(
-            TrendChartCard.defaultSelectionDayIndex(todayIndex: nil, dayCount: 28),
-            28
-        )
-    }
-
-    func testEmptyWindowFindsNothing() {
-        XCTAssertNil(TrendChartCard.defaultSelectionDayIndex(todayIndex: 19, dayCount: 0))
-    }
-}
-
 /// The trend card's tap-to-select mapping: a tap offset within the plot
 /// maps onto the window's day bands (width fraction × day count, the
 /// same linear scale `.chartXScale` pins, clamped at the far edge) while

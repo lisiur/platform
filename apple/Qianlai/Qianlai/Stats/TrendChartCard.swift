@@ -26,10 +26,10 @@ import SwiftUI
 /// live while the finger is down — drops a hairline on the pressed day,
 /// swaps the x axis to spell out the active day, and pins a tooltip in
 /// the band the chart runs above its plot. On release the tooltip and
-/// hairline STAY on the last pressed day (a sticky `activeDay`) so the
-/// readout band never snaps empty; before the first press the bubble
-/// defaults to today when the displayed window contains it, else the
-/// window's last day. Tapping a day selects it the same way — the tap
+/// hairline STAY on the last pressed day (a sticky `activeDay`). Before
+/// the first interaction the readout band is EMPTY — the bubble appears
+/// only on the user's press or tap, never by default. Tapping a day
+/// selects it the same way — the tap
 /// rides alongside the framework's scrub (attached one level up and
 /// simultaneous, so neither gesture starves the other) and lands the
 /// sticky day without the hold. The selection rides the chart's own data
@@ -66,8 +66,8 @@ struct TrendChartCard: View {
     @State private var selectedDay: Date?
     /// The last pressed or tapped data day. The bubble, hairline, and
     /// readout stay parked on it after the finger lifts; nil means "no
-    /// press yet" and the default day (today / latest data) shows
-    /// instead.
+    /// interaction yet" and nothing shows — the bubble never appears
+    /// without a user press or tap.
     @State private var activeDay: Date?
     /// The plot's frame in the overlay's coordinate space, captured from
     /// the chart overlay — ChartProxy geometry isn't reachable where the
@@ -507,39 +507,18 @@ struct TrendChartCard: View {
     }
 
     /// The data point whose figure the card surfaces: the pressed day
-    /// while scrubbing (any day of the window — gaps read as ¥0), the
-    /// last pressed or tapped day after the interaction ends, and the
-    /// default day before the first interaction.
+    /// while scrubbing (any day of the window — gaps read as ¥0) or the
+    /// last pressed or tapped day after the interaction ends. nil before
+    /// the first interaction — no default bubble; the readout band stays
+    /// empty until the user presses or taps.
     private var displayedPoint: TrendPoint? {
         if let selectedDay, let pressed = point(on: selectedDay) { return pressed }
         if let activeDay, let kept = point(on: activeDay) { return kept }
-        return defaultPoint
+        return nil
     }
 
     private func point(on date: Date) -> TrendPoint? {
         points.first { Calendar.current.isDate(date, inSameDayAs: $0.date) }
-    }
-
-    /// The load-time default: today when the displayed window contains
-    /// it — regardless of whether today has entries (¥0 is the truthful
-    /// read) — else the window's last day. `todayIndex` is today's 1-based
-    /// index within the window, nil when today falls outside; pure so the
-    /// rule stays unit-testable.
-    nonisolated static func defaultSelectionDayIndex(todayIndex: Int?, dayCount: Int) -> Int? {
-        guard dayCount > 0 else { return nil }
-        return todayIndex ?? dayCount
-    }
-
-    private var defaultPoint: TrendPoint? {
-        guard !points.isEmpty else { return nil }
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let offset = calendar.dateComponents([.day], from: windowStart, to: today).day ?? -1
-        let todayIndex = (0..<dayCount).contains(offset) ? offset + 1 : nil
-        guard let index = Self.defaultSelectionDayIndex(todayIndex: todayIndex, dayCount: dayCount),
-              points.indices.contains(index - 1)
-        else { return nil }
-        return points[index - 1]
     }
 
     /// The active day's tooltip: a material bubble living in the band
