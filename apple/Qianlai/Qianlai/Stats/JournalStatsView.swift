@@ -26,7 +26,7 @@ struct StatsTarget: Identifiable, Hashable {
     }
 }
 
-/// The chart page's entry button — the `chart.bar.xaxis` chrome and its
+/// The chart page's entry button — the `chart.bar` chrome and its
 /// label, shared verbatim by every host that raises a `StatsTarget` (the
 /// dashboard toolbar, the journal page, the drill-down pages). The
 /// action stays the host's: the capture (window + filters at tap time)
@@ -36,7 +36,7 @@ struct StatsEntryButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "chart.bar.xaxis")
+            Image(systemName: "chart.bar")
         }
         .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
     }
