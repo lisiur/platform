@@ -158,7 +158,7 @@ struct ScreenshotRecognizeView: View {
         guard let ledger else { return }
         guard stage != .recognizing else { return }
         stage = .recognizing
-        guard let tiles = ScreenshotTiler.jpegTiles(from: imageData), !tiles.isEmpty else {
+        guard let tiles = ScreenshotTiler.recognitionTiles(from: imageData), !tiles.isEmpty else {
             failRecognition(
                 L10n.string("screenshot.readFailed", defaultValue: "Couldn't read the selected image.")
             )

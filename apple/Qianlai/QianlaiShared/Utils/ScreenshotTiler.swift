@@ -22,6 +22,33 @@ import UniformTypeIdentifiers
 /// in at least one tile. Extremely tall captures step down a width ladder
 /// instead of growing the tile count past the request cap.
 enum ScreenshotTiler {
+    /// EXPERIMENT (concluded 2026-09-23): lossless PNG tiles — no
+    /// observable recognition difference vs JPEG 0.8 on real captures, so
+    /// the encode step is not a recognition bottleneck at native
+    /// resolution. `false` is the shipped behavior (JPEG 0.8, smaller
+    /// payloads, same geometry); the whole-request JPEG fallback below
+    /// still guards the server's size caps should this be retried.
+    static let losslessTiles = false
+    /// Total-payload budget for the PNG experiment: under both server caps
+    /// (5MB per file, 6MB body incl. multipart overhead).
+    private static let pngTotalBudget = 5_000_000
+
+    /// One upload-ready recognition image plus the media type its bytes
+    /// actually are — the server whitelists jpeg/png/webp and DeepSeek
+    /// decodes by it, so the annotation must match the encode.
+    struct RecognitionTile {
+        let data: Data
+        let mediaType: String
+        var fileExtension: String { mediaType == "image/png" ? "png" : "jpg" }
+    }
+
+    /// EXPERIMENT (concluded 2026-09-23): single-image recognition — the
+    /// whole screenshot as ONE full-resolution JPEG — tested WORSE than
+    /// tiling on real captures: the model's own auto-resize shrinks tall
+    /// screenshots below legibility, which is exactly what tiling exists
+    /// to prevent. `false` is the shipped behavior; `recognitionTiles`
+    /// remains the pipeline's single entry should this ever be retried.
+    static let singleImageMode = false
     /// Tile edge cap matching the model's ~1300×1300 no-resize budget —
     /// a tile at or under it is not resampled before inference.
     static let maxEdge = 1300
@@ -107,6 +134,117 @@ enum ScreenshotTiler {
         return frames
     }
 
+    /// The recognition pipeline's single entry — honors `singleImageMode`,
+    /// else tiles, losslessly encoded while `losslessTiles` holds and the
+    /// payload fits the budget.
+    static func recognitionTiles(from data: Data) -> [RecognitionTile]? {
+        if singleImageMode {
+            guard let whole = jpegWholeImage(from: data) else { return nil }
+            return [RecognitionTile(data: whole, mediaType: "image/jpeg")]
+        }
+        if losslessTiles, let png = pngTiles(from: data),
+           png.map(\.count).reduce(0, +) <= pngTotalBudget {
+            return png.map { RecognitionTile(data: $0, mediaType: "image/png") }
+        }
+        guard let jpeg = jpegTiles(from: data), !jpeg.isEmpty else { return nil }
+        return jpeg.map { RecognitionTile(data: $0, mediaType: "image/jpeg") }
+    }
+
+    /// EXPERIMENT companion: the decoded screenshot re-drawn at its own
+    /// width — no resample at native sizes, the model's auto-resize is
+    /// exactly what this experiment runs against — and encoded as one JPEG
+    /// (quality 0.8, same as tiles; re-encoding also keeps PNG originals
+    /// under the server's 5MB per-file cap). Extremely tall scroll-captures
+    /// halve their width until the encode fits instead of failing the
+    /// upload.
+    static func jpegWholeImage(from data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { return nil }
+        var width = CGFloat(image.width)
+        while true {
+            let scale = width / CGFloat(image.width)
+            let targetWidth = width.rounded(.up)
+            let targetHeight = (CGFloat(image.height) * scale).rounded(.up)
+            guard let context = CGContext(
+                data: nil,
+                width: Int(targetWidth),
+                height: Int(targetHeight),
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+            context.interpolationQuality = .high
+            context.translateBy(x: 0, y: targetHeight)
+            context.scaleBy(x: 1, y: -1)
+            context.draw(
+                image,
+                in: CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight)
+            )
+            guard let drawn = context.makeImage(), let encoded = encodeJPEG(drawn) else {
+                return nil
+            }
+            if encoded.count <= 4_500_000 || width <= 320 { return encoded }
+            width /= 2
+        }
+    }
+
+    /// EXPERIMENT companion: the tiled path with lossless PNG encodes —
+    /// same plan, same draw, same pixels `jpegTiles` produces before its
+    /// encode step.
+    static func pngTiles(from data: Data) -> [Data]? {
+        guard let images = renderedTileImages(from: data) else { return nil }
+        var tiles: [Data] = []
+        for image in images {
+            guard let encoded = encodePNG(image) else { return nil }
+            tiles.append(encoded)
+        }
+        return tiles
+    }
+
+    /// Decodes `data` and renders every plan tile at full quality — the
+    /// shared front half of `jpegTiles`/`pngTiles`.
+    private static func renderedTileImages(from data: Data) -> [CGImage]? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let plan = plan(sourceWidth: image.width, sourceHeight: image.height)
+        else { return nil }
+
+        let scale = plan.targetWidth / CGFloat(image.width)
+        var tiles: [CGImage] = []
+        for frame in plan.frames {
+            // Crop and scale in one draw: the context is the tile's bounds,
+            // the full image draws at target scale offset by the frame's
+            // top-left. Flipping the context makes frame.y measure from the
+            // top like the plan's frames.
+            guard let context = CGContext(
+                data: nil,
+                width: Int(frame.width.rounded()),
+                height: Int(frame.height.rounded()),
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+            context.interpolationQuality = .high
+            context.translateBy(x: 0, y: frame.height)
+            context.scaleBy(x: 1, y: -1)
+            let drawRect = CGRect(
+                x: -frame.origin.x,
+                y: -frame.origin.y,
+                width: CGFloat(image.width) * scale,
+                height: CGFloat(image.height) * scale
+            )
+            context.draw(image, in: drawRect)
+            guard let tile = context.makeImage() else {
+                return nil
+            }
+            tiles.append(tile)
+        }
+        return tiles
+    }
+
     /// Decodes `data`, slices it per `plan`, and re-encodes each tile as
     /// JPEG (quality 0.8). Returns nil when the image can't be decoded or
     /// rendered — the caller surfaces a recognition error.
@@ -159,6 +297,16 @@ enum ScreenshotTiler {
             destination, image,
             [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary
         )
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return output as Data
+    }
+
+    private static func encodePNG(_ image: CGImage) -> Data? {
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            output, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
         guard CGImageDestinationFinalize(destination) else { return nil }
         return output as Data
     }

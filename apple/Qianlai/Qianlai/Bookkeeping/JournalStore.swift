@@ -506,18 +506,19 @@ final class JournalStore {
     }
 
     /// AI recognition of a payment screenshot into a draft payload — one
-    /// call, billed per use. The JPEG tiles (from `ScreenshotTiler`) post as
+    /// call, billed per use. The tiles (from `ScreenshotTiler`, each
+    /// carrying the media type its bytes actually are) post as
     /// file0…fileN; array order is the tiles' vertical order.
     func recognizeScreenshot(
         ledgerId: String,
-        tiles: [Data]
+        tiles: [ScreenshotTiler.RecognitionTile]
     ) async throws -> ScreenshotRecognition {
-        let files = tiles.enumerated().map { index, data in
+        let files = tiles.enumerated().map { index, tile in
             (
                 fieldName: "file\(index)",
-                data: data,
-                fileName: "tile\(index).jpg",
-                mimeType: "image/jpeg"
+                data: tile.data,
+                fileName: "tile\(index).\(tile.fileExtension)",
+                mimeType: tile.mediaType
             )
         }
         return try await client.uploadMultipartFiles(
