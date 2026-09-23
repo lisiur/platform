@@ -179,7 +179,6 @@ struct StatsTabPageView: View {
                 ledgerId: ledger.id,
                 currency: ledger.currency,
                 isReportingEnabled: !ledger.isGuest,
-                showsCalendar: false,
                 window: statsWindow,
                 filters: statsFilters,
                 expenseAction: { openDrill(JournalDrillDown(kind: .expense)) },

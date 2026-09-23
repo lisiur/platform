@@ -745,7 +745,6 @@ struct DashboardView: View {
                 ledgerId: ledger.id,
                 currency: ledger.currency,
                 isReportingEnabled: !ledger.isGuest,
-                showsCalendar: false,
                 monthPrefixedLabels: true,
                 showsTrendAndComposition: false,
                 window: statsWindow,

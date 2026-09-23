@@ -8,12 +8,13 @@
 import SwiftUI
 
 /// The reusable stats component: a window's overview stat block — plus,
-/// when the host mounts them, the month calendar, the trend chart, and
-/// the composition chart — stacked in the dashboard's card rhythm for
-/// ANY local date range. The dashboard mounts the stat block alone for
-/// the selected month (the calendar lives on the month view page, the
+/// when the host mounts them, the trend chart and the composition chart
+/// — stacked in the dashboard's card rhythm for ANY local date range.
+/// The dashboard mounts the stat block alone for the selected month (the
 /// charts on the journal's chart page); the journal chart page mounts
-/// the full set for a week or custom range.
+/// the full set for a week or custom range. The month calendar never
+/// mounts here: the month view has its own page (the toolbar calendar
+/// button's MonthCalendarView).
 ///
 /// Data: the component drives an injected `StatsStore` — one instance per
 /// mounted surface, so a stats page pushed above the dashboard tab can
@@ -43,10 +44,6 @@ struct StatsCardsView: View {
     var currency: String?
     /// false skips every fetch — guests' report endpoints 403.
     var isReportingEnabled = true
-    /// false hides the month calendar card and skips the daily fetch it
-    /// shares with the trend chart. The journal chart page keeps the
-    /// default; the dashboard's calendar lives on the month view page now.
-    var showsCalendar = true
     /// Month-prefixed stat labels (月支出/月收入/月结余) — the dashboard's
     /// month-stepped block only; the journal chart page's window varies
     /// with the list's tabs and keeps the bare labels.
@@ -87,16 +84,10 @@ struct StatsCardsView: View {
         return "\(ledgerId)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
     }
 
-    /// The calendar card's month when the window is exactly one natural
-    /// LOCAL month — nil for any wider, narrower, or shifted window.
-    private var calendarMonth: YearMonth? {
-        window.singleMonth
-    }
-
     /// The fetch-skip derivation, stated once — both load sites read
     /// these instead of re-deriving from the mount flags.
     private var includesDaily: Bool {
-        showsCalendar || showsTrendAndComposition
+        showsTrendAndComposition
     }
 
     private var includesCategories: Bool {
@@ -117,14 +108,6 @@ struct StatsCardsView: View {
                 incomeAction: incomeAction,
                 monthPrefixedLabels: monthPrefixedLabels
             )
-            if showsCalendar, let calendarMonth, let daily = store.daily {
-                MonthCalendarCard(
-                    days: daily,
-                    month: calendarMonth,
-                    locale: locale,
-                    onSelectDay: { onSelectDay?($0, nil) }
-                )
-            }
             if showsTrendAndComposition, let daily = store.daily {
                 TrendChartCard(
                     days: daily,
