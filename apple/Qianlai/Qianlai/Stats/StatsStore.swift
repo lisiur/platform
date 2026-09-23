@@ -16,14 +16,18 @@ import Observation
 /// predicate whenever the countsInLedger axis is present, so no caller
 /// needs an includeExcluded ride-along. The budget opt-out counts in the
 /// ledger stats by default, so isolating it is a real narrowing the cards
-/// must follow to reconcile with the funnel-filtered list. nil = the
-/// unfiltered ledger stats the dashboard tab fetches: unchanged snapshot
-/// keys, and the widget-snapshot publish duty. nonisolated — its members
-/// feed the pure key/query builders below, the same convention as
-/// `MonthWindow`.
+/// must follow to reconcile with the funnel-filtered list. The account
+/// axes (`accountId`/`parentAccountId`) are the drill-down pages'
+/// structural scope — no funnel writes them, only a drill's seeding does,
+/// so a chart page pushed FROM a drill inherits the category and its
+/// donut buckets that category's children (the server's report endpoints
+/// have carried both axes since a3d255bb). nil = the unfiltered ledger
+/// stats the dashboard tab fetches: unchanged snapshot keys, and the
+/// widget-snapshot publish duty. nonisolated — its members feed the pure
+/// key/query builders below, the same convention as `MonthWindow`.
 nonisolated struct StatsFilters: Hashable {
-    var participantUserId: String?
-    var projectId: String?
+    var participantUserId: String? = nil
+    var projectId: String? = nil
     /// true = only entries marked 不计入日常预算 (the funnel's 只看不计预算
     /// toggle); nil = no budget filtering.
     var budgetExcluded: Bool? = nil
@@ -35,12 +39,30 @@ nonisolated struct StatsFilters: Hashable {
     /// classification the list rows render by. nil = every kind
     /// (transfer included).
     var kind: QuickEntryKind? = nil
+    /// The drill page's leaf-category scope (the composition card's leaf
+    /// row). Entry-level filtering: other lines on a matched entry also
+    /// feed the category buckets.
+    var accountId: String? = nil
+    /// The drill page's rollup-category scope (a 一级分类 bucket) — the
+    /// server matches the parent OR any of its children, so a chart
+    /// page's donut buckets the category's children.
+    var parentAccountId: String? = nil
+    /// Display-only: the category NAME for the account axes above, so a
+    /// page that inherits its category through `filters` (a day drill
+    /// from a category-scoped chart page) can title itself without
+    /// looking the id up — the same rule `JournalDrillDown.categoryLabel`
+    /// serves for drills that carry their own axes. Deliberately outside
+    /// `queryPairs`, `isEmpty`, and therefore every cache key: captures
+    /// differing only in label are the same wire shape (they still
+    /// compare unequal, which at worst costs one same-shaped refetch).
+    var categoryLabel: String? = nil
 
     /// Capture sites collapse empty filters to nil so an unfiltered chart
     /// page stays wire- and cache-identical to the dashboard tab's.
     var isEmpty: Bool {
         participantUserId == nil && projectId == nil
             && budgetExcluded == nil && notCountedOnly == nil && kind == nil
+            && accountId == nil && parentAccountId == nil
     }
 
     /// The aggregation's numerator, the journal day headers' rule: a
@@ -56,6 +78,8 @@ nonisolated struct StatsFilters: Hashable {
             ("excludedFromBudget", budgetExcluded.map { $0 ? "true" : "false" }),
             ("countsInLedger", notCountedOnly == true ? "false" : nil),
             ("kind", kind?.rawValue),
+            ("accountId", accountId),
+            ("parentAccountId", parentAccountId),
         ]
     }
 
@@ -69,14 +93,28 @@ nonisolated struct StatsFilters: Hashable {
             filters.queryPairs + [("shareMode", filters.shareMode.rawValue)]
         )
     }
+
+    /// Returns a copy carrying the display-only category label (see
+    /// `categoryLabel`) — the store capture knows ids only; the drill
+    /// page's chart push attaches the name its payload carries.
+    func withCategoryLabel(_ label: String?) -> StatsFilters {
+        var copy = self
+        copy.categoryLabel = label
+        return copy
+    }
 }
 
 /// The store's structural filters as one stats capture — the read every
 /// host surface (dashboard, journal, stats tab) shares, so a new axis
 /// lands here and nowhere else. The search stays out (a list mechanic);
 /// every axis the funnel sheet offers now isolates a set the cards must
-/// reconcile with. An empty capture collapses to nil so an unfiltered
-/// surface stays wire- and cache-identical to the dashboard tab's.
+/// reconcile with, and the drill axes ride too — only a drill-down's
+/// private store ever has `accountId`/`parentAccountId` set (the shared
+/// journal/dashboard stores have no UI for them), so a chart page pushed
+/// from a drill inherits the category while every other surface's
+/// capture is unchanged. An empty capture collapses to nil so an
+/// unfiltered surface stays wire- and cache-identical to the dashboard
+/// tab's.
 extension JournalStore {
     var statsFilters: StatsFilters? {
         let filters = StatsFilters(
@@ -84,7 +122,9 @@ extension JournalStore {
             projectId: projectFilterId,
             budgetExcluded: budgetExcluded,
             notCountedOnly: notCountedOnly ? true : nil,
-            kind: kind
+            kind: kind,
+            accountId: accountId,
+            parentAccountId: parentAccountId
         )
         return filters.isEmpty ? nil : filters
     }

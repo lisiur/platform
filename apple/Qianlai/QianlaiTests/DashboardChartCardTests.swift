@@ -77,6 +77,36 @@ final class CompositionCardLevelTests: XCTestCase {
         XCTAssertEqual(merged[0].parentDisplayName, nil)
     }
 
+    func testAutoLevelFollowsTheTopLevelBucketCount() {
+        // One 一级分类 → 全部: the rollup tab would draw a single 100%
+        // slice and hide the 二级分类 beneath it.
+        let oneParent = [
+            row("lunch", name: "午餐", parentCode: "food", cents: 210),
+            row("dinner", name: "晚餐", parentCode: "food", cents: 100),
+        ]
+        XCTAssertEqual(CategoryBreakdownCard.autoLevel(forBase: oneParent), .leaf)
+        // A second bucket restores the rollup default.
+        let twoParents = oneParent + [
+            row("fuel", name: "加油", parentCode: "transport", cents: 90),
+        ]
+        XCTAssertEqual(CategoryBreakdownCard.autoLevel(forBase: twoParents), .parent)
+        // A parentless leaf is its own 一级分类 — alone it defaults to
+        // 全部 (the same single-slice donut; the rule stays mechanical).
+        XCTAssertEqual(
+            CategoryBreakdownCard.autoLevel(forBase: [row("digital", name: "数码", cents: 500)]),
+            .leaf
+        )
+        // Zero drawable buckets render the empty state either way — the
+        // rule keeps the rollup default.
+        XCTAssertEqual(CategoryBreakdownCard.autoLevel(forBase: []), .parent)
+        XCTAssertEqual(
+            CategoryBreakdownCard.autoLevel(
+                forBase: [row("refund", name: "退款", parentCode: "food", cents: -50)]
+            ),
+            .parent
+        )
+    }
+
     func testRollupBadgePrefersParentIconOverFirstChild() {
         // 一级分类用自己的图标: both children carry the parent's own icon
         // on every row; the bucket must show it, not the first child's.

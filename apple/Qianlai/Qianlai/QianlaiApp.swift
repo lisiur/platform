@@ -73,6 +73,8 @@ struct QianlaiApp: App {
                     CalendarCardDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-range-card") {
                     RangeCardDemo()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-drill-toolbar") {
+                    DrillToolbarDemo()
                 } else if authManager.isLoggedIn {
                     // First-login guide: self-registered users (flag still
                     // set) see onboarding instead of the main tabs.
@@ -314,7 +316,10 @@ private struct ChartCardDemoCanvas<Content: View>: View {
 
 /// Screenshot harness for the dashboard's composition card
 /// (`--ui-demo-composition-card`, add `--ui-demo-composition-all` to pin
-/// the 全部 leaf view; the card defaults to the 一级分类 rollup): a
+/// the 全部 leaf view; the card defaults to the 一级分类 rollup unless a
+/// side rolls up to a single 一级分类 — `--ui-demo-composition-single`
+/// swaps in that fixture, whose expense side must open on 全部 showing
+/// the 二级分类 while the two-bucket income side stays on 一级分类): a
 /// month-shaped category summary with a parent tree, a top-level leaf,
 /// and offsetting/zero rows — enough slices to exercise the leader
 /// lines' per-side stacking and the rollup. The card's own pickers
@@ -327,12 +332,31 @@ private struct CompositionCardDemo: View {
                 currency: "CNY",
                 locale: Locale(identifier: "zh-Hans"),
                 initialLevel: ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-composition-all")
-                    ? .leaf : .parent
+                    ? .leaf : nil
             )
         }
     }
 
-    static let summary = CategorySummaryResponse(
+    static let summary = ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-composition-single")
+        ? singleParentSummary
+        : multiParentSummary
+
+    /// Every expense bucket under one 一级分类 (the auto-leaf rule's
+    /// subject); income keeps two buckets so switching sides shows the
+    /// rollup default again.
+    static let singleParentSummary = CategorySummaryResponse(
+        expense: [
+            row("lunch", name: "午餐", parentCode: "food", icon: "🍱", parentIcon: "🍜", cents: 21_000),
+            row("breakfast", name: "早餐", parentCode: "food", icon: "🥣", parentIcon: "🍜", cents: 12_000),
+            row("snacks", name: "零食饮料", parentCode: "food", icon: "🥤", parentIcon: "🍜", cents: 8_000),
+        ],
+        income: [
+            row("salary", name: "工资", parentCode: "payroll", icon: "💰", parentIcon: "💼", cents: 200_000),
+            row("interest", name: "理财收益", icon: "📈", cents: 50_000),
+        ]
+    )
+
+    static let multiParentSummary = CategorySummaryResponse(
         expense: [
             row("lunch", name: "午餐", parentCode: "food", icon: "🍱", parentIcon: "🍜", cents: 21_000),
             row("breakfast", name: "早餐", parentCode: "food", icon: "🥣", parentIcon: "🍜", cents: 12_000),
@@ -591,5 +615,26 @@ private struct RangeCardDemo: View {
             )
         }
     }()
+}
+
+/// Screenshot harness for the stats drill-down page's toolbar
+/// (`--ui-demo-drill-toolbar`): the REAL `StatKindDetailView` pushed in a
+/// NavigationStack on the demo ledger — its journal filter capsule (funnel
+/// + amount sort) and its own chart pill beside it. Offline the first load
+/// fails and the list keeps its error state, but the chart entry stays
+/// visible (its empty gate only closes on a confirmed-empty successful
+/// load), which is the layout under test. No login or backend.
+private struct DrillToolbarDemo: View {
+    var body: some View {
+        NavigationStack {
+            StatKindDetailView(
+                ledger: QuickEntryDemoScreen.demoLedger,
+                filter: JournalDrillDown(
+                    kind: .expense, accountId: "demo-food", categoryLabel: "餐饮"
+                ),
+                window: AppDates.monthWindow(containing: .now)
+            )
+        }
+    }
 }
 

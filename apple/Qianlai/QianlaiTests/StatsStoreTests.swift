@@ -131,6 +131,70 @@ final class StatsStoreTests: XCTestCase {
         XCTAssertNotEqual(plain, StatsStore.snapshotKey(ledgerId: "led", window: window, filters: isolated))
     }
 
+    func testDrillAccountAxesJoinTheQueryAndSplitTheKey() {
+        // The drill-down pages' category scope rides the chart push: a
+        // chart page opened from a category drill fetches THAT category's
+        // stats (the rollup axis buckets the category's children
+        // server-side). Off — every non-drill surface — sends neither
+        // pair, so the shipped wire shape is untouched.
+        let leaf = ApiQuery.build(
+            StatsStore.baseQueryPairs(
+                window: window,
+                filters: StatsFilters(participantUserId: nil, projectId: nil, accountId: "acc-leaf")
+            )
+        )
+        XCTAssertTrue(leaf.contains("accountId=acc-leaf"), leaf)
+        let rollup = ApiQuery.build(
+            StatsStore.baseQueryPairs(
+                window: window,
+                filters: StatsFilters(participantUserId: nil, projectId: nil, parentAccountId: "acc-parent")
+            )
+        )
+        XCTAssertTrue(rollup.contains("parentAccountId=acc-parent"), rollup)
+        let off = ApiQuery.build(
+            StatsStore.baseQueryPairs(
+                window: window,
+                filters: StatsFilters(participantUserId: nil, projectId: nil)
+            )
+        )
+        XCTAssertFalse(off.contains("accountId"), off)
+        XCTAssertFalse(off.contains("parentAccountId"), off)
+        // And each narrowed record lives under its own cache key.
+        let plain = StatsStore.snapshotKey(ledgerId: "led", window: window, filters: nil)
+        XCTAssertNotEqual(
+            plain,
+            StatsStore.snapshotKey(
+                ledgerId: "led", window: window,
+                filters: StatsFilters(participantUserId: nil, projectId: nil, accountId: "acc-leaf")
+            )
+        )
+        XCTAssertNotEqual(
+            plain,
+            StatsStore.snapshotKey(
+                ledgerId: "led", window: window,
+                filters: StatsFilters(participantUserId: nil, projectId: nil, parentAccountId: "acc-parent")
+            )
+        )
+    }
+
+    func testCategoryLabelNeverEntersTheWireOrTheKey() {
+        // The label is display-only (a page that inherits its category
+        // through the capture titles itself with it) — captures differing
+        // only in label must stay the same wire shape and the same cache
+        // record.
+        let plain = StatsFilters(participantUserId: nil, projectId: nil, accountId: "acc-leaf")
+        var labeled = plain
+        labeled.categoryLabel = "餐饮"
+        XCTAssertEqual(
+            ApiQuery.build(plain.queryPairs),
+            ApiQuery.build(labeled.queryPairs)
+        )
+        XCTAssertEqual(
+            StatsFilters.keySegment(plain),
+            StatsFilters.keySegment(labeled)
+        )
+    }
+
     // MARK: snapshotKey
 
     func testUnfilteredKeyIgnoresEmptyFilters() {
@@ -174,5 +238,24 @@ final class StatsStoreTests: XCTestCase {
             filters: StatsFilters(participantUserId: "user-b", projectId: nil)
         )
         XCTAssertEqual(participant, again)
+    }
+
+    // MARK: capture
+
+    @MainActor
+    func testCaptureCarriesDrillAccountAxesAndStaysNilWithoutThem() {
+        // The one live capture every host reads. The drill axes ride it —
+        // only a drill-down's private store ever sets them, so a chart
+        // page pushed from a drill inherits the category — while a store
+        // without them (journal/dashboard: no UI touches account axes)
+        // still collapses to nil, keeping every existing capture and
+        // cache key byte-identical.
+        let store = JournalStore()
+        XCTAssertNil(store.statsFilters, "a bare store captures nil")
+        store.accountId = "acc-leaf"
+        store.parentAccountId = "acc-parent"
+        let captured = store.statsFilters
+        XCTAssertEqual(captured?.accountId, "acc-leaf")
+        XCTAssertEqual(captured?.parentAccountId, "acc-parent")
     }
 }

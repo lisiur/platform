@@ -12,8 +12,11 @@ import SwiftUI
 /// totals as a donut with leader-line callouts naming the major slices
 /// (under-10% shares and near-adjacent neighbors rely on the legend) and
 /// a full legend beneath, switchable between the expense and income
-/// sides and between slice granularities — the parent rollup (一级分类,
-/// the default) or every leaf as posted (全部). The data is the
+/// sides and between slice granularities — the parent rollup (一级分类)
+/// or every leaf as posted (全部). The default granularity follows the
+/// data: a side that rolls up to exactly ONE 一级分类 opens on 全部 so
+/// its 二级分类 show (the rollup tab would draw a single 100% slice);
+/// an explicit pick sticks, side switches included. The data is the
 /// category-summary report at the `members` share mode — the trend
 /// card's member-share split keyed per account, so it reconciles with
 /// the trend card beside it and with the stat card above. A pie can't
@@ -36,9 +39,16 @@ struct CategoryBreakdownCard: View {
     var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
 
     @State private var side: QuickEntryKind = .expense
-    /// Slice granularity: the parent rollup (一级分类 — the default) or
-    /// every leaf as posted (全部).
-    @State private var level: Level
+    /// The user's explicit granularity pick — nil until they tap the
+    /// level segmented picker, so the auto default can follow the data
+    /// (`autoLevel`). An explicit pick sticks, side switches included.
+    @State private var userLevel: Level?
+
+    /// The granularity the card renders: the user's pick, or the auto
+    /// default for the shown side's data.
+    private var level: Level {
+        userLevel ?? Self.autoLevel(forBase: sideRows)
+    }
 
     enum Level: String, CaseIterable, Identifiable {
         case parent
@@ -61,12 +71,20 @@ struct CategoryBreakdownCard: View {
     /// picker-relevant subset.
     private static let sides: [QuickEntryKind] = [.expense, .income]
 
-    init(summary: CategorySummaryResponse, currency: String?, locale: Locale, initialLevel: Level = .parent, onSelectCategory: ((JournalDrillDown) -> Void)? = nil) {
+    /// nil seeds the auto default (the callers' shape); an explicit level
+    /// pins the card to it (the demo harness's `--ui-demo-composition-all`).
+    init(
+        summary: CategorySummaryResponse,
+        currency: String?,
+        locale: Locale,
+        initialLevel: Level? = nil,
+        onSelectCategory: ((JournalDrillDown) -> Void)? = nil
+    ) {
         self.summary = summary
         self.currency = currency
         self.locale = locale
         self.onSelectCategory = onSelectCategory
-        _level = State(initialValue: initialLevel)
+        _userLevel = State(initialValue: initialLevel)
     }
 
     /// Categorical palette, deliberately clear of the income-red /
@@ -78,9 +96,12 @@ struct CategoryBreakdownCard: View {
         .indigo, .mint, .cyan, .yellow, .brown,
     ]
 
+    private var sideRows: [CategoryAmountRow] {
+        side == .expense ? summary.expense : summary.income
+    }
+
     private var rows: [CategoryAmountRow] {
-        let base = side == .expense ? summary.expense : summary.income
-        return level == .leaf ? base.filter { $0.amountCents > 0 } : Self.levelOneRows(base)
+        level == .leaf ? sideRows.filter { $0.amountCents > 0 } : Self.levelOneRows(sideRows)
     }
 
     private var totalCents: Int {
@@ -123,7 +144,10 @@ struct CategoryBreakdownCard: View {
             }
             segmentedPicker(
                 L10n.string("dashboard.compositionCard.levelA11y", defaultValue: "Category level"),
-                selection: $level,
+                selection: Binding(
+                    get: { level },
+                    set: { userLevel = $0 }
+                ),
                 options: Level.allCases,
                 label: \.label
             )
@@ -311,6 +335,16 @@ struct CategoryBreakdownCard: View {
     }
 
     // MARK: - Level rollup (一级)
+
+    /// The auto granularity for a side's raw rows: a month that rolls up
+    /// to exactly ONE 一级分类 defaults to 全部 — the rollup tab would
+    /// draw a single 100% slice and hide the 二级分类 beneath it. Every
+    /// other shape (zero buckets included — the empty state renders
+    /// either way) defaults to the 一级分类 rollup. Pure so the rule
+    /// stays unit-testable.
+    nonisolated static func autoLevel(forBase base: [CategoryAmountRow]) -> Level {
+        levelOneRows(base).count == 1 ? .leaf : .parent
+    }
 
     /// Rolls leaf rows up one level: children merge into their parent's
     /// bucket, keyed on the parent's real account id when known so a drill-

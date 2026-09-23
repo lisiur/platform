@@ -7,6 +7,41 @@
 
 import SwiftUI
 
+/// The chart page's push payload: the ledger snapshot plus the window and
+/// the structural filters captured at tap time — the host surface's
+/// bounds and filters keep moving behind a push, and the pushed page must
+/// describe the state the user tapped on. Distinct from the cards' drill
+/// payload (`StatDetailTarget`): this one carries the window instead of a
+/// drill filter. Shared by every stats host — the dashboard, the journal
+/// page, and the drill-down pages' own chart entries (one type, not one
+/// private twin per surface).
+struct StatsTarget: Identifiable, Hashable {
+    let ledger: QianlaiLedger
+    let window: MonthWindow
+    let filters: StatsFilters?
+
+    var id: String {
+        let filterToken = filters.flatMap(StatsFilters.keySegment) ?? "-"
+        return "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
+    }
+}
+
+/// The chart page's entry button — the `chart.bar.xaxis` chrome and its
+/// label, shared verbatim by every host that raises a `StatsTarget` (the
+/// dashboard toolbar, the journal page, the drill-down pages). The
+/// action stays the host's: the capture (window + filters at tap time)
+/// is deliberately per-surface.
+struct StatsEntryButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chart.bar.xaxis")
+        }
+        .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
+    }
+}
+
 /// The journal page's chart page: the reusable stats component rendering
 /// the journal's active window and structural filters (the funnel sheet's
 /// participant/project picks), captured at push time — the list's bounds

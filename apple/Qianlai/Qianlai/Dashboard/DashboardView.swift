@@ -76,24 +76,10 @@ struct DashboardView: View {
     /// The chart page's push payload, captured at tap time — the month
     /// window is pinned here, but the funnel's filters keep moving, and
     /// the pushed page must describe the state the user tapped on.
-    /// nil = chart page popped.
+    /// nil = chart page popped. The shared payload type (with the journal
+    /// page's and the drill-downs' chart entries) lives beside the page
+    /// it pushes.
     @State private var statsTarget: StatsTarget?
-
-    /// The chart page's push payload: the ledger snapshot plus the window
-    /// and the structural filters captured at tap time. Same shape as the
-    /// journal page's payload (each surface keeps its own private copy) —
-    /// distinct from the drill payload above, this one carries the window
-    /// instead of a drill filter.
-    private struct StatsTarget: Identifiable, Hashable {
-        let ledger: QianlaiLedger
-        let window: MonthWindow
-        let filters: StatsFilters?
-
-        var id: String {
-            let filterToken = filters.flatMap(StatsFilters.keySegment) ?? "-"
-            return "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
-        }
-    }
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -507,17 +493,14 @@ struct DashboardView: View {
     @ViewBuilder
     private var statsButton: some View {
         if !showsProjectDetail, ledgerStore.activeLedger?.isGuest == false {
-            Button {
+            StatsEntryButton {
                 guard let ledger = ledgerStore.activeLedger else { return }
                 statsTarget = StatsTarget(
                     ledger: ledger,
                     window: statsWindow,
                     filters: statsFilters
                 )
-            } label: {
-                Image(systemName: "chart.bar.xaxis")
             }
-            .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
         }
     }
 
