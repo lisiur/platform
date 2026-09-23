@@ -40,6 +40,14 @@ final class PreferenceStoreTests: XCTestCase {
         )
     }
 
+    func testStatsTabRoundTripsFromConfig() {
+        store.configuredTabs = [.journal, .stats]
+        XCTAssertEqual(
+            store.visibleTabs(isGuest: false, isProjectScoped: false),
+            [.dashboard, .journal, .stats, .profile]
+        )
+    }
+
     func testGuestBarIsFixedRegardlessOfConfig() {
         store.configuredTabs = [.projects, .journal]
         XCTAssertEqual(
@@ -75,7 +83,7 @@ final class PreferenceStoreTests: XCTestCase {
     func testConfigurableTabsExcludePinnedSlots() {
         XCTAssertEqual(
             Set(AppTab.configurableCases),
-            [.journal, .members, .assets, .projects, .reports]
+            [.journal, .stats, .members, .assets, .projects, .reports]
         )
         XCTAssertFalse(AppTab.dashboard.isConfigurable)
         XCTAssertFalse(AppTab.profile.isConfigurable)

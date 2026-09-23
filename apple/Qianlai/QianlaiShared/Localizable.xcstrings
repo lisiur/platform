@@ -10938,6 +10938,23 @@
     "selected" : {
 
     },
+    "stats.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stats"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "统计"
+          }
+        }
+      }
+    },
     "status.archived" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11087,6 +11104,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "报表"
+          }
+        }
+      }
+    },
+    "tab.stats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stats"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "统计"
           }
         }
       }

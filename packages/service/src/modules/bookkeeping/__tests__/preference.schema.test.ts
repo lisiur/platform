@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { QUICK_ENTRY_CHIP_FIELDS } from "../domain";
-import { quickEntryDataSchema } from "../routes/preferences/schema";
+import {
+  quickEntryDataSchema,
+  tabsDataSchema,
+} from "../routes/preferences/schema";
+
+describe("tabsDataSchema", () => {
+  it("accepts the stats tab alongside the shipped ones", () => {
+    const parsed = tabsDataSchema.parse({ tabs: ["journal", "stats"] });
+    expect(parsed.tabs).toEqual(["journal", "stats"]);
+  });
+
+  it("rejects unknown tabs", () => {
+    expect(() => tabsDataSchema.parse({ tabs: ["dragon"] })).toThrow();
+  });
+});
 
 describe("quickEntryDataSchema", () => {
   it("offers the counting toggles as chip fields", () => {

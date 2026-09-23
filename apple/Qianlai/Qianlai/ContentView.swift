@@ -10,6 +10,7 @@ import SwiftUI
 enum AppTab: String, Hashable, Codable {
     case dashboard
     case journal
+    case stats
     case members
     case assets
     case projects
@@ -22,7 +23,7 @@ enum AppTab: String, Hashable, Codable {
     /// The tab slots the user may show/hide and reorder. Dashboard is
     /// pinned first and profile pinned last, so they are deliberately
     /// absent — a stored arrangement can never move or hide them.
-    static let configurableCases: [AppTab] = [.journal, .members, .assets, .projects, .reports]
+    static let configurableCases: [AppTab] = [.journal, .stats, .members, .assets, .projects, .reports]
 
     var isConfigurable: Bool {
         Self.configurableCases.contains(self)
@@ -41,6 +42,12 @@ enum AppTab: String, Hashable, Codable {
                 "tab.journal",
                 defaultValue: "Journal",
                 comment: "Bottom tab: journal entries (Chinese 流水)"
+            )
+        case .stats:
+            LocalizedStringResource(
+                "tab.stats",
+                defaultValue: "Stats",
+                comment: "Bottom tab: windowed stats and charts (Chinese 统计)"
             )
         case .members:
             LocalizedStringResource(
@@ -85,6 +92,7 @@ enum AppTab: String, Hashable, Codable {
         switch self {
         case .dashboard: "text.book.closed"
         case .journal: "list.bullet.rectangle"
+        case .stats: "chart.bar.fill"
         case .members: "person.2"
         case .assets: "creditcard"
         case .projects: "folder"
@@ -390,6 +398,7 @@ struct ContentView: View {
         switch tab {
         case .dashboard: DashboardView()
         case .journal: JournalView()
+        case .stats: StatsTabPageView()
         case .members: MembersTabPageView().appBackgroundSink()
         case .assets: RealAccountsView()
         case .projects: ProjectsView()
@@ -427,8 +436,9 @@ private struct ToastHostModifier: ViewModifier {
 
 /// Tab-embedded title chrome: members renders a bare page whose title is
 /// supplied here (the tab's empty state mounts no view that sets one),
-/// while the dashboard, journal, profile, and the assets/projects/reports
-/// pages set their own large titles internally — those get no extra chrome.
+/// while the dashboard, journal, stats, profile, and the
+/// assets/projects/reports pages set their own large titles internally —
+/// those get no extra chrome.
 private struct AppTabTitleChrome: ViewModifier {
     let tab: AppTab
 
@@ -437,7 +447,7 @@ private struct AppTabTitleChrome: ViewModifier {
         case .members:
             content
                 .navigationTitle(Text(tab.label))
-        case .dashboard, .journal, .assets, .projects, .reports, .profile, .quickAdd:
+        case .dashboard, .journal, .stats, .assets, .projects, .reports, .profile, .quickAdd:
             content
         }
     }

@@ -44,6 +44,7 @@ export type LedgerStatus = (typeof LEDGER_STATUSES)[number];
  */
 export const CONFIGURABLE_TABS = [
   "journal",
+  "stats",
   "members",
   "assets",
   "projects",
