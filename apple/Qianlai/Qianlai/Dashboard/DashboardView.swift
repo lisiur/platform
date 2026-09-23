@@ -73,6 +73,27 @@ struct DashboardView: View {
     /// drills into. nil = drill-down popped. The payload type is shared
     /// with the journal's chart page (see StatKindDetailView).
     @State private var statDetailTarget: StatDetailTarget?
+    /// The chart page's push payload, captured at tap time — the month
+    /// window is pinned here, but the funnel's filters keep moving, and
+    /// the pushed page must describe the state the user tapped on.
+    /// nil = chart page popped.
+    @State private var statsTarget: StatsTarget?
+
+    /// The chart page's push payload: the ledger snapshot plus the window
+    /// and the structural filters captured at tap time. Same shape as the
+    /// journal page's payload (each surface keeps its own private copy) —
+    /// distinct from the drill payload above, this one carries the window
+    /// instead of a drill filter.
+    private struct StatsTarget: Identifiable, Hashable {
+        let ledger: QianlaiLedger
+        let window: MonthWindow
+        let filters: StatsFilters?
+
+        var id: String {
+            let filterToken = filters.flatMap(StatsFilters.keySegment) ?? "-"
+            return "\(ledger.id)|\(window.from.timeIntervalSince1970)|\(window.to.timeIntervalSince1970)|\(filterToken)"
+        }
+    }
 
     /// The project the dashboard is currently scoped to. Any role can claim
     /// project scope by explicitly selecting a project in the switcher;
@@ -243,6 +264,14 @@ struct DashboardView: View {
                 monthCalendarButton
             }
             ToolbarItem(placement: .topBarTrailing) {
+                statsButton
+            }
+            // Liquid Glass merges adjacent trailing items into one shared
+            // capsule — the fixed spacer breaks that grouping so the
+            // calendar/stats pair and the plus menu render as two
+            // independent pills.
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) {
                 collaborationMenu
             }
             #else
@@ -251,6 +280,9 @@ struct DashboardView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 monthCalendarButton
+            }
+            ToolbarItem(placement: .primaryAction) {
+                statsButton
             }
             ToolbarItem(placement: .primaryAction) {
                 collaborationMenu
@@ -264,6 +296,17 @@ struct DashboardView: View {
         // times, so the card only raises the flag.
         .navigationDestination(isPresented: $isShowingYearDetail) {
             BudgetYearDetailView()
+        }
+        // The chart page: the stats component for the month window and
+        // the filters active at tap time (the same push the journal
+        // page's toolbar button makes). Page-level registration — never
+        // inside the entry list's lazy container.
+        .navigationDestination(item: $statsTarget) { target in
+            JournalStatsView(
+                ledger: target.ledger,
+                window: target.window,
+                filters: target.filters
+            )
         }
         .navigationDestination(isPresented: $isShowingMonthCalendar) {
             if let ledger = ledgerStore.activeLedger {
@@ -452,6 +495,29 @@ struct DashboardView: View {
                 "dashboard.monthView",
                 defaultValue: "Month view"
             )))
+        }
+    }
+
+    /// The chart page's toolbar button (chart icon, right of the
+    /// calendar) — the same push the journal page's button makes: the
+    /// stats component for the month window and the filters active at
+    /// tap time. Same gate as the calendar button: ledger scope only
+    /// (project scope swaps this whole page) and guests 403 the report
+    /// endpoints the cards' amounts come from.
+    @ViewBuilder
+    private var statsButton: some View {
+        if !showsProjectDetail, ledgerStore.activeLedger?.isGuest == false {
+            Button {
+                guard let ledger = ledgerStore.activeLedger else { return }
+                statsTarget = StatsTarget(
+                    ledger: ledger,
+                    window: statsWindow,
+                    filters: statsFilters
+                )
+            } label: {
+                Image(systemName: "chart.bar.xaxis")
+            }
+            .accessibilityLabel(Text(L10n.string("journal.stats", defaultValue: "Charts")))
         }
     }
 

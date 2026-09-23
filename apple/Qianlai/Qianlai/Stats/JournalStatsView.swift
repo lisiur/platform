@@ -62,7 +62,7 @@ struct JournalStatsView: View {
         .appBackgroundSink()
         .scrollBounceBehavior(.basedOnSize)
         .refreshable {
-            await store.load(ledgerId: ledger.id, window: window)
+            await store.load(ledgerId: ledger.id, window: window, filters: filters)
         }
         .navigationTitle(Text(AppDates.formatWindowTitle(window, locale: locale)))
         .inlineNavigationBarTitle()
