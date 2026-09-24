@@ -13,7 +13,7 @@ struct QianlaiApp: App {
     @State private var ledgerStore: LedgerStore
     @State private var realAccountStore: RealAccountStore
     @State private var journalStore = JournalStore()
-    @State private var reportStore = ReportStore()
+    @State private var reportStore = ReportStore(seedLastLedger: true)
     @State private var projectStore = ProjectStore()
     @State private var preferenceStore = PreferenceStore()
     @State private var backgroundSettings = BackgroundSettings()

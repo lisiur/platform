@@ -618,9 +618,13 @@ struct DashboardView: View {
             // the "how much is left" answer is the first thing on the
             // page. It renders only when a budget is set (nil report /
             // nil month = no card, and per the spec no onboarding hint
-            // either — guests never even fetch it, since the report
-            // endpoint 403s them).
-            if let budget = store.budget, let month = budget.month {
+            // either). Guests never fetch it (the report endpoint 403s
+            // them), but the report store's creation seed can still hand
+            // their store a previous ledger's record — their task returns
+            // before any fetch could correct it, so the explicit guest
+            // gate keeps a stale card off their dashboard (the stats
+            // block's isReportingEnabled gate, mirrored).
+            if let budget = store.budget, let month = budget.month, !ledger.isGuest {
                 BudgetCardView(
                     isYearDetailPresented: $isShowingYearDetail,
                     month: month,
@@ -656,7 +660,10 @@ struct DashboardView: View {
             // parent filter (the account plus its direct children) is the
             // closest journal-side match — identical to accountId for a
             // leaf, the composition card's rollup drill for a parent.
-            if let categoryBudget = store.categoryBudget, !categoryBudget.categories.isEmpty {
+            // Same seed gate as the month budget card above: a guest
+            // never fetches this report either.
+            if let categoryBudget = store.categoryBudget, !categoryBudget.categories.isEmpty,
+                !ledger.isGuest {
                 CategoryBudgetCardView(report: categoryBudget) { row in
                     openBudgetDetail(
                         JournalDrillDown(

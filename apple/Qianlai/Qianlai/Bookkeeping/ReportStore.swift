@@ -46,14 +46,64 @@ final class ReportStore {
         )
     }
 
+    /// The key under which the last successful report fetch's ledger
+    /// rides — the pointer the app-root store's seeding initializer
+    /// needs, since a `@State` store is created before the session knows
+    /// which ledger is active. Refreshed by every successful `loadCached`
+    /// write, the same rule StatsStore's merges follow.
+    private static let lastKey = "last"
+
+    /// The "last" record's payload.
+    private struct LastReportMeta: Codable {
+        var ledgerId: String
+    }
+
+    /// The app-root store's cold-start seed — mirrors StatsStore's
+    /// `init(seedLastLedger:)`: rehydrates the two budget cards at STORE
+    /// CREATION, before any view renders, so the launch dashboard paints
+    /// last-known figures instead of flashing the cards away for the
+    /// frames before the task-driven fetch catches up. The ledger comes
+    /// from the "last" meta record; the month and year keys are the ones
+    /// the dashboard's first fetch aims at (a fresh store's `budgetMonth`
+    /// is nil = the current month, the category budget is annual), so the
+    /// seed never reads another window's record. Opt-in, and only the
+    /// app-root store passes true.
+    ///
+    /// The seed is ungated with the same two caveats as StatsStore's.
+    /// Guests never fetch, and their dashboard task returns before the
+    /// ledger-switch clear in `load` could run — so the two budget cards
+    /// carry their own `!ledger.isGuest` mount gate instead, and a
+    /// guest's seeded payloads stay unpainted. And when the active
+    /// ledger differs from the meta one the first frames carry that
+    /// ledger's figures until the fetch corrects — the same
+    /// fetch-always-follows rule as every cache seed.
+    init(seedLastLedger: Bool = false) {
+        guard seedLastLedger,
+              let meta: LastReportMeta = Self.cache.read(key: Self.lastKey, as: LastReportMeta.self)
+        else { return }
+        budget = Self.cache.read(
+            key: Self.budgetKey(ledgerId: meta.ledgerId, month: effectiveBudgetMonth),
+            as: BudgetReport.self
+        )
+        categoryBudget = Self.cache.read(
+            key: Self.categoryBudgetKey(ledgerId: meta.ledgerId, year: AppDates.currentYear),
+            as: CategoryBudgetReport.self
+        )
+        ledgerId = meta.ledgerId
+    }
+
     /// The one cached-report load: hydrate the surface from `key` when
     /// empty, fetch, publish, persist on success, clear on failure — the
-    /// four report loads share this shape, and `assign`/`clear` touch the
+    /// five report loads share this shape, and `assign`/`clear` touch the
     /// caller's own property. Failure clears, the reports' established
     /// semantics; a cold surface paints its cached report first and the
-    /// fetch silently corrects it.
+    /// fetch silently corrects it. Every success also refreshes the
+    /// "last" ledger pointer the seeding initializer reads — ReportStore
+    /// is always scoped to the active ledger, so any record's write is a
+    /// fresh statement of which ledger the cache describes.
     private func loadCached<P: Codable>(
         path: String,
+        ledgerId: String,
         key: String,
         as type: P.Type,
         isEmpty: () -> Bool,
@@ -67,6 +117,7 @@ final class ReportStore {
             let loaded: P = try await client.request("GET", path)
             assign(loaded)
             Self.cache.write(key: key, payload: loaded)
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
         } catch {
             clear()
         }
@@ -134,6 +185,13 @@ final class ReportStore {
 
     private var ledgerId: String?
 
+    /// The ledger whose windowed reports (trial balance, statement,
+    /// turnover) this session has already fetched. The seed makes
+    /// `ledgerId` non-nil before the first `load`, so the ledger identity
+    /// alone no longer means "the windowed preload ran" — `load` keys
+    /// that branch off this marker instead.
+    private var windowedLedgerId: String?
+
     var fromDate: Date? { didSet { scheduleWindowedReload() } }
     var toDate: Date? { didSet { scheduleWindowedReload() } }
 
@@ -163,6 +221,14 @@ final class ReportStore {
     func load(ledgerId: String) async {
         let ledgerChanged = self.ledgerId != ledgerId
         self.ledgerId = ledgerId
+        // The windowed preload fires once per ledger per session — on a
+        // fresh store that's the first load, seeded or not (the marker is
+        // nil), and afterwards only a ledger change refires it. The
+        // seed's same-ledger first load lands in the else branch, where
+        // the seeded budget cards stay published and only the fetch
+        // corrects them.
+        let windowedPreload = windowedLedgerId != ledgerId
+        windowedLedgerId = ledgerId
         if ledgerChanged {
             // Never let another ledger's budget card survive a switch whose
             // fresh fetch fails — hiding beats cross-ledger numbers. (The
@@ -173,13 +239,13 @@ final class ReportStore {
             // only duplicate the request.
             budget = nil
             categoryBudget = nil
-            async let trial: () = loadTrialBalance()
-            async let statement: () = loadIncomeStatement()
-            async let turnover: () = loadMemberTurnover()
+        }
+        if windowedPreload {
+            async let windowed: () = loadWindowedReports()
             async let budget: () = loadBudgetReport(
                 ledgerId: ledgerId, month: effectiveBudgetMonth
             )
-            _ = await (trial, statement, turnover, budget)
+            _ = await (windowed, budget)
         } else {
             await loadBudgetReport(
                 ledgerId: ledgerId, month: effectiveBudgetMonth
@@ -187,12 +253,20 @@ final class ReportStore {
         }
     }
 
-    func reloadWindowed() async {
-        guard ledgerId != nil else { return }
+    /// The three windowed reports in one concurrent sweep — `load`'s
+    /// preload branch and `reloadWindowed` share it so the set can't
+    /// drift apart.
+    private func loadWindowedReports() async {
         async let trial: () = loadTrialBalance()
         async let statement: () = loadIncomeStatement()
         async let turnover: () = loadMemberTurnover()
         _ = await (trial, statement, turnover)
+    }
+
+    func reloadWindowed() async {
+        guard let ledgerId else { return }
+        windowedLedgerId = ledgerId
+        await loadWindowedReports()
     }
 
     /// Refreshes every surface a posting can change: the budget card (the
@@ -247,6 +321,7 @@ final class ReportStore {
                 ("month", String(month.month)),
                 ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
             ]),
+            ledgerId: ledgerId,
             key: Self.budgetKey(ledgerId: ledgerId, month: month),
             as: BudgetReport.self,
             isEmpty: { budget == nil },
@@ -273,6 +348,7 @@ final class ReportStore {
                 ("year", String(year)),
                 ("tzOffsetMinutes", String(AppDates.localTzOffsetMinutes)),
             ]),
+            ledgerId: ledgerId,
             key: Self.categoryBudgetKey(ledgerId: ledgerId, year: year),
             as: CategoryBudgetReport.self,
             isEmpty: { categoryBudget == nil },
@@ -325,6 +401,7 @@ final class ReportStore {
             path: "bookkeeping/ledgers/\(ledgerId)/reports/trial-balance" + ApiQuery.build([
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ]),
+            ledgerId: ledgerId,
             key: Self.windowKey("trial", ledgerId: ledgerId, from: nil, to: toDate),
             as: TrialBalance.self,
             isEmpty: { trialBalance == nil },
@@ -342,6 +419,7 @@ final class ReportStore {
                 ("from", fromDate.map { ApiQuery.iso($0) }),
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ]),
+            ledgerId: ledgerId,
             key: Self.windowKey("statement", ledgerId: ledgerId, from: fromDate, to: toDate),
             as: IncomeStatement.self,
             isEmpty: { incomeStatement == nil },
@@ -359,6 +437,7 @@ final class ReportStore {
                 ("from", fromDate.map { ApiQuery.iso($0) }),
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
             ]),
+            ledgerId: ledgerId,
             key: Self.windowKey("turnover", ledgerId: ledgerId, from: fromDate, to: toDate),
             as: MemberTurnover.self,
             isEmpty: { memberTurnover == nil },
