@@ -49,7 +49,7 @@ struct BudgetCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                Image(systemName: "chart.bar")
+                Image(systemName: "list.bullet.rectangle.portrait")
                     .font(.system(size: 20))
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 40, height: 40)
