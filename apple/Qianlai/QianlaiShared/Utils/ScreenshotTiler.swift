@@ -10,17 +10,23 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-/// Splits a payment screenshot into model-sized JPEG tiles.
+/// Splits a payment screenshot into model-sized tiles, shaped by the
+/// model's `RecognitionBudget`.
 ///
-/// The recognition model (DeepSeek vision) auto-resizes every input before
-/// inference: anything beyond roughly a 1300×1300 pixel budget is scaled
-/// down to it, anything at or below passes through untouched, and each
-/// image bills at most 1024 tokens. Tiling keeps every row inside that
-/// budget at native sharpness: tile at the source's own width when it fits
-/// (≤ 1300 wide — beyond it the model would just scale back down), slice
-/// vertically with a 10% overlap so a line straddling a cut survives whole
-/// in at least one tile. Extremely tall captures step down a width ladder
-/// instead of growing the tile count past the request cap.
+/// Vision models auto-resize oversized input before inference, and a model
+/// shrink is exactly what tiling exists to prevent — every tile is kept
+/// inside the budget so it reaches inference at native sharpness. Two
+/// budget shapes drive the geometry (see `RecognitionBudget`):
+///
+/// - Edge budget (DeepSeek, ~1300×1300): tile at the source's own width
+///   when it fits the edge, slice vertically with a 10% overlap so a line
+///   straddling a cut survives whole in at least one tile; extremely tall
+///   captures step down a width ladder instead of growing the tile count
+///   past the request cap.
+/// - Pixel budget (Qwen VL): mild overflow (≤ 2× the budget — a one-screen
+///   capture at ~0.9×) ships as ONE uniformly scaled image, the vision-token
+///   floor; severe overflow slices at the largest width whose per-tile area
+///   stays inside the budget, so the model never resizes at all.
 enum ScreenshotTiler {
     /// EXPERIMENT (concluded 2026-09-23): lossless PNG tiles — no
     /// observable recognition difference vs JPEG 0.8 on real captures, so
@@ -34,8 +40,8 @@ enum ScreenshotTiler {
     private static let pngTotalBudget = 5_000_000
 
     /// One upload-ready recognition image plus the media type its bytes
-    /// actually are — the server whitelists jpeg/png/webp and DeepSeek
-    /// decodes by it, so the annotation must match the encode.
+    /// actually are — the model decodes by the annotation, so it must match
+    /// the encode (the budget's media types decide which encoders run).
     struct RecognitionTile {
         let data: Data
         let mediaType: String
@@ -49,48 +55,41 @@ enum ScreenshotTiler {
     /// to prevent. `false` is the shipped behavior; `recognitionTiles`
     /// remains the pipeline's single entry should this ever be retried.
     static let singleImageMode = false
-    /// Tile edge cap matching the model's ~1300×1300 no-resize budget —
-    /// a tile at or under it is not resampled before inference.
-    static let maxEdge = 1300
-    /// Hard cap on tiles per recognition — the service rejects more.
-    static let maxTileCount = 6
-    /// Overlap between consecutive tiles, in target pixels — 10% of the
-    /// tile edge, one text row plus margin at native screenshot scale.
-    static let overlap = CGFloat(maxEdge) / 10
-    /// The shrink-to-fit ladder: the first width whose full-height slicing
-    /// fits in `maxTileCount` wins. Never upscaled past the source width.
-    static let candidateWidths: [CGFloat] = [
-        CGFloat(maxEdge), 1024, 800, 640, 512, 400, 320, 240, 160, 120,
+
+    /// The fixed shrink stops beneath any budget cap — the budget's own
+    /// width limit leads the candidates; these only kick in for extreme
+    /// aspect ratios whose slicing would blow the tile count.
+    private static let shrinkLadder: [CGFloat] = [
+        1024, 800, 640, 512, 400, 320, 240, 160, 120,
     ]
 
     /// Pure geometry: target-scale tile frames (top-left origin) for a
-    /// source image. Unit-tested without any image decoding.
-    static func plan(sourceWidth: Int, sourceHeight: Int) -> Plan? {
+    /// source image, shaped by the model budget. Unit-tested without any
+    /// image decoding.
+    static func plan(
+        sourceWidth: Int,
+        sourceHeight: Int,
+        budget: RecognitionBudget = .shipped
+    ) -> Plan? {
         guard sourceWidth > 0, sourceHeight > 0 else { return nil }
-        let width = CGFloat(sourceWidth)
-        // The source's own width leads the ladder when it is within the
-        // budget-equivalent edge — resampling down to a ladder stop would
-        // only spend pixels the model would have kept.
-        var candidates = candidateWidths
-        if width <= CGFloat(maxEdge) {
-            candidates.insert(width, at: 0)
+        if let pixels = budget.maxPixelsPerImage, budget.maxImageEdge == nil {
+            return pixelPlan(
+                sourceWidth: sourceWidth,
+                sourceHeight: sourceHeight,
+                pixels: pixels,
+                maxTileCount: budget.maxTileCount
+            )
         }
-        for candidate in candidates where candidate <= width {
-            let frames = scaledFrames(targetWidth: candidate, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
-            if frames.count <= maxTileCount {
-                return Plan(targetWidth: candidate, frames: frames)
-            }
-        }
-        // Nothing fit (extremely narrow source): take the smallest ladder
-        // step the source can hold without upscaling, truncated to the cap —
-        // a bounded request beats none.
-        let fallbackWidth = min(candidateWidths.last!, CGFloat(sourceWidth))
-        let frames = scaledFrames(
-            targetWidth: fallbackWidth,
+        // Edge shape (the edge wins when both shapes are set), or no model
+        // geometry at all: the shipped edge ladder.
+        let edge = budget.maxImageEdge ?? RecognitionBudget.defaultEdgeBudget
+        return firstFittingPlan(
             sourceWidth: sourceWidth,
-            sourceHeight: sourceHeight
+            sourceHeight: sourceHeight,
+            maxWidth: CGFloat(edge),
+            tileHeight: { _ in CGFloat(edge) },
+            maxTileCount: budget.maxTileCount
         )
-        return Plan(targetWidth: fallbackWidth, frames: Array(frames.prefix(maxTileCount)))
     }
 
     struct Plan: Equatable {
@@ -99,28 +98,109 @@ enum ScreenshotTiler {
         let frames: [CGRect]
     }
 
+    /// Pixel-budget shape (Qwen VL): the model scales any image over the
+    /// budget down to it, so the tiler keeps that resize either invisible
+    /// or absent. The 2× threshold balances the singleImageMode experiment's
+    /// lesson (model-side shrinks cost legibility) against the token floor
+    /// of one-image requests: a one-screen capture lands at ~0.9×, invisible
+    /// to recognition, while genuinely tall captures slice instead.
+    private static func pixelPlan(
+        sourceWidth: Int,
+        sourceHeight: Int,
+        pixels: Int,
+        maxTileCount: Int
+    ) -> Plan {
+        let budgetPixels = CGFloat(pixels)
+        let sourcePixels = CGFloat(sourceWidth) * CGFloat(sourceHeight)
+        if sourcePixels <= 2 * budgetPixels {
+            let scale = min(1, (budgetPixels / sourcePixels).squareRoot())
+            let targetWidth = (CGFloat(sourceWidth) * scale).rounded(.up)
+            let targetHeight = (CGFloat(sourceHeight) * scale).rounded(.up)
+            return Plan(targetWidth: targetWidth, frames: [
+                CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight),
+            ])
+        }
+        // Severe overflow: slice at the largest width whose full-budget
+        // tile is still square (nothing gains resolution past √budget) —
+        // every tile lands at or under the budget, so the model keeps it
+        // pixel-for-pixel. Tile height floors to whole pixels so a tile
+        // never rounds itself past the budget.
+        return firstFittingPlan(
+            sourceWidth: sourceWidth,
+            sourceHeight: sourceHeight,
+            maxWidth: budgetPixels.squareRoot().rounded(.down),
+            tileHeight: { (budgetPixels / $0).rounded(.down) },
+            maxTileCount: maxTileCount
+        )
+    }
+
+    /// The shrink-to-fit search both budget shapes share: candidates are
+    /// the budget's width cap followed by the ladder stops under it, with
+    /// the source's own width leading when it fits (resampling down to a
+    /// stop would only spend pixels the model would have kept). The first
+    /// width whose full-height slicing fits `maxTileCount` wins. Nothing
+    /// fitting (extremely narrow source): the smallest usable stop,
+    /// truncated to the cap — a bounded request beats none.
+    private static func firstFittingPlan(
+        sourceWidth: Int,
+        sourceHeight: Int,
+        maxWidth: CGFloat,
+        tileHeight: (CGFloat) -> CGFloat,
+        maxTileCount: Int
+    ) -> Plan {
+        let width = CGFloat(sourceWidth)
+        var candidates = shrinkLadder.filter { $0 <= maxWidth }
+        candidates.insert(maxWidth, at: 0)
+        if width <= maxWidth {
+            candidates.insert(width, at: 0)
+        }
+        for candidate in candidates where candidate <= width {
+            let frames = scaledFrames(
+                targetWidth: candidate,
+                sourceWidth: sourceWidth,
+                sourceHeight: sourceHeight,
+                tileHeight: tileHeight(candidate)
+            )
+            if frames.count <= maxTileCount {
+                return Plan(targetWidth: candidate, frames: frames)
+            }
+        }
+        let fallbackWidth = min(candidates.last!, width)
+        let frames = scaledFrames(
+            targetWidth: fallbackWidth,
+            sourceWidth: sourceWidth,
+            sourceHeight: sourceHeight,
+            tileHeight: tileHeight(fallbackWidth)
+        )
+        return Plan(targetWidth: fallbackWidth, frames: Array(frames.prefix(maxTileCount)))
+    }
+
     private static func scaledFrames(
         targetWidth: CGFloat,
         sourceWidth: Int,
-        sourceHeight: Int
+        sourceHeight: Int,
+        tileHeight: CGFloat
     ) -> [CGRect] {
+        // 10% of the tile height — one text row plus margin at capture
+        // scale, whichever shape produced the tile.
+        let overlap = tileHeight / 10
         let scale = targetWidth / CGFloat(sourceWidth)
         let targetHeight = (CGFloat(sourceHeight) * scale).rounded(.up)
-        if targetHeight <= CGFloat(maxEdge) {
+        if targetHeight <= tileHeight {
             return [CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight)]
         }
-        let step = CGFloat(maxEdge) - overlap
+        let step = tileHeight - overlap
         var frames: [CGRect] = []
         var y: CGFloat = 0
         while y < targetHeight {
-            let height = min(CGFloat(maxEdge), targetHeight - y)
+            let height = min(tileHeight, targetHeight - y)
             frames.append(CGRect(x: 0, y: y, width: targetWidth, height: height))
             y += step
         }
         // A remainder no taller than the overlap sits fully inside the
         // previous tile's bottom band — fold it in rather than ship a
         // sliver tile that mostly duplicates its neighbor. The folded
-        // frame stays ≤ maxEdge: targetHeight ≤ prev.maxY ≤ prev.y + maxEdge.
+        // frame stays ≤ tileHeight: targetHeight ≤ prev.maxY ≤ prev.y + tileHeight.
         if frames.count > 1, let last = frames.last, last.height <= overlap {
             frames.removeLast()
             let prev = frames[frames.count - 1]
@@ -134,20 +214,55 @@ enum ScreenshotTiler {
         return frames
     }
 
-    /// The recognition pipeline's single entry — honors `singleImageMode`,
-    /// else tiles, losslessly encoded while `losslessTiles` holds and the
-    /// payload fits the budget.
-    static func recognitionTiles(from data: Data) -> [RecognitionTile]? {
+    /// The recognition pipeline's single entry — geometry comes from
+    /// `budget`'s shape, the encode from the media types the model accepts
+    /// (JPEG by default; PNG when the model narrowed to PNG only, or while
+    /// the `losslessTiles` experiment holds and the payload fits).
+    static func recognitionTiles(
+        from data: Data,
+        budget: RecognitionBudget = .shipped
+    ) -> [RecognitionTile]? {
+        var encoders = allowedEncoders(for: budget)
+        if !encoders.jpeg, !encoders.png {
+            // The model admits nothing this client encodes: fall back to
+            // the shipped encode instead of failing locally — the server's
+            // media-type guard then rejects the upload with the precise
+            // type message, which surfaces as recognition guidance rather
+            // than a bogus "couldn't read the image".
+            encoders = (jpeg: true, png: true)
+        }
         if singleImageMode {
             guard let whole = jpegWholeImage(from: data) else { return nil }
             return [RecognitionTile(data: whole, mediaType: "image/jpeg")]
         }
-        if losslessTiles, let png = pngTiles(from: data),
+        if losslessTiles, encoders.png, let png = pngTiles(from: data, budget: budget),
            png.map(\.count).reduce(0, +) <= pngTotalBudget {
             return png.map { RecognitionTile(data: $0, mediaType: "image/png") }
         }
-        guard let jpeg = jpegTiles(from: data), !jpeg.isEmpty else { return nil }
-        return jpeg.map { RecognitionTile(data: $0, mediaType: "image/jpeg") }
+        if encoders.jpeg, let jpeg = jpegTiles(from: data, budget: budget), !jpeg.isEmpty {
+            return jpeg.map { RecognitionTile(data: $0, mediaType: "image/jpeg") }
+        }
+        // The model narrowed to PNG only: ship PNG tiles without the
+        // experiment's whole-request JPEG fallback — the model would 415
+        // JPEG parts. At tiling budgets each PNG sits far under the server's
+        // per-file cap on its own.
+        if encoders.png, let png = pngTiles(from: data, budget: budget), !png.isEmpty {
+            return png.map { RecognitionTile(data: $0, mediaType: "image/png") }
+        }
+        return nil
+    }
+
+    /// Which of the client's two encoders the model accepts. An empty
+    /// budget list means "no model constraint" — the platform default set
+    /// (jpeg/png/webp) admits both.
+    private static func allowedEncoders(for budget: RecognitionBudget) -> (jpeg: Bool, png: Bool) {
+        if budget.mediaTypes.isEmpty {
+            return (true, true)
+        }
+        return (
+            budget.mediaTypes.contains("image/jpeg"),
+            budget.mediaTypes.contains("image/png")
+        )
     }
 
     /// EXPERIMENT companion: the decoded screenshot re-drawn at its own
@@ -193,8 +308,11 @@ enum ScreenshotTiler {
     /// EXPERIMENT companion: the tiled path with lossless PNG encodes —
     /// same plan, same draw, same pixels `jpegTiles` produces before its
     /// encode step.
-    static func pngTiles(from data: Data) -> [Data]? {
-        guard let images = renderedTileImages(from: data) else { return nil }
+    static func pngTiles(
+        from data: Data,
+        budget: RecognitionBudget = .shipped
+    ) -> [Data]? {
+        guard let images = renderedTileImages(from: data, budget: budget) else { return nil }
         var tiles: [Data] = []
         for image in images {
             guard let encoded = encodePNG(image) else { return nil }
@@ -205,10 +323,17 @@ enum ScreenshotTiler {
 
     /// Decodes `data` and renders every plan tile at full quality — the
     /// shared front half of `jpegTiles`/`pngTiles`.
-    private static func renderedTileImages(from data: Data) -> [CGImage]? {
+    private static func renderedTileImages(
+        from data: Data,
+        budget: RecognitionBudget
+    ) -> [CGImage]? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              let plan = plan(sourceWidth: image.width, sourceHeight: image.height)
+              let plan = plan(
+                sourceWidth: image.width,
+                sourceHeight: image.height,
+                budget: budget
+              )
         else { return nil }
 
         let scale = plan.targetWidth / CGFloat(image.width)
@@ -248,10 +373,17 @@ enum ScreenshotTiler {
     /// Decodes `data`, slices it per `plan`, and re-encodes each tile as
     /// JPEG (quality 0.8). Returns nil when the image can't be decoded or
     /// rendered — the caller surfaces a recognition error.
-    static func jpegTiles(from data: Data) -> [Data]? {
+    static func jpegTiles(
+        from data: Data,
+        budget: RecognitionBudget = .shipped
+    ) -> [Data]? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              let plan = plan(sourceWidth: image.width, sourceHeight: image.height)
+              let plan = plan(
+                sourceWidth: image.width,
+                sourceHeight: image.height,
+                budget: budget
+              )
         else { return nil }
 
         let scale = plan.targetWidth / CGFloat(image.width)

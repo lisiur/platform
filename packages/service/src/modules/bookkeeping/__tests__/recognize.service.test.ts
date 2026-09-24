@@ -25,18 +25,26 @@ vi.mock("#lib/ai-agent/provider-adapter", () => ({
 
 vi.mock("ai", () => ({ generateObject: vi.fn() }));
 
+vi.mock("#extractors/session", () => ({
+  requirePrincipal: vi.fn(async () => ({ type: "user", id: "user-1" })),
+  getPrincipalUserId: vi.fn((principal: { id: string }) => principal.id),
+}));
+
 import { generateObject } from "ai";
 import { prisma } from "#lib/db";
 import { resolveAgentModel } from "#modules/agent/agent-resolution.service";
 import { executeTrackedAiCall } from "#modules/agent/tracked-ai-call";
 import { resolveBilling } from "#modules/billing/billing.service";
+import { jsonRequest, mountRoute } from "../../../test/helpers/app";
 import { accountRepository } from "../account.repository";
 import {
   buildRecognitionPrompt,
   recognizeScreenshot,
+  resolveRecognitionImageConfig,
   screenshotRecognitionSchema,
 } from "../recognize.service";
 import { collectRecognitionTiles } from "../routes/journal-entry/recognizeScreenshot";
+import { getRecognitionConfigRoute } from "../routes/recognition/getRecognitionConfig";
 
 const findMany = vi.mocked(prisma.bookAccount.findMany);
 const resolveAgentModelMock = vi.mocked(resolveAgentModel);
@@ -70,6 +78,7 @@ const resolvedRuntime = {
     apiKey: "k",
     modelId: "deepseek-v4-flash",
   },
+  imageInput: null,
   aiModelId: "m1",
   accountId: "a1",
   accountConcurrencyLimit: 4,
@@ -308,6 +317,141 @@ describe("recognizeScreenshot", () => {
         tiles: [{ data: Buffer.from("a"), mediaType: "image/jpeg" }],
       }),
     ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe("recognizeScreenshot model-driven guards", () => {
+  const tile = (mediaType: string) => ({
+    data: Buffer.from("x"),
+    mediaType,
+  });
+
+  function resolveWith(imageInput: Record<string, unknown>) {
+    resolveAgentModelMock.mockResolvedValue({
+      ...resolvedRuntime,
+      imageInput,
+    } as never);
+  }
+
+  it("rejects more tiles than the model accepts with 400", async () => {
+    resolveWith({
+      maxImageEdge: 1300,
+      maxPixelsPerImage: null,
+      maxImagesPerRequest: 2,
+      mediaTypes: [],
+    });
+    await expect(
+      recognizeScreenshot({
+        userId: "user-1",
+        ledgerId: "ledger-1",
+        tiles: [tile("image/jpeg"), tile("image/jpeg"), tile("image/jpeg")],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    // The guard runs before any ledger query — a rejected request never
+    // reaches the category listing.
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a media type outside the model's list with 415", async () => {
+    resolveWith({
+      maxImageEdge: null,
+      maxPixelsPerImage: 2_621_440,
+      maxImagesPerRequest: null,
+      mediaTypes: ["image/png"],
+    });
+    await expect(
+      recognizeScreenshot({
+        userId: "user-1",
+        ledgerId: "ledger-1",
+        tiles: [tile("image/png"), tile("image/jpeg")],
+      }),
+    ).rejects.toMatchObject({ status: 415 });
+  });
+
+  it("treats an empty media list as no narrowing", async () => {
+    resolveWith({
+      maxImageEdge: null,
+      maxPixelsPerImage: 2_621_440,
+      maxImagesPerRequest: 6,
+      mediaTypes: [],
+    });
+    findMany.mockResolvedValue([]);
+    generateObjectMock.mockResolvedValue({
+      object: fixtureRecognition,
+      usage: { inputTokens: 10, outputTokens: 5 },
+      finishReason: "stop",
+    } as never);
+    const result = await recognizeScreenshot({
+      userId: "user-1",
+      ledgerId: "ledger-1",
+      tiles: [tile("image/webp")],
+    });
+    expect(result.recognized).toBe(true);
+  });
+});
+
+describe("resolveRecognitionImageConfig", () => {
+  it("resolves the receipt agent's budget through the same resolution path", async () => {
+    const imageInput = {
+      maxImageEdge: 1300,
+      maxPixelsPerImage: null,
+      maxImagesPerRequest: 6,
+      mediaTypes: ["image/jpeg", "image/png"],
+    };
+    resolveAgentModelMock.mockResolvedValue({
+      ...resolvedRuntime,
+      imageInput,
+    } as never);
+    await expect(
+      resolveRecognitionImageConfig({ userId: "user-1" }),
+    ).resolves.toEqual(imageInput);
+    expect(resolveAgentModelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentCode: "qianlai_receipt",
+        subAgent: "default",
+        principal: { type: "user", id: "user-1" },
+        requireCapability: "vision",
+      }),
+    );
+  });
+});
+
+describe("GET /recognition/config route", () => {
+  it("maps a resolved budget onto the four nullable fields", async () => {
+    resolveAgentModelMock.mockResolvedValue({
+      ...resolvedRuntime,
+      imageInput: {
+        maxImageEdge: 1300,
+        maxPixelsPerImage: null,
+        maxImagesPerRequest: 6,
+        mediaTypes: ["image/jpeg", "image/png"],
+      },
+    } as never);
+    const app = mountRoute(getRecognitionConfigRoute);
+    const res = await app.request(jsonRequest("/recognition/config"));
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      maxImageEdge: 1300,
+      maxPixelsPerImage: null,
+      maxImagesPerRequest: 6,
+      imageMediaTypes: ["image/jpeg", "image/png"],
+    });
+  });
+
+  it("returns nulls when the model row carries no budget", async () => {
+    resolveAgentModelMock.mockResolvedValue({
+      ...resolvedRuntime,
+      imageInput: null,
+    } as never);
+    const app = mountRoute(getRecognitionConfigRoute);
+    const res = await app.request(jsonRequest("/recognition/config"));
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      maxImageEdge: null,
+      maxPixelsPerImage: null,
+      maxImagesPerRequest: null,
+      imageMediaTypes: [],
+    });
   });
 });
 

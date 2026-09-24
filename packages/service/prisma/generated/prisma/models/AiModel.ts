@@ -28,10 +28,16 @@ export type AggregateAiModel = {
 
 export type AiModelAvgAggregateOutputType = {
   contextWindow: number | null
+  maxImageEdge: number | null
+  maxPixelsPerImage: number | null
+  maxImagesPerRequest: number | null
 }
 
 export type AiModelSumAggregateOutputType = {
   contextWindow: number | null
+  maxImageEdge: number | null
+  maxPixelsPerImage: number | null
+  maxImagesPerRequest: number | null
 }
 
 export type AiModelMinAggregateOutputType = {
@@ -40,6 +46,9 @@ export type AiModelMinAggregateOutputType = {
   modelId: string | null
   displayName: string | null
   contextWindow: number | null
+  maxImageEdge: number | null
+  maxPixelsPerImage: number | null
+  maxImagesPerRequest: number | null
   supportsReasoning: boolean | null
   supportsCaching: boolean | null
   enabled: boolean | null
@@ -53,6 +62,9 @@ export type AiModelMaxAggregateOutputType = {
   modelId: string | null
   displayName: string | null
   contextWindow: number | null
+  maxImageEdge: number | null
+  maxPixelsPerImage: number | null
+  maxImagesPerRequest: number | null
   supportsReasoning: boolean | null
   supportsCaching: boolean | null
   enabled: boolean | null
@@ -67,6 +79,10 @@ export type AiModelCountAggregateOutputType = {
   displayName: number
   capabilities: number
   contextWindow: number
+  maxImageEdge: number
+  maxPixelsPerImage: number
+  maxImagesPerRequest: number
+  imageMediaTypes: number
   supportsReasoning: number
   supportsCaching: number
   enabled: number
@@ -78,10 +94,16 @@ export type AiModelCountAggregateOutputType = {
 
 export type AiModelAvgAggregateInputType = {
   contextWindow?: true
+  maxImageEdge?: true
+  maxPixelsPerImage?: true
+  maxImagesPerRequest?: true
 }
 
 export type AiModelSumAggregateInputType = {
   contextWindow?: true
+  maxImageEdge?: true
+  maxPixelsPerImage?: true
+  maxImagesPerRequest?: true
 }
 
 export type AiModelMinAggregateInputType = {
@@ -90,6 +112,9 @@ export type AiModelMinAggregateInputType = {
   modelId?: true
   displayName?: true
   contextWindow?: true
+  maxImageEdge?: true
+  maxPixelsPerImage?: true
+  maxImagesPerRequest?: true
   supportsReasoning?: true
   supportsCaching?: true
   enabled?: true
@@ -103,6 +128,9 @@ export type AiModelMaxAggregateInputType = {
   modelId?: true
   displayName?: true
   contextWindow?: true
+  maxImageEdge?: true
+  maxPixelsPerImage?: true
+  maxImagesPerRequest?: true
   supportsReasoning?: true
   supportsCaching?: true
   enabled?: true
@@ -117,6 +145,10 @@ export type AiModelCountAggregateInputType = {
   displayName?: true
   capabilities?: true
   contextWindow?: true
+  maxImageEdge?: true
+  maxPixelsPerImage?: true
+  maxImagesPerRequest?: true
+  imageMediaTypes?: true
   supportsReasoning?: true
   supportsCaching?: true
   enabled?: true
@@ -218,6 +250,10 @@ export type AiModelGroupByOutputType = {
   displayName: string
   capabilities: string[]
   contextWindow: number | null
+  maxImageEdge: number | null
+  maxPixelsPerImage: number | null
+  maxImagesPerRequest: number | null
+  imageMediaTypes: string[]
   supportsReasoning: boolean
   supportsCaching: boolean
   enabled: boolean
@@ -255,6 +291,10 @@ export type AiModelWhereInput = {
   displayName?: Prisma.StringFilter<"AiModel"> | string
   capabilities?: Prisma.StringNullableListFilter<"AiModel">
   contextWindow?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImageEdge?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxPixelsPerImage?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImagesPerRequest?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  imageMediaTypes?: Prisma.StringNullableListFilter<"AiModel">
   supportsReasoning?: Prisma.BoolFilter<"AiModel"> | boolean
   supportsCaching?: Prisma.BoolFilter<"AiModel"> | boolean
   enabled?: Prisma.BoolFilter<"AiModel"> | boolean
@@ -272,6 +312,10 @@ export type AiModelOrderByWithRelationInput = {
   displayName?: Prisma.SortOrder
   capabilities?: Prisma.SortOrder
   contextWindow?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageMediaTypes?: Prisma.SortOrder
   supportsReasoning?: Prisma.SortOrder
   supportsCaching?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
@@ -293,6 +337,10 @@ export type AiModelWhereUniqueInput = Prisma.AtLeast<{
   displayName?: Prisma.StringFilter<"AiModel"> | string
   capabilities?: Prisma.StringNullableListFilter<"AiModel">
   contextWindow?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImageEdge?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxPixelsPerImage?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImagesPerRequest?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  imageMediaTypes?: Prisma.StringNullableListFilter<"AiModel">
   supportsReasoning?: Prisma.BoolFilter<"AiModel"> | boolean
   supportsCaching?: Prisma.BoolFilter<"AiModel"> | boolean
   enabled?: Prisma.BoolFilter<"AiModel"> | boolean
@@ -310,6 +358,10 @@ export type AiModelOrderByWithAggregationInput = {
   displayName?: Prisma.SortOrder
   capabilities?: Prisma.SortOrder
   contextWindow?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageMediaTypes?: Prisma.SortOrder
   supportsReasoning?: Prisma.SortOrder
   supportsCaching?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
@@ -332,6 +384,10 @@ export type AiModelScalarWhereWithAggregatesInput = {
   displayName?: Prisma.StringWithAggregatesFilter<"AiModel"> | string
   capabilities?: Prisma.StringNullableListFilter<"AiModel">
   contextWindow?: Prisma.IntNullableWithAggregatesFilter<"AiModel"> | number | null
+  maxImageEdge?: Prisma.IntNullableWithAggregatesFilter<"AiModel"> | number | null
+  maxPixelsPerImage?: Prisma.IntNullableWithAggregatesFilter<"AiModel"> | number | null
+  maxImagesPerRequest?: Prisma.IntNullableWithAggregatesFilter<"AiModel"> | number | null
+  imageMediaTypes?: Prisma.StringNullableListFilter<"AiModel">
   supportsReasoning?: Prisma.BoolWithAggregatesFilter<"AiModel"> | boolean
   supportsCaching?: Prisma.BoolWithAggregatesFilter<"AiModel"> | boolean
   enabled?: Prisma.BoolWithAggregatesFilter<"AiModel"> | boolean
@@ -345,6 +401,10 @@ export type AiModelCreateInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -362,6 +422,10 @@ export type AiModelUncheckedCreateInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -377,6 +441,10 @@ export type AiModelUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -394,6 +462,10 @@ export type AiModelUncheckedUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -410,6 +482,10 @@ export type AiModelCreateManyInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -423,6 +499,10 @@ export type AiModelUpdateManyMutationInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -437,6 +517,10 @@ export type AiModelUncheckedUpdateManyInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -466,6 +550,10 @@ export type AiModelCountOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   capabilities?: Prisma.SortOrder
   contextWindow?: Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrder
+  imageMediaTypes?: Prisma.SortOrder
   supportsReasoning?: Prisma.SortOrder
   supportsCaching?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
@@ -475,6 +563,9 @@ export type AiModelCountOrderByAggregateInput = {
 
 export type AiModelAvgOrderByAggregateInput = {
   contextWindow?: Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrder
 }
 
 export type AiModelMaxOrderByAggregateInput = {
@@ -483,6 +574,9 @@ export type AiModelMaxOrderByAggregateInput = {
   modelId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   contextWindow?: Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrder
   supportsReasoning?: Prisma.SortOrder
   supportsCaching?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
@@ -496,6 +590,9 @@ export type AiModelMinOrderByAggregateInput = {
   modelId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   contextWindow?: Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrder
   supportsReasoning?: Prisma.SortOrder
   supportsCaching?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
@@ -505,6 +602,9 @@ export type AiModelMinOrderByAggregateInput = {
 
 export type AiModelSumOrderByAggregateInput = {
   contextWindow?: Prisma.SortOrder
+  maxImageEdge?: Prisma.SortOrder
+  maxPixelsPerImage?: Prisma.SortOrder
+  maxImagesPerRequest?: Prisma.SortOrder
 }
 
 export type AiModelScalarRelationFilter = {
@@ -558,7 +658,16 @@ export type AiModelCreatecapabilitiesInput = {
   set: string[]
 }
 
+export type AiModelCreateimageMediaTypesInput = {
+  set: string[]
+}
+
 export type AiModelUpdatecapabilitiesInput = {
+  set?: string[]
+  push?: string | string[]
+}
+
+export type AiModelUpdateimageMediaTypesInput = {
   set?: string[]
   push?: string | string[]
 }
@@ -597,6 +706,10 @@ export type AiModelCreateWithoutProviderInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -612,6 +725,10 @@ export type AiModelUncheckedCreateWithoutProviderInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -657,6 +774,10 @@ export type AiModelScalarWhereInput = {
   displayName?: Prisma.StringFilter<"AiModel"> | string
   capabilities?: Prisma.StringNullableListFilter<"AiModel">
   contextWindow?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImageEdge?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxPixelsPerImage?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  maxImagesPerRequest?: Prisma.IntNullableFilter<"AiModel"> | number | null
+  imageMediaTypes?: Prisma.StringNullableListFilter<"AiModel">
   supportsReasoning?: Prisma.BoolFilter<"AiModel"> | boolean
   supportsCaching?: Prisma.BoolFilter<"AiModel"> | boolean
   enabled?: Prisma.BoolFilter<"AiModel"> | boolean
@@ -670,6 +791,10 @@ export type AiModelCreateWithoutPricingInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -686,6 +811,10 @@ export type AiModelUncheckedCreateWithoutPricingInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -716,6 +845,10 @@ export type AiModelUpdateWithoutPricingInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -732,6 +865,10 @@ export type AiModelUncheckedUpdateWithoutPricingInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -746,6 +883,10 @@ export type AiModelCreateWithoutUsageEventsInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -762,6 +903,10 @@ export type AiModelUncheckedCreateWithoutUsageEventsInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -792,6 +937,10 @@ export type AiModelUpdateWithoutUsageEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -808,6 +957,10 @@ export type AiModelUncheckedUpdateWithoutUsageEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -822,6 +975,10 @@ export type AiModelCreateManyProviderInput = {
   displayName: string
   capabilities?: Prisma.AiModelCreatecapabilitiesInput | string[]
   contextWindow?: number | null
+  maxImageEdge?: number | null
+  maxPixelsPerImage?: number | null
+  maxImagesPerRequest?: number | null
+  imageMediaTypes?: Prisma.AiModelCreateimageMediaTypesInput | string[]
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -835,6 +992,10 @@ export type AiModelUpdateWithoutProviderInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -850,6 +1011,10 @@ export type AiModelUncheckedUpdateWithoutProviderInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -865,6 +1030,10 @@ export type AiModelUncheckedUpdateManyWithoutProviderInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   capabilities?: Prisma.AiModelUpdatecapabilitiesInput | string[]
   contextWindow?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImageEdge?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxPixelsPerImage?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  maxImagesPerRequest?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  imageMediaTypes?: Prisma.AiModelUpdateimageMediaTypesInput | string[]
   supportsReasoning?: Prisma.BoolFieldUpdateOperationsInput | boolean
   supportsCaching?: Prisma.BoolFieldUpdateOperationsInput | boolean
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -919,6 +1088,10 @@ export type AiModelSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   displayName?: boolean
   capabilities?: boolean
   contextWindow?: boolean
+  maxImageEdge?: boolean
+  maxPixelsPerImage?: boolean
+  maxImagesPerRequest?: boolean
+  imageMediaTypes?: boolean
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -937,6 +1110,10 @@ export type AiModelSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   displayName?: boolean
   capabilities?: boolean
   contextWindow?: boolean
+  maxImageEdge?: boolean
+  maxPixelsPerImage?: boolean
+  maxImagesPerRequest?: boolean
+  imageMediaTypes?: boolean
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -952,6 +1129,10 @@ export type AiModelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   displayName?: boolean
   capabilities?: boolean
   contextWindow?: boolean
+  maxImageEdge?: boolean
+  maxPixelsPerImage?: boolean
+  maxImagesPerRequest?: boolean
+  imageMediaTypes?: boolean
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -967,6 +1148,10 @@ export type AiModelSelectScalar = {
   displayName?: boolean
   capabilities?: boolean
   contextWindow?: boolean
+  maxImageEdge?: boolean
+  maxPixelsPerImage?: boolean
+  maxImagesPerRequest?: boolean
+  imageMediaTypes?: boolean
   supportsReasoning?: boolean
   supportsCaching?: boolean
   enabled?: boolean
@@ -974,7 +1159,7 @@ export type AiModelSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AiModelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "providerId" | "modelId" | "displayName" | "capabilities" | "contextWindow" | "supportsReasoning" | "supportsCaching" | "enabled" | "createdAt" | "updatedAt", ExtArgs["result"]["aiModel"]>
+export type AiModelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "providerId" | "modelId" | "displayName" | "capabilities" | "contextWindow" | "maxImageEdge" | "maxPixelsPerImage" | "maxImagesPerRequest" | "imageMediaTypes" | "supportsReasoning" | "supportsCaching" | "enabled" | "createdAt" | "updatedAt", ExtArgs["result"]["aiModel"]>
 export type AiModelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   provider?: boolean | Prisma.AiProviderDefaultArgs<ExtArgs>
   pricing?: boolean | Prisma.AiModel$pricingArgs<ExtArgs>
@@ -1002,6 +1187,10 @@ export type $AiModelPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     displayName: string
     capabilities: string[]
     contextWindow: number | null
+    maxImageEdge: number | null
+    maxPixelsPerImage: number | null
+    maxImagesPerRequest: number | null
+    imageMediaTypes: string[]
     supportsReasoning: boolean
     supportsCaching: boolean
     enabled: boolean
@@ -1439,6 +1628,10 @@ export interface AiModelFieldRefs {
   readonly displayName: Prisma.FieldRef<"AiModel", 'String'>
   readonly capabilities: Prisma.FieldRef<"AiModel", 'String[]'>
   readonly contextWindow: Prisma.FieldRef<"AiModel", 'Int'>
+  readonly maxImageEdge: Prisma.FieldRef<"AiModel", 'Int'>
+  readonly maxPixelsPerImage: Prisma.FieldRef<"AiModel", 'Int'>
+  readonly maxImagesPerRequest: Prisma.FieldRef<"AiModel", 'Int'>
+  readonly imageMediaTypes: Prisma.FieldRef<"AiModel", 'String[]'>
   readonly supportsReasoning: Prisma.FieldRef<"AiModel", 'Boolean'>
   readonly supportsCaching: Prisma.FieldRef<"AiModel", 'Boolean'>
   readonly enabled: Prisma.FieldRef<"AiModel", 'Boolean'>

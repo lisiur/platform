@@ -7,6 +7,7 @@ import { qianlaiLedgerRoutes } from "./ledger";
 import { qianlaiPreferenceRoutes } from "./preferences";
 import { qianlaiProjectRoutes } from "./project";
 import { qianlaiRealAccountRoutes } from "./real-account";
+import { qianlaiRecognitionRoutes } from "./recognition";
 import { qianlaiReportRoutes } from "./report";
 import { qianlaiShareRoutes } from "./share";
 
@@ -20,6 +21,7 @@ const bookkeepingRoutes = new OpenAPIHono()
   .route("/", qianlaiReportRoutes)
   .route("/", qianlaiShareRoutes)
   .route("/", qianlaiProjectRoutes)
+  .route("/", qianlaiRecognitionRoutes)
   .route("/", qianlaiPreferenceRoutes);
 
 export { bookkeepingRoutes };

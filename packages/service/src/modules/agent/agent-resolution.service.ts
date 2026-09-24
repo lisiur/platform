@@ -57,11 +57,24 @@ export interface PricingRates {
   output: number;
 }
 
+/** Vision input budget carried on the chosen model's row. `null` budget
+ * fields mean "no model-specific constraint" — consumers keep their
+ * built-in defaults. */
+export interface ResolvedImageInput {
+  maxImageEdge: number | null;
+  maxPixelsPerImage: number | null;
+  maxImagesPerRequest: number | null;
+  mediaTypes: string[];
+}
+
 export interface ResolvedAgentRuntime {
   agent: ResolvedAgentMeta;
   subAgent: AgentSubAgentConfig;
   allowedApis: string[];
   endpoint: ProviderEndpoint;
+  /** From the chosen AiModel row; null when the model carries no vision
+   * budget data at all (text-only agents, unconfigured rows). */
+  imageInput: ResolvedImageInput | null;
   aiModelId: string;
   accountId: string;
   accountConcurrencyLimit: number;
@@ -178,6 +191,28 @@ export function computeUsageCost(
     (usage.cachedInputTokens / PER_MILLION) * pricing.cachedInput +
     (usage.outputTokens / PER_MILLION) * pricing.output;
   return Math.round(raw * 1e6) / 1e6;
+}
+
+function buildImageInput(model: {
+  maxImageEdge: number | null;
+  maxPixelsPerImage: number | null;
+  maxImagesPerRequest: number | null;
+  imageMediaTypes: string[];
+}): ResolvedImageInput | null {
+  if (
+    model.maxImageEdge === null &&
+    model.maxPixelsPerImage === null &&
+    model.maxImagesPerRequest === null &&
+    model.imageMediaTypes.length === 0
+  ) {
+    return null;
+  }
+  return {
+    maxImageEdge: model.maxImageEdge,
+    maxPixelsPerImage: model.maxPixelsPerImage,
+    maxImagesPerRequest: model.maxImagesPerRequest,
+    mediaTypes: model.imageMediaTypes,
+  };
 }
 
 export async function resolveAgentModel(params: {
@@ -363,6 +398,7 @@ export async function resolveAgentModel(params: {
       modelId: chosen.model.modelId,
     },
     aiModelId: chosen.model.id,
+    imageInput: buildImageInput(chosen.model),
     accountId: chosen.account.id,
     accountConcurrencyLimit: chosen.account.concurrencyLimit,
     currency: chosen.account.currency,

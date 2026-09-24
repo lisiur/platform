@@ -68,6 +68,24 @@ export const screenshotRecognitionSchema = z.object({
 
 export type ScreenshotRecognition = z.infer<typeof screenshotRecognitionSchema>;
 
+/**
+ * The vision-input budget the recognition agent currently resolves to —
+ * what GET /bookkeeping/recognition/config hands the client so its tiler
+ * can match the pinned model. Throws like `resolveAgentModel` (403/503/…);
+ * clients treat any failure as "keep built-in defaults".
+ */
+export async function resolveRecognitionImageConfig(params: {
+  userId: string;
+}) {
+  const resolved = await resolveAgentModel({
+    agentCode: QIANLAI_RECEIPT_AGENT_CODE,
+    subAgent: SUB_AGENT,
+    principal: { type: "user", id: params.userId },
+    requireCapability: REQUIRED_CAPABILITY,
+  });
+  return resolved.imageInput;
+}
+
 export interface RecognitionTile {
   data: Buffer;
   mediaType: string;
@@ -135,6 +153,32 @@ export async function recognizeScreenshot(params: {
     principal: { type: "user", id: params.userId },
     requireCapability: REQUIRED_CAPABILITY,
   });
+
+  // Model-driven guards (the route's static multipart whitelist above this
+  // is only the structural layer; the model row may narrow further). An
+  // empty mediaTypes list means "no narrowing".
+  const imageInput = resolved.imageInput;
+  if (imageInput) {
+    if (
+      imageInput.maxImagesPerRequest !== null &&
+      params.tiles.length > imageInput.maxImagesPerRequest
+    ) {
+      throw new HTTPException(400, {
+        message: `Too many screenshot tiles: ${params.tiles.length} uploaded, ${resolved.endpoint.modelId} accepts at most ${imageInput.maxImagesPerRequest} per request`,
+      });
+    }
+    if (imageInput.mediaTypes.length > 0) {
+      const allowed = new Set(imageInput.mediaTypes);
+      const offending = params.tiles.find(
+        (tile) => !allowed.has(tile.mediaType),
+      );
+      if (offending) {
+        throw new HTTPException(415, {
+          message: `Image type ${offending.mediaType} is not accepted by ${resolved.endpoint.modelId}`,
+        });
+      }
+    }
+  }
 
   const categories = await accountRepository.listRecognitionCategoryPaths(
     params.ledgerId,

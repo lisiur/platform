@@ -43,6 +43,10 @@ export async function createAiModel(data: {
   displayName: string;
   capabilities?: string[];
   contextWindow?: number | null;
+  maxImageEdge?: number | null;
+  maxPixelsPerImage?: number | null;
+  maxImagesPerRequest?: number | null;
+  imageMediaTypes?: string[];
   supportsReasoning?: boolean;
   supportsCaching?: boolean;
   enabled?: boolean;
@@ -71,6 +75,10 @@ export async function updateAiModel(
     displayName?: string;
     capabilities?: string[];
     contextWindow?: number | null;
+    maxImageEdge?: number | null;
+    maxPixelsPerImage?: number | null;
+    maxImagesPerRequest?: number | null;
+    imageMediaTypes?: string[];
     supportsReasoning?: boolean;
     supportsCaching?: boolean;
     enabled?: boolean;

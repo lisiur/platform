@@ -55,6 +55,10 @@ const createSchema = z.object({
   displayName: z.string().min(1),
   capabilities: z.string().optional(),
   contextWindow: z.coerce.number().int().optional(),
+  maxImageEdge: z.coerce.number().int().optional(),
+  maxPixelsPerImage: z.coerce.number().int().optional(),
+  maxImagesPerRequest: z.coerce.number().int().optional(),
+  imageMediaTypes: z.string().optional(),
   supportsReasoning: z.boolean().optional(),
   supportsCaching: z.boolean().optional(),
   enabled: z.boolean().optional(),
@@ -64,6 +68,10 @@ const updateSchema = z.object({
   displayName: z.string().min(1).optional(),
   capabilities: z.string().optional(),
   contextWindow: z.coerce.number().int().optional(),
+  maxImageEdge: z.coerce.number().int().optional(),
+  maxPixelsPerImage: z.coerce.number().int().optional(),
+  maxImagesPerRequest: z.coerce.number().int().optional(),
+  imageMediaTypes: z.string().optional(),
   supportsReasoning: z.boolean().optional(),
   supportsCaching: z.boolean().optional(),
   enabled: z.boolean().optional(),
@@ -72,6 +80,25 @@ const updateSchema = z.object({
 type ModelCreateFormValues = z.infer<typeof createSchema>;
 type ModelUpdateFormValues = z.infer<typeof updateSchema>;
 
+/** Raw number-input value → wire value for the vision budget columns:
+ * an emptied field clears the constraint (null), a typed number passes
+ * through — no falsy trap, "0" stays 0. */
+function numberOrNull(value: unknown): number | null {
+  return value === "" || value === null || value === undefined
+    ? null
+    : Number(value);
+}
+
+/** Raw comma-list input → wire string array (empty input = empty list). */
+function stringListOrNull(value: unknown): string[] {
+  return typeof value === "string"
+    ? value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+}
+
 interface AiModel {
   id: string;
   providerId: string;
@@ -79,6 +106,10 @@ interface AiModel {
   displayName: string;
   capabilities: string[];
   contextWindow: number | null;
+  maxImageEdge: number | null;
+  maxPixelsPerImage: number | null;
+  maxImagesPerRequest: number | null;
+  imageMediaTypes: string[];
   supportsReasoning: boolean;
   supportsCaching: boolean;
   enabled: boolean;
@@ -146,13 +177,12 @@ export function ModelTable() {
       const b = createForm.getValues();
       const payload = {
         ...b,
-        capabilities: b.capabilities
-          ? b.capabilities
-              .split(",")
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : [],
-        contextWindow: b.contextWindow ? Number(b.contextWindow) : null,
+        capabilities: stringListOrNull(b.capabilities),
+        contextWindow: numberOrNull(b.contextWindow),
+        maxImageEdge: numberOrNull(b.maxImageEdge),
+        maxPixelsPerImage: numberOrNull(b.maxPixelsPerImage),
+        maxImagesPerRequest: numberOrNull(b.maxImagesPerRequest),
+        imageMediaTypes: stringListOrNull(b.imageMediaTypes),
       };
       await withApiFeedback(appClient.api.ai.models.$post)({
         json: payload,
@@ -172,6 +202,10 @@ export function ModelTable() {
       displayName: m.displayName,
       capabilities: (m.capabilities ?? []).join(", "),
       contextWindow: m.contextWindow ?? ("" as unknown as number),
+      maxImageEdge: m.maxImageEdge ?? ("" as unknown as number),
+      maxPixelsPerImage: m.maxPixelsPerImage ?? ("" as unknown as number),
+      maxImagesPerRequest: m.maxImagesPerRequest ?? ("" as unknown as number),
+      imageMediaTypes: (m.imageMediaTypes ?? []).join(", "),
       supportsReasoning: m.supportsReasoning,
       supportsCaching: m.supportsCaching,
       enabled: m.enabled,
@@ -185,14 +219,22 @@ export function ModelTable() {
     try {
       const b = updateForm.getValues();
       const payload: Record<string, unknown> = {};
+      // Every numeric budget field (contextWindow included) clears
+      // explicitly: an emptied field sends null (back to "no constraint"),
+      // per the form contract. capabilities keeps its legacy skip-empty
+      // behavior.
+      const clearableBudgetKeys = [
+        "contextWindow",
+        "maxImageEdge",
+        "maxPixelsPerImage",
+        "maxImagesPerRequest",
+      ];
       for (const [k, v] of Object.entries(b)) {
-        if (v === undefined || v === "") continue;
-        if (k === "capabilities")
-          payload[k] = (v as string)
-            .split(",")
-            .map((s: string) => s.trim())
-            .filter(Boolean);
-        else if (k === "contextWindow") payload[k] = v || null;
+        if (v === undefined) continue;
+        if (clearableBudgetKeys.includes(k)) payload[k] = numberOrNull(v);
+        else if (k === "imageMediaTypes") payload[k] = stringListOrNull(v);
+        else if (v === "") continue;
+        else if (k === "capabilities") payload[k] = stringListOrNull(v);
         else payload[k] = v;
       }
       await withApiFeedback(appClient.api.ai.models[":id"].$put)({
@@ -235,6 +277,10 @@ export function ModelTable() {
       displayName: "",
       capabilities: "",
       contextWindow: undefined,
+      maxImageEdge: undefined,
+      maxPixelsPerImage: undefined,
+      maxImagesPerRequest: undefined,
+      imageMediaTypes: "",
       supportsReasoning: false,
       supportsCaching: false,
       enabled: true,
@@ -328,6 +374,48 @@ export function ModelTable() {
           {...(form.register("contextWindow") as object)}
         />
         {err(form, "contextWindow")}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${prefix}-edge`}>{t("maxImageEdge")}</FieldLabel>
+        <Input
+          id={`${prefix}-edge`}
+          type="number"
+          aria-invalid={!!form.formState.errors.maxImageEdge}
+          {...(form.register("maxImageEdge") as object)}
+        />
+        {err(form, "maxImageEdge")}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${prefix}-px`}>
+          {t("maxPixelsPerImage")}
+        </FieldLabel>
+        <Input
+          id={`${prefix}-px`}
+          type="number"
+          aria-invalid={!!form.formState.errors.maxPixelsPerImage}
+          {...(form.register("maxPixelsPerImage") as object)}
+        />
+        {err(form, "maxPixelsPerImage")}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${prefix}-imgs`}>
+          {t("maxImagesPerRequest")}
+        </FieldLabel>
+        <Input
+          id={`${prefix}-imgs`}
+          type="number"
+          aria-invalid={!!form.formState.errors.maxImagesPerRequest}
+          {...(form.register("maxImagesPerRequest") as object)}
+        />
+        {err(form, "maxImagesPerRequest")}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${prefix}-mt`}>{t("imageMediaTypes")}</FieldLabel>
+        <Input
+          id={`${prefix}-mt`}
+          {...(form.register("imageMediaTypes") as object)}
+          placeholder="image/jpeg, image/png"
+        />
       </Field>
       <Field>
         <div className="flex items-center gap-2">

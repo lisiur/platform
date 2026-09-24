@@ -826,17 +826,29 @@ model AiKey {
 }
 
 model AiModel {
-  id                String          @id @default(cuid())
-  providerId        String
-  modelId           String
-  displayName       String
-  capabilities      String[]        @default([])
-  contextWindow     Int?
-  supportsReasoning Boolean         @default(false)
-  supportsCaching   Boolean         @default(false)
-  enabled           Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                  String          @id @default(cuid())
+  providerId          String
+  modelId             String
+  displayName         String
+  capabilities        String[]        @default([])
+  contextWindow       Int?
+  // Vision input budget, filled per model from vendor docs. Null/[] = no
+  // model-specific constraint; clients and guards keep built-in defaults.
+  maxImageEdge        Int?
+  // Total-pixel budget per image (Qwen-VL-style pixel budget). 2621440 is
+  // the open-source qwen_vl_utils example default, not a uniform DashScope
+  // default; 16777216 is the hi-res tier.
+  maxPixelsPerImage   Int?
+  // Images the model accepts per request. The platform's structural cap
+  // (multipart file0–file5 = 6) is independent — larger values don't apply.
+  maxImagesPerRequest Int?
+  // Media types the model decodes; [] = platform default jpeg/png/webp.
+  imageMediaTypes     String[]        @default([])
+  supportsReasoning   Boolean         @default(false)
+  supportsCaching     Boolean         @default(false)
+  enabled             Boolean         @default(true)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   provider    AiProvider       @relation(fields: [providerId], references: [id], onDelete: Cascade)
   pricing     AiModelPricing[]

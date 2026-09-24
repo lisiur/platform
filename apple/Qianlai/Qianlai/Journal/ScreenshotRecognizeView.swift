@@ -36,6 +36,11 @@ struct ScreenshotRecognizeView: View {
     /// Recognition failures — soft misses (nothing recognized) and hard
     /// errors (network, billing) alike; clears with the alert.
     @State private var recognitionError: String?
+    /// The pinned model's vision budget — seeded from the UserDefaults
+    /// mirror at init, corrected by a fetch when the cover appears, so the
+    /// tiler follows a model switch made in the admin without an app
+    /// update.
+    @State private var budgetStore = RecognitionBudgetStore()
 
     /// Recognition always records into the app's active ledger.
     private var ledger: QianlaiLedger? { ledgerStore.activeLedger }
@@ -74,6 +79,9 @@ struct ScreenshotRecognizeView: View {
         .onChange(of: screenshotItem) {
             guard screenshotItem != nil else { return }
             Task { await recognizePickedScreenshot() }
+        }
+        .onAppear {
+            Task { await budgetStore.refresh() }
         }
     }
 
@@ -158,7 +166,10 @@ struct ScreenshotRecognizeView: View {
         guard let ledger else { return }
         guard stage != .recognizing else { return }
         stage = .recognizing
-        guard let tiles = ScreenshotTiler.recognitionTiles(from: imageData), !tiles.isEmpty else {
+        guard let tiles = ScreenshotTiler.recognitionTiles(
+            from: imageData,
+            budget: budgetStore.budget
+        ), !tiles.isEmpty else {
             failRecognition(
                 L10n.string("screenshot.readFailed", defaultValue: "Couldn't read the selected image.")
             )

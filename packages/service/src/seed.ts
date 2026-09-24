@@ -1568,6 +1568,11 @@ const aiModels = [
     displayName: "deepseek-v4-flash",
     capabilities: ["vision"],
     contextWindow: null,
+    // ~1300×1300 no-resize edge budget per image, 6 images per request.
+    maxImageEdge: 1300,
+    maxPixelsPerImage: null,
+    maxImagesPerRequest: 6,
+    imageMediaTypes: ["image/jpeg", "image/png", "image/webp"],
     supportsReasoning: true,
     supportsCaching: true,
     enabled: true,
@@ -1580,6 +1585,23 @@ const aiModels = [
     contextWindow: null,
     supportsReasoning: true,
     supportsCaching: true,
+    enabled: true,
+  },
+  {
+    providerKey: "qwen",
+    modelId: "qwen3.7-plus",
+    displayName: "qwen3.7-plus",
+    capabilities: ["vision"],
+    contextWindow: null,
+    // Qwen-VL pixel budget: total pixels per image (32×32 px = 1 vision
+    // token), 250 Base64 images per request. 2621440 is the open-source
+    // qwen_vl_utils example default, not a uniform DashScope default —
+    // 16777216 is the hi-res tier. Admin-editable; no key is seeded here,
+    // configure one in the admin to switch the receipt agent over.
+    maxImageEdge: null,
+    maxPixelsPerImage: 2621440,
+    maxImagesPerRequest: 250,
+    imageMediaTypes: ["image/jpeg", "image/png", "image/webp"],
     enabled: true,
   },
 ];
