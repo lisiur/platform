@@ -1463,6 +1463,7 @@
     "allowedApisNoSelection": "No APIs selected yet",
     "allowedApisRemove": "Remove",
     "allowedApisLoadError": "Failed to load API operations. Please try again later.",
+    "modelIdLoadError": "Failed to load models. Please try again later.",
     "noResults": "No matching results",
     "check": "Check",
     "checking": "Checking...",

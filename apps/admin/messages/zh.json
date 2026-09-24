@@ -1464,6 +1464,7 @@
     "allowedApisNoSelection": "暂未选择 API",
     "allowedApisRemove": "移除",
     "allowedApisLoadError": "加载 API 操作失败，请稍后重试。",
+    "modelIdLoadError": "加载模型列表失败，请稍后重试。",
     "noResults": "无匹配结果",
     "check": "检查",
     "checking": "检查中...",

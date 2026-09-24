@@ -53,7 +53,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { appClient } from "@/lib/api";
-import { withApiFeedback } from "@/lib/api/utils";
+import { fetchAllPages, withApiFeedback } from "@/lib/api/utils";
 import { formatDate } from "@/utils/date";
 
 const optionalNumberSchema = z.preprocess(
@@ -191,6 +191,14 @@ type AvailableApiOperation = {
   description?: string | null;
   tags?: string[];
 };
+
+type AiModelOption = { modelId: string; displayName: string };
+
+function modelOptionLabel(model: AiModelOption): string {
+  return model.displayName
+    ? `${model.displayName} (${model.modelId})`
+    : model.modelId;
+}
 
 const METHOD_COLORS: Record<string, string> = {
   GET: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -470,10 +478,45 @@ function SubAgentFields({
   t: (key: string, values?: Record<string, string>) => string;
 }) {
   const [activeIndex, setActiveIndex] = useState("0");
+  const [models, setModels] = useState<AiModelOption[]>([]);
+  const [modelLoadError, setModelLoadError] = useState(false);
   const { fields } = useFieldArray({
     control: form.control,
     name: "subAgents",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    setModelLoadError(false);
+    fetchAllPages(async (offset) => {
+      const res = await withApiFeedback(appClient.api.ai.models.$get)({
+        query: { limit: 100, offset },
+      });
+      const data = await res.json();
+      return { items: data.models, total: data.total };
+    })
+      .then((rows) => {
+        if (!cancelled) setModels(rows);
+      })
+      .catch(() => {
+        // withApiFeedback already toasts; track it so the dropdown can say
+        // why it is empty instead of failing silently.
+        if (!cancelled) setModelLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Rows from different providers can repeat a modelId; the agent config
+  // stores the bare id, so the picker dedupes to one option per id.
+  const modelOptions = useMemo(() => {
+    const byId = new Map<string, AiModelOption>();
+    for (const model of models) {
+      if (!byId.has(model.modelId)) byId.set(model.modelId, model);
+    }
+    return [...byId.values()];
+  }, [models]);
 
   useEffect(() => {
     if (fields.length === 0) return;
@@ -501,210 +544,261 @@ function SubAgentFields({
           </TabsList>
         )}
 
-        {fields.map((field, index) => (
-          <TabsContent
-            key={field.id}
-            value={String(index)}
-            className={fields.length > 1 ? "mt-4" : "mt-0"}
-          >
-            <FieldGroup>
-              <div className="grid gap-3 md:grid-cols-2">
+        {fields.map((field, index) => {
+          const modelId =
+            (form.watch(`subAgents.${index}.modelId`) as string) ?? "";
+          // A stored id missing from the model list (deleted/renamed row,
+          // free-string legacy value) stays selectable instead of silently
+          // showing blank or being lost on save.
+          const options =
+            modelId && !modelOptions.some((m) => m.modelId === modelId)
+              ? [{ modelId, displayName: "" }, ...modelOptions]
+              : modelOptions;
+          return (
+            <TabsContent
+              key={field.id}
+              value={String(index)}
+              className={fields.length > 1 ? "mt-4" : "mt-0"}
+            >
+              <FieldGroup>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field>
+                    <FieldLabel
+                      required
+                      htmlFor={`${prefix}-sub-agent-${index}-key`}
+                    >
+                      {t("subAgentKey")}
+                    </FieldLabel>
+                    <input
+                      type="hidden"
+                      {...(form.register(`subAgents.${index}.key`) as object)}
+                    />
+                    <Input
+                      id={`${prefix}-sub-agent-${index}-key`}
+                      value={
+                        (form.watch(`subAgents.${index}.key`) as string) ?? ""
+                      }
+                      disabled
+                    />
+                    <FormFieldError
+                      form={form}
+                      name={`subAgents.${index}.key`}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel
+                      required
+                      htmlFor={`${prefix}-sub-agent-${index}-label`}
+                    >
+                      {t("subAgentLabel")}
+                    </FieldLabel>
+                    <Input
+                      id={`${prefix}-sub-agent-${index}-label`}
+                      aria-invalid={
+                        !!form.getFieldState(`subAgents.${index}.label`).error
+                      }
+                      {...(form.register(`subAgents.${index}.label`) as object)}
+                    />
+                    <FormFieldError
+                      form={form}
+                      name={`subAgents.${index}.label`}
+                    />
+                  </Field>
+                </div>
                 <Field>
-                  <FieldLabel
-                    required
-                    htmlFor={`${prefix}-sub-agent-${index}-key`}
-                  >
-                    {t("subAgentKey")}
+                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-desc`}>
+                    {t("descriptionLabel")}
                   </FieldLabel>
-                  <input
-                    type="hidden"
-                    {...(form.register(`subAgents.${index}.key`) as object)}
-                  />
                   <Input
-                    id={`${prefix}-sub-agent-${index}-key`}
-                    value={
-                      (form.watch(`subAgents.${index}.key`) as string) ?? ""
-                    }
-                    disabled
+                    id={`${prefix}-sub-agent-${index}-desc`}
+                    {...(form.register(
+                      `subAgents.${index}.description`,
+                    ) as object)}
                   />
-                  <FormFieldError form={form} name={`subAgents.${index}.key`} />
                 </Field>
                 <Field>
                   <FieldLabel
                     required
-                    htmlFor={`${prefix}-sub-agent-${index}-label`}
+                    htmlFor={`${prefix}-sub-agent-${index}-model`}
                   >
-                    {t("subAgentLabel")}
+                    {t("modelId")}
                   </FieldLabel>
-                  <Input
-                    id={`${prefix}-sub-agent-${index}-label`}
-                    aria-invalid={
-                      !!form.getFieldState(`subAgents.${index}.label`).error
-                    }
-                    {...(form.register(`subAgents.${index}.label`) as object)}
-                  />
-                  <FormFieldError
-                    form={form}
-                    name={`subAgents.${index}.label`}
-                  />
-                </Field>
-              </div>
-              <Field>
-                <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-desc`}>
-                  {t("descriptionLabel")}
-                </FieldLabel>
-                <Input
-                  id={`${prefix}-sub-agent-${index}-desc`}
-                  {...(form.register(
-                    `subAgents.${index}.description`,
-                  ) as object)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel
-                  required
-                  htmlFor={`${prefix}-sub-agent-${index}-model`}
-                >
-                  {t("modelId")}
-                </FieldLabel>
-                <Input
-                  id={`${prefix}-sub-agent-${index}-model`}
-                  aria-invalid={
-                    !!form.getFieldState(`subAgents.${index}.modelId`).error
-                  }
-                  {...(form.register(`subAgents.${index}.modelId`) as object)}
-                />
-                <FormFieldError
-                  form={form}
-                  name={`subAgents.${index}.modelId`}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-prompt`}>
-                  {t("systemPrompt")}
-                </FieldLabel>
-                <Textarea
-                  id={`${prefix}-sub-agent-${index}-prompt`}
-                  rows={4}
-                  {...(form.register(
-                    `subAgents.${index}.systemPrompt`,
-                  ) as object)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel
-                  htmlFor={`${prefix}-sub-agent-${index}-user-prompt`}
-                >
-                  {t("userPromptTemplate")}
-                </FieldLabel>
-                <Textarea
-                  id={`${prefix}-sub-agent-${index}-user-prompt`}
-                  rows={4}
-                  aria-invalid={
-                    !!form.getFieldState(
-                      `subAgents.${index}.userPromptTemplate`,
-                    ).error
-                  }
-                  {...(form.register(
-                    `subAgents.${index}.userPromptTemplate`,
-                  ) as object)}
-                />
-                <FieldDescription>
-                  {t("userPromptTemplateDesc", { ph: "{{prompt}}" })}
-                </FieldDescription>
-                <FormFieldError
-                  form={form}
-                  name={`subAgents.${index}.userPromptTemplate`}
-                />
-              </Field>
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field>
-                  <FieldLabel>{t("reasoning")}</FieldLabel>
                   <Select
-                    value={
-                      (form.watch(`subAgents.${index}.reasoning`) as string) ??
-                      "none"
-                    }
-                    onValueChange={(value) =>
-                      form.setValue(`subAgents.${index}.reasoning`, value)
-                    }
+                    value={modelId}
+                    onValueChange={(value) => {
+                      if (value != null) {
+                        form.setValue(`subAgents.${index}.modelId`, value, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }
+                    }}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger
+                      id={`${prefix}-sub-agent-${index}-model`}
+                      aria-invalid={
+                        !!form.getFieldState(`subAgents.${index}.modelId`).error
+                      }
+                    >
+                      <SelectValue>
+                        {(value: string | null) => {
+                          const selected = options.find(
+                            (m) => m.modelId === value,
+                          );
+                          return selected
+                            ? modelOptionLabel(selected)
+                            : String(value ?? "");
+                        }}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {AI_REASONING_LEVELS.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
+                      {options.map((model) => (
+                        <SelectItem key={model.modelId} value={model.modelId}>
+                          {modelOptionLabel(model)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-temp`}>
-                    {t("temperature")}
-                  </FieldLabel>
-                  <Input
-                    id={`${prefix}-sub-agent-${index}-temp`}
-                    type="number"
-                    step="0.1"
-                    aria-invalid={
-                      !!form.getFieldState(`subAgents.${index}.temperature`)
-                        .error
-                    }
-                    {...(form.register(
-                      `subAgents.${index}.temperature`,
-                    ) as object)}
-                  />
+                  {modelLoadError ? (
+                    <p className="text-sm text-destructive">
+                      {t("modelIdLoadError")}
+                    </p>
+                  ) : null}
                   <FormFieldError
                     form={form}
-                    name={`subAgents.${index}.temperature`}
+                    name={`subAgents.${index}.modelId`}
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-steps`}>
-                    {t("maxSteps")}
+                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-prompt`}>
+                    {t("systemPrompt")}
                   </FieldLabel>
-                  <Input
-                    id={`${prefix}-sub-agent-${index}-steps`}
-                    type="number"
-                    aria-invalid={
-                      !!form.getFieldState(`subAgents.${index}.maxSteps`).error
-                    }
+                  <Textarea
+                    id={`${prefix}-sub-agent-${index}-prompt`}
+                    rows={4}
                     {...(form.register(
-                      `subAgents.${index}.maxSteps`,
+                      `subAgents.${index}.systemPrompt`,
                     ) as object)}
-                  />
-                  <FormFieldError
-                    form={form}
-                    name={`subAgents.${index}.maxSteps`}
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-tokens`}>
-                    {t("maxOutputTokens")}
+                  <FieldLabel
+                    htmlFor={`${prefix}-sub-agent-${index}-user-prompt`}
+                  >
+                    {t("userPromptTemplate")}
                   </FieldLabel>
-                  <Input
-                    id={`${prefix}-sub-agent-${index}-tokens`}
-                    type="number"
+                  <Textarea
+                    id={`${prefix}-sub-agent-${index}-user-prompt`}
+                    rows={4}
                     aria-invalid={
-                      !!form.getFieldState(`subAgents.${index}.maxOutputTokens`)
-                        .error
+                      !!form.getFieldState(
+                        `subAgents.${index}.userPromptTemplate`,
+                      ).error
                     }
                     {...(form.register(
-                      `subAgents.${index}.maxOutputTokens`,
+                      `subAgents.${index}.userPromptTemplate`,
                     ) as object)}
                   />
+                  <FieldDescription>
+                    {t("userPromptTemplateDesc", { ph: "{{prompt}}" })}
+                  </FieldDescription>
                   <FormFieldError
                     form={form}
-                    name={`subAgents.${index}.maxOutputTokens`}
+                    name={`subAgents.${index}.userPromptTemplate`}
                   />
                 </Field>
-              </div>
-            </FieldGroup>
-          </TabsContent>
-        ))}
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field>
+                    <FieldLabel>{t("reasoning")}</FieldLabel>
+                    <Select
+                      value={
+                        (form.watch(
+                          `subAgents.${index}.reasoning`,
+                        ) as string) ?? "none"
+                      }
+                      onValueChange={(value) =>
+                        form.setValue(`subAgents.${index}.reasoning`, value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AI_REASONING_LEVELS.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-temp`}>
+                      {t("temperature")}
+                    </FieldLabel>
+                    <Input
+                      id={`${prefix}-sub-agent-${index}-temp`}
+                      type="number"
+                      step="0.1"
+                      aria-invalid={
+                        !!form.getFieldState(`subAgents.${index}.temperature`)
+                          .error
+                      }
+                      {...(form.register(
+                        `subAgents.${index}.temperature`,
+                      ) as object)}
+                    />
+                    <FormFieldError
+                      form={form}
+                      name={`subAgents.${index}.temperature`}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-steps`}>
+                      {t("maxSteps")}
+                    </FieldLabel>
+                    <Input
+                      id={`${prefix}-sub-agent-${index}-steps`}
+                      type="number"
+                      aria-invalid={
+                        !!form.getFieldState(`subAgents.${index}.maxSteps`)
+                          .error
+                      }
+                      {...(form.register(
+                        `subAgents.${index}.maxSteps`,
+                      ) as object)}
+                    />
+                    <FormFieldError
+                      form={form}
+                      name={`subAgents.${index}.maxSteps`}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${prefix}-sub-agent-${index}-tokens`}>
+                      {t("maxOutputTokens")}
+                    </FieldLabel>
+                    <Input
+                      id={`${prefix}-sub-agent-${index}-tokens`}
+                      type="number"
+                      aria-invalid={
+                        !!form.getFieldState(
+                          `subAgents.${index}.maxOutputTokens`,
+                        ).error
+                      }
+                      {...(form.register(
+                        `subAgents.${index}.maxOutputTokens`,
+                      ) as object)}
+                    />
+                    <FormFieldError
+                      form={form}
+                      name={`subAgents.${index}.maxOutputTokens`}
+                    />
+                  </Field>
+                </div>
+              </FieldGroup>
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </div>
   );
