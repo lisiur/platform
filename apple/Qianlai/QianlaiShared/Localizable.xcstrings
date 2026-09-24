@@ -1909,6 +1909,57 @@
         }
       }
     },
+    "budget.monthly.drillHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View this month's expenses"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看本月支出"
+          }
+        }
+      }
+    },
+    "budget.monthly.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No budget data for this month yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本月还没有预算数据"
+          }
+        }
+      }
+    },
+    "budget.monthly.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View monthly budget details"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看月度日常预算详情"
+          }
+        }
+      }
+    },
     "budget.remaining" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2317,6 +2368,57 @@
         }
       }
     },
+    "budget.yearLine.categoriesNear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld near the limit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 项接近上限"
+          }
+        }
+      }
+    },
+    "budget.yearLine.categoriesNormal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld within budget"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 项正常"
+          }
+        }
+      }
+    },
+    "budget.yearLine.categoriesOver" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld over"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld 超支"
+          }
+        }
+      }
+    },
     "calculator.backspace" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2674,6 +2776,23 @@
         }
       }
     },
+    "categoryBudget.card.toggleHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View annual category budgets"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看年度分类预算"
+          }
+        }
+      }
+    },
     "categoryBudget.deleted" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2687,6 +2806,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "预算已删除"
+          }
+        }
+      }
+    },
+    "categoryBudget.detail.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No category budgets for this year yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今年还没有分类预算"
           }
         }
       }

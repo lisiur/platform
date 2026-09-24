@@ -200,6 +200,9 @@ extension View {
 /// An optional `action` turns the card into a drill-down control: a small
 /// chevron rides the title line and taps anywhere on the card's figures
 /// run the action; nil keeps the inert figure.
+/// With `drawsBackground` false the card renders its content bare — no
+/// padding, surface, or rim — for hosts that embed the block inside a
+/// larger card (the dashboard's budget overview card).
 struct StatCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
@@ -210,6 +213,7 @@ struct StatCard: View {
     var tone: Tone = .default
     var footer: AnyView? = nil
     var action: (() -> Void)? = nil
+    var drawsBackground = true
 
     enum Tone {
         case `default`, positive, negative
@@ -231,12 +235,7 @@ struct StatCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(backgroundSettings.cardSurface)
-        )
-        .glassRim(cornerRadius: 20)
+        .modifier(StatCardSurface(drawsBackground: drawsBackground))
     }
 
     /// The headline row — identical styling to the inert rendering, the
@@ -269,6 +268,29 @@ struct StatCard: View {
             row.statTapTarget(action: action)
         } else {
             row
+        }
+    }
+}
+
+/// StatCard's chrome: the padded card surface with the glass rim, or
+/// nothing when the block renders bare inside a host card (the chrome is
+/// the host's).
+private struct StatCardSurface: ViewModifier {
+    @Environment(BackgroundSettings.self) private var backgroundSettings
+
+    let drawsBackground: Bool
+
+    func body(content: Content) -> some View {
+        if drawsBackground {
+            content
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(backgroundSettings.cardSurface)
+                )
+                .glassRim(cornerRadius: 20)
+        } else {
+            content
         }
     }
 }

@@ -7,145 +7,91 @@
 
 import SwiftUI
 
-/// The dashboard's budget card (FR2): 本月日常预算 / 日常已花 / 日常剩余
-/// (hero) / 日均还能花 / 不计入日常预算, plus the year-to-date line pushing the
-/// monthly breakdown. Shown only when a budget is set — the spec forbids
-/// any onboarding hint otherwise. The card follows the dashboard's selected
-/// month; the daily figure only renders for the real current month, where
-/// "days left" means anything.
+/// The dashboard's overview card (FR2), three sections in one surface:
+/// the month's expense/income/net stat block on top, the monthly budget
+/// as one tappable line (the calendar glyph draws the spent share, the
+/// remainder rides FR6's ladder — pushing `MonthlyBudgetDetailView`,
+/// where the total, the daily figure and the journal drills live), and
+/// the annual category budgets' trigger line (the over/near tally,
+/// severity-tinted — pushing `CategoryBudgetDetailView`). The standalone
+/// stats card, the standalone budget card, and the standalone category
+/// card all merged into this one; the year's month-by-month table is
+/// reachable from the monthly page (2026-09-24 user rulings).
+///
+/// Every section is data-driven: nil stats render the stat block's
+/// placeholders (a guest's dashboard reads exactly the old stats card),
+/// a nil month drops the budget line, and the category line needs a
+/// non-empty budgeted set.
 struct BudgetCardView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
-    /// Push flag for the yearly breakdown, owned by DashboardView: the
-    /// `navigationDestination` registration must sit outside the entry
-    /// list's lazy row this card renders in (a registration inside a List
-    /// is ignored in a future release), so the card only raises the flag.
-    @Binding var isYearDetailPresented: Bool
 
-    let month: BudgetMonthSummary
-    let year: BudgetYear?
+    /// The selected month's stats totals — the top section. nil renders
+    /// the stat block's placeholder states (the guest gate stays the
+    /// host's concern, exactly the stats card's isReportingEnabled rule).
+    var statsTotals: DashboardMonth?
+    var statsExpenseAction: (() -> Void)? = nil
+    var statsIncomeAction: (() -> Void)? = nil
+
+    /// The selected month's budget summary — nil when the year budget is
+    /// closed while category budgets live on (the card degrades to the
+    /// stats block plus the category section alone; the budget line —
+    /// and with it the monthly push — disappears with it).
+    var month: BudgetMonthSummary?
+    /// The annual category budgets' report — the trigger line.
+    var categoryBudget: CategoryBudgetReport?
     var currency: String?
-    /// False when the user stepped back to a past month — "日均还能花" is
-    /// meaningless there and the daily hint hides.
-    var isCurrentMonth: Bool
-    /// The two drill-downs the dashboard owns: 日常已花 (budget-counted
-    /// expenses) and 不计入日常预算 (the per-entry budget opt-outs). The columns
-    /// become tappable with a trailing chevron, like the stat block's
-    /// expense/income drills; nil keeps a column inert.
-    var spentAction: (() -> Void)? = nil
-    var excludedAction: (() -> Void)? = nil
+    /// Push flag for the monthly budget's page (the budget line's tap) —
+    /// page-owned like `isCategoryDetailPresented`, registered outside the
+    /// entry list's lazy row for the same contract.
+    @Binding var isMonthDetailPresented: Bool
+    /// Push flag for the annual category budgets' page (the trigger
+    /// line's tap).
+    @Binding var isCategoryDetailPresented: Bool
 
-    /// FR6's status ladder colors the hero figure: yellow from 80%, red
-    /// from 100% — the spec's 卡片变黄/变红 lives only on the remaining
-    /// amount now (2026-09-16 user ruling); the card's background stays
-    /// the static card surface like the expense stat card's.
+    /// FR6's status ladder colors the remaining figure: yellow from 80%,
+    /// red from 100% — the spec's 卡片变黄/变红 lives only on the remaining
+    /// amount now (2026-09-16 user ruling).
     private var tint: Color? {
-        switch BudgetMath.status(countedCents: month.countedCents, budgetCents: month.budgetCents) {
-        case .normal: nil
-        case .near: .yellow
-        case .over: .red
-        }
+        guard let month else { return nil }
+        return BudgetMath.status(countedCents: month.countedCents, budgetCents: month.budgetCents).figureTint
+    }
+
+    /// The month's budget consumption, 0…1 — drives the budget icon's
+    /// variable draw (the circle's stroke fills to the spent share).
+    private var usageRatio: Double {
+        guard let month, month.budgetCents > 0 else { return 0 }
+        return min(Double(month.countedCents) / Double(month.budgetCents), 1)
+    }
+
+    /// The categories' combined consumption, 0…1 — the same variable draw
+    /// on the category trigger's icon: total spent over total budget.
+    private var categoryUsageRatio: Double {
+        guard let categories = categoryBudget?.categories else { return 0 }
+        let spent = categories.reduce(0) { $0 + $1.spentCents }
+        let budget = categories.reduce(0) { $0 + $1.budgetCents }
+        guard budget > 0 else { return 0 }
+        return min(Double(spent) / Double(budget), 1)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "list.bullet.rectangle.portrait")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.accentColor)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.12))
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.string("budget.monthly", defaultValue: "Monthly Budget"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Text(amount(month.budgetCents))
-                        .font(.system(.title3, design: .rounded, weight: .bold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-                Spacer()
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(L10n.string("budget.remaining", defaultValue: "Remaining"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(amount(month.remainingCents))
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(tint ?? Color.primary)
-                    .lineLimit(1)
-            }
-
-            // The month's consumption progress — the same thin ratio bar
-            // the category budget card's rows carry (green/yellow/red
-            // ladder over spent ÷ budget).
-            BudgetProgressBar(
-                spentCents: month.countedCents,
-                budgetCents: month.budgetCents
+        VStack(alignment: .leading, spacing: 12) {
+            StatSummaryBlock(
+                totals: statsTotals,
+                currency: currency,
+                expenseAction: statsExpenseAction,
+                incomeAction: statsIncomeAction,
+                monthPrefixedLabels: true,
+                drawsBackground: false
             )
-            .padding(.horizontal, 6)
 
-            // Equal columns with the label above the figure: inline
-            // label+value pairs shared one line, so long amounts squeezed
-            // the neighbors out of the visible width.
-            HStack(spacing: 12) {
-                stat(
-                    L10n.string("budget.spent", defaultValue: "Spent"),
-                    value: amount(month.countedCents),
-                    action: spentAction
-                )
-                if isCurrentMonth {
-                    stat(
-                        L10n.string("budget.daily", defaultValue: "Daily left"),
-                        value: amount(dailyAvailableCents)
-                    )
-                }
-                stat(
-                    L10n.string("budget.excluded", defaultValue: "Excluded"),
-                    value: amount(month.excludedCents),
-                    action: excludedAction
-                )
+            if let month {
+                Divider()
+                budgetSection(month)
             }
-            .padding(.horizontal, 6)
 
-            if let year {
-                // Not a NavigationLink: inside a List row one would append
-                // the system chevron next to the drawn one AND make the
-                // whole header row tap-to-navigate; the button keeps the
-                // gesture on the annual line only.
-                Button {
-                    isYearDetailPresented = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(year.annualStatusLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let annualValue = annualValue(year) {
-                            Text(annualValue)
-                                .font(.caption.weight(.semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.primary)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    // Caption text alone is a ~16pt-tall strip; lift the
-                    // row to the 44pt HIG minimum so the whole line is
-                    // the tap target.
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 6)
-                .accessibilityHint(L10n.string("budget.yearDetail", defaultValue: "Yearly breakdown"))
+            if categoryTally != nil {
+                Divider()
+                categorySection
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -157,49 +103,149 @@ struct BudgetCardView: View {
         .glassRim(cornerRadius: 20)
     }
 
-    private var dailyAvailableCents: Int {
-        BudgetMath.dailyAvailableCents(
-            remainingCents: month.remainingCents,
-            daysRemaining: BudgetMath.daysRemaining(inMonthOf: Date())
-        )
+    /// The budget section, reduced to the single-line form (2026-09-24
+    /// user ruling — the total, the daily figure and the spent/excluded
+    /// drills moved to `MonthlyBudgetDetailView`): the month's budget on
+    /// the left, the status-tinted remainder over the budget on the
+    /// right, pushing the detail page.
+    private func budgetSection(_ month: BudgetMonthSummary) -> some View {
+        disclosureLine(
+            icon: "calendar.circle",
+            variableValue: usageRatio,
+            title: L10n.string("budget.monthly", defaultValue: "Monthly Budget"),
+            accessibilityHint: L10n.string("budget.monthly.hint", defaultValue: "View monthly budget details"),
+            action: { isMonthDetailPresented = true }
+        ) {
+            Text(amount(month.remainingCents))
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(tint ?? Color.primary)
+                .lineLimit(1)
+            Text("/ \(amount(month.budgetCents))")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    /// The annual category budgets' section: one tally line at rest (the
+    /// over/near phrasing, severity-tinted); tapping pushes the category
+    /// budgets' page (the in-card expansion became a page — 2026-09-24
+    /// user ruling — after the List row-resize hop proved unfixable in
+    /// place). Same disclosure line as the budget section above.
+    private var categorySection: some View {
+        disclosureLine(
+            icon: "bookmark.circle",
+            variableValue: categoryUsageRatio,
+            title: L10n.string("categoryBudget.card.title", defaultValue: "Annual Category Budgets"),
+            accessibilityHint: L10n.string("categoryBudget.card.toggleHint", defaultValue: "View annual category budgets"),
+            action: { isCategoryDetailPresented = true }
+        ) {
+            if let tally = categoryTally {
+                categorySegment(tally)
+            }
+        }
+    }
+
+    /// One disclosure row — the icon / title / trailing figure / chevron
+    /// line both budget sections render, Button-wrapped for the push.
+    /// The icon's variable value draws its stroke to the section's spent
+    /// share; a bare `variableValue` renders nothing different on these
+    /// glyphs — the explicit .draw mode engages it (2026-09-24, verified
+    /// across five fill levels).
+    private func disclosureLine(
+        icon: String,
+        variableValue: Double,
+        title: String,
+        accessibilityHint hint: String,
+        action: @escaping () -> Void,
+        @ViewBuilder trailing: () -> some View
+    ) -> some View {
+        Button {
+            action()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon, variableValue: variableValue)
+                    .symbolVariableValueMode(.draw)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.accentColor)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                trailing()
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            // The tightened height both lines share — the two disclosure
+            // rows read as one rhythm.
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(hint)
+    }
+
+    /// The category budgets' over/near tally over FR6's ladder (the same
+    /// thresholds the year detail page's rows tint by); nil when no
+    /// category budgets exist, hiding the year line's category segment.
+    private var categoryTally: (over: Int, near: Int, total: Int)? {
+        guard let categories = categoryBudget?.categories, !categories.isEmpty else {
+            return nil
+        }
+        var over = 0
+        var near = 0
+        for row in categories {
+            switch BudgetMath.status(countedCents: row.spentCents, budgetCents: row.budgetCents) {
+            case .over: over += 1
+            case .near: near += 1
+            case .normal: break
+            }
+        }
+        return (over, near, categories.count)
+    }
+
+    /// The category section's tally segment: the over/near count phrased
+    /// by severity — any overspend leads (red), otherwise the near-misses
+    /// (yellow), else the all-clear stays secondary. The section's title
+    /// already names the context, so the segment is bare numbers.
+    private func categorySegment(_ tally: (over: Int, near: Int, total: Int)) -> some View {
+        let label: String
+        let tint: Color?
+        if tally.over > 0 {
+            label = L10n.string(
+                "budget.yearLine.categoriesOver",
+                defaultValue: "%lld/%lld over",
+                tally.over, tally.total
+            )
+            tint = .red
+        } else if tally.near > 0 {
+            label = L10n.string(
+                "budget.yearLine.categoriesNear",
+                defaultValue: "%lld near the limit",
+                tally.near
+            )
+            tint = .yellow
+        } else {
+            label = L10n.string(
+                "budget.yearLine.categoriesNormal",
+                defaultValue: "%lld within budget",
+                tally.total
+            )
+            tint = nil
+        }
+        return Text(label)
+            .font(.caption)
+            .foregroundStyle(tint ?? Color.secondary)
+            .lineLimit(1)
     }
 
     private func amount(_ cents: Int) -> String {
         Money.format(Double(cents) / 100, currency: currency)
     }
 
-    /// One stats column: caption label above the semibold figure, each
-    /// column claiming an equal share so an amount can only truncate its
-    /// own column, never push its neighbors off the card. With an
-    /// `action` the title line gains the disclosure chevron and the whole
-    /// column becomes one tap target — a plain gesture like the stat
-    /// block's columns, so the figures keep their inert colors.
-    @ViewBuilder
-    private func stat(
-        _ label: String,
-        value: String,
-        action: (() -> Void)? = nil
-    ) -> some View {
-        let figures = VStack(alignment: .leading, spacing: 2) {
-            statTitleLine(label, showsDisclosure: action != nil)
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.primary)
-                .lineLimit(1)
-        }
-        Group {
-            if let action {
-                figures.statTapTarget(action: action)
-            } else {
-                figures
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func annualValue(_ year: BudgetYear) -> String? {
-        guard year.netCents != 0 else { return nil }
-        return Money.format(Double(abs(year.netCents)) / 100, currency: currency)
-    }
 }
+

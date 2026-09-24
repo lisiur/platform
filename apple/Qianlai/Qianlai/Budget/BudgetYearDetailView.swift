@@ -7,11 +7,15 @@
 
 import SwiftUI
 
-/// The year-to-date table behind the budget card's annual line (FR9): one
-/// row per recorded ended month — 月份 / 预算 / 日常已花 / 差额 — plus the
-/// net total. Reads the live report off the shared ReportStore, so edits to
-/// history that re-fetch the dashboard update this page too. The title
-/// follows the net's sign (超支 / 结余 / 持平).
+/// The year-to-date table behind the monthly budget page's 年度累计明细
+/// entry (FR9): one row per recorded ended month — 月份 / 预算 / 日常已花 /
+/// 差额 — plus the net total. Reads the live report off the shared
+/// ReportStore, so edits to history that re-fetch the dashboard update
+/// this page too. The title follows the net's sign (超支 / 结余 / 持平).
+///
+/// Deliberately the monthly numbers alone: the annual category budgets'
+/// rows have their own page (`CategoryBudgetDetailView`, 2026-09-24
+/// user ruling — one page, one subject).
 struct BudgetYearDetailView: View {
     @Environment(ReportStore.self) private var store
     @Environment(\.locale) private var locale

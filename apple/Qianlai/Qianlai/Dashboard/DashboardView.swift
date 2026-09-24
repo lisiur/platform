@@ -33,14 +33,16 @@ struct DashboardView: View {
     @State private var isShowingLedgerForm = false
     @State private var isShowingJoin = false
     @State private var isShowingLedgerManager = false
-    /// Push flag for the budget card's yearly breakdown. Owned here, not in
-    /// BudgetCardView, so the `navigationDestination` registration below sits
-    /// on the page rather than inside a lazy container, per the
-    /// navigationDestination contract.
-    @State private var isShowingYearDetail = false
     /// Push flag for the month view page (the toolbar calendar button) —
     /// registered on the page for the same lazy-container contract.
     @State private var isShowingMonthCalendar = false
+    /// Push flag for the monthly budget's page (the overview card's
+    /// budget line) — page-owned for the same lazy-container contract.
+    @State private var isShowingMonthBudgetDetail = false
+    /// Push flag for the annual category budgets' page (the overview
+    /// card's trigger line) — page-owned for the same lazy-container
+    /// contract.
+    @State private var isShowingCategoryDetail = false
     /// The stats component's payloads (overview, daily, categories), one
     /// windowed store for this surface. Caller-owned so the page's
     /// pull-to-refresh reloads the same store the cards read. Seeded at
@@ -260,13 +262,19 @@ struct DashboardView: View {
             }
             #endif
         }
-        // Budget card's yearly breakdown, registered on the page rather than
-        // inside the card: the card renders in the entry list's lazy row, and
-        // a navigationDestination inside a List is ignored in a future
-        // release — the registration must stay visible to the stack at all
-        // times, so the card only raises the flag.
-        .navigationDestination(isPresented: $isShowingYearDetail) {
-            BudgetYearDetailView()
+        // The overview card's two budget detail pages — registered on the
+        // page rather than inside the card: the card renders in the entry
+        // list's lazy row, and a navigationDestination inside a List is
+        // ignored in a future release. Both pages read the live report
+        // off the shared report store and register their own row drills
+        // (a destination registered on the page BELOW triggered from a
+        // pushed page replaces this page instead of stacking); the yearly
+        // breakdown is reached from the monthly page's entry row.
+        .navigationDestination(isPresented: $isShowingMonthBudgetDetail) {
+            MonthlyBudgetDetailView()
+        }
+        .navigationDestination(isPresented: $isShowingCategoryDetail) {
+            CategoryBudgetDetailView()
         }
         // The chart page: the stats component for the month window and
         // the filters active at tap time (the same push the journal
@@ -500,14 +508,6 @@ struct DashboardView: View {
         pushStatDetail(drill, day: day, windowOverride: windowOverride, filters: statsFilters)
     }
 
-    /// The budget cards' drill — the same push but always UNFILTERED: the
-    /// budget figures are ledger-wide (the budget endpoints carry no
-    /// filter params), so the drill page must count the same set the
-    /// tapped figure did.
-    private func openBudgetDetail(_ drill: JournalDrillDown, windowOverride: MonthWindow? = nil) {
-        pushStatDetail(drill, day: nil, windowOverride: windowOverride, filters: nil)
-    }
-
     private func pushStatDetail(
         _ drill: JournalDrillDown,
         day: Date?,
@@ -605,108 +605,36 @@ struct DashboardView: View {
         }
     }
 
-    /// Current-month title, budget card, and the reusable stats
-    /// component's overview stat block — laid out by the shared
-    /// summary chrome (the screenshot harness stacks the same way, so
-    /// the spacings can't drift between the two).
+    /// Current-month title, the merged budget overview card, and the
+    /// reusable stats component's (headless) data mount — laid out by the
+    /// shared summary chrome (the screenshot harness stacks the same way,
+    /// so the spacings can't drift between the two).
     private func monthSummary(_ ledger: QianlaiLedger) -> some View {
         dashboardSummaryStack(
             title: AppDates.formatMonthTitle(.current, locale: locale),
             trailing: { headerControls }
         ) {
-            // The budget card rides directly under the month header so
-            // the "how much is left" answer is the first thing on the
-            // page. It renders only when a budget is set (nil report /
-            // nil month = no card, and per the spec no onboarding hint
-            // either). Guests never fetch it (the report endpoint 403s
-            // them), but the report store's creation seed can still hand
-            // their store a previous ledger's record — their task returns
-            // before any fetch could correct it, so the explicit guest
-            // gate keeps a stale card off their dashboard (the stats
-            // block's isReportingEnabled gate, mirrored).
-            if let budget = store.budget, let month = budget.month, !ledger.isGuest {
-                BudgetCardView(
-                    isYearDetailPresented: $isShowingYearDetail,
-                    month: month,
-                    year: budget.year,
-                    currency: ledger.currency,
-                    isCurrentMonth: true,
-                    // The two budget figures drill like the stat block:
-                    // the selected month's EXPENSE entries on one side of
-                    // the per-entry budget flag — the exact set each
-                    // figure counts (the budget pools ignore the
-                    // creator's countsInLedger opt-out, and the list's
-                    // includeExcluded default is already true, so a
-                    // top-up-card payment kept out of income/expense
-                    // still drills here).
-                    spentAction: {
-                        openBudgetDetail(
-                            JournalDrillDown(kind: .expense, isBudgetExcluded: false)
-                        )
-                    },
-                    excludedAction: {
-                        openBudgetDetail(
-                            JournalDrillDown(kind: .expense, isBudgetExcluded: true)
-                        )
-                    }
-                )
-            }
-            // The annual category budget card rides between the month
-            // budget card and the stats block. It deliberately ignores the
-            // month stepper — its figures summarize the CURRENT year, and
-            // its rows drill the year's journal (windowOverride), not the
-            // selected month. Rows drill by parentAccountId: the card's
-            // spent is the category's SUBTREE roll-up, and the server's
-            // parent filter (the account plus its direct children) is the
-            // closest journal-side match — identical to accountId for a
-            // leaf, the composition card's rollup drill for a parent.
-            // Same seed gate as the month budget card above: a guest
-            // never fetches this report either.
-            if let categoryBudget = store.categoryBudget, !categoryBudget.categories.isEmpty,
-                !ledger.isGuest {
-                CategoryBudgetCardView(report: categoryBudget) { row in
-                    openBudgetDetail(
-                        JournalDrillDown(
-                            kind: .expense,
-                            parentAccountId: row.accountId,
-                            categoryLabel: row.displayName
-                        ),
-                        windowOverride: AppDates.yearWindow(categoryBudget.year)
-                    )
-                }
-                // The summary's card-to-card rhythm matches the journal
-                // list's day-card gap (the inset-grouped 20pt section
-                // spacing): base VStack 10 + this 10.
-                .summaryCardGap()
-            }
-            // The stats component's overview block for the selected
-            // month — the calendar lives on the month view page (the
-            // toolbar calendar button), the trend/composition charts on
-            // the journal's chart page. Guests pass
-            // isReportingEnabled: false — every report endpoint 403s them,
-            // so their card stays in the placeholder/empty states the old
-            // nil payloads produced. The drills capture the active ledger
-            // and push `StatKindDetailView` (see the destination above).
-            StatsCardsView(
-                store: statsStore,
-                ledgerId: ledger.id,
+            // The overview card rides directly under the month header:
+            // the stats block (expense hero + income/net) is its top
+            // section and renders for EVERY reader — guests included,
+            // who read the placeholder states exactly like the old
+            // standalone stats card. The budget sections render from the
+            // report payloads, which a guest never fetches (the report
+            // endpoints 403 them) — but the report store's creation seed
+            // can still hand their store a previous ledger's record, and
+            // their task returns before any fetch could correct it, so
+            // the guest gate nils the budget inputs here (the stale-card
+            // guard, moved inside the merged card's parameters).
+            BudgetCardView(
+                statsTotals: statsStore.overview?.month,
+                statsExpenseAction: { openStatDetail(kind: .expense) },
+                statsIncomeAction: { openStatDetail(kind: .income) },
+                month: ledger.isGuest ? nil : store.budget?.month,
+                categoryBudget: ledger.isGuest ? nil : store.categoryBudget,
                 currency: ledger.currency,
-                isReportingEnabled: !ledger.isGuest,
-                monthPrefixedLabels: true,
-                showsTrendAndComposition: false,
-                window: statsWindow,
-                // The header's live capture: the component's load key
-                // carries the filter token, so a funnel pick re-fetches
-                // the block the same way a window step would. Filtered
-                // fetches never republish the widget snapshot (the
-                // store-side rule), and the creation seed above stays
-                // the unfiltered record — the launch surface's shape.
-                filters: statsFilters,
-                expenseAction: { openStatDetail(kind: .expense) },
-                incomeAction: { openStatDetail(kind: .income) },
-                onSelectCategory: { openStatDetail($0) }
+                isMonthDetailPresented: $isShowingMonthBudgetDetail,
+                isCategoryDetailPresented: $isShowingCategoryDetail
             )
-            .summaryCardGap()
             // The today/week/year card — anchored to NOW, not a month
             // stepper. Each row drills into the period's journal. Guests
             // never see it: the daily-summary endpoint 403s them.
@@ -735,8 +663,39 @@ struct DashboardView: View {
                         )
                     }
                 )
-                .summaryCardGap()
+                // 2pt above the stack's own 10 — the user's 12pt pick for
+                // the overview→range pair, tighter than the 20pt rhythm.
+                .summaryCardGap(2)
             }
+        }
+        // The stats component's data mount — the overview block renders
+        // inside the budget card above (rendersOverview: false), so this
+        // surface exists only to keep the fetch / debounce / epoch-refresh
+        // / snapshot-liveness lifecycle running for the shared store. It
+        // hangs OFF the stack in an overlay, never inside it: a zero-size
+        // view still earns VStack spacing on both sides, which is exactly
+        // the 30pt gap that crept between the two cards when this mount
+        // sat in the flow (2026-09-24). Guests pass isReportingEnabled:
+        // false — every report endpoint 403s them. The drills live on the
+        // budget card now; the calendar stays on the month view page, the
+        // trend/composition charts on the journal's chart page.
+        .overlay {
+            StatsCardsView(
+                store: statsStore,
+                ledgerId: ledger.id,
+                currency: ledger.currency,
+                isReportingEnabled: !ledger.isGuest,
+                showsTrendAndComposition: false,
+                window: statsWindow,
+                // The header's live capture: the store's load key
+                // carries the filter token, so a funnel pick re-fetches
+                // the overview the same way a window step would. Filtered
+                // fetches never republish the widget snapshot (the
+                // store-side rule), and the creation seed above stays
+                // the unfiltered record — the launch surface's shape.
+                filters: statsFilters,
+                rendersOverview: false
+            )
         }
     }
 }
@@ -779,8 +738,10 @@ func dashboardSummaryStack(
 extension View {
     /// One summary card's share of the card-to-card rhythm: base VStack
     /// 10 + this 10 = the journal list's 20pt day-card spacing. Every
-    /// summary card but the first carries it.
-    func summaryCardGap() -> some View {
-        padding(.top, 10)
+    /// summary card but the first carries it. A smaller value tightens
+    /// one pair below the rhythm — the range card sits 2pt under the
+    /// overview card (10 + 2 = 12pt total, 2026-09-24 user pick).
+    func summaryCardGap(_ spacing: CGFloat = 10) -> some View {
+        padding(.top, spacing)
     }
 }

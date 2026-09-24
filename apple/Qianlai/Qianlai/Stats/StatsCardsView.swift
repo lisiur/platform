@@ -73,6 +73,12 @@ struct StatsCardsView: View {
     var onSelectDay: ((Date, QuickEntryKind?) -> Void)? = nil
     /// A composition row/slice drill (kind + account axes + label).
     var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
+    /// false renders nothing — the overview block lives inside the host's
+    /// own card (the dashboard's budget overview card absorbed it), while
+    /// this mount keeps the fetch/debounce/epoch/surface-watch lifecycle
+    /// below running so the store stays live. The anchor is a zero-size
+    /// view, not EmptyView: appearance callbacks never fire on EmptyView.
+    var rendersOverview = true
 
     /// The task key: ledger, window bounds, and the filter segment. Reacting
     /// to the window — not just the ledger — is what re-aims the cards when
@@ -100,30 +106,36 @@ struct StatsCardsView: View {
     @State private var lastLoadKey: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            StatSummaryBlock(
-                totals: store.overview?.month,
-                currency: currency,
-                expenseAction: expenseAction,
-                incomeAction: incomeAction,
-                monthPrefixedLabels: monthPrefixedLabels
-            )
-            if showsTrendAndComposition, let daily = store.daily {
-                TrendChartCard(
-                    days: daily,
-                    window: window,
-                    currency: currency,
-                    locale: locale,
-                    onSelectDay: { onSelectDay?($0, $1) }
-                )
-            }
-            if showsTrendAndComposition, let categories = store.categories {
-                CategoryBreakdownCard(
-                    summary: categories,
-                    currency: currency,
-                    locale: locale,
-                    onSelectCategory: { onSelectCategory?($0) }
-                )
+        Group {
+            if rendersOverview {
+                VStack(alignment: .leading, spacing: 10) {
+                    StatSummaryBlock(
+                        totals: store.overview?.month,
+                        currency: currency,
+                        expenseAction: expenseAction,
+                        incomeAction: incomeAction,
+                        monthPrefixedLabels: monthPrefixedLabels
+                    )
+                    if showsTrendAndComposition, let daily = store.daily {
+                        TrendChartCard(
+                            days: daily,
+                            window: window,
+                            currency: currency,
+                            locale: locale,
+                            onSelectDay: { onSelectDay?($0, $1) }
+                        )
+                    }
+                    if showsTrendAndComposition, let categories = store.categories {
+                        CategoryBreakdownCard(
+                            summary: categories,
+                            currency: currency,
+                            locale: locale,
+                            onSelectCategory: { onSelectCategory?($0) }
+                        )
+                    }
+                }
+            } else {
+                Color.clear.frame(height: 0)
             }
         }
         .task(id: loadKey) {

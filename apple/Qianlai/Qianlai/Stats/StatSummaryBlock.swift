@@ -27,6 +27,9 @@ struct StatSummaryBlock: View {
     /// surfaces (the journal's week/range tabs) keep the bare labels —
     /// a week's figures are not 月-anything.
     var monthPrefixedLabels = false
+    /// false skips the card surface — the host (the dashboard's budget
+    /// overview card) supplies its own chrome around the block.
+    var drawsBackground = true
 
     var body: some View {
         StatCard(
@@ -63,7 +66,8 @@ struct StatSummaryBlock: View {
                 // so the stacked cards' figures align.
                 .padding(.horizontal, 6)
             ),
-            action: expenseAction
+            action: expenseAction,
+            drawsBackground: drawsBackground
         )
     }
 

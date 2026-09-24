@@ -9,9 +9,9 @@ import SwiftUI
 import Observation
 
 /// The dashboard's today/this-week/this-year card: one row per period —
-/// the iconed period label leading, the 总收入/总支出 labeled figures
-/// stacked trailing (labels in the month card's gray, figures in their
-/// semantic colors) — summed client-side off ONE
+/// the iconed period label leading, the signed income/expense figures
+/// stacked trailing (sign + semantic color carry the direction, figures
+/// in their semantic colors) — summed client-side off ONE
 /// daily-summary fetch spanning the current year (widened back to the
 /// week's start, for a year-boundary week). Stepper-independent like the
 /// annual category budget card — 今天/本周/本年 anchor to NOW, not the
@@ -130,16 +130,8 @@ struct RangeTotalsCard: View {
             }
             Spacer(minLength: 12)
             VStack(alignment: .trailing, spacing: 2) {
-                amountLine(
-                    L10n.string("dashboard.rangeCard.totalIncome", defaultValue: "Total income"),
-                    cents: period?.incomeCents,
-                    color: .income
-                )
-                amountLine(
-                    L10n.string("dashboard.rangeCard.totalExpense", defaultValue: "Total expense"),
-                    cents: period?.expenseCents,
-                    color: .expense
-                )
+                amountLine(.income, cents: period?.incomeCents)
+                amountLine(.expense, cents: period?.expenseCents)
             }
         }
         .statTapTarget { action?() }
@@ -149,21 +141,47 @@ struct RangeTotalsCard: View {
         )))
     }
 
-    /// One labeled amount line — the 总收入/总支出 caption reads in the
-    /// plain secondary gray (the month card's 月支出/月收入 labels), while
-    /// the semibold figure keeps the semantic color. No hand-signed
-    /// prefix: `Money.format` speaks for itself, and a refund-heavy day's
-    /// negative shows as-is. A nil figure renders the dash placeholder at
-    /// the same typographic slot.
-    private func amountLine(_ label: String, cents: Int?, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(cents.map { Money.format(cents: $0, currency: currency) } ?? "–")
-                .font(.footnote.weight(.semibold).monospacedDigit())
-                .foregroundStyle(color)
+    /// The row's two signed flows — the accessibility label (the
+    /// 总收入/总支出 render labels are gone: 2026-09-24 user ruling), the
+    /// semantic color, and the hand-prepended sign travel together.
+    private enum Flow {
+        case income
+        case expense
+
+        var label: String {
+            switch self {
+            case .income: L10n.string("dashboard.rangeCard.totalIncome", defaultValue: "Total income")
+            case .expense: L10n.string("dashboard.rangeCard.totalExpense", defaultValue: "Total expense")
+            }
         }
+
+        var color: Color {
+            switch self {
+            case .income: .income
+            case .expense: .expense
+            }
+        }
+
+        var sign: String {
+            switch self {
+            case .income: "+"
+            case .expense: "-"
+            }
+        }
+    }
+
+    /// One signed amount line — the 总收入/总支出 labels are gone from the
+    /// render (2026-09-24 user ruling): the sign and the semantic color
+    /// carry the direction (income +, expense −). The signs are
+    /// hand-prepended, so the rule is `abs(value)` into `Money.format`;
+    /// the label stays as the accessibility text. A nil figure renders the
+    /// dash placeholder at the same typographic slot.
+    private func amountLine(_ flow: Flow, cents: Int?) -> some View {
+        let figure = cents.map { "\(flow.sign)\(Money.format(cents: abs($0), currency: currency))" } ?? "–"
+        return Text(figure)
+            .font(.footnote.weight(.semibold).monospacedDigit())
+            .foregroundStyle(flow.color)
+            .accessibilityLabel("\(flow.label) \(figure)")
     }
 }
 

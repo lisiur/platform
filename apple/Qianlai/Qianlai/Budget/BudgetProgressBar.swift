@@ -14,6 +14,32 @@ import SwiftUI
 /// 80%, red from 100%. A zero budget overspends on the first spent cent
 /// ("预算为 0 视为有效预算"); refund-negatives clamp to zero and the fill
 /// caps at full width.
+/// The status ladder's two color reads, in one place — every surface
+/// maps `BudgetMath.status` through these instead of re-switching.
+extension BudgetStatus {
+    /// The figure tint: nil while normal (the figure stays inert
+    /// primary), yellow from 80%, red from 100% — the card line's
+    /// remainder, the month page's remainder, and the category rows'
+    /// spent figures all read this.
+    var figureTint: Color? {
+        switch self {
+        case .normal: nil
+        case .near: .yellow
+        case .over: .red
+        }
+    }
+
+    /// The bar tint: green while normal — the theme tint saturates these
+    /// cards already and can't double as a state signal.
+    var barTint: Color {
+        switch self {
+        case .normal: .green
+        case .near: .yellow
+        case .over: .red
+        }
+    }
+}
+
 struct BudgetProgressBar: View {
     let spentCents: Int
     let budgetCents: Int
@@ -32,11 +58,7 @@ struct BudgetProgressBar: View {
     }
 
     private var tint: Color {
-        switch BudgetMath.status(countedCents: spentCents, budgetCents: budgetCents) {
-        case .normal: .green
-        case .near: .yellow
-        case .over: .red
-        }
+        BudgetMath.status(countedCents: spentCents, budgetCents: budgetCents).barTint
     }
 
     private var ratio: Double {
