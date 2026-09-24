@@ -3,8 +3,11 @@ import { assertLedgerWritable } from "./access";
 import { accountRepository } from "./account.repository";
 import { monthWindow } from "./budget.service";
 import { categoryBudgetRepository } from "./category-budget.repository";
-import { journalRepository } from "./journal.repository";
 import { ledgerRepository } from "./ledger.repository";
+import {
+  memberShareCategorySummary,
+  memberShareInputs,
+} from "./report.service";
 
 /**
  * Per-CATEGORY annual budgets, fully isolated from the year/month budget
@@ -13,13 +16,17 @@ import { ledgerRepository } from "./ledger.repository";
  * below (unit-tested in category-budget.service.test.ts); orchestration
  * only fetches and delegates.
  *
- * "Spent" counts EVERY expense cent the ledger recorded in the year — the
- * flags never drop anything: `excludedFromBudget` stays in because the
- * report's window passes no budget-flag scoping, and `countsInLedger`
- * opt-outs stay in via `includeExcluded: true` — the same posture the
- * monthly budget's activity read takes. Parent and child rows may coexist;
- * each row's total rolls up its subtree (including itself), so a parent's
- * figure intentionally overlaps its children's.
+ * "Spent" is the ledger MEMBERS' apportioned share — the same members-mode
+ * split the stat and composition cards use, not every recorded cent. Each
+ * entry contributes only its tagged ledger members' slices (equal split
+ * across the participant set, untagged falling back to the payer alone),
+ * so a guest post counts just through the members it tags: project
+ * outsiders' slices fall out and an outsider-paid untagged guest post
+ * contributes nothing. The creator's own countsInLedger opt-out drops
+ * with the default activity predicate; `excludedFromBudget` stays counted
+ * (the window passes no budget-flag scoping). Parent and child rows may
+ * coexist; each row's total rolls up its subtree (including itself), so a
+ * parent's figure intentionally overlaps its children's.
  */
 
 export interface CategoryBudgetAmount {
@@ -192,13 +199,13 @@ async function assertExpenseCategory(
 
 /**
  * The category budget card's payload: each budget row's whole-year cents
- * against the year's recorded spending. The year window spans the local
- * calendar year (January through December under the request's fixed UTC
- * offset); the aggregation reads the same category sums the composition
- * card does — with `includeExcluded: true` so the budget answers for
- * every recorded cent, matching the monthly budget's posture. Categories
- * come out in the chart's sortOrder order; a zero-consumption category
- * reports 0 spent.
+ * against the year's members-share spending. The year window spans the
+ * local calendar year (January through December under the request's fixed
+ * UTC offset); the aggregation is the composition chart's members-mode
+ * read (`memberShareCategorySummary` over the activity entries) — the
+ * same entry set and split the stat cards use, so the budget reconciles
+ * with the cards beside it. Categories come out in the chart's sortOrder
+ * order; a zero-consumption category reports 0 spent.
  */
 export async function buildCategoryBudgetReport(
   ledgerId: string,
@@ -214,15 +221,14 @@ export async function buildCategoryBudgetReport(
     from: monthWindow(year, 1, tzOffsetMinutes).from,
     to: monthWindow(year, 12, tzOffsetMinutes).to,
   };
-  const [accounts, summary] = await Promise.all([
+  const [accounts, { entries, memberUserIds }] = await Promise.all([
     accountRepository.listByLedger(ledgerId),
-    // includeExcluded: the default predicate drops the creator's
-    // countsInLedger opt-outs, and the budget counts those too.
-    journalRepository.sumLinesByCategory(ledgerId, {
-      ...window,
-      includeExcluded: true,
-    }),
+    memberShareInputs(ledgerId, window),
   ]);
+  // The members-mode category summary — the composition chart's exact
+  // ledger-scope numbers — so each row's spent is the members' split, not
+  // the guest posts' gross.
+  const summary = memberShareCategorySummary(entries, memberUserIds);
   const sumsByAccountId = new Map(
     summary.expense.map((row) => [row.accountId, row.amountCents]),
   );

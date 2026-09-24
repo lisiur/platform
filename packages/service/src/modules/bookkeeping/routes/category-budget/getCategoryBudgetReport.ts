@@ -23,7 +23,7 @@ export const getCategoryBudgetReportRoute = defineOpenAPIRoute({
     summary:
       "The category budget card's numbers: each budgeted category's spent-vs-budget for the whole year",
     description:
-      "One row per budgeted category: its whole-year budget against the recorded spending of its subtree (the category itself plus every descendant). Spent counts EVERY expense cent recorded in the year — entries the budget flag excludes and entries the creator opted out of the ledger (countsInLedger=false) stay in, the same posture the monthly budget takes. Rows come out in the chart's sort order; categories is empty when the year has no category budgets (the card hides then).",
+      "One row per budgeted category: its whole-year budget against the members-share spending of its subtree (the category itself plus every descendant). Spent is the ledger members' apportioned share — each entry counts only its tagged members' slices (an untagged entry falls back to its payer), so guest posts count just through the members they tag and outsider-only consumption stays out; the creator's own countsInLedger opt-out drops too. Rows come out in the chart's sort order; categories is empty when the year has no category budgets (the card hides then).",
     request: {
       params: ledgerIdParamSchema,
       query: categoryBudgetReportQuerySchema,

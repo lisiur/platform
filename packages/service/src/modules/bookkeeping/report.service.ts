@@ -582,10 +582,10 @@ function buildStatementRows(
  *  contract (iOS picks members in ledger scope, line in project scope). */
 export type StatWindow = EntryWindow & { shareMode: StatShareMode };
 
-/** The members-mode inputs both stat endpoints reduce: the window's entries
- *  with their attributed lines, plus the ledger's member set — the split
- *  set whose slices count. */
-async function memberShareInputs(ledgerId: string, window: EntryWindow) {
+/** The members-mode inputs the stat endpoints and the category budget
+ *  report reduce: the window's entries with their attributed lines, plus
+ *  the ledger's member set — the split set whose slices count. */
+export async function memberShareInputs(ledgerId: string, window: EntryWindow) {
   const [entries, members] = await Promise.all([
     journalRepository.listActivityEntriesWithLines(ledgerId, window),
     ledgerMemberRepository.listByLedger(ledgerId),

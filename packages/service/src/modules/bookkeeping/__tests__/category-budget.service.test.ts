@@ -18,8 +18,19 @@ vi.mock("../category-budget.repository", () => ({
   },
 }));
 
-vi.mock("../journal.repository", () => ({
-  journalRepository: { sumLinesByCategory: vi.fn() },
+vi.mock("../journal.repository", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../journal.repository")>();
+  return {
+    journalRepository: { listActivityEntriesWithLines: vi.fn() },
+    // The pure helpers the members-share summary re-uses — the real ones,
+    // so side mapping and row ordering behave exactly as shipped.
+    categorySideOf: actual.categorySideOf,
+    orderCategoryRows: actual.orderCategoryRows,
+  };
+});
+
+vi.mock("../ledger-member.repository", () => ({
+  ledgerMemberRepository: { listByLedger: vi.fn() },
 }));
 
 import { accountRepository } from "../account.repository";
@@ -33,17 +44,13 @@ import {
 } from "../category-budget.service";
 import { journalRepository } from "../journal.repository";
 import { ledgerRepository } from "../ledger.repository";
+import { ledgerMemberRepository } from "../ledger-member.repository";
 
 const OFFSET = 480;
 
 /** A chart node: id, parent edge, and the report's display ordering. */
 function account(id: string, parentId: string | null, sortOrder = 0) {
   return { id, parentId, sortOrder };
-}
-
-/** The expense bucket rows `sumLinesByCategory` returns. */
-function spent(accountId: string, amountCents: number) {
-  return { accountId, amountCents };
 }
 
 describe("rollUpCategorySums", () => {
@@ -255,7 +262,10 @@ describe("buildCategoryBudgetReport", () => {
     listByYear: ReturnType<typeof vi.fn>;
   };
   const mockJournalRepo = journalRepository as unknown as {
-    sumLinesByCategory: ReturnType<typeof vi.fn>;
+    listActivityEntriesWithLines: ReturnType<typeof vi.fn>;
+  };
+  const mockMemberRepo = ledgerMemberRepository as unknown as {
+    listByLedger: ReturnType<typeof vi.fn>;
   };
 
   const chart = [
@@ -279,6 +289,33 @@ describe("buildCategoryBudgetReport", () => {
     },
   ];
 
+  /** One activity entry: debit stands in for Prisma Decimal (yuan scale),
+   *  and every line's account mirrors the repository's select shape. */
+  function entry(input: {
+    paidById: string | null;
+    participants: string[];
+    lines: Array<{ accountId: string; debit: number; type?: string }>;
+  }) {
+    return {
+      date: new Date("2026-03-01T00:00:00.000Z"),
+      paidById: input.paidById,
+      participants: input.participants.map((userId) => ({ userId })),
+      lines: input.lines.map((line) => ({
+        accountId: line.accountId,
+        debit: line.debit,
+        credit: 0,
+        account: {
+          id: line.accountId,
+          name: null,
+          code: null,
+          type: line.type ?? "expense",
+          icon: null,
+          parent: null,
+        },
+      })),
+    };
+  }
+
   beforeEach(() => {
     vi.resetAllMocks();
     mockLedgerRepo.findById.mockResolvedValue({
@@ -291,14 +328,11 @@ describe("buildCategoryBudgetReport", () => {
       { accountId: "acc-taxi", cents: 50_000 },
       { accountId: "acc-food", cents: 120_000 },
     ]);
-    mockJournalRepo.sumLinesByCategory.mockResolvedValue({
-      expense: [
-        spent("acc-food", 30_000),
-        spent("acc-groceries", 40_000),
-        spent("acc-taxi", 10_000),
-      ],
-      income: [],
-    });
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { userId: "u-alice" },
+      { userId: "u-bob" },
+    ]);
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([]);
   });
 
   it("early-exits an empty year without touching the journal", async () => {
@@ -309,26 +343,54 @@ describe("buildCategoryBudgetReport", () => {
       currency: "CNY",
       categories: [],
     });
-    expect(mockJournalRepo.sumLinesByCategory).not.toHaveBeenCalled();
+    expect(mockJournalRepo.listActivityEntriesWithLines).not.toHaveBeenCalled();
   });
 
-  it("windows the whole local year and counts every recorded cent", async () => {
+  it("windows the whole local year over the activity entries", async () => {
     await buildCategoryBudgetReport("led-1", 2026, OFFSET);
-    const [ledgerId, window] = mockJournalRepo.sumLinesByCategory.mock
-      .calls[0] as [string, { from: Date; to: Date; includeExcluded: boolean }];
+    const [ledgerId, window] = mockJournalRepo.listActivityEntriesWithLines.mock
+      .calls[0] as [string, { from: Date; to: Date }];
     expect(ledgerId).toBe("led-1");
-    // January 1st through December 31st of the offset's local year.
+    // January 1st through December 31st of the offset's local year. No
+    // includeExcluded — the default activity predicate applies, the
+    // members-share caliber.
     expect(window.from.toISOString()).toBe("2025-12-31T16:00:00.000Z");
     expect(window.to.toISOString()).toBe("2026-12-31T15:59:59.999Z");
-    // The spent口径 counts countsInLedger opt-outs — the default predicate
-    // would drop them; the flag must ride along.
-    expect(window.includeExcluded).toBe(true);
   });
 
-  it("joins roll-up onto budget rows and orders by chart sortOrder", async () => {
+  it("counts only the tagged members' slices and joins the roll-up", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      // A member's untagged personal entry: the payer bears it all.
+      entry({
+        paidById: "u-alice",
+        participants: [],
+        lines: [{ accountId: "acc-food", debit: 100 }],
+      }),
+      // A guest post tagging both members: both slices count in full.
+      entry({
+        paidById: "u-guest",
+        participants: ["u-alice", "u-bob"],
+        lines: [{ accountId: "acc-taxi", debit: 60 }],
+      }),
+      // A guest post tagging one member and one outsider: only the
+      // member's half lands.
+      entry({
+        paidById: "u-guest",
+        participants: ["u-alice", "u-outsider"],
+        lines: [{ accountId: "acc-groceries", debit: 90 }],
+      }),
+      // An untagged outsider-paid guest post: the payer fallback credits
+      // nobody on the roster — nothing counts.
+      entry({
+        paidById: "u-outsider",
+        participants: [],
+        lines: [{ accountId: "acc-food", debit: 50 }],
+      }),
+    ]);
     const report = await buildCategoryBudgetReport("led-1", 2026, OFFSET);
-    // 食材's 40000 rolls up into 餐饮's 30000 → 70000; the rows sort by
-    // the chart's sortOrder, not the budget rows' storage order.
+    // 餐饮: 10000 (Alice's own entry) + 0 (the outsider-paid post); 食材's
+    // 4500 rolls up into it → 14500. 打车: 3000 + 3000 = 6000. The rows
+    // sort by the chart's sortOrder, not the budget rows' storage order.
     expect(report.categories).toEqual([
       {
         accountId: "acc-food",
@@ -336,7 +398,7 @@ describe("buildCategoryBudgetReport", () => {
         code: "food",
         icon: "🍜",
         budgetCents: 120_000,
-        spentCents: 70_000,
+        spentCents: 14_500,
       },
       {
         accountId: "acc-taxi",
@@ -344,16 +406,13 @@ describe("buildCategoryBudgetReport", () => {
         code: "taxi",
         icon: "🚕",
         budgetCents: 50_000,
-        spentCents: 10_000,
+        spentCents: 6_000,
       },
     ]);
   });
 
   it("reports 0 spent for a category with no recorded activity", async () => {
-    mockJournalRepo.sumLinesByCategory.mockResolvedValue({
-      expense: [],
-      income: [],
-    });
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([]);
     const report = await buildCategoryBudgetReport("led-1", 2026, OFFSET);
     expect(report.categories.map((row) => row.spentCents)).toEqual([0, 0]);
   });
