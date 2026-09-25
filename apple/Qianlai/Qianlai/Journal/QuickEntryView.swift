@@ -1529,7 +1529,10 @@ struct QuickEntryView: View {
             if isMerchantEditing {
                 inlineEditingChip(
                     icon: QuickEntryField.merchant.icon,
-                    placeholder: merchantFieldTitle,
+                    placeholder: L10n.string(
+                        "quick.merchantPlaceholder",
+                        defaultValue: "e.g. Trader Joe's"
+                    ),
                     text: $draft.merchant,
                     focus: $isMerchantFieldFocused,
                     endEditing: { isMerchantEditing = false }
@@ -1673,7 +1676,7 @@ struct QuickEntryView: View {
             .buttonStyle(.plain)
         case .merchant:
             LabeledContent(merchantFieldTitle) {
-                TextField("", text: $draft.merchant)
+                TextField(L10n.string("quick.merchantPlaceholder", defaultValue: "e.g. Trader Joe's"), text: $draft.merchant)
                     .multilineTextAlignment(.trailing)
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }
@@ -1848,8 +1851,8 @@ struct QuickEntryView: View {
         L10n.string("quick.memo", defaultValue: "Memo")
     }
 
-    /// The merchant field's name — same call sites as the memo's, plus the
-    /// editing field's placeholder (dictated copy replaces it there).
+    /// The merchant field's name — shared by the more-sheet row and the
+    /// chip value's sentinel.
     private var merchantFieldTitle: String {
         L10n.string("quick.merchant", defaultValue: "Merchant")
     }

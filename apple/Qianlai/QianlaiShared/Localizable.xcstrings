@@ -10086,6 +10086,22 @@
         }
       }
     },
+    "quick.merchantPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "e.g. Trader Joe's"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如：盒马鲜生"
+          }
+        }
+      }
+    },
     "quick.more.title" : {
       "extractionState" : "manual",
       "localizations" : {
