@@ -17,11 +17,14 @@ describe("tabsDataSchema", () => {
 });
 
 describe("quickEntryDataSchema", () => {
-  it("offers the counting toggles as chip fields", () => {
-    // The counting toggles are chip-capable like the rest — dropping either
-    // from this list silently strands them in the more-fields form.
+  it("offers every chip-capable field", () => {
+    // Dropping any chip-capable field from this list silently strands it
+    // in the more-fields form — the merchant/attachments omission shipped
+    // exactly that bug.
     expect(QUICK_ENTRY_CHIP_FIELDS).toContain("countsInLedger");
     expect(QUICK_ENTRY_CHIP_FIELDS).toContain("budget");
+    expect(QUICK_ENTRY_CHIP_FIELDS).toContain("merchant");
+    expect(QUICK_ENTRY_CHIP_FIELDS).toContain("attachments");
     // project has no chip builder and must never validate.
     expect(QUICK_ENTRY_CHIP_FIELDS).not.toContain("project");
   });

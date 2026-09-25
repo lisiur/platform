@@ -25,10 +25,10 @@ struct ChipCustomizationView: View {
 
     /// The fields a chip may ever represent — identical to the server's
     /// enum. project has no chip builder and always lives in the more
-    /// sheet.
-    private static let chipCapable: [QuickEntryField] = [
-        .account, .memo, .time, .participants, .location, .paidBy,
-        .countsInLedger, .budget,
+    /// sheet. Internal (not private) so the test suite can guard coverage.
+    static let chipCapable: [QuickEntryField] = [
+        .account, .memo, .time, .participants, .location, .merchant,
+        .attachments, .paidBy, .countsInLedger, .budget,
     ]
 
     /// Row display order — every chip-capable field, shown ones first.

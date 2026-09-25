@@ -67,6 +67,8 @@ export const QUICK_ENTRY_CHIP_FIELDS = [
   "time",
   "participants",
   "location",
+  "merchant",
+  "attachments",
   "paidBy",
   "countsInLedger",
   "budget",
