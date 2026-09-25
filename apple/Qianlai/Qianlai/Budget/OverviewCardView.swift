@@ -1,5 +1,5 @@
 //
-//  BudgetCardView.swift
+//  OverviewCardView.swift
 //  Qianlai
 //
 //  Created by Lisiur Day on 2026/9/15.
@@ -22,7 +22,7 @@ import SwiftUI
 /// placeholders (a guest's dashboard reads exactly the old stats card),
 /// a nil month drops the budget line, and the category line needs a
 /// non-empty budgeted set.
-struct BudgetCardView: View {
+struct OverviewCardView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
     /// The selected month's stats totals — the top section. nil renders

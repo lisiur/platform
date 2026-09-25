@@ -625,7 +625,7 @@ struct DashboardView: View {
             // their task returns before any fetch could correct it, so
             // the guest gate nils the budget inputs here (the stale-card
             // guard, moved inside the merged card's parameters).
-            BudgetCardView(
+            OverviewCardView(
                 statsTotals: statsStore.overview?.month,
                 statsExpenseAction: { openStatDetail(kind: .expense) },
                 statsIncomeAction: { openStatDetail(kind: .income) },
