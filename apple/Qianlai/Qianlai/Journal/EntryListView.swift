@@ -346,7 +346,7 @@ struct EntryRow: View {
     /// among project members instead.
     var showsShareCaption = false
 
-    /// Fixed icon column for the meta rows (project, location,
+    /// Fixed icon column for the meta rows (project, location, merchant,
     /// not-counted): the symbols' natural widths differ, so without it the
     /// labels after them don't line up. The participants row leads with its
     /// avatar circles instead.
@@ -430,6 +430,17 @@ struct EntryRow: View {
                                 .font(.caption2)
                                 .frame(width: metaIconWidth, alignment: .leading)
                             Text(label)
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                    }
+                    if let merchant = entry.merchant, !merchant.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "storefront")
+                                .font(.caption2)
+                                .frame(width: metaIconWidth, alignment: .leading)
+                            Text(merchant)
                                 .font(.caption2)
                         }
                         .foregroundStyle(.tertiary)

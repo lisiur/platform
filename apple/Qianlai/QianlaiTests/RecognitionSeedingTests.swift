@@ -6,9 +6,10 @@
 import XCTest
 @testable import Qianlai
 
-/// The pure AI-mode quick-entry seeding: the kind mapping, the merchant·memo
-/// caption, and the suggestion list's recommended-first, de-duplicated
-/// order — the contract `QuickEntryView(recognition:)` builds on.
+/// The pure AI-mode quick-entry seeding: the kind mapping, the memo and
+/// merchant seeds, and the suggestion list's recommended-first,
+/// de-duplicated order — the contract `QuickEntryView(recognition:)` builds
+/// on.
 final class RecognitionSeedingTests: XCTestCase {
     /// "income" reads as income; anything else — nil, unknown strings, or
     /// "expense" — reads as expense, the recognition page's own mapping.
@@ -22,26 +23,32 @@ final class RecognitionSeedingTests: XCTestCase {
         XCTAssertEqual(RecognitionSeeding.kind(from: recognition(withKind: nil)), .expense)
     }
 
-    /// Merchant · memo joined with " · "; missing or blank segments drop
-    /// out; two blanks join to nothing.
-    func testMemoJoining() {
+    /// The memo prefill is the recognition's own memo, trimmed — the
+    /// merchant no longer rides here (it seeds its own field).
+    func testMemoPrefill() {
         XCTAssertEqual(
             RecognitionSeeding.memo(from: makeRecognition(merchant: "全家便利店", memo: "午餐")),
-            "全家便利店 · 午餐"
+            "午餐"
         )
         XCTAssertEqual(
-            RecognitionSeeding.memo(from: makeRecognition(merchant: "全家便利店", memo: nil)),
-            "全家便利店"
-        )
-        XCTAssertEqual(
-            RecognitionSeeding.memo(from: makeRecognition(merchant: nil, memo: "  ")),
+            RecognitionSeeding.memo(from: makeRecognition(memo: "  ")),
             ""
         )
-        // Whitespace-only segments read as missing.
         XCTAssertEqual(
-            RecognitionSeeding.memo(from: makeRecognition(merchant: " 全家便利店 ", memo: " \n")),
+            RecognitionSeeding.memo(from: makeRecognition(memo: nil)),
+            ""
+        )
+    }
+
+    /// The merchant seed trims and collapses blanks to nil — an absent
+    /// merchant leaves the draft's merchant field empty.
+    func testMerchantSeeding() {
+        XCTAssertEqual(
+            RecognitionSeeding.merchant(from: makeRecognition(merchant: " 全家便利店 ")),
             "全家便利店"
         )
+        XCTAssertNil(RecognitionSeeding.merchant(from: makeRecognition(merchant: nil)))
+        XCTAssertNil(RecognitionSeeding.merchant(from: makeRecognition(merchant: "  \n")))
     }
 
     /// The recommended path leads, alternatives follow in order, and a

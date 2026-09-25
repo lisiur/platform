@@ -316,6 +316,7 @@ export async function createEntry(
     countsInLedger?: boolean;
     excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
+    merchant?: string | null;
   },
   access: LedgerAccess,
 ) {
@@ -412,6 +413,8 @@ export async function postEntryInTransaction(
     /** System guest rule (see schema): true for guest-created posts. */
     guestCreated?: boolean;
     location?: EntryLocationInput | null;
+    /** The counterparty (商家); omitted stores null. */
+    merchant?: string | null;
   },
 ) {
   const lines = validateJournalLines(data.rawLines, data.ledgerAccounts, {
@@ -445,6 +448,7 @@ export async function postEntryInTransaction(
         guestCreated: data.guestCreated ?? false,
         excludedFromBudget: data.excludedFromBudget ?? false,
         ...locationColumns(data.location),
+        merchant: data.merchant,
         lines: lines.map((line) => ({
           accountId: line.accountId,
           debit: new Prisma.Decimal(line.debitCents).div(100),
@@ -572,6 +576,7 @@ export async function updateEntry(
     countsInLedger?: boolean;
     excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
+    merchant?: string | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -715,6 +720,11 @@ export async function updateEntry(
           excludedFromBudget,
           ...(paidByIdUpdate !== undefined ? { paidById: paidByIdUpdate } : {}),
           ...(locationUpdate ? { location: locationUpdate } : {}),
+          // Merchant keeps-on-omit like the location above, one column
+          // simpler: omitted = keep the stored merchant (edit forms that
+          // don't surface the field can't strip it), explicit null = clear,
+          // a string = replace.
+          ...(data.merchant !== undefined ? { merchant: data.merchant } : {}),
           lines: lines.map((line) => ({
             accountId: line.accountId,
             debit: new Prisma.Decimal(line.debitCents).div(100),

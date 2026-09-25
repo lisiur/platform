@@ -134,6 +134,19 @@ struct QuickEntryView: View {
     /// field renders here (same view = same focus namespace); the old
     /// sheet needed its own struct for exactly this reason.
     @FocusState private var isMemoFieldFocused: Bool
+    /// Inline merchant editing behind the quick bar's merchant chip —
+    /// the memo chip's no-sheet swap, for the entry's 商家 field.
+    @State private var isMerchantEditing = false
+    /// Focus for the inline merchant field; lives on this view for the
+    /// same reason as the memo field's.
+    @FocusState private var isMerchantFieldFocused: Bool
+    /// True while an inline chip field (memo, merchant) owns the keyboard
+    /// — the calculator's breathing-gap padding, the reflow animation, and
+    /// the keyboard-avoidance toggle all key off this so both fields share
+    /// one glide.
+    private var isChipFieldEditing: Bool {
+        isMemoEditing || isMerchantEditing
+    }
     /// The pinned keypad layer's measured height (fixed 48pt keys: 216 +
     /// the 10pt bottom inset). The display's idle bottom padding stacks the
     /// compact 8pt gap on top, so the overlay keypad never overlaps the
@@ -186,7 +199,7 @@ struct QuickEntryView: View {
     /// Editing seeds every field from the entry; creating starts blank,
     /// optionally prefilled from the bound widget's binding — or from a
     /// screenshot recognition, which also sets the kind, the time, the
-    /// merchant·memo caption, and the amount.
+    /// merchant, the memo, and the amount.
     init(
         entry: JournalEntry? = nil,
         binding: QuickEntryBinding? = nil,
@@ -209,6 +222,7 @@ struct QuickEntryView: View {
             seed.kind = RecognitionSeeding.kind(from: recognition)
             seed.date = recognition.occurredDate ?? seed.date
             seed.memo = RecognitionSeeding.memo(from: recognition)
+            seed.merchant = RecognitionSeeding.merchant(from: recognition) ?? ""
         }
         _draft = State(initialValue: seed)
         // An edit seeds the toggle from the entry's stored budget flag and
@@ -443,14 +457,14 @@ struct QuickEntryView: View {
     /// The calculator's display card — one constant view, never swapped.
     /// It rests `memoPadBlockHeight + 8` above the sheet's bottom edge,
     /// clearing the pinned keypad layer exactly like the old compact unit's
-    /// 8pt gap; while the memo chip is editing its bottom padding animates
-    /// down to a 12pt breathing gap above the keyboard. Constant identity
-    /// is load-bearing: with the earlier compact→display-only swap the card
-    /// popped in at the keyboard's edge instead of gliding from its resting
-    /// spot.
+    /// 8pt gap; while an inline chip field edits, its bottom padding
+    /// animates down to a 12pt breathing gap above the keyboard. Constant
+    /// identity is load-bearing: with the earlier compact→display-only
+    /// swap the card popped in at the keyboard's edge instead of gliding
+    /// from its resting spot.
     private var calculator: some View {
         memoCalculator(.displayOnly)
-            .padding(.bottom, isMemoEditing ? 12 : memoPadBlockHeight + 8)
+            .padding(.bottom, isChipFieldEditing ? 12 : memoPadBlockHeight + 8)
     }
 
     /// The keypad layer, pinned to the host's true bottom edge at all times
@@ -544,19 +558,20 @@ struct QuickEntryView: View {
 
                 calculator
             }
-            // One curve for the whole memo-editing reflow: the keyboard's
+            // One curve for the whole inline-editing reflow: the keyboard's
             // own safe-area steps are coarse, and without this the chips
             // and the grid ride them as jumps — appearing at the keyboard's
             // edge instead of gliding from their resting spots while the
             // avoidance bound toggles.
-            .animation(.snappy(duration: 0.25), value: isMemoEditing)
-            // Keyboard avoidance only while the memo chip is editing: the
-            // grid, chips, and display share the space above the keyboard
-            // (the grid scrolls in whatever is left). The rest of the time
-            // nothing here takes keyboard focus, so avoidance would only
-            // shove the pinned calculator around: the stack stays exactly
-            // where it is and the keyboard just slides over the lower half.
-            .ignoresSafeArea(isMemoEditing ? SafeAreaRegions() : .keyboard, edges: .bottom)
+            .animation(.snappy(duration: 0.25), value: isChipFieldEditing)
+            // Keyboard avoidance only while an inline chip field is
+            // editing: the grid, chips, and display share the space above
+            // the keyboard (the grid scrolls in whatever is left). The rest
+            // of the time nothing here takes keyboard focus, so avoidance
+            // would only shove the pinned calculator around: the stack
+            // stays exactly where it is and the keyboard just slides over
+            // the lower half.
+            .ignoresSafeArea(isChipFieldEditing ? SafeAreaRegions() : .keyboard, edges: .bottom)
 
             memoPadLayer
         }
@@ -1469,7 +1484,16 @@ struct QuickEntryView: View {
             }
         case .memo:
             if isMemoEditing {
-                memoEditingChip
+                inlineEditingChip(
+                    icon: "square.and.pencil",
+                    placeholder: L10n.string(
+                        "quick.memoPlaceholder",
+                        defaultValue: "e.g. weekly groceries"
+                    ),
+                    text: $draft.memo,
+                    focus: $isMemoFieldFocused,
+                    endEditing: { isMemoEditing = false }
+                )
             } else {
                 quickChip(systemImage: "square.and.pencil", value: memoChipValue) {
                     isMemoEditing = true
@@ -1487,6 +1511,23 @@ struct QuickEntryView: View {
             }
         case .location:
             locationChip
+        case .merchant:
+            if isMerchantEditing {
+                inlineEditingChip(
+                    icon: QuickEntryField.merchant.icon,
+                    placeholder: merchantFieldTitle,
+                    text: $draft.merchant,
+                    focus: $isMerchantFieldFocused,
+                    endEditing: { isMerchantEditing = false }
+                )
+            } else {
+                quickChip(
+                    systemImage: QuickEntryField.merchant.icon,
+                    value: merchantChipValue
+                ) {
+                    isMerchantEditing = true
+                }
+            }
         case .paidBy:
             if canPickPayer {
                 paidByChip
@@ -1549,7 +1590,7 @@ struct QuickEntryView: View {
                 }
             }
         case .memo:
-            LabeledContent(L10n.string("quick.memo", defaultValue: "Memo")) {
+            LabeledContent(memoFieldTitle) {
                 TextField(L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"), text: $draft.memo)
                     .multilineTextAlignment(.trailing)
                     .submitLabel(.done)
@@ -1609,6 +1650,13 @@ struct QuickEntryView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+        case .merchant:
+            LabeledContent(merchantFieldTitle) {
+                TextField("", text: $draft.merchant)
+                    .multilineTextAlignment(.trailing)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
+            }
         case .paidBy:
             // Who fronted the money — a person, unlike the paying pocket.
             // Defaults to the recorder; picking a teammate records that
@@ -1738,38 +1786,66 @@ struct QuickEntryView: View {
     /// The memo chip reads the memo while there is one, else the "Memo"
     /// sentinel — never a blank capsule.
     private var memoChipValue: String {
-        draft.memo.isEmpty
-            ? L10n.string("quick.memo", defaultValue: "Memo")
-            : draft.memo
+        chipValue(draft.memo, fallbackTitle: memoFieldTitle)
     }
 
-    /// The memo chip swapped for a live field while editing: same capsule
-    /// anatomy as `quickChip` (icon + one-line text), so the swap reads as
-    /// the chip growing an insertion point. The field claims focus in its
-    /// own `.task` — it installs on the tap's frame, and a focus write from
-    /// the button action can drop before installation — which is all the
-    /// delay there is; no sheet presentation has to settle first. The
-    /// binding is live, so the confirm key (and a tap anywhere outside the
-    /// capsule) only ends the edit; every keystroke is already kept.
-    private var memoEditingChip: some View {
+    /// The merchant chip reads the entered merchant while there is one,
+    /// else the field-name sentinel — never a blank capsule.
+    private var merchantChipValue: String {
+        chipValue(draft.merchant, fallbackTitle: merchantFieldTitle)
+    }
+
+    /// The inline fields' one-line chip value: the entered text while it
+    /// has any (trimmed — a whitespace-only entry reads as empty), else the
+    /// field-name sentinel.
+    private func chipValue(_ raw: String, fallbackTitle: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallbackTitle : trimmed
+    }
+
+    /// The memo field's name — shared by the more-sheet row and the chip
+    /// value's sentinel.
+    private var memoFieldTitle: String {
+        L10n.string("quick.memo", defaultValue: "Memo")
+    }
+
+    /// The merchant field's name — same call sites as the memo's, plus the
+    /// editing field's placeholder (dictated copy replaces it there).
+    private var merchantFieldTitle: String {
+        L10n.string("quick.merchant", defaultValue: "Merchant")
+    }
+
+    /// The editing chip both inline fields (memo, merchant) swap into —
+    /// the same capsule anatomy as `quickChip` (icon + one-line text), so
+    /// the swap reads as the chip growing an insertion point. The field
+    /// claims focus in its own `.task` — it installs on the tap's frame,
+    /// and a focus write from the button action can drop before
+    /// installation — which is all the delay there is; no sheet
+    /// presentation has to settle first. The binding is live, so the
+    /// confirm key (and a tap anywhere outside the capsule) only ends the
+    /// edit; every keystroke is already kept.
+    private func inlineEditingChip(
+        icon: String,
+        placeholder: String,
+        text: Binding<String>,
+        focus: FocusState<Bool>.Binding,
+        endEditing: @escaping () -> Void
+    ) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "square.and.pencil")
+            Image(systemName: icon)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            TextField(
-                L10n.string("quick.memoPlaceholder", defaultValue: "e.g. weekly groceries"),
-                text: $draft.memo
-            )
-            .font(.footnote)
-            .submitLabel(.done)
-            .focused($isMemoFieldFocused)
-            .task { isMemoFieldFocused = true }
-            .onSubmit { isMemoEditing = false }
-            .onChange(of: isMemoFieldFocused) {
-                if !isMemoFieldFocused, isMemoEditing {
-                    isMemoEditing = false
+            TextField(placeholder, text: text)
+                .font(.footnote)
+                .submitLabel(.done)
+                .focused(focus)
+                .task { focus.wrappedValue = true }
+                .onSubmit { endEditing() }
+                .onChange(of: focus.wrappedValue) {
+                    if !focus.wrappedValue {
+                        endEditing()
+                    }
                 }
-            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

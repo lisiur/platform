@@ -1367,6 +1367,12 @@ model JournalEntry {
   addressName String?
   latitude    Decimal?      @db.Decimal(9, 6)
   longitude   Decimal?      @db.Decimal(9, 6)
+  // Optional counterparty (商家 — the store/payee name, e.g. "星巴克").
+  // Pure annotation like the location block above: never enters balances,
+  // settlement, or reports. Free text on purpose — the recognition pipeline
+  // already returns the counterparty verbatim, and a per-ledger merchant
+  // entity would need matching logic for no stats payoff yet.
+  merchant    String?
   createdAt   DateTime      @default(now())
   lines       JournalLine[]
   participants JournalEntryParticipant[]

@@ -252,6 +252,28 @@ final class QianlaiModelsTests: XCTestCase {
         XCTAssertTrue(cleared["location"] is NSNull)
     }
 
+    func testQuickEntryMerchantPayloadSemantics() throws {
+        var draft = QuickEntryDraft()
+        draft.kind = .expense
+        draft.amount = 10
+        draft.debitAccountId = "food"
+
+        // Blank merchant: an explicit null, not omission — the field is
+        // always surfaced and an edit seeds the stored value, so empty can
+        // only mean "no merchant" (omission would keep the stored one).
+        let blank = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertTrue(blank["merchant"] is NSNull)
+
+        // A typed merchant trims and encodes as a plain string.
+        draft.merchant = "  星巴克 "
+        let typed = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(draft.body)
+        ) as! [String: Any]
+        XCTAssertEqual(typed["merchant"] as? String, "星巴克")
+    }
+
     func testQuickEntrySendsPaidByUserAndOmitsWhenNil() throws {
         var draft = QuickEntryDraft()
         draft.kind = .expense

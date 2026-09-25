@@ -157,6 +157,10 @@ export const journalEntrySchema = z
     excludedFromBudget: z.boolean().openapi({ example: false }),
     // null = recorded without a location.
     location: entryLocationSchema.nullable().openapi({ example: null }),
+    // The counterparty (商家 — the store/payee name, e.g. "星巴克").
+    // Pure annotation like the location: never enters balances or reports.
+    // null = recorded without one.
+    merchant: z.string().nullable().openapi({ example: "星巴克" }),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
     participants: journalEntryParticipantSchema.array(),
@@ -304,6 +308,10 @@ export const createEntryBodySchema = z
     // update, omitted = keep the current location and null = clear it (so
     // clients that don't know the field never strip it accidentally).
     location: entryLocationInputSchema.nullish(),
+    // Optional counterparty (商家). On create, omitted = no merchant. On
+    // update, omitted = keep the current merchant and null = clear it (same
+    // keep-on-omit contract as location).
+    merchant: z.string().max(100).nullish(),
   })
   .openapi("QianlaiCreateEntryBody");
 

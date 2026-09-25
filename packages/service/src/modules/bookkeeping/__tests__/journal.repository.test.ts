@@ -534,16 +534,22 @@ describe("sumLinesByDay", () => {
       participants: { some: { userId: "user-1" } },
       lines: { some: { accountId: "acc-1" } },
     });
-    // kind and memberUserId AND-wrap together; the kind branch is the exact
-    // entryKindLines("expense") clause, the member branch is the settlement
-    // OR (payer / tagged / untagged-current-member).
+    // kind, memberUserId, and the ledger-activity predicate AND-wrap
+    // together (the window carries a q search, so the predicate rides the
+    // AND list — the search's own OR owns the top-level key); the kind
+    // branch is the exact entryKindLines("expense") clause, the member
+    // branch is the settlement OR (payer / tagged / untagged-current-
+    // member).
     const and = where.AND as Array<Record<string, unknown>>;
-    expect(and).toHaveLength(2);
+    expect(and).toHaveLength(3);
     expect(and).toContainEqual({
       lines: { some: { account: { type: "expense" } } },
     });
     const memberOr = and[0].OR as Array<Record<string, unknown>>;
     expect(memberOr[0]).toEqual({ paidById: "user-2" });
+    expect(and[2]).toEqual({
+      OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
   });
 
   it("threads parentAccountId as the parent-or-children rollup clause", async () => {
@@ -690,5 +696,30 @@ describe("entryFilterWhere", () => {
       entryFilterWhere("l1", { includeExcluded: false }),
     );
     expect(where).toContain("guestCreated");
+  });
+
+  it("searches the merchant in the q OR list — 商家 is searchable text", () => {
+    // includeExcluded lifts the ledger-activity predicate so the q OR is
+    // the where's only top-level OR and the assertion reads the exact
+    // search branches.
+    const where = entryFilterWhere("l1", {
+      q: "星巴克",
+      includeExcluded: true,
+    });
+    expect(where.OR).toContainEqual({
+      merchant: { contains: "星巴克", mode: "insensitive" },
+    });
+  });
+
+  it("AND-wraps the ledger-activity predicate under a q search — the search's OR must not overwrite it", () => {
+    // Both the predicate and the search want the top-level OR; spreading
+    // both would drop the predicate and widen searches past the activity
+    // set. The search carries it on the AND list instead.
+    const where = entryFilterWhere("l1", { q: "lunch" });
+    expect(where.AND).toContainEqual({
+      OR: [{ guestCreated: true }, { countsInLedger: true }],
+    });
+    // The top-level OR is the search's own branches — no predicate residue.
+    expect(JSON.stringify(where.OR)).not.toContain("guestCreated");
   });
 });

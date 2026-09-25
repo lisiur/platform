@@ -124,6 +124,12 @@ struct JournalDetailView: View {
                     value: label
                 )
             }
+            if let merchant = resolved.merchant, !merchant.isEmpty {
+                row(
+                    L10n.string("journal.detail.merchant", defaultValue: "Merchant"),
+                    value: merchant
+                )
+            }
             if !resolved.countsInLedger {
                 row(
                     L10n.string("journal.detail.notCounted", defaultValue: "Not counted in income & expense"),

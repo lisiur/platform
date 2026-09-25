@@ -90,9 +90,9 @@ export type EntryOrdering = {
  * of guest entries, so those entries must stay visible and drillable here.
  * Only the creator's own opt-outs are excluded.
  */
-export const ledgerActivityWhere = {
+export const ledgerActivityWhere: Prisma.JournalEntryWhereInput = {
   OR: [{ guestCreated: true }, { countsInLedger: true }],
-} as const satisfies Prisma.JournalEntryWhereInput;
+};
 
 /**
  * The TS twin of `ledgerActivityWhere` for entries already loaded — kept
@@ -271,25 +271,34 @@ export function entryFilterWhere(ledgerId: string, window: EntryWindow) {
   if (window.kind) {
     andFilters.push(entryKindLines(window.kind));
   }
+  // The ledger-activity predicate scopes LEDGER-WIDE surfaces only
+  // (journal list, dashboard recent entries): member entries the creator
+  // kept in plus every guest post, so entries that feed the share-based
+  // statement stay visible and drillable. Only the creator's own opt-outs
+  // are excluded (and even those return via `includeExcluded`). Project
+  // books always show all of their entries — settlement depends on them —
+  // so the filter is skipped whenever the query is pinned to project(s).
+  // The countsInLedger axis lifts it too: scoped to
+  // `countsInLedger: false`, the predicate's own OR (which requires
+  // countsInLedger true or a guest post) would zero the narrowed set, so
+  // the funnel's 不计收支 isolation needs no includeExcluded ride-along —
+  // a caller that forgets it still gets the right set.
+  const activityPredicateLifted =
+    window.countsInLedger !== undefined ||
+    projectScoped ||
+    window.includeExcluded;
+  // The predicate's OR and a `q` search's OR both land on the where's
+  // top-level OR key, and a second spread there would silently overwrite
+  // the predicate (searches would widen past the activity set) — so under
+  // a search the predicate rides the AND list instead.
+  if (!activityPredicateLifted && window.q) {
+    andFilters.push(ledgerActivityWhere);
+  }
   return {
     ledgerId,
-    // The ledger-activity predicate scopes LEDGER-WIDE surfaces only
-    // (journal list, dashboard recent entries): member entries the creator
-    // kept in plus every guest post, so entries that feed the share-based
-    // statement stay visible and drillable. Only the creator's own opt-outs
-    // are excluded (and even those return via `includeExcluded`). Project
-    // books always show all of their entries — settlement depends on them —
-    // so the filter is skipped whenever the query is pinned to project(s).
-    // The countsInLedger axis lifts it too: scoped to
-    // `countsInLedger: false`, the predicate's own OR (which requires
-    // countsInLedger true or a guest post) would zero the narrowed set, so
-    // the funnel's 不计收支 isolation needs no includeExcluded ride-along —
-    // a caller that forgets it still gets the right set.
-    ...(window.countsInLedger !== undefined ||
-    projectScoped ||
-    window.includeExcluded
-      ? {}
-      : ledgerActivityWhere),
+    // The predicate itself: spread top-level, unless a search owns the OR
+    // key (it's on the AND list above then) or a lift condition applies.
+    ...(activityPredicateLifted || window.q ? {} : ledgerActivityWhere),
     // The per-entry budget opt-out drops only when the caller asks — the
     // route-level default keeps budget-excluded entries in (bookkeeping
     // views count them; only budget-flavored callers flip this).
@@ -354,6 +363,12 @@ export function entryFilterWhere(ledgerId: string, window: EntryWindow) {
             { address: { contains: window.q, mode: "insensitive" as const } },
             {
               addressName: {
+                contains: window.q,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              merchant: {
                 contains: window.q,
                 mode: "insensitive" as const,
               },
@@ -815,6 +830,8 @@ export const journalRepository = {
       addressName?: string | null;
       latitude?: Prisma.Decimal | null;
       longitude?: Prisma.Decimal | null;
+      /** The counterparty (商家); omitted stores null. */
+      merchant?: string | null;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -841,6 +858,7 @@ export const journalRepository = {
         addressName: data.addressName ?? null,
         latitude: data.latitude ?? null,
         longitude: data.longitude ?? null,
+        merchant: data.merchant ?? null,
         lines: { create: data.lines },
         participants: {
           create: (data.participantUserIds ?? []).map((userId) => ({
@@ -887,6 +905,11 @@ export const journalRepository = {
         latitude: Prisma.Decimal | null;
         longitude: Prisma.Decimal | null;
       };
+      /**
+       * Replaces the merchant (商家). Absent = keep the stored merchant —
+       * the service resolves keep-on-omit vs clear.
+       */
+      merchant?: string | null;
       lines: Array<{
         accountId: string;
         debit: Prisma.Decimal | number;
@@ -914,6 +937,7 @@ export const journalRepository = {
               longitude: data.location.longitude,
             }
           : {}),
+        ...(data.merchant !== undefined ? { merchant: data.merchant } : {}),
         lines: { deleteMany: {}, create: data.lines },
         participants: {
           deleteMany: {},

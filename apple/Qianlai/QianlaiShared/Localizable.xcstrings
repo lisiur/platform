@@ -4937,6 +4937,23 @@
         }
       }
     },
+    "journal.detail.merchant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merchant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商家"
+          }
+        }
+      }
+    },
     "journal.detail.notCounted" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9980,6 +9997,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如：每周生鲜"
+          }
+        }
+      }
+    },
+    "quick.merchant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merchant"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商家"
           }
         }
       }

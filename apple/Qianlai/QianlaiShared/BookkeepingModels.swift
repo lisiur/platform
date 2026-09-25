@@ -310,14 +310,24 @@ enum RecognitionSeeding {
         recognition.kind == "income" ? .income : .expense
     }
 
-    /// Merchant · memo joined with " · ", skipping missing or blank
-    /// segments — the caption the recognition page's review form used to
-    /// build, now the quick entry's memo prefill.
+    /// The memo prefill: the recognition's own memo, trimmed. (The
+    /// merchant used to be joined in with " · "; it seeds its own field
+    /// now — see `merchant(from:)`.)
     nonisolated static func memo(from recognition: ScreenshotRecognition) -> String {
-        [recognition.merchant, recognition.memo]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
+        recognition.memo?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    /// The merchant seed for the draft's 商家 field: trimmed, blank
+    /// collapsing to nil so an absent merchant leaves the field empty
+    /// (blank clears on save, the same rule as the memo).
+    nonisolated static func merchant(from recognition: ScreenshotRecognition) -> String? {
+        guard
+            let trimmed = recognition.merchant?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !trimmed.isEmpty
+        else { return nil }
+        return trimmed
     }
 
     /// The AI's category suggestions resolved against the given tree: the
@@ -541,6 +551,10 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     var project: EntryProjectRef?
     /// Where the entry was recorded; nil when captured without a place.
     var location: EntryLocationRef?
+    /// The counterparty (商家 — the store/payee name, e.g. "星巴克").
+    /// Pure annotation like the location; nil when recorded without one.
+    /// Defaults to nil so fixtures and pre-deploy payloads decode cleanly.
+    var merchant: String? = nil
     var lines: [JournalLine]
     var participants: [EntryParticipant]?
     /// The ledger members' COMBINED share of this entry's value in cents,
@@ -1524,6 +1538,23 @@ enum EntryLocationPayload: Encodable {
     }
 }
 
+/// The entry's merchant field on the wire. Three states the API
+/// distinguishes: omitted (edit keeps the stored merchant), explicit
+/// `null` (strips it), or a string (replaces it) — the location payload's
+/// contract, one column simpler.
+enum EntryMerchantPayload: Encodable {
+    case clear
+    case capture(String)
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .clear: try container.encodeNil()
+        case .capture(let merchant): try container.encode(merchant)
+        }
+    }
+}
+
 struct CreateEntryBody: Encodable {
     var date: Date
     var memo: String?
@@ -1548,6 +1579,10 @@ struct CreateEntryBody: Encodable {
     var excludedFromBudget: Bool?
     /// nil omits the field: no location on create, keep-on-edit.
     var location: EntryLocationPayload? = nil
+    /// The entry's merchant (商家). Unlike the location it is inline-edited
+    /// text, so the draft always sends an explicit value — `nil` (omitted,
+    /// keep-on-edit) only exists for clients that don't know the field.
+    var merchant: EntryMerchantPayload? = nil
 }
 
 /// One-click income/expense/transfer scenario the user picks in the quick
@@ -1586,6 +1621,7 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
     case time
     case participants
     case location
+    case merchant
     case paidBy
     case project
     case countsInLedger
@@ -1629,6 +1665,12 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
                 defaultValue: "Location",
                 comment: "Quick-entry field: place of the entry (Chinese 地点)"
             )
+        case .merchant:
+            LocalizedStringResource(
+                "quick.merchant",
+                defaultValue: "Merchant",
+                comment: "Quick-entry field: the counterparty/store of the entry (Chinese 商家)"
+            )
         case .paidBy:
             LocalizedStringResource(
                 "quick.paidBy",
@@ -1668,6 +1710,9 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         case .time: "clock"
         case .participants: "person.2"
         case .location: "location"
+        // The storefront — where the money went; location's glyph already
+        // owns the place-coordinate reading.
+        case .merchant: "storefront"
         // Single person — the payer is one of the crowd; person.crop.
         // circle.badge.dollar looked ideal but is NOT a real SF Symbol.
         case .paidBy: "person.crop.circle"
@@ -1698,7 +1743,7 @@ struct QuickEntryLayout: Equatable, Codable {
     /// exclusion trailing — it only concerns expenses), the rarer posting
     /// options behind the more sheet.
     static let standard = QuickEntryLayout(chipFields: [
-        .account, .memo, .time, .participants, .location, .budget,
+        .account, .memo, .time, .participants, .location, .merchant, .budget,
     ])
 }
 
@@ -1716,6 +1761,11 @@ struct QuickEntryDraft: Equatable {
     var debitAccountId: String?
     var creditAccountId: String?
     var memo: String = ""
+    /// The counterparty (商家) typed into the form. Blank on save clears
+    /// it: the field is always surfaced (chip or more-sheet row) and an
+    /// edit seeds the stored value, so an empty submission can only mean
+    /// "no merchant" — no cleared-flag dance like the location's.
+    var merchant: String = ""
     var participants: Set<String> = []
     /// Who fronted the money; nil = the recorder (the server applies the
     /// same default). The form pins it to the signed-in user once known.
@@ -1765,7 +1815,8 @@ struct QuickEntryDraft: Equatable {
     }
 
     var body: CreateEntryBody {
-        CreateEntryBody(
+        let trimmedMerchant = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
+        return CreateEntryBody(
             date: date,
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? nil
@@ -1780,7 +1831,9 @@ struct QuickEntryDraft: Equatable {
             countsInLedger: countsInLedger,
             excludedFromBudget: excludedFromBudget,
             location: location.map(EntryLocationPayload.capture)
-                ?? (isLocationCleared ? .clear : nil)
+                ?? (isLocationCleared ? .clear : nil),
+            merchant: trimmedMerchant.isEmpty
+                ? EntryMerchantPayload.clear : .capture(trimmedMerchant)
         )
     }
 }
@@ -1821,6 +1874,7 @@ extension QuickEntryDraft {
             debitAccountId: debitAccountId,
             creditAccountId: creditAccountId,
             memo: entry.memo ?? "",
+            merchant: entry.merchant ?? "",
             participants: Set(entry.participants?.map(\.userId) ?? []),
             paidByUserId: entry.paidById,
             projectId: entry.projectId,

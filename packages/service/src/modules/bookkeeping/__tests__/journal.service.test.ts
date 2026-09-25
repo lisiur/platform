@@ -1591,6 +1591,87 @@ describe("entry location", () => {
   });
 });
 
+describe("entry merchant", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
+    );
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-1" });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+  });
+
+  it("passes the merchant through to the repository on create", async () => {
+    await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, merchant: "星巴克" },
+      editorAccess,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ merchant: "星巴克" }),
+      expect.anything(),
+    );
+  });
+
+  it("keeps the stored merchant on update when omitted and replaces on a string", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: true,
+    });
+
+    // Omitted: the edit form doesn't strip the merchant it didn't show.
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+    const omitted = mockJournalRepo.updateEntry.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    expect(omitted).not.toHaveProperty("merchant");
+
+    // A string replaces the stored merchant.
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      merchant: "全家便利店",
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenLastCalledWith(
+      "e-1",
+      expect.objectContaining({ merchant: "全家便利店" }),
+      expect.anything(),
+    );
+  });
+
+  it("clears the merchant on an explicit null", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      countsInLedger: true,
+    });
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      merchant: null,
+    });
+    expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
+      "e-1",
+      expect.objectContaining({ merchant: null }),
+      expect.anything(),
+    );
+  });
+});
+
 describe("listEntries memberSharesCents", () => {
   // The members' combined share attached to each listed entry mirrors the
   // dashboard month statement's own math (memberSharesCents over the same

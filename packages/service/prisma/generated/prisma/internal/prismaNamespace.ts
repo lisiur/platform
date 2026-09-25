@@ -6272,6 +6272,7 @@ export const JournalEntryScalarFieldEnum = {
   addressName: 'addressName',
   latitude: 'latitude',
   longitude: 'longitude',
+  merchant: 'merchant',
   createdAt: 'createdAt'
 } as const
 
