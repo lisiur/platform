@@ -3,6 +3,11 @@ import type { BookAccount } from "#generated/prisma/client";
 import { Prisma } from "#generated/prisma/client";
 import { prisma } from "#lib/db";
 import {
+  deleteAttachmentsByBiz,
+  deleteAttachmentsByIds,
+  JOURNAL_ENTRY_BIZ_TYPE,
+} from "#modules/attachment/attachment.service";
+import {
   assertLedgerWritable,
   type LedgerAccess,
   resolveEntryProjectTarget,
@@ -253,6 +258,133 @@ function withMemberSharesCents<
   };
 }
 
+/**
+ * A photo receipt echoed on entry reads: the id for minting a signed url,
+ * plus the upload metadata needed to render a thumbnail. The bytes are
+ * private — fetched through POST /api/attachment/{id}/sign, never a direct
+ * url.
+ */
+export type EntryAttachmentSummary = {
+  id: string;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+};
+
+/**
+ * Attaches each entry's photo receipts in one batched query per page
+ * (createdAt asc ≈ upload order). Staged-but-unclaimed uploads hang off the
+ * ledger id, so they can never surface on an entry here; claimed ones carry
+ * the entry id.
+ */
+export async function withEntryAttachments<T extends { id: string }>(
+  entries: T[],
+  tx: Prisma.TransactionClient = prisma,
+): Promise<(T & { attachments: EntryAttachmentSummary[] })[]> {
+  if (entries.length === 0) return [];
+  const rows = await tx.attachment.findMany({
+    where: {
+      bizType: JOURNAL_ENTRY_BIZ_TYPE,
+      bizId: { in: entries.map((entry) => entry.id) },
+    },
+    select: {
+      id: true,
+      bizId: true,
+      createdAt: true,
+      upload: { select: { mimeType: true, size: true } },
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
+  const byEntryId = new Map<string, EntryAttachmentSummary[]>();
+  for (const row of rows) {
+    const list = byEntryId.get(row.bizId) ?? [];
+    list.push({
+      id: row.id,
+      mimeType: row.upload.mimeType,
+      size: row.upload.size,
+      createdAt: row.createdAt,
+    });
+    byEntryId.set(row.bizId, list);
+  }
+  return entries.map((entry) => ({
+    ...entry,
+    attachments: byEntryId.get(entry.id) ?? [],
+  }));
+}
+
+/**
+ * Claims staged photo receipts for an entry inside its transaction. A
+ * claimable id must have been uploaded by the same user against the same
+ * ledger (the upload route stages attachments with bizId = ledgerId) and
+ * must not already belong to another entry — the claim IS the repoint of
+ * bizId to the entry id. Runs after the entry row exists, so the post and
+ * its receipts commit or roll back together.
+ */
+async function claimEntryAttachments(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  ledgerId: string,
+  entryId: string,
+  attachmentIds: string[],
+) {
+  for (const id of new Set(attachmentIds)) {
+    const attachment = await tx.attachment.findUnique({
+      where: { id },
+      select: { bizType: true, bizId: true, createdBy: true },
+    });
+    if (
+      !attachment ||
+      attachment.createdBy !== userId ||
+      attachment.bizType !== JOURNAL_ENTRY_BIZ_TYPE ||
+      attachment.bizId !== ledgerId
+    ) {
+      throw new HTTPException(400, {
+        message:
+          "Invalid attachment: upload each photo against this ledger before posting",
+      });
+    }
+    await tx.attachment.update({
+      where: { id },
+      data: { bizId: entryId },
+    });
+  }
+}
+
+/**
+ * Applies the update contract for attachments — the caller has already
+ * filtered out "omitted": null clears every receipt, an array is the exact
+ * final set in order. Attached ids not named are deleted (their file goes
+ * when its upload has no attachment rows left); staged ids not yet attached
+ * are claimed. Unclaimable ids fail loudly rather than silently dropping a
+ * receipt the client thinks it saved.
+ */
+async function applyEntryAttachmentDiff(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  ledgerId: string,
+  entryId: string,
+  target: string[] | null,
+) {
+  const current = await tx.attachment.findMany({
+    where: { bizType: JOURNAL_ENTRY_BIZ_TYPE, bizId: entryId },
+    select: { id: true },
+  });
+  const currentIds = current.map((attachment) => attachment.id);
+  if (target === null) {
+    await deleteAttachmentsByIds(currentIds, tx);
+    return;
+  }
+  const targetIds = [...new Set(target)];
+  const removedIds = currentIds.filter((id) => !targetIds.includes(id));
+  const addedIds = targetIds.filter((id) => !currentIds.includes(id));
+  if (removedIds.length > 0) {
+    await deleteAttachmentsByIds(removedIds, tx);
+  }
+  if (addedIds.length > 0) {
+    await claimEntryAttachments(tx, userId, ledgerId, entryId, addedIds);
+  }
+}
+
 export async function listEntries(
   ledgerId: string,
   opts: { limit?: number; offset?: number } & EntryWindow & EntryOrdering,
@@ -264,10 +396,11 @@ export async function listEntries(
     ledgerMemberRepository.listByLedger(ledgerId),
   ]);
   const memberUserIds = new Set(members.map((m) => m.userId));
+  const decorated = entries
+    .map((e) => withMemberSharesCents(e, memberUserIds))
+    .map((e) => redactEntryCreatorEmail(e, viewerRole));
   return {
-    entries: entries
-      .map((e) => withMemberSharesCents(e, memberUserIds))
-      .map((e) => redactEntryCreatorEmail(e, viewerRole)),
+    entries: await withEntryAttachments(decorated),
     total,
   };
 }
@@ -290,7 +423,10 @@ export async function getEntry(
   ) {
     throw new HTTPException(404, { message: "Journal entry not found" });
   }
-  return redactEntryCreatorEmail(entry, viewerRole);
+  const [withAttachments] = await withEntryAttachments([
+    redactEntryCreatorEmail(entry, viewerRole),
+  ]);
+  return withAttachments;
 }
 
 /**
@@ -317,6 +453,8 @@ export async function createEntry(
     excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
     merchant?: string | null;
+    /** Staged photo receipt ids to claim; omitted/null = none. */
+    attachments?: string[] | null;
   },
   access: LedgerAccess,
 ) {
@@ -345,8 +483,9 @@ export async function createEntry(
       projectId,
       data.participantUserIds,
     );
-    return postEntryInTransaction(tx, userId, ledgerId, ledger, {
-      ...data,
+    const { attachments: attachmentIds, ...entryData } = data;
+    const entry = await postEntryInTransaction(tx, userId, ledgerId, ledger, {
+      ...entryData,
       projectId,
       participantUserIds,
       projectMembers,
@@ -366,6 +505,17 @@ export async function createEntry(
       ledgerMembers,
       expenseOnly: access.membership.role === "guest",
     });
+    if (attachmentIds?.length) {
+      await claimEntryAttachments(
+        tx,
+        userId,
+        ledgerId,
+        entry.id,
+        attachmentIds,
+      );
+    }
+    const [withAttachments] = await withEntryAttachments([entry], tx);
+    return withAttachments;
   });
 }
 
@@ -577,6 +727,8 @@ export async function updateEntry(
     excludedFromBudget?: boolean;
     location?: EntryLocationInput | null;
     merchant?: string | null;
+    /** Omitted = keep the receipts, null = clear, an array = exact final set. */
+    attachments?: string[] | null;
   },
 ) {
   return prisma.$transaction(async (tx) => {
@@ -710,7 +862,7 @@ export async function updateEntry(
                 : null,
           };
     try {
-      return await journalRepository.updateEntry(
+      const updated = await journalRepository.updateEntry(
         entry.id,
         {
           date: data.date,
@@ -735,6 +887,20 @@ export async function updateEntry(
         },
         tx,
       );
+      // Attachments keep-on-omit like the merchant above: omitted = the
+      // receipts are untouched (edit forms that don't surface the field
+      // can't strip them), null = clear, an array = the exact final set.
+      if (data.attachments !== undefined) {
+        await applyEntryAttachmentDiff(
+          tx,
+          actor.userId,
+          ledgerId,
+          entry.id,
+          data.attachments,
+        );
+      }
+      const [withAttachments] = await withEntryAttachments([updated], tx);
+      return withAttachments;
     } catch (err) {
       if (isForeignKeyViolation(err)) {
         throw new HTTPException(400, {
@@ -775,6 +941,9 @@ export async function deleteEntry(
       throw new HTTPException(404, { message: "Journal entry not found" });
     }
     await journalRepository.delete(entry.id, tx);
+    // Photo receipts die with the entry; the file on disk goes when its
+    // content-addressed upload has no attachment rows left.
+    await deleteAttachmentsByBiz(JOURNAL_ENTRY_BIZ_TYPE, entry.id, tx);
   });
   return { success: true as const };
 }

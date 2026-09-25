@@ -31,6 +31,10 @@ struct JournalDetailView: View {
 
     @State private var isEditPresented = false
     @State private var isDeletePending = false
+    /// The full-screen receipt viewer: its visibility and the page it
+    /// opens on (the tapped thumbnail's index).
+    @State private var isViewerPresented = false
+    @State private var viewerIndex = 0
 
     /// The store's copy when present (edits from any surface land here);
     /// the pushed snapshot otherwise — e.g. right after a delete, while
@@ -47,6 +51,7 @@ struct JournalDetailView: View {
         List {
             headerSection
             detailsSection
+            attachmentsSection
             sharesSection
             linesSection
         }
@@ -65,6 +70,14 @@ struct JournalDetailView: View {
                 QuickEntryView(entry: resolved)
             }
             .interactiveDismissDisabled()
+        }
+        // Receipts read best edge to edge: the full-screen viewer pages
+        // through them over black, tap anywhere to dismiss.
+        .fullScreenCover(isPresented: $isViewerPresented) {
+            EntryAttachmentViewer(
+                attachmentIds: (resolved.attachments ?? []).map(\.id),
+                index: $viewerIndex
+            )
         }
         .alert(
             L10n.string("journal.delete", defaultValue: "Delete"),
@@ -144,6 +157,37 @@ struct JournalDetailView: View {
             }
         } header: {
             Text(L10n.string("journal.detail.details", defaultValue: "Details"))
+        }
+    }
+
+    /// The entry's photo receipts as a thumbnail grid — each tap opens the
+    /// full-screen viewer on that receipt. The images arrive through the
+    /// session attachment cache (sign once, then memory-cached).
+    @ViewBuilder
+    private var attachmentsSection: some View {
+        let refs = resolved.attachments ?? []
+        if !refs.isEmpty {
+            Section {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 96), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(Array(refs.enumerated()), id: \.element.id) { index, ref in
+                        Button {
+                            viewerIndex = index
+                            isViewerPresented = true
+                        } label: {
+                            CachedAttachmentImage(attachmentId: ref.id)
+                                .frame(width: 96, height: 96)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text(L10n.string("journal.detail.attachments", defaultValue: "Attachments"))
+            }
         }
     }
 
@@ -325,5 +369,29 @@ struct JournalDetailView: View {
         } catch {
             toast.show(error.localizedDescription)
         }
+    }
+}
+
+/// Full-screen receipt viewer: one photo per page over black, swipe to
+/// move between them, tap anywhere to dismiss. The ids come from the
+/// entry's receipts in display order, and `index` starts at the tapped
+/// thumbnail.
+private struct EntryAttachmentViewer: View {
+    let attachmentIds: [String]
+    @Binding var index: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        TabView(selection: $index) {
+            ForEach(attachmentIds.indices, id: \.self) { pageIndex in
+                CachedAttachmentImage(attachmentId: attachmentIds[pageIndex], contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+                    .tag(pageIndex)
+            }
+        }
+        .tabViewStyle(.page)
+        .background(Color.black.ignoresSafeArea())
+        .onTapGesture { dismiss() }
     }
 }

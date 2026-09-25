@@ -34,6 +34,8 @@ vi.mock("#lib/db", () => ({
       update: vi.fn(),
     },
     systemConfig: { findUnique: vi.fn() },
+    journalEntry: { findUnique: vi.fn() },
+    ledgerMember: { findUnique: vi.fn() },
   },
 }));
 
@@ -67,6 +69,8 @@ const mockPrisma = prisma as unknown as {
     update: ReturnType<typeof vi.fn>;
   };
   systemConfig: { findUnique: ReturnType<typeof vi.fn> };
+  journalEntry: { findUnique: ReturnType<typeof vi.fn> };
+  ledgerMember: { findUnique: ReturnType<typeof vi.fn> };
 };
 
 const mockUnlink = unlink as unknown as ReturnType<typeof vi.fn>;
@@ -489,6 +493,55 @@ describe("signFile ownership", () => {
       `/api/attachment/attachment1?token=${token}&expires=${expires}`,
     );
     expect(expires).toBeGreaterThan(Date.now());
+  });
+
+  it("signs a journal entry's photo receipt for any member of its ledger", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...privateAttachment,
+      bizType: "qianlai:journal-entry",
+      bizId: "entry-1",
+      // Receipts belong to their uploader, not the viewer — membership
+      // decides, so another member signing must still work.
+      createdBy: "user2",
+    });
+    mockPrisma.journalEntry.findUnique.mockResolvedValue({
+      id: "entry-1",
+      ledgerId: "led-1",
+    });
+    mockPrisma.ledgerMember.findUnique.mockResolvedValue({ id: "mem-1" });
+
+    const result = await signFile({ id: "attachment1", userId: "user1" });
+    expect(result.url).toContain("/api/attachment/attachment1?token=");
+  });
+
+  it("throws 403 when the signer is not a member of the entry's ledger", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...privateAttachment,
+      bizType: "qianlai:journal-entry",
+      bizId: "entry-1",
+    });
+    mockPrisma.journalEntry.findUnique.mockResolvedValue({
+      id: "entry-1",
+      ledgerId: "led-1",
+    });
+    mockPrisma.ledgerMember.findUnique.mockResolvedValue(null);
+
+    await expect(
+      signFile({ id: "attachment1", userId: "user1" }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when the receipt's entry no longer exists", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...privateAttachment,
+      bizType: "qianlai:journal-entry",
+      bizId: "entry-1",
+    });
+    mockPrisma.journalEntry.findUnique.mockResolvedValue(null);
+
+    await expect(
+      signFile({ id: "attachment1", userId: "user1" }),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
 

@@ -446,6 +446,21 @@ struct EntryRow: View {
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                     }
+                    // Receipt presence — a bare paperclip + count in the
+                    // same meta column; the detail page names the section
+                    // and shows the photos themselves.
+                    if let attachments = entry.attachments, !attachments.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "paperclip")
+                                .font(.caption2)
+                                .frame(width: metaIconWidth, alignment: .leading)
+                            Text("\(attachments.count)")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .accessibilityLabel(EntryAttachmentRef.countLabel(attachments.count))
+                    }
                     if let participants = entry.participants, !participants.isEmpty {
                         participantAvatars(participants)
                     }

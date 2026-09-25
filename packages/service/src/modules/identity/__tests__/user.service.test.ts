@@ -25,17 +25,16 @@ import {
   createAttachment,
   deleteAttachmentsByBiz,
 } from "#modules/attachment/attachment.service";
-import { userLookupRepository } from "../user-lookup.repository";
 import { replaceUserAvatar, uploadAvatar } from "../user.service";
+import { userLookupRepository } from "../user-lookup.repository";
 
 const mockCreateAttachment = createAttachment as unknown as ReturnType<
   typeof vi.fn
 >;
 const mockDeleteAttachmentsByBiz =
   deleteAttachmentsByBiz as unknown as ReturnType<typeof vi.fn>;
-const mockSetAvatarById = userLookupRepository.setAvatarById as unknown as ReturnType<
-  typeof vi.fn
->;
+const mockSetAvatarById =
+  userLookupRepository.setAvatarById as unknown as ReturnType<typeof vi.fn>;
 
 const avatarFile = new File([new Uint8Array([1, 2, 3])], "a.jpg", {
   type: "image/jpeg",

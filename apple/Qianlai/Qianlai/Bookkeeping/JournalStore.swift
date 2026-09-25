@@ -539,6 +539,26 @@ final class JournalStore {
         )
     }
 
+    // MARK: Entry attachments (photo receipts)
+
+    /// Uploads one photo as a private receipt staged against the ledger
+    /// (the route fixes the bizType/bizId). The returned id joins the
+    /// entry's `attachments` when the entry posts, which is what claims it
+    /// onto the entry.
+    func uploadEntryAttachment(
+        ledgerId: String,
+        data: Data,
+        fileName: String,
+        mimeType: String
+    ) async throws -> EntryAttachmentUploadResponse {
+        try await client.uploadMultipart(
+            "bookkeeping/ledgers/\(ledgerId)/entries/attachments",
+            fileData: data,
+            fileName: fileName,
+            mimeType: mimeType
+        )
+    }
+
     /// Optimistic delete: the entry leaves the local list the moment this
     /// runs — the row animates away with no network wait, `total` drops
     /// with it — and the server sync continues in the background task this

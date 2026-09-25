@@ -13,6 +13,7 @@ import {
   extensionForMime,
   verifyMagicBytes,
 } from "#lib/mime";
+import { journalEntryAttachmentOwnerAllows } from "#modules/bookkeeping/attachment-access";
 import { getConfigRow } from "#modules/system/public";
 
 const DEFAULT_HOTLINK_CONFIG = {
@@ -42,6 +43,12 @@ function getSignSecret(): string {
 
 /** bizType tagging user avatars; also the owner predicate for signing. */
 export const USER_AVATAR_BIZ_TYPE = "user:avatar";
+
+/** bizType tagging qianlai journal entries' photo receipts. Uploads are
+ * staged with bizId = ledger id until an entry claims them (the entry
+ * service repoints bizId to the entry id at create/update time); signing
+ * is allowed for any member of the owning entry's ledger. */
+export const JOURNAL_ENTRY_BIZ_TYPE = "qianlai:journal-entry";
 
 function computeHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
@@ -282,8 +289,7 @@ export async function signFile(params: { id: string; userId: string }) {
     throw new HTTPException(404, { message: "File not found" });
   }
 
-  const isOwner =
-    attachment.bizType === USER_AVATAR_BIZ_TYPE && attachment.bizId === userId;
+  const isOwner = await ownerAllows(attachment, userId);
   if (!isOwner) {
     throw new HTTPException(403, { message: "Not file owner" });
   }
@@ -296,6 +302,28 @@ export async function signFile(params: { id: string; userId: string }) {
   const url = `/api/attachment/${id}?token=${token}&expires=${expiresAt}`;
 
   return { url, expiresAt: new Date(expiresAt) };
+}
+
+/**
+ * Who may sign a private file's url, per bizType: a user's own avatar,
+ * and — through the bookkeeping leaf predicate — any member of the
+ * ledger owning a qianlai journal entry's photo receipt. The predicates
+ * live here so the bizType taxonomy stays in one place; the journal
+ * membership query itself lives beside its domain (see
+ * `attachment-access.ts` for the cycle-avoidance constraint that keeps
+ * it a leaf).
+ */
+async function ownerAllows(
+  attachment: { bizType: string; bizId: string },
+  userId: string,
+): Promise<boolean> {
+  if (attachment.bizType === USER_AVATAR_BIZ_TYPE) {
+    return attachment.bizId === userId;
+  }
+  if (attachment.bizType === JOURNAL_ENTRY_BIZ_TYPE) {
+    return journalEntryAttachmentOwnerAllows(attachment.bizId, userId);
+  }
+  return false;
 }
 
 export async function listAttachments(params: {
@@ -399,16 +427,21 @@ export async function deleteAttachments(
   return scopedIds;
 }
 
-export async function deleteAttachmentsByBiz(
-  bizType: string,
-  bizId: string,
+/**
+ * Deletes the named attachments and, when their content-addressed upload
+ * has no attachment rows left, the file on disk with it. Transaction-aware
+ * so callers (the journal entry service) can claim/delete attachments in
+ * the same transaction as the entry write.
+ */
+export async function deleteAttachmentsByIds(
+  attachmentIds: string[],
   tx: Prisma.TransactionClient = prisma,
 ) {
+  if (attachmentIds.length === 0) return;
   const attachments = await tx.attachment.findMany({
-    where: { bizType, bizId },
+    where: { id: { in: attachmentIds } },
     include: { upload: true },
   });
-
   if (attachments.length === 0) return;
 
   await tx.attachment.deleteMany({
@@ -428,6 +461,21 @@ export async function deleteAttachmentsByBiz(
       await tx.upload.delete({ where: { id: attachment.uploadId } });
     }
   }
+}
+
+export async function deleteAttachmentsByBiz(
+  bizType: string,
+  bizId: string,
+  tx: Prisma.TransactionClient = prisma,
+) {
+  const attachments = await tx.attachment.findMany({
+    where: { bizType, bizId },
+    select: { id: true },
+  });
+  await deleteAttachmentsByIds(
+    attachments.map((attachment) => attachment.id),
+    tx,
+  );
 }
 
 export async function replaceAttachment(params: {

@@ -514,6 +514,26 @@ struct EntryLocationBody: Encodable, Hashable {
     }
 }
 
+/// A photo receipt attached to an entry, echoed on every entry read. The
+/// bytes are private: there is no directly fetchable url here — display
+/// flows mint a time-limited signed url per view
+/// (`POST /api/attachment/{id}/sign`; any ledger member may sign).
+struct EntryAttachmentRef: Codable, Hashable {
+    let id: String
+    var mimeType: String
+    var size: Int
+    var createdAt: Date
+
+    /// The one receipt-count caption shared by the quick-entry chip, the
+    /// more-sheet row, and the list row's VoiceOver label.
+    static func countLabel(_ count: Int) -> String {
+        String(
+            format: L10n.string("quick.attachments.count", defaultValue: "Attachments %d"),
+            count
+        )
+    }
+}
+
 struct JournalEntry: Codable, Identifiable, Hashable {
     let id: String
     let ledgerId: String
@@ -555,6 +575,11 @@ struct JournalEntry: Codable, Identifiable, Hashable {
     /// Pure annotation like the location; nil when recorded without one.
     /// Defaults to nil so fixtures and pre-deploy payloads decode cleanly.
     var merchant: String? = nil
+    /// Photo receipts on the entry, upload order preserved. Nil where the
+    /// endpoint doesn't echo the field (the widget snapshot feed and
+    /// surfaces that can never carry receipts) — treated as no receipts,
+    /// so those surfaces simply render no paperclip.
+    var attachments: [EntryAttachmentRef]? = nil
     var lines: [JournalLine]
     var participants: [EntryParticipant]?
     /// The ledger members' COMBINED share of this entry's value in cents,
@@ -1555,6 +1580,39 @@ enum EntryMerchantPayload: Encodable {
     }
 }
 
+/// The entry's photo receipts on the wire. Three states the API
+/// distinguishes: omitted (edit keeps the stored receipts), explicit
+/// `null` (strips them all), or an id array (the exact final set — staged
+/// upload ids get claimed onto the entry, ids missing from the array have
+/// their receipts deleted).
+enum EntryAttachmentsPayload: Encodable {
+    case clear
+    case set([String])
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .clear: try container.encodeNil()
+        case .set(let ids): try container.encode(ids)
+        }
+    }
+}
+
+/// Response of the entry-attachment upload: the staged attachment id to
+/// claim in the entry's `attachments` array, plus the canonical (private,
+/// sign-first) path of the stored bytes.
+struct EntryAttachmentUploadResponse: Codable {
+    var attachmentId: String
+    var url: String
+}
+
+/// Response of `POST /api/attachment/{id}/sign` — a time-limited url for
+/// a private attachment's bytes.
+struct SignedAttachmentURL: Codable {
+    var url: String
+    var expiresAt: Date
+}
+
 struct CreateEntryBody: Encodable {
     var date: Date
     var memo: String?
@@ -1583,6 +1641,11 @@ struct CreateEntryBody: Encodable {
     /// text, so the draft always sends an explicit value — `nil` (omitted,
     /// keep-on-edit) only exists for clients that don't know the field.
     var merchant: EntryMerchantPayload? = nil
+    /// Photo receipts. The edit form always sends an explicit value — the
+    /// final claimed set, or a clear when every receipt was removed — so
+    /// `nil` (omitted, keep-on-edit) only exists for clients that don't
+    /// know the field.
+    var attachments: EntryAttachmentsPayload? = nil
 }
 
 /// One-click income/expense/transfer scenario the user picks in the quick
@@ -1622,6 +1685,7 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
     case participants
     case location
     case merchant
+    case attachments
     case paidBy
     case project
     case countsInLedger
@@ -1671,6 +1735,12 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
                 defaultValue: "Merchant",
                 comment: "Quick-entry field: the counterparty/store of the entry (Chinese 商家)"
             )
+        case .attachments:
+            LocalizedStringResource(
+                "quick.attachments",
+                defaultValue: "Attachments",
+                comment: "Quick-entry field: photo receipts attached to the entry (Chinese 附件)"
+            )
         case .paidBy:
             LocalizedStringResource(
                 "quick.paidBy",
@@ -1713,6 +1783,7 @@ enum QuickEntryField: String, CaseIterable, Identifiable, Codable {
         // The storefront — where the money went; location's glyph already
         // owns the place-coordinate reading.
         case .merchant: "storefront"
+        case .attachments: "paperclip"
         // Single person — the payer is one of the crowd; person.crop.
         // circle.badge.dollar looked ideal but is NOT a real SF Symbol.
         case .paidBy: "person.crop.circle"
@@ -1743,8 +1814,48 @@ struct QuickEntryLayout: Equatable, Codable {
     /// exclusion trailing — it only concerns expenses), the rarer posting
     /// options behind the more sheet.
     static let standard = QuickEntryLayout(chipFields: [
-        .account, .memo, .time, .participants, .location, .merchant, .budget,
+        .account, .memo, .time, .participants, .location, .merchant, .attachments, .budget,
     ])
+}
+
+/// One photo receipt in the quick entry's compose: either a receipt the
+/// entry already carries (edit round-trip — its bytes live server-side and
+/// are fetched through a signed url) or a freshly picked photo still
+/// local (its bytes upload at save time and the item converts to
+/// `.existing` with the server-claimed id).
+struct QuickEntryAttachment: Identifiable, Equatable {
+    enum Source: Equatable {
+        case local(data: Data)
+        case existing(EntryAttachmentRef)
+    }
+
+    let id: String
+    var source: Source
+
+    /// A freshly picked photo, compressed to its final upload bytes at
+    /// pick time.
+    static func local(id: String = UUID().uuidString, data: Data) -> QuickEntryAttachment {
+        QuickEntryAttachment(id: id, source: .local(data: data))
+    }
+
+    /// A receipt already on the entry.
+    static func existing(_ ref: EntryAttachmentRef) -> QuickEntryAttachment {
+        QuickEntryAttachment(id: ref.id, source: .existing(ref))
+    }
+
+    /// The server attachment id once claimed (uploaded for local picks) —
+    /// nil while the photo is still a local pick, so it stays out of the
+    /// save payload.
+    var claimedId: String? {
+        if case .existing(let ref) = source { return ref.id }
+        return nil
+    }
+
+    /// The receipt's upload bytes — present only for local picks.
+    var localData: Data? {
+        if case .local(let data) = source { return data }
+        return nil
+    }
 }
 
 /// Expands a quick entry into the balanced two-line double entry the API
@@ -1785,6 +1896,14 @@ struct QuickEntryDraft: Equatable {
     /// edit — the body then sends an explicit null (otherwise omitted =
     /// keep the stored place).
     var isLocationCleared = false
+    /// Photo receipts in the compose — the entry's existing refs (edit)
+    /// plus fresh local picks, in display order.
+    var attachments: [QuickEntryAttachment] = []
+    /// True when the draft seeds an existing entry (an edit): the body
+    /// then always states the attachments explicitly (the final set, or a
+    /// clear when all receipts were removed), since omitted would keep
+    /// them. A create with no receipts omits the field entirely.
+    var isEditingExisting = false
 
     var isSameAccount: Bool {
         kind == .transfer
@@ -1814,6 +1933,22 @@ struct QuickEntryDraft: Equatable {
         }
     }
 
+    /// The receipts' server ids in form order — local picks that haven't
+    /// uploaded yet have no id and stay out of the payload.
+    var claimedAttachmentIds: [String] {
+        attachments.compactMap(\.claimedId)
+    }
+
+    /// The wire value for the receipts: the final claimed set while there
+    /// is one; an edit with every receipt removed states an explicit clear
+    /// (omitted would keep them); a create with no receipts omits the
+    /// field.
+    var attachmentsPayload: EntryAttachmentsPayload? {
+        let ids = claimedAttachmentIds
+        if !ids.isEmpty { return .set(ids) }
+        return isEditingExisting ? .clear : nil
+    }
+
     var body: CreateEntryBody {
         let trimmedMerchant = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
         return CreateEntryBody(
@@ -1833,7 +1968,8 @@ struct QuickEntryDraft: Equatable {
             location: location.map(EntryLocationPayload.capture)
                 ?? (isLocationCleared ? .clear : nil),
             merchant: trimmedMerchant.isEmpty
-                ? EntryMerchantPayload.clear : .capture(trimmedMerchant)
+                ? EntryMerchantPayload.clear : .capture(trimmedMerchant),
+            attachments: attachmentsPayload
         )
     }
 }
@@ -1880,7 +2016,9 @@ extension QuickEntryDraft {
             projectId: entry.projectId,
             countsInLedger: entry.countsInLedger,
             excludedFromBudget: entry.excludedFromBudget,
-            location: entry.location.map { EntryLocationBody($0) }
+            location: entry.location.map { EntryLocationBody($0) },
+            attachments: (entry.attachments ?? []).map(QuickEntryAttachment.existing),
+            isEditingExisting: true
         )
     }
 }

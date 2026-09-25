@@ -166,6 +166,8 @@ struct QuickEntryView: View {
     @State private var isCategoryManagePresented = false
     /// Expanded inline date-and-time picker under the collapsed row.
     @State private var isDateTimePresented = false
+    /// Photo-receipt picker sheet behind the attachments chip/row.
+    @State private var isAttachmentsPresented = false
     /// Parent category whose sub-picker bubble is open — keyed by the
     /// tapped grid chip so the popover anchors to it.
     @State private var popupParent: AccountTreeEntry?
@@ -754,6 +756,14 @@ struct QuickEntryView: View {
             .presentationDetents([.fraction(0.65), .large])
             #endif
         }
+        // Photo receipts: the attachments chip/row opens the picker sheet.
+        // Existing receipts render from the signed-url cache, fresh picks
+        // straight from their compressed upload bytes; removal is live —
+        // the edit's save payload then simply drops the id, and the server
+        // deletes the receipt.
+        .sheet(isPresented: $isAttachmentsPresented) {
+            EntryAttachmentPickerSheet(attachments: $draft.attachments)
+        }
         // Save guards and posting failures surface here instead of an
         // inline form row: the keyboard and the pinned calculator cover
         // the form's lower half, so an inline error can go unseen.
@@ -810,6 +820,10 @@ struct QuickEntryView: View {
                     draft.countsInLedger = true
                     draft.location = nil
                     draft.isLocationCleared = false
+                    // Ledger-scoped like the ids above: staged receipts
+                    // belong to the previous ledger, a fresh add starts
+                    // with none.
+                    draft.attachments = []
                     validationError = nil
                 }
             }
@@ -1528,6 +1542,13 @@ struct QuickEntryView: View {
                     isMerchantEditing = true
                 }
             }
+        case .attachments:
+            quickChip(
+                systemImage: QuickEntryField.attachments.icon,
+                value: attachmentsChipValue
+            ) {
+                isAttachmentsPresented = true
+            }
         case .paidBy:
             if canPickPayer {
                 paidByChip
@@ -1657,6 +1678,24 @@ struct QuickEntryView: View {
                     .submitLabel(.done)
                     .onSubmit { dismissKeyboard() }
             }
+        case .attachments:
+            Button {
+                isAttachmentsPresented = true
+            } label: {
+                LabeledContent {
+                    HStack(spacing: 8) {
+                        Text(attachmentsRowValue)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                } label: {
+                    Text(L10n.string("quick.attachments", defaultValue: "Attachments"))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         case .paidBy:
             // Who fronted the money — a person, unlike the paying pocket.
             // Defaults to the recorder; picking a teammate records that
@@ -1813,6 +1852,28 @@ struct QuickEntryView: View {
     /// editing field's placeholder (dictated copy replaces it there).
     private var merchantFieldTitle: String {
         L10n.string("quick.merchant", defaultValue: "Merchant")
+    }
+
+    /// The attachments chip reads the receipt count while there is one,
+    /// else the field-name sentinel — never a blank capsule.
+    private var attachmentsChipValue: String {
+        guard !draft.attachments.isEmpty else { return attachmentsFieldTitle }
+        return EntryAttachmentRef.countLabel(draft.attachments.count)
+    }
+
+    /// The attachments field's name — the chip's sentinel and the more-
+    /// sheet row's title.
+    private var attachmentsFieldTitle: String {
+        L10n.string("quick.attachments", defaultValue: "Attachments")
+    }
+
+    /// The attachments row's trailing value: the receipt count while there
+    /// is one, else the "Add Photos" call to action.
+    private var attachmentsRowValue: String {
+        guard !draft.attachments.isEmpty else {
+            return L10n.string("quick.attachments.add", defaultValue: "Add Photos")
+        }
+        return EntryAttachmentRef.countLabel(draft.attachments.count)
     }
 
     /// The editing chip both inline fields (memo, merchant) swap into —
@@ -2455,6 +2516,35 @@ struct QuickEntryView: View {
         return names.joined(separator: ", ")
     }
 
+    /// Uploads the draft's still-local photo picks against the posting
+    /// ledger and converts them to claimed refs, so the save payload only
+    /// carries server ids. A failed upload throws — `save()` surfaces it
+    /// in `validationError` and never posts the entry.
+    private func uploadLocalAttachments() async throws {
+        guard let ledgerId = postingJournal.ledgerId else {
+            throw APIError.noActiveLedger
+        }
+        for index in draft.attachments.indices {
+            guard let data = draft.attachments[index].localData,
+                  draft.attachments[index].claimedId == nil
+            else { continue }
+            let response = try await postingJournal.uploadEntryAttachment(
+                ledgerId: ledgerId,
+                data: data,
+                fileName: "receipt-\(draft.attachments[index].id).jpg",
+                mimeType: "image/jpeg"
+            )
+            draft.attachments[index] = .existing(
+                EntryAttachmentRef(
+                    id: response.attachmentId,
+                    mimeType: "image/jpeg",
+                    size: data.count,
+                    createdAt: Date()
+                )
+            )
+        }
+    }
+
     private func save() async {
         // Settle any pending operation first ("14 + 5" reading 19 posts 19)
         // — there is no keypad sheet dismissal to fold it in anymore.
@@ -2476,6 +2566,12 @@ struct QuickEntryView: View {
         isPosting = true
         defer { isPosting = false }
         do {
+            // Photo receipts first: local picks upload against the posting
+            // ledger and convert to claimed refs, so the save payload only
+            // ever carries server ids. Sequential — one request per photo
+            // — and any failure aborts the save: the entry never posts
+            // half-attached.
+            try await uploadLocalAttachments()
             if let editedEntry {
                 try await postingJournal.update(editedEntry, draft: draft)
                 toast.show(L10n.string("journal.updateSuccess", defaultValue: "Entry updated"))

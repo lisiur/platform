@@ -99,6 +99,21 @@ export const entryLocationInputSchema = z
   )
   .openapi("QianlaiEntryLocationInput");
 
+/** A photo receipt attached to an entry, echoed on every entry read. The
+ * bytes are private: there is no directly fetchable url here — clients
+ * mint a time-limited one per view via POST /api/attachment/{id}/sign
+ * (any ledger member may sign). */
+export const entryAttachmentSchema = z
+  .object({
+    id: z.string().openapi({ example: "clx1234567890" }),
+    mimeType: z.string().openapi({ example: "image/jpeg" }),
+    size: z.number().int().openapi({ example: 204800 }),
+    createdAt: z.date().openapi({
+      description: "Upload time; attachment order on the entry follows it.",
+    }),
+  })
+  .openapi("QianlaiEntryAttachment");
+
 export const journalEntrySchema = z
   .object({
     id: z.string().openapi({ example: "clx1234567890" }),
@@ -161,6 +176,16 @@ export const journalEntrySchema = z
     // Pure annotation like the location: never enters balances or reports.
     // null = recorded without one.
     merchant: z.string().nullable().openapi({ example: "星巴克" }),
+    // Photo receipts on the entry, upload order preserved. Optional rather
+    // than nullable: the strict entry routes always echo it, while entry-
+    // shaped surfaces that can never carry receipts (the balance-adjustment
+    // entry, the dashboard's recent feed) omit the key entirely. Empty
+    // array = no attachments. The ids are private-attachment ids — sign
+    // each one to fetch its bytes.
+    attachments: entryAttachmentSchema
+      .array()
+      .optional()
+      .openapi({ description: "Photo receipts, upload order preserved." }),
     createdAt: z.date(),
     lines: journalLineSchema.array(),
     participants: journalEntryParticipantSchema.array(),
@@ -312,8 +337,37 @@ export const createEntryBodySchema = z
     // update, omitted = keep the current merchant and null = clear it (same
     // keep-on-omit contract as location).
     merchant: z.string().max(100).nullish(),
+    // Photo receipt ids from POST .../entries/attachments (at most 9, each
+    // upload ≤5MB). The uploader claims them for this entry at save time.
+    // On create, omitted/null = none. On update, omitted = keep the current
+    // attachments (edit forms that don't surface the field can't strip
+    // them), null = clear them all, an array = the exact final set (same
+    // keep-on-omit contract as location/merchant; display order on reads
+    // follows upload time, not array order).
+    attachments: z
+      .array(z.string().min(1))
+      .max(9)
+      .nullish()
+      .openapi({
+        example: ["clx1234567890"],
+      }),
   })
   .openapi("QianlaiCreateEntryBody");
+
+export const uploadEntryAttachmentResponseSchema = z
+  .object({
+    attachmentId: z.string().openapi({
+      example: "clx1234567890",
+      description:
+        "Pass this id in the entry's `attachments` array to claim it onto an entry.",
+    }),
+    url: z.string().openapi({
+      example: "/api/attachment/clx1234567890",
+      description:
+        "Canonical path of the stored file. Private — fetching the bytes requires a signed url.",
+    }),
+  })
+  .openapi("QianlaiEntryAttachmentUpload");
 
 export const ledgerIdParamSchema = z.object({
   ledgerId: z.string().min(1).openapi({ example: "clx1234567890" }),

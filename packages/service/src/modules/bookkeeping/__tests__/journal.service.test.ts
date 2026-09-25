@@ -5,7 +5,23 @@ import type { BookAccount } from "#generated/prisma/client";
 vi.mock("#lib/db", () => ({
   prisma: {
     $transaction: vi.fn((fn: (tx: unknown) => Promise<unknown>) => fn({})),
+    attachment: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
+    },
+    upload: { delete: vi.fn() },
   },
+}));
+
+// The attachment storage service (claim/delete helpers) is faked so tests
+// assert the journal service's calls into it, not its internals.
+vi.mock("#modules/attachment/attachment.service", () => ({
+  deleteAttachmentsByIds: vi.fn(),
+  deleteAttachmentsByBiz: vi.fn(),
+  JOURNAL_ENTRY_BIZ_TYPE: "qianlai:journal-entry",
 }));
 
 vi.mock("../ledger.repository", () => ({
@@ -57,6 +73,10 @@ vi.mock("../project-member.repository", () => ({
 }));
 
 import { prisma } from "#lib/db";
+import {
+  deleteAttachmentsByBiz,
+  deleteAttachmentsByIds,
+} from "#modules/attachment/attachment.service";
 import { accountRepository } from "../account.repository";
 import { journalRepository } from "../journal.repository";
 import {
@@ -77,7 +97,32 @@ import {
 
 const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
+  attachment: {
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+  };
 };
+
+/**
+ * Every entry write now reads/claims photo receipts inside its transaction;
+ * the fake tx is the shared mock prisma so the attachment model is reachable
+ * through both. Attachment reads default to "no receipts" unless a test
+ * seeds rows (resetAllMocks clears the default each time).
+ */
+function seedTransaction() {
+  mockPrisma.$transaction.mockImplementation(
+    (fn: (tx: unknown) => Promise<unknown>) => fn(mockPrisma),
+  );
+  mockPrisma.attachment.findMany.mockResolvedValue([]);
+}
+
+const mockDeleteAttachmentsByIds =
+  deleteAttachmentsByIds as unknown as ReturnType<typeof vi.fn>;
+const mockDeleteAttachmentsByBiz =
+  deleteAttachmentsByBiz as unknown as ReturnType<typeof vi.fn>;
 const mockLedgerRepo = ledgerRepository as unknown as {
   findById: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
@@ -398,9 +443,7 @@ const mockProjectMemberRepo = projectMemberRepository as unknown as {
 describe("createEntry", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -446,7 +489,9 @@ describe("createEntry", () => {
       baseEntryInput,
       editorAccess,
     );
-    expect(result).toBe(created);
+    // The posted entry comes back wrapped with its (empty) receipt echo —
+    // every entry read shape carries `attachments`.
+    expect(result).toEqual({ ...created, attachments: [] });
     expect(mockLedgerRepo.update).toHaveBeenCalledWith(
       "led-1",
       { lastEntryNo: 4 },
@@ -703,9 +748,7 @@ describe("createEntry", () => {
 describe("updateEntry", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -763,7 +806,7 @@ describe("updateEntry", () => {
       ...baseEntryInput,
       memo: "edited",
     });
-    expect(updated).toEqual({ id: "e-1" });
+    expect(updated).toEqual({ id: "e-1", attachments: [] });
     expect(mockJournalRepo.updateEntry).toHaveBeenCalledWith(
       "e-1",
       expect.objectContaining({
@@ -939,9 +982,7 @@ describe("updateEntry", () => {
 describe("createEntry as guest", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
     ]);
@@ -1114,9 +1155,7 @@ describe("createEntry as guest", () => {
 describe("entry payer (paidByUserId)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -1306,9 +1345,7 @@ describe("entry payer (paidByUserId)", () => {
 describe("updateEntry as guest", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
     ]);
@@ -1425,9 +1462,7 @@ describe("updateEntry as guest", () => {
 describe("deleteEntry", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
   });
 
   it("rejects a ledger archived after the route's check (race, 400)", async () => {
@@ -1478,9 +1513,7 @@ describe("deleteEntry", () => {
 describe("entry location", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -1594,9 +1627,7 @@ describe("entry location", () => {
 describe("entry merchant", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockPrisma.$transaction.mockImplementation(
-      (fn: (tx: unknown) => Promise<unknown>) => fn({}),
-    );
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -1699,6 +1730,7 @@ describe("listEntries memberSharesCents", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    seedTransaction();
     mockMemberRepo.listByLedger.mockResolvedValue([
       { id: "mem-1", userId: "user-a" },
       { id: "mem-2", userId: "user-b" },
@@ -1877,5 +1909,247 @@ describe("serializeEntry parent account passthrough", () => {
     };
     const parsedTop = journalLineSchema.parse(topLine);
     expect(parsedTop.account.parent).toBeNull();
+  });
+});
+
+describe("entry attachments", () => {
+  // Photo receipts are staged by the upload route against the LEDGER id;
+  // the claim repoints bizId to the entry id at save time. The contract
+  // mirrors location/merchant: omitted = keep, null = clear, an array =
+  // the exact final set.
+  const staged = {
+    id: "att-1",
+    bizType: "qianlai:journal-entry",
+    bizId: "led-1",
+    createdBy: "user-a",
+  };
+
+  function stagedRow(id: string, bizId: string) {
+    return {
+      id,
+      bizId,
+      createdAt: new Date("2026-09-01T00:00:00Z"),
+      upload: { mimeType: "image/jpeg", size: 1234 },
+    };
+  }
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    seedTransaction();
+    mockMemberRepo.listByLedger.mockResolvedValue([
+      { id: "mem-1", userId: "user-a" },
+      { id: "mem-2", userId: "user-b" },
+    ]);
+    mockProjectMemberRepo.listUserIdsByProject.mockResolvedValue([]);
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+      lastEntryNo: 0,
+    });
+    mockAccountRepo.listByLedger.mockResolvedValue([
+      account({ id: "acc-cash" }),
+      account({ id: "acc-food", name: "Food", type: "expense" }),
+    ]);
+    mockJournalRepo.createEntry.mockResolvedValue({ id: "e-1" });
+    mockJournalRepo.updateEntry.mockResolvedValue({ id: "e-1" });
+  });
+
+  it("claims staged receipts onto the created entry and echoes them", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue(staged);
+    mockPrisma.attachment.findMany.mockResolvedValue([
+      stagedRow("att-1", "e-1"),
+    ]);
+
+    const result = await createEntry(
+      "user-a",
+      "led-1",
+      { ...baseEntryInput, attachments: ["att-1"] },
+      editorAccess,
+    );
+
+    expect(mockPrisma.attachment.update).toHaveBeenCalledWith({
+      where: { id: "att-1" },
+      data: { bizId: "e-1" },
+    });
+    expect(result.attachments).toEqual([
+      {
+        id: "att-1",
+        mimeType: "image/jpeg",
+        size: 1234,
+        createdAt: new Date("2026-09-01T00:00:00Z"),
+      },
+    ]);
+  });
+
+  it("rejects a receipt staged against another ledger (400)", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...staged,
+      bizId: "led-other",
+    });
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-a",
+          "led-1",
+          { ...baseEntryInput, attachments: ["att-1"] },
+          editorAccess,
+        ),
+      400,
+    );
+    expect(mockJournalRepo.createEntry).toHaveBeenCalled();
+    expect(mockPrisma.attachment.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects a receipt uploaded by someone else (400)", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...staged,
+      createdBy: "user-b",
+    });
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-a",
+          "led-1",
+          { ...baseEntryInput, attachments: ["att-1"] },
+          editorAccess,
+        ),
+      400,
+    );
+  });
+
+  it("rejects a receipt already claimed by another entry (400)", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue({
+      ...staged,
+      bizId: "e-other",
+    });
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-a",
+          "led-1",
+          { ...baseEntryInput, attachments: ["att-1"] },
+          editorAccess,
+        ),
+      400,
+    );
+  });
+
+  it("rejects an unknown attachment id (400)", async () => {
+    mockPrisma.attachment.findUnique.mockResolvedValue(null);
+    await expectStatus(
+      () =>
+        createEntry(
+          "user-a",
+          "led-1",
+          { ...baseEntryInput, attachments: ["att-x"] },
+          editorAccess,
+        ),
+      400,
+    );
+  });
+
+  it("leaves receipts untouched when the update omits the field", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+      excludedFromBudget: false,
+    });
+    // One findMany only: the read echo — never the diff's current-set read.
+    mockPrisma.attachment.findMany.mockResolvedValue([]);
+
+    await updateEntry("led-1", "e-1", ownerActor, baseEntryInput);
+
+    expect(mockDeleteAttachmentsByIds).not.toHaveBeenCalled();
+    expect(mockPrisma.attachment.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.attachment.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces receipts on update: deletes dropped ids, claims added ones", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+      excludedFromBudget: false,
+    });
+    mockPrisma.attachment.findMany
+      // first read: the entry's current set
+      .mockResolvedValueOnce([{ id: "att-keep" }, { id: "att-drop" }])
+      // second read: the echo after the diff
+      .mockResolvedValueOnce([
+        stagedRow("att-keep", "e-1"),
+        stagedRow("att-new", "e-1"),
+      ]);
+    mockPrisma.attachment.findUnique.mockResolvedValue(staged);
+
+    const result = await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      attachments: ["att-keep", "att-new"],
+    });
+
+    expect(mockDeleteAttachmentsByIds).toHaveBeenCalledWith(
+      ["att-drop"],
+      expect.anything(),
+    );
+    expect(mockPrisma.attachment.update).toHaveBeenCalledWith({
+      where: { id: "att-new" },
+      data: { bizId: "e-1" },
+    });
+    expect(result.attachments.map((a: { id: string }) => a.id)).toEqual([
+      "att-keep",
+      "att-new",
+    ]);
+  });
+
+  it("clears every receipt when the update passes null", async () => {
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      createdById: "user-a",
+      paidById: "user-a",
+      countsInLedger: true,
+      excludedFromBudget: false,
+    });
+    mockPrisma.attachment.findMany
+      .mockResolvedValueOnce([{ id: "att-1" }, { id: "att-2" }])
+      .mockResolvedValueOnce([]);
+
+    await updateEntry("led-1", "e-1", ownerActor, {
+      ...baseEntryInput,
+      attachments: null,
+    });
+
+    expect(mockDeleteAttachmentsByIds).toHaveBeenCalledWith(
+      ["att-1", "att-2"],
+      expect.anything(),
+    );
+  });
+
+  it("deletes the entry's receipts when the entry is deleted", async () => {
+    mockLedgerRepo.findById.mockResolvedValue({
+      id: "led-1",
+      status: "active",
+    });
+    mockJournalRepo.findById.mockResolvedValue({
+      id: "e-1",
+      ledgerId: "led-1",
+      createdById: "user-a",
+    });
+
+    await deleteEntry("led-1", "e-1", ownerActor);
+
+    expect(mockJournalRepo.delete).toHaveBeenCalledWith(
+      "e-1",
+      expect.anything(),
+    );
+    expect(mockDeleteAttachmentsByBiz).toHaveBeenCalledWith(
+      "qianlai:journal-entry",
+      "e-1",
+      expect.anything(),
+    );
   });
 });

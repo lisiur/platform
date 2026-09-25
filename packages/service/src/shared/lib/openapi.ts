@@ -55,6 +55,24 @@ export const notFoundResponse = {
   },
 } as const;
 
+export const payloadTooLargeResponse = {
+  413: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Payload too large",
+  },
+} as const;
+
+export const unsupportedMediaTypeResponse = {
+  415: {
+    content: {
+      "application/json": { schema: errorSchema },
+    },
+    description: "Unsupported media type",
+  },
+} as const;
+
 export const conflictResponse = {
   409: {
     content: {

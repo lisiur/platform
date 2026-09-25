@@ -5,6 +5,7 @@ import { getEntryRoute } from "./getEntry";
 import { listEntriesRoute } from "./listEntries";
 import { recognizeScreenshotRoute } from "./recognizeScreenshot";
 import { updateEntryRoute } from "./updateEntry";
+import { uploadEntryAttachmentRoute } from "./uploadEntryAttachment";
 
 const journalEntryRoutes = new OpenAPIHono();
 
@@ -15,6 +16,7 @@ const routes = journalEntryRoutes.openapiRoutes([
   updateEntryRoute,
   deleteEntryRoute,
   recognizeScreenshotRoute,
+  uploadEntryAttachmentRoute,
 ] as const);
 
 export { routes as qianlaiJournalEntryRoutes };
