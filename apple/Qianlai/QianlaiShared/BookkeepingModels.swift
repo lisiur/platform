@@ -518,7 +518,9 @@ struct EntryLocationBody: Encodable, Hashable {
 /// bytes are private: there is no directly fetchable url here — display
 /// flows mint a time-limited signed url per view
 /// (`POST /api/attachment/{id}/sign`; any ledger member may sign).
-struct EntryAttachmentRef: Codable, Hashable {
+/// Foundation-only, `nonisolated` like the other shared value types —
+/// the widget reads entry payloads from nonisolated contexts.
+nonisolated struct EntryAttachmentRef: Codable, Hashable {
     let id: String
     var mimeType: String
     var size: Int
@@ -1822,8 +1824,9 @@ struct QuickEntryLayout: Equatable, Codable {
 /// entry already carries (edit round-trip — its bytes live server-side and
 /// are fetched through a signed url) or a freshly picked photo still
 /// local (its bytes upload at save time and the item converts to
-/// `.existing` with the server-claimed id).
-struct QuickEntryAttachment: Identifiable, Equatable {
+/// `.existing` with the server-claimed id). `nonisolated` like the other
+/// shared value types — `init(entry:)` seeds it from nonisolated contexts.
+nonisolated struct QuickEntryAttachment: Identifiable, Equatable {
     enum Source: Equatable {
         case local(data: Data)
         case existing(EntryAttachmentRef)
