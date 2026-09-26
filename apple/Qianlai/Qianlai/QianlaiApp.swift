@@ -174,7 +174,11 @@ private struct QuickEntryDemoScreen: View {
         NavigationStack {
             QuickEntryView(
                 binding: QuickEntryBinding(ledger: Self.demoLedger),
-                recognition: isRecognitionMode ? Self.demoRecognition : nil
+                recognition: isRecognitionMode
+                    // The fake carries no receipt bytes — the demo surfaces
+                    // are the AI field seeds, not the attachments grid.
+                    ? RecognizedScreenshot(recognition: Self.demoRecognition, imageData: nil)
+                    : nil
             )
         }
     }

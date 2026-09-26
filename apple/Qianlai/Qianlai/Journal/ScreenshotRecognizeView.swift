@@ -8,6 +8,16 @@
 import PhotosUI
 import SwiftUI
 
+/// The screenshot-recognition handoff: the structured recognition plus the
+/// recognized screenshot itself, compressed to its final upload receipt
+/// bytes (`nil` when the re-encode failed — the entry still seeds, just
+/// without the receipt). One value because the pair always travels
+/// together: result surface → seeded quick entry.
+struct RecognizedScreenshot {
+    let recognition: ScreenshotRecognition
+    let imageData: Data?
+}
+
 /// The screenshot-recognition page: pick a screenshot, tile → upload → AI
 /// recognize — then hand the result to the quick-entry sheet, which is the
 /// result surface now (`QuickEntryView(recognition:)` seeds the recognized
@@ -22,7 +32,7 @@ struct ScreenshotRecognizeView: View {
 
     /// Receives the recognition the moment it lands; the cover's content
     /// swaps in place to the seeded quick entry.
-    let onRecognition: (ScreenshotRecognition) -> Void
+    let onRecognition: (RecognizedScreenshot) -> Void
 
     private enum Stage {
         case picking
@@ -189,7 +199,14 @@ struct ScreenshotRecognizeView: View {
                 ))
                 return
             }
-            onRecognition(result)
+            // The recognized screenshot rides along as the entry's receipt:
+            // compressed to its final upload bytes now, the same pipeline
+            // the attachments picker drains through. A re-encode failure
+            // just skips the receipt — never a failed recognition.
+            onRecognition(RecognizedScreenshot(
+                recognition: result,
+                imageData: ReceiptImage.jpeg(imageData)
+            ))
         } catch {
             failRecognition(recognitionErrorMessage(error))
         }
@@ -223,7 +240,7 @@ struct ScreenshotRecognizeView: View {
 extension View {
     func screenshotRecognitionCover(
         isPresented: Binding<Bool>,
-        seed: Binding<ScreenshotRecognition?>
+        seed: Binding<RecognizedScreenshot?>
     ) -> some View {
         fullScreenCover(isPresented: isPresented, onDismiss: { seed.wrappedValue = nil }) {
             NavigationStack {

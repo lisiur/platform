@@ -166,8 +166,18 @@ struct QuickEntryView: View {
     @State private var isCategoryManagePresented = false
     /// Expanded inline date-and-time picker under the collapsed row.
     @State private var isDateTimePresented = false
-    /// Photo-receipt picker sheet behind the attachments chip/row.
+    /// Photo-receipt picker sheet behind the attachments chip — the chip
+    /// sits on this view, so the presentation anchors here. The more-sheet
+    /// row can't reach it: this view is covered while the more sheet is
+    /// up, and a flag set then defers until it closes — that row carries
+    /// its own nested sheet. Both entries open the sheet only when the
+    /// draft already carries receipts; an empty draft's chip and row are
+    /// the photo-library picker itself (`ReceiptPhotosPicker`).
     @State private var isAttachmentsPresented = false
+    /// Photo-receipt picker sheet from the more sheet's attachments row,
+    /// nested in the more sheet's content so it stacks on top of it — the
+    /// chip-customization sheet's anchor, for the same covering reason.
+    @State private var isMoreAttachmentsPresented = false
     /// Parent category whose sub-picker bubble is open — keyed by the
     /// tapped grid chip so the popover anchors to it.
     @State private var popupParent: AccountTreeEntry?
@@ -200,16 +210,17 @@ struct QuickEntryView: View {
 
     /// Editing seeds every field from the entry; creating starts blank,
     /// optionally prefilled from the bound widget's binding — or from a
-    /// screenshot recognition, which also sets the kind, the time, the
-    /// merchant, the memo, and the amount.
+    /// recognized screenshot, which also sets the kind, the time, the
+    /// merchant, the memo, and the amount, and rides its screenshot in as
+    /// the entry's receipt attachment.
     init(
         entry: JournalEntry? = nil,
         binding: QuickEntryBinding? = nil,
-        recognition: ScreenshotRecognition? = nil
+        recognition: RecognizedScreenshot? = nil
     ) {
         editedEntry = entry
         self.binding = binding
-        recognitionSeed = recognition
+        recognitionSeed = recognition?.recognition
         var seed = entry.map { QuickEntryDraft(entry: $0) } ?? QuickEntryDraft()
         if let binding {
             if let kind = binding.kind {
@@ -220,11 +231,18 @@ struct QuickEntryView: View {
             }
             if let projectId = binding.projectId { seed.projectId = projectId }
         }
-        if let recognition {
-            seed.kind = RecognitionSeeding.kind(from: recognition)
-            seed.date = recognition.occurredDate ?? seed.date
-            seed.memo = RecognitionSeeding.memo(from: recognition)
-            seed.merchant = RecognitionSeeding.merchant(from: recognition) ?? ""
+        if let recognized = recognition?.recognition {
+            seed.kind = RecognitionSeeding.kind(from: recognized)
+            seed.date = recognized.occurredDate ?? seed.date
+            seed.memo = RecognitionSeeding.memo(from: recognized)
+            seed.merchant = RecognitionSeeding.merchant(from: recognized) ?? ""
+        }
+        if let receiptImageData = recognition?.imageData {
+            // Every successful recognition brings its screenshot in as the
+            // entry's receipt — already at final upload bytes (the
+            // recognition view compressed it), so the sheet's removal and
+            // the save-time upload treat it like any picked photo.
+            seed.attachments = [.local(data: receiptImageData)]
         }
         _draft = State(initialValue: seed)
         // An edit seeds the toggle from the entry's stored budget flag and
@@ -236,13 +254,13 @@ struct QuickEntryView: View {
         let engineSeed: String
         if let entry {
             engineSeed = String(format: "%.2f", entry.amount)
-        } else if let recognition, let amount = recognition.amount {
+        } else if let amount = recognition?.recognition.amount {
             engineSeed = String(format: "%.2f", amount)
         } else {
             engineSeed = ""
         }
         _engine = State(initialValue: CalculatorEngine(initialText: engineSeed))
-        _selectedSuggestedAmount = State(initialValue: recognition?.amount)
+        _selectedSuggestedAmount = State(initialValue: recognition?.recognition.amount)
     }
 
     @State private var accountStore = AccountStore()
@@ -689,6 +707,13 @@ struct QuickEntryView: View {
                         #endif
                     }
                 }
+                // The attachments row's picker nests in the more sheet's own
+                // content: a flag on the view behind can't present over the
+                // covering sheet — it would sit deferred until the more
+                // sheet closes. Same anchor as the chip customization above.
+                .sheet(isPresented: $isMoreAttachmentsPresented) {
+                    attachmentsPickerSheet
+                }
             }
             #if os(iOS)
             .presentationDetents([.medium, .large])
@@ -756,13 +781,16 @@ struct QuickEntryView: View {
             .presentationDetents([.fraction(0.65), .large])
             #endif
         }
-        // Photo receipts: the attachments chip/row opens the picker sheet.
-        // Existing receipts render from the signed-url cache, fresh picks
-        // straight from their compressed upload bytes; removal is live —
-        // the edit's save payload then simply drops the id, and the server
-        // deletes the receipt.
+        // Photo receipts: the attachments chip opens the picker sheet — the
+        // chip sits on this view, so the presentation anchors here (the
+        // more-sheet row's picker nests in the more sheet instead: this
+        // view is covered while that sheet is up). Existing receipts render
+        // from the signed-url cache, fresh picks straight from their
+        // compressed upload bytes; removal is live — the edit's save
+        // payload then simply drops the id, and the server deletes the
+        // receipt.
         .sheet(isPresented: $isAttachmentsPresented) {
-            EntryAttachmentPickerSheet(attachments: $draft.attachments)
+            attachmentsPickerSheet
         }
         // Save guards and posting failures surface here instead of an
         // inline form row: the keyboard and the pinned calculator cover
@@ -793,10 +821,16 @@ struct QuickEntryView: View {
         .task(id: ledger?.id) {
             guard let ledger = self.ledger else { return }
             if loadedLedgerId != ledger.id {
+                // The reset below is for mid-session switches — the draft
+                // carries ledger-scoped selections that no longer match the
+                // newly-targeted ledger. On the first load the draft was
+                // just created against this very ledger, and wiping then
+                // would only destroy the recognition seed's receipt.
+                let isFirstLoad = loadedLedgerId == nil
                 loadedLedgerId = ledger.id
                 // A bound sheet never switches ledgers, so its seeded
                 // binding always survives.
-                if editedEntry == nil && binding == nil {
+                if !isFirstLoad, editedEntry == nil && binding == nil {
                     // Account, member, and project ids are all
                     // ledger-scoped, so a fresh add drops the previous
                     // ledger's selections; the defaults below re-apply
@@ -1546,10 +1580,12 @@ struct QuickEntryView: View {
                 }
             }
         case .attachments:
-            quickChip(
-                systemImage: QuickEntryField.attachments.icon,
-                value: attachmentsChipValue
-            ) {
+            attachmentsEntry {
+                quickChipCapsule(
+                    systemImage: QuickEntryField.attachments.icon,
+                    value: attachmentsChipValue
+                )
+            } openSheet: {
                 isAttachmentsPresented = true
             }
         case .paidBy:
@@ -1682,23 +1718,11 @@ struct QuickEntryView: View {
                     .onSubmit { dismissKeyboard() }
             }
         case .attachments:
-            Button {
-                isAttachmentsPresented = true
-            } label: {
-                LabeledContent {
-                    HStack(spacing: 8) {
-                        Text(attachmentsRowValue)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                } label: {
-                    Text(L10n.string("quick.attachments", defaultValue: "Attachments"))
-                }
-                .contentShape(Rectangle())
+            attachmentsEntry {
+                attachmentsRowLabel
+            } openSheet: {
+                isMoreAttachmentsPresented = true
             }
-            .buttonStyle(.plain)
         case .paidBy:
             // Who fronted the money — a person, unlike the paying pocket.
             // Defaults to the recorder; picking a teammate records that
@@ -1877,6 +1901,62 @@ struct QuickEntryView: View {
             return L10n.string("quick.attachments.add", defaultValue: "Add Photos")
         }
         return EntryAttachmentRef.countLabel(draft.attachments.count)
+    }
+
+    /// The attachments row's visual — shared by the empty-draft library
+    /// picker and the non-empty Button, so the row never changes shape
+    /// across the two states.
+    private var attachmentsRowLabel: some View {
+        LabeledContent {
+            HStack(spacing: 8) {
+                Text(attachmentsRowValue)
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            Text(attachmentsFieldTitle)
+        }
+        .contentShape(Rectangle())
+    }
+
+    /// The attachments entry's two states, shared by the chip and the
+    /// more-sheet row: an empty draft IS the library picker — the entry's
+    /// visual is the picker's label, and the picker owns the tap (no
+    /// Button inside to compete, the payer chip's Menu-label rule) — while
+    /// receipts on the draft swap in a plain button opening the entry's
+    /// picker sheet. The sheet each side opens differs by anchor (the
+    /// chip's sits at this view, the row's nests in the more sheet), which
+    /// is why the action stays a per-site closure. The state swap replaces
+    /// the picker's view identity the moment the first pick lands, while
+    /// its drain task can still be running — safe because the drain
+    /// appends through this view's binding and only the dying picker's
+    /// own selection clear is lost; don't move the drain's ownership as a
+    /// "simplification".
+    @ViewBuilder
+    private func attachmentsEntry<Label: View>(
+        @ViewBuilder label: @escaping () -> Label,
+        openSheet: @escaping () -> Void
+    ) -> some View {
+        if draft.attachments.isEmpty {
+            ReceiptPhotosPicker(attachments: $draft.attachments) {
+                label()
+            }
+        } else {
+            Button(action: openSheet) {
+                label()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// The photo-receipt picker sheet's body — one fact (it binds this
+    /// draft's attachments) with two anchors: the chip's sheet at this
+    /// view and the more-sheet row's nested in the more sheet. Edit here,
+    /// both presentations follow.
+    private var attachmentsPickerSheet: some View {
+        EntryAttachmentPickerSheet(attachments: $draft.attachments)
     }
 
     /// The editing chip both inline fields (memo, merchant) swap into —

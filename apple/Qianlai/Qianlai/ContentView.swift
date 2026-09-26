@@ -237,8 +237,10 @@ struct ContentView: View {
     /// that cover's content to the seeded quick entry (the result surface IS
     /// the quick entry). One cover hosts both phases — no dismiss-then-present
     /// chain, which raced the quick entry's seed and presented it plain.
-    /// Cleared when the cover finally dismisses.
-    @State private var recognitionResult: ScreenshotRecognition?
+    /// Cleared when the cover finally dismisses. Carries the recognized
+    /// screenshot's receipt bytes beside the structured result — the entry
+    /// seeds with the screenshot attached.
+    @State private var recognitionResult: RecognizedScreenshot?
     /// The UIKit-level tap/long-press interception for the pill (see
     /// QuickAddTabBarProxy). The proxy object must live as long as the
     /// screen — the tab bar controller holds it as its delegate.
