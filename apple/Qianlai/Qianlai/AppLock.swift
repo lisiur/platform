@@ -236,18 +236,18 @@ final class AppLockShieldWindow {
         case .hidden:
             window?.isHidden = true
         case .curtain, .lock:
-            let window = self.window ?? makeWindow()
+            guard let window = self.window ?? makeWindow() else { return }
             window.isHidden = false
             window.makeKeyAndVisible()
         }
     }
 
-    private func makeWindow() -> UIWindow {
+    private func makeWindow() -> UIWindow? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         guard let scene = scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first else {
             // No scene to host the shield in (never expected on a live
             // app) — stay windowless; the lock state itself is unaffected.
-            return UIWindow()
+            return nil
         }
         let window = UIWindow(windowScene: scene)
         window.windowLevel = .alert
