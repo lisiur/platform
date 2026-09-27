@@ -176,9 +176,13 @@ struct MonthCalendarCard: View {
     /// signed placeholder (−0/+0) to keep the fixed slots populated, and
     /// the value goes through abs() per the hand-signed-amount rule (a
     /// refund-heavy day can net a server total negative). Amounts only
-    /// ever render for in-month days, so there is no dim variant.
+    /// ever render for in-month days, so there is no dim variant. Privacy
+    /// mode masks the composed line wholesale — the sign rides outside
+    /// `Money.format` here, so the check sits on the string, not the value.
     private func amountText(_ cents: Int, positive: Bool) -> some View {
-        Text(verbatim: "\(positive ? "+" : "−")\(Self.amount(abs(cents), locale: locale))")
+        Text(verbatim: AmountPrivacy.isHidden
+            ? AmountPrivacy.mask
+            : "\(positive ? "+" : "−")\(Self.amount(abs(cents), locale: locale))")
             .font(.caption2.weight(.medium).monospacedDigit())
             .foregroundStyle(positive ? AnyShapeStyle(Color.income) : AnyShapeStyle(Color.expense))
             .lineLimit(1)

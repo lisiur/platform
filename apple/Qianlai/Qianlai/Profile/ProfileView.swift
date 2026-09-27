@@ -23,6 +23,8 @@ struct ProfileView: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(LocaleSettings.self) private var localeSettings
     @Environment(AccentSettings.self) private var accentSettings
+    @Environment(PrivacySettings.self) private var privacySettings
+    @Environment(AppLockController.self) private var appLock
     @Environment(ToastCenter.self) private var toast
     @State private var store = ProfileStore()
     @State private var isShowingLedgerForm = false
@@ -97,6 +99,7 @@ struct ProfileView: View {
                 ledgerSection
             }
             languageSection
+            privacySection
             Section {
                 Button(role: .destructive) {
                     Task { await auth.logout() }
@@ -326,6 +329,75 @@ struct ProfileView: View {
             .appCardRow()
         }
     }
+
+    /// 隐私模式: the in-app amount mask and the app lock. Local-only
+    /// switches — masking flows through `Money.format` (the app's re-render
+    /// rides the tab-page `.id` remount, the widget's its own timelines),
+    /// and the lock's scene gating lives on `AppLockController`.
+    private var privacySection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { privacySettings.hideAmounts },
+                set: { privacySettings.setHideAmounts($0) }
+            )) {
+                Label(
+                    L10n.string("profile.privacy.hideAmounts", defaultValue: "Hide Amounts"),
+                    systemImage: "eye.slash"
+                )
+            }
+            .appCardRow()
+            #if os(iOS)
+            Toggle(isOn: Binding(
+                get: { privacySettings.appLockEnabled },
+                set: { enabled in
+                    Task { await setAppLock(enabled) }
+                }
+            )) {
+                Label(
+                    L10n.string("profile.privacy.appLock", defaultValue: "App Lock"),
+                    systemImage: "lock"
+                )
+            }
+            .appCardRow()
+            #endif
+        } header: {
+            Text(L10n.string("profile.privacy", defaultValue: "Privacy"))
+        } footer: {
+            #if os(iOS)
+            Text(L10n.string(
+                "profile.privacy.footer",
+                defaultValue: "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
+            ))
+            #else
+            // The app lock row above is iOS-only — macOS copy drops it.
+            Text(L10n.string(
+                "profile.privacy.footer.hideAmounts",
+                defaultValue: "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on."
+            ))
+            #endif
+        }
+    }
+
+    #if os(iOS)
+    /// Arming runs one owner evaluation first — a device without a
+    /// passcode can't host the lock (nothing would be able to unlock it),
+    /// and a failed check leaves the toggle off. The binding reads the
+    /// store, so a failed arm reverts the switch by itself.
+    private func setAppLock(_ enabled: Bool) async {
+        guard enabled else {
+            privacySettings.setAppLockEnabled(false)
+            return
+        }
+        switch await appLock.verifyForEnable() {
+        case .success:
+            privacySettings.setAppLockEnabled(true)
+        case .passcodeNotSet:
+            toast.show(L10n.string("profile.privacy.appLock.passcodeRequired", defaultValue: "Set a device passcode before enabling App Lock."))
+        case .failed:
+            toast.show(L10n.string("profile.privacy.appLock.enableFailed", defaultValue: "Couldn't enable App Lock. Try again."))
+        }
+    }
+    #endif
 
     private var avatar: some View {
         let user = auth.currentUser

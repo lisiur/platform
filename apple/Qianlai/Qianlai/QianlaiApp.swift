@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct QianlaiApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var authManager: AuthManager
     @State private var ledgerStore: LedgerStore
     @State private var realAccountStore: RealAccountStore
@@ -20,6 +21,11 @@ struct QianlaiApp: App {
     @State private var appearanceSettings = AppearanceSettings()
     @State private var accentSettings = AccentSettings()
     @State private var rimSettings = RimSettings()
+    @State private var privacySettings = PrivacySettings()
+    @State private var appLock: AppLockController
+    #if os(iOS)
+    @State private var appLockShield: AppLockShieldWindow
+    #endif
     @State private var toast: ToastCenter
     @State private var localeSettings = LocaleSettings.shared
 
@@ -29,6 +35,18 @@ struct QianlaiApp: App {
         self.ledgerStore = LedgerStore()
         self.realAccountStore = RealAccountStore()
         self.toast = ToastCenter()
+        // One controller shared by the environment, the scene gating, and
+        // the shield window — created here (no @State property defaults)
+        // because a defaulted @State that init re-assigns silently kept
+        // the default's throwaway instances at runtime, leaving the
+        // shield window observing a controller nothing else used.
+        let appLock = AppLockController()
+        self.appLock = appLock
+        #if os(iOS)
+        // The shield window sits outside the app's environment tree, so
+        // the controller its root observes is injected onto the root view.
+        appLockShield = AppLockShieldWindow(appLock: appLock)
+        #endif
     }
 
     var body: some Scene {
@@ -101,6 +119,8 @@ struct QianlaiApp: App {
             .environment(appearanceSettings)
             .environment(accentSettings)
             .environment(rimSettings)
+            .environment(privacySettings)
+            .environment(appLock)
             .environment(toast)
             .environment(localeSettings)
             .environment(\.locale, localeSettings.preferredLocale)
@@ -119,6 +139,33 @@ struct QianlaiApp: App {
             .onChange(of: localeSettings.identifier) {
                 WidgetSync.reloadTimelines()
             }
+            // 隐藏金额: the widget's Money.format reads the shared-suite
+            // mask flag; nudge its timelines so masked figures show up
+            // promptly. The app's own re-render rides the .id remount in
+            // ContentView's tab pages.
+            .onChange(of: privacySettings.hideAmounts) {
+                WidgetSync.reloadTimelines()
+            }
+            #if os(iOS)
+            // 应用锁: mirror the controller's shield mode into the shield
+            // window — the blur curtain (.inactive: Control Center / app
+            // switcher, no lock) and the lock screen (.background) both
+            // render there, above every presentation.
+            .onChange(of: appLock.shieldMode) { _, mode in
+                appLockShield.setMode(mode)
+            }
+            #endif
+            // The first scenePhase observation in the app — the lock gate
+            // (and nothing else) rides it. Cold launch starts active with
+            // no transition, so that path arms itself in the task below.
+            .onChange(of: scenePhase) { _, phase in
+                appLock.handleSceneChange(
+                    phase,
+                    lockEnabled: privacySettings.appLockEnabled,
+                    curtainEnabled: privacySettings.hideAmounts,
+                    isLoggedIn: authManager.isLoggedIn
+                )
+            }
             #if os(macOS)
             .frame(minWidth: 640, minHeight: 640)
             #endif
@@ -127,6 +174,18 @@ struct QianlaiApp: App {
                 // render branch for why.
                 if !ProcessInfo.processInfo.isTabShellDemo {
                     await authManager.restoreSession()
+                    // Cold launch starts already active — no scene
+                    // transition will fire — so a restored session arms
+                    // the app lock itself. The screenshot flag arms the
+                    // shield without evaluating, keeping it up for the
+                    // capture.
+                    if ProcessInfo.processInfo.hasLaunchFlag("--privacy-locked") {
+                        appLock.lockForScreenshots()
+                    } else if ProcessInfo.processInfo.hasLaunchFlag("--privacy-curtain") {
+                        appLock.curtainForScreenshots()
+                    } else if authManager.isLoggedIn, privacySettings.appLockEnabled {
+                        appLock.lockAtLaunch()
+                    }
                 }
             }
             .task(id: authManager.isLoggedIn) {

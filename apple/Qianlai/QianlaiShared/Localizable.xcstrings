@@ -7491,6 +7491,176 @@
         }
       }
     },
+    "profile.privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私模式"
+          }
+        }
+      }
+    },
+    "profile.privacy.appLock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Lock"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用锁"
+          }
+        }
+      }
+    },
+    "profile.privacy.appLock.enableFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't enable App Lock. Try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法开启应用锁，请重试。"
+          }
+        }
+      }
+    },
+    "profile.privacy.appLock.passcodeRequired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set a device passcode before enabling App Lock."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先设置设备密码，再开启应用锁。"
+          }
+        }
+      }
+    },
+    "profile.privacy.authReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock Qianlai to continue."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁钱来以继续。"
+          }
+        }
+      }
+    },
+    "profile.privacy.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用与小组件中的金额将以 ¥*** 显示，隐私模式开启期间，应用在多任务切换器中将显示为模糊画面。开启应用锁后，离开应用即锁定，返回时需通过 Face ID 或设备密码解锁。"
+          }
+        }
+      }
+    },
+    "profile.privacy.footer.hideAmounts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用与小组件中的金额将以 ¥*** 显示，隐私模式开启期间，应用在多任务切换器中将显示为模糊画面。"
+          }
+        }
+      }
+    },
+    "profile.privacy.hideAmounts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Amounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏金额"
+          }
+        }
+      }
+    },
+    "profile.privacy.lockedTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已锁定"
+          }
+        }
+      }
+    },
+    "profile.privacy.unlock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁"
+          }
+        }
+      }
+    },
     "profile.repeatPassword" : {
       "extractionState" : "manual",
       "localizations" : {

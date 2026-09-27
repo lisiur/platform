@@ -107,6 +107,7 @@ struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
     @Environment(PreferenceStore.self) private var preferenceStore
+    @Environment(PrivacySettings.self) private var privacySettings
 
     /// The project currently claiming scope on the active ledger, if any.
     private var scopedProject: QianlaiProject? {
@@ -147,16 +148,17 @@ struct ContentView: View {
             // Covers (quick entry) and macOS still use the per-page canvas.
             TabView(selection: tabSelection) {
                 ForEach(visibleTabs, id: \.self) { tab in
-                    Tab(tab.label, systemImage: tab.icon, value: tab) {
-                        AppBackgroundSinkContainer {
-                            NavigationStack {
-                                page(tab)
-                                    .modifier(AppTabTitleChrome(tab: tab))
-                                    .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
-                            }
+                Tab(tab.label, systemImage: tab.icon, value: tab) {
+                    AppBackgroundSinkContainer {
+                        NavigationStack {
+                            page(tab)
+                                .modifier(AppTabTitleChrome(tab: tab))
+                                .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
                         }
-                        .modifier(ToastHostModifier())
                     }
+                    .modifier(ToastHostModifier())
+                    .id(privacyRemount(for: tab))
+                }
                 }
                 // The quick-entry pill's role is version-split: iOS 26
                 // reserves the trailing capsule for `role: .search` (the
@@ -395,6 +397,21 @@ struct ContentView: View {
         ))
     }
 
+    /// 隐藏金额's remount verdict for a tab's content: the mask lives
+    /// inside Money.format, which already-mounted views don't re-run — the
+    /// id remounts a tab's subtree when the switch flips, so every amount
+    /// Text (charts' axis labels included) re-evaluates with the current
+    /// mask. The NavigationStack is inside the id'd container so pushed
+    /// pages reset too. A low-frequency settings flip, so the lost
+    /// navigation/scroll state is fine — EXCEPT on the profile tab, where
+    /// the toggle lives: its root shows no amounts and its amount-bearing
+    /// pushed pages are necessarily unmounted while the toggle is
+    /// reachable, so a remount there would only throw the visible list
+    /// back to the top for nothing.
+    private func privacyRemount(for tab: AppTab) -> Bool {
+        tab == .profile ? false : privacySettings.hideAmounts
+    }
+
     @ViewBuilder
     private func page(_ tab: AppTab) -> some View {
         switch tab {
@@ -416,6 +433,7 @@ struct ContentView: View {
                 .navigationTitle(Text(tab.label))
         }
         .modifier(ToastHostModifier())
+        .id(privacyRemount(for: tab))
     }
 }
 

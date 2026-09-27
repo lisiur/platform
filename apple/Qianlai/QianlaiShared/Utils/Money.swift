@@ -13,6 +13,7 @@ enum Money {
     /// NumberFormatter isn't Sendable, so build one per call (formatting is
     /// not hot) and stay callable from any isolation.
     nonisolated static func format(_ value: Double) -> String {
+        if AmountPrivacy.isHidden { return AmountPrivacy.mask }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
@@ -70,14 +71,18 @@ enum Money {
     /// Amount prefixed with the currency's symbol; a nil/empty currency
     /// renders the bare amount (surfaces with no single ledger currency).
     /// A negative sign always leads the symbol ("-¥42.00", never "¥-42.00").
+    /// Privacy mode drops the sign — the mask carries no magnitude for the
+    /// sign to modify; hand-prepended signs at call sites survive.
     nonisolated static func format(_ value: Double, currency: String?) -> String {
         guard let currency, !currency.isEmpty else { return format(value) }
+        if AmountPrivacy.isHidden { return "\(symbol(for: currency))\(AmountPrivacy.mask)" }
         let prefixed = "\(symbol(for: currency))\(format(abs(value)))"
         return value < 0 ? "-\(prefixed)" : prefixed
     }
 
     /// Cents-formatted cell; nil renders the em dash placeholder (the
-    /// budget year table's total row leaves budget/spent empty).
+    /// budget year table's total row leaves budget/spent empty). The
+    /// placeholder survives masking — it leaks nothing.
     nonisolated static func format(cents: Int?, currency: String?) -> String {
         guard let cents else { return "—" }
         return format(Double(cents) / 100, currency: currency)

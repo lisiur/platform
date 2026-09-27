@@ -591,9 +591,12 @@ struct TrendChartCard: View {
 
     /// Axis amounts skip the currency symbol and collapse to compact
     /// magnitudes ("1.2万" / "12K") — the full figure lives in the stat
-    /// card above and the day headers below.
+    /// card above and the day headers below. Privacy mode masks these too:
+    /// AxisMarks labels aren't plain view-tree Texts, so the formatter's
+    /// own choke point can't reach them and this is the axis's second.
     private func compact(_ value: Double) -> String {
-        value.formatted(
+        if AmountPrivacy.isHidden { return AmountPrivacy.mask }
+        return value.formatted(
             .number
                 .notation(.compactName)
                 .precision(.fractionLength(0))
