@@ -109,6 +109,18 @@ struct ContentView: View {
     @Environment(PreferenceStore.self) private var preferenceStore
     @Environment(PrivacySettings.self) private var privacySettings
 
+    /// The dashboard's own record store, owned HERE rather than by
+    /// `DashboardView` so it outlives the tab's `privacyRemount` identity:
+    /// 隐藏金额's flip remounts the tab to re-evaluate every `Money.format`
+    /// amount, and a page-owned `@State` store would take the funnel picks
+    /// and sort order down with it — a control on the dashboard wiping the
+    /// state of the page it sits on. Still a distinct instance from the
+    /// app-root journal store (the drill-down rule: the dashboard's rows act
+    /// on the dashboard's list, never the Journal tab's), and it keeps the
+    /// loaded rows too, so the remount repaints from data instead of
+    /// flashing an empty list. Injected in `page(_:)`.
+    @State private var dashboardEntryStore = JournalStore()
+
     /// The project currently claiming scope on the active ledger, if any.
     private var scopedProject: QianlaiProject? {
         guard let ledger = ledgerStore.activeLedger else { return nil }
@@ -407,7 +419,12 @@ struct ContentView: View {
     /// the toggle lives: its root shows no amounts and its amount-bearing
     /// pushed pages are necessarily unmounted while the toggle is
     /// reachable, so a remount there would only throw the visible list
-    /// back to the top for nothing.
+    /// back to the top for nothing. The dashboard hosts the toggle too
+    /// (the overview card's eye) and is deliberately NOT exempt — its root
+    /// is where the masking is most visible, so it genuinely needs the
+    /// remount; its record state is hoisted above this boundary instead
+    /// (see `dashboardEntryStore`), leaving scroll position the only thing
+    /// the flip costs there.
     private func privacyRemount(for tab: AppTab) -> Bool {
         tab == .profile ? false : privacySettings.hideAmounts
     }
@@ -415,7 +432,7 @@ struct ContentView: View {
     @ViewBuilder
     private func page(_ tab: AppTab) -> some View {
         switch tab {
-        case .dashboard: DashboardView()
+        case .dashboard: DashboardView().environment(dashboardEntryStore)
         case .journal: JournalView()
         case .stats: StatsTabPageView()
         case .members: MembersTabPageView().appBackgroundSink()

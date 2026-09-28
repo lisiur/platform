@@ -3795,6 +3795,40 @@
         }
       }
     },
+    "dashboard.privacy.hideAmounts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Amounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏金额"
+          }
+        }
+      }
+    },
+    "dashboard.privacy.showAmounts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Amounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示金额"
+          }
+        }
+      }
+    },
     "dashboard.rangeCard.openHint" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7582,13 +7616,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
+            "value" : "Amounts appear as ¥*** across the app and its widgets while Hide Amounts is on, and the app blurs in the app switcher. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用与小组件中的金额将以 ¥*** 显示，隐私模式开启期间，应用在多任务切换器中将显示为模糊画面。开启应用锁后，离开应用即锁定，返回时需通过 Face ID 或设备密码解锁。"
+            "value" : "开启「隐藏金额」后，应用与小组件中的金额将以 ¥*** 显示，应用在多任务切换器中也会显示为模糊画面。开启应用锁后，离开应用即锁定，返回时需通过 Face ID 或设备密码解锁。"
           }
         }
       }
@@ -7599,13 +7633,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on."
+            "value" : "Amounts appear as ¥*** across the app and its widgets while Hide Amounts is on."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用与小组件中的金额将以 ¥*** 显示，隐私模式开启期间，应用在多任务切换器中将显示为模糊画面。"
+            "value" : "开启「隐藏金额」后，应用与小组件中的金额将以 ¥*** 显示。"
           }
         }
       }

@@ -147,10 +147,11 @@ struct QianlaiApp: App {
                 WidgetSync.reloadTimelines()
             }
             #if os(iOS)
-            // 应用锁: mirror the controller's shield mode into the shield
-            // window — the blur curtain (.inactive: Control Center / app
-            // switcher, no lock) and the lock screen (.background) both
-            // render there, above every presentation.
+            // 应用锁 / 隐藏金额: mirror the controller's shield mode into
+            // the shield window — the blur curtain (.inactive: Control
+            // Center / app switcher, no lock, 隐藏金额 on) and the lock
+            // screen (.background, 应用锁 on) both render there, above
+            // every presentation.
             .onChange(of: appLock.shieldMode) { _, mode in
                 appLockShield.setMode(mode)
             }

@@ -333,7 +333,10 @@ struct ProfileView: View {
     /// 隐私模式: the in-app amount mask and the app lock. Local-only
     /// switches — masking flows through `Money.format` (the app's re-render
     /// rides the tab-page `.id` remount, the widget's its own timelines),
-    /// and the lock's scene gating lives on `AppLockController`.
+    /// and the lock's scene gating lives on `AppLockController`. 隐藏金额
+    /// owns BOTH halves of the mask: the ¥*** figures AND the iOS-only
+    /// switcher/Control Center blur curtain, which is why the footer names
+    /// it as the single condition for both.
     private var privacySection: some View {
         Section {
             Toggle(isOn: Binding(
@@ -366,13 +369,15 @@ struct ProfileView: View {
             #if os(iOS)
             Text(L10n.string(
                 "profile.privacy.footer",
-                defaultValue: "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
+                defaultValue: "Amounts appear as ¥*** across the app and its widgets while Hide Amounts is on, and the app blurs in the app switcher. With App Lock on, leaving the app locks it until it is unlocked with Face ID or the device passcode."
             ))
             #else
-            // The app lock row above is iOS-only — macOS copy drops it.
+            // The app lock row above is iOS-only — macOS copy drops it, and
+            // with it the switcher blur: the shield window (and the curtain
+            // it renders) is iOS-only, so macOS never blurs the app.
             Text(L10n.string(
                 "profile.privacy.footer.hideAmounts",
-                defaultValue: "Amounts appear as ¥*** across the app and its widgets, and the app blurs in the app switcher while privacy mode is on."
+                defaultValue: "Amounts appear as ¥*** across the app and its widgets while Hide Amounts is on."
             ))
             #endif
         }

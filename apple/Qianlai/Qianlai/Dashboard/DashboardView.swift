@@ -64,7 +64,16 @@ struct DashboardView: View {
     /// write their picks here, and every surface below reads the same
     /// state back (the list rows, their day headers, the stat block,
     /// the range card).
-    @State private var monthEntryStore = JournalStore()
+    ///
+    /// Host-owned (`ContentView.dashboardEntryStore`), NOT page-owned: the
+    /// overview card's eye flips 隐藏金额, and that flip remounts this tab
+    /// so every amount re-evaluates through `Money.format` — a `@State`
+    /// store here would be rebuilt along with it, taking the funnel picks
+    /// and the sort order down and resetting them on the very page the
+    /// toggle sits on. The mount-time re-aim below only moves the date
+    /// bounds, and `syncScopeProjection` no-ops on unchanged inputs, so
+    /// the picks come back up untouched.
+    @Environment(JournalStore.self) private var monthEntryStore
     /// The member roster behind the funnel sheet's participant picker —
     /// host-owned, the journal page's rule (the sheet reads whatever
     /// store the host already keeps loaded for its own lifetime).

@@ -11,8 +11,9 @@ import XCTest
 @MainActor
 final class AppLockControllerTests: XCTestCase {
     /// Control Center and the app switcher hold the scene at `.inactive`:
-    /// the blur curtain rises WITHOUT locking, and a round trip back to
-    /// active lifts it — no auth, the auto-prompt never armed.
+    /// with 隐藏金额 on the blur curtain rises WITHOUT locking, and a round
+    /// trip back to active lifts it — no auth, the auto-prompt never
+    /// armed.
     func testInactiveShowsCurtainWithoutLocking() {
         let controller = AppLockController(authenticate: { true })
         controller.handleSceneChange(.inactive, lockEnabled: true, curtainEnabled: true, isLoggedIn: true)
@@ -36,8 +37,34 @@ final class AppLockControllerTests: XCTestCase {
         XCTAssertEqual(controller.shieldMode, .hidden)
     }
 
+    /// The curtain is 隐藏金额's alone: 应用锁 by itself locks on
+    /// backgrounding but leaves a Control Center / switcher pull
+    /// unblurred, and shields nothing at `.inactive`.
+    func testInactiveDoesNotCurtainWhenHideAmountsOff() {
+        let controller = AppLockController(authenticate: { true })
+        controller.handleSceneChange(.inactive, lockEnabled: true, curtainEnabled: false, isLoggedIn: true)
+        XCTAssertEqual(controller.shieldMode, .hidden)
+        XCTAssertFalse(controller.isLocked)
+        // Still a lock, one phase later.
+        controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: true)
+        XCTAssertTrue(controller.isLocked)
+    }
+
+    /// Both toggles off — or the app lock on while logged out, which can't
+    /// lock — is the plain pre-privacy app: nothing covers it, on any
+    /// phase.
+    func testNoToggleAndNoLoginMeansNoShieldAtAll() {
+        let controller = AppLockController(authenticate: { true })
+        controller.handleSceneChange(.inactive, lockEnabled: false, curtainEnabled: false, isLoggedIn: false)
+        XCTAssertEqual(controller.shieldMode, .hidden)
+        controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: false)
+        XCTAssertEqual(controller.shieldMode, .hidden)
+        XCTAssertFalse(controller.isLocked)
+    }
+
     /// The auth dialog's own deactivation lands as `.inactive` while the
-    /// lock is up — it must not swap the lock shield for the curtain.
+    /// lock is up — with the curtain off, nothing but the lock's own
+    /// shield state can keep it from swapping for the curtain.
     func testInactiveWhileLockedStaysLocked() {
         let controller = AppLockController(authenticate: { true })
         controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: true)
@@ -54,19 +81,33 @@ final class AppLockControllerTests: XCTestCase {
         XCTAssertTrue(controller.isLocked)
     }
 
-    func testStaysUnlockedWhenDisabledOrLoggedOut() {
+    /// A 应用锁 toggle-off racing an armed lock falls back to the curtain
+    /// when 隐藏金额 still hides amounts — never to a bare, readable card.
+    func testDisablingLockFallsBackToCurtainWhileAmountsHidden() {
         let controller = AppLockController(authenticate: { true })
-        controller.handleSceneChange(.background, lockEnabled: false, curtainEnabled: false, isLoggedIn: true)
+        controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: true, isLoggedIn: true)
+        XCTAssertTrue(controller.isLocked)
+        controller.handleSceneChange(.background, lockEnabled: false, curtainEnabled: true, isLoggedIn: true)
         XCTAssertFalse(controller.isLocked)
-        controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: false)
-        XCTAssertFalse(controller.isLocked)
+        XCTAssertEqual(controller.shieldMode, .curtain)
     }
 
+    /// With both toggles off the released lock goes all the way down — the
+    /// curtain is 隐藏金额's to raise, not the lock's consolation prize.
     func testDisablingReleasesAnArmedLock() {
         let controller = AppLockController(authenticate: { true })
         controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: true)
         XCTAssertTrue(controller.isLocked)
         controller.handleSceneChange(.background, lockEnabled: false, curtainEnabled: false, isLoggedIn: true)
+        XCTAssertFalse(controller.isLocked)
+        XCTAssertEqual(controller.shieldMode, .hidden)
+    }
+
+    func testStaysUnlockedWhenDisabledOrLoggedOut() {
+        let controller = AppLockController(authenticate: { true })
+        controller.handleSceneChange(.background, lockEnabled: false, curtainEnabled: false, isLoggedIn: true)
+        XCTAssertFalse(controller.isLocked)
+        controller.handleSceneChange(.background, lockEnabled: true, curtainEnabled: false, isLoggedIn: false)
         XCTAssertFalse(controller.isLocked)
     }
 

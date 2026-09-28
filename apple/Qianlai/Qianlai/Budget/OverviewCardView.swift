@@ -24,6 +24,7 @@ import SwiftUI
 /// non-empty budgeted set.
 struct OverviewCardView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
+    @Environment(PrivacySettings.self) private var privacySettings
 
     /// The selected month's stats totals — the top section. nil renders
     /// the stat block's placeholder states (the guest gate stays the
@@ -83,6 +84,15 @@ struct OverviewCardView: View {
                 monthPrefixedLabels: true,
                 drawsBackground: false
             )
+            // 隐藏金额's quick toggle rides the stat block's top-right
+            // corner (the headline row's trailing edge is empty there). It
+            // flips the same switch the profile page hosts: the mask
+            // re-applies through Money.format, the app's re-render riding
+            // the tab-page .id remount, and the widget nudged by the
+            // app-level onChange.
+            .overlay(alignment: .topTrailing) {
+                privacyToggle
+            }
 
             if let month {
                 Divider()
@@ -101,6 +111,28 @@ struct OverviewCardView: View {
                 .fill(backgroundSettings.cardSurface)
         )
         .glassRim(cornerRadius: 20)
+    }
+
+    /// The stat block's top-right eye: state iconography (eye while the
+    /// figures show, eye.slash while masked), secondary gray so it stays
+    /// quiet beside the accent wallet icon. The 28pt hit square keeps the
+    /// tap off the drill target behind the figures.
+    private var privacyToggle: some View {
+        Button {
+            privacySettings.setHideAmounts(!privacySettings.hideAmounts)
+        } label: {
+            Image(systemName: privacySettings.hideAmounts ? "eye.slash" : "eye")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 6)
+        .padding(.trailing, 6)
+        .accessibilityLabel(privacySettings.hideAmounts
+            ? L10n.string("dashboard.privacy.showAmounts", defaultValue: "Show Amounts")
+            : L10n.string("dashboard.privacy.hideAmounts", defaultValue: "Hide Amounts"))
     }
 
     /// The budget section, reduced to the single-line form (2026-09-24
