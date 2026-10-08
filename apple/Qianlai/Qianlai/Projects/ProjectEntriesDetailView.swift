@@ -10,9 +10,21 @@ import UIKit
 
 /// What a project's entry drill-down shows.
 enum ProjectEntryScope: Hashable {
-    /// Statement drill-down: one flow (expense or income), optionally
-    /// narrowed to a single category row (nil = the flow total).
-    case statement(projectId: String, type: AccountType, category: StatementRow?)
+    /// Statement drill-down: one flow (expense or income) narrowed to a
+    /// category bucket — a leaf account (`accountId`) or a 一级分类 rollup
+    /// (`parentAccountId`, matching lines against the parent itself or any
+    /// of its children — the server's hierarchical filter). `title` is the
+    /// tapped bucket's display name, captured at tap time. The axes stay
+    /// optional (both nil = the whole flow) to mirror the entry store's
+    /// filters one-to-one; the composition card that replaced the
+    /// statement section only ever drills buckets.
+    case statement(
+        projectId: String,
+        type: AccountType,
+        accountId: String?,
+        parentAccountId: String?,
+        title: String
+    )
     /// Settlement drill-down: the entries behind one member's paid/share/
     /// balance — paid for by them or tagged with them, plus untagged
     /// entries while they are a current member (untagged splits run across
@@ -22,8 +34,21 @@ enum ProjectEntryScope: Hashable {
 
     var projectId: String {
         switch self {
-        case .statement(let projectId, _, _): projectId
+        case .statement(let projectId, _, _, _, _): projectId
         case .settlement(let projectId, _, _): projectId
+        }
+    }
+}
+
+extension ProjectEntryScope: Identifiable {
+    /// Every drill axis in the key, so a quick re-tap of the same bucket
+    /// re-pushes cleanly (the item's identity flips).
+    var id: String {
+        switch self {
+        case .statement(let projectId, let type, let accountId, let parentAccountId, _):
+            "statement|\(projectId)|\(type.rawValue)|\(accountId ?? "-")|\(parentAccountId ?? "-")"
+        case .settlement(let projectId, let userId, let name):
+            "settlement|\(projectId)|\(userId)|\(name)"
         }
     }
 }
@@ -38,6 +63,7 @@ struct ProjectEntriesDetailView: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
     @Environment(AuthManager.self) private var auth
     @Environment(ToastCenter.self) private var toast
+    @Environment(\.locale) private var locale
 
     let ledger: QianlaiLedger
     let scope: ProjectEntryScope
@@ -48,6 +74,11 @@ struct ProjectEntriesDetailView: View {
     @State private var entryStore = JournalStore()
     @State private var shareCard: ShareCardRequest?
     @State private var isPreparingShare = false
+    /// The settlement page's composition chart payload — the category
+    /// summary of exactly the entry set this page lists. nil until the
+    /// first successful fetch (guests never fetch — the report endpoints
+    /// 403 them — so they never see the card).
+    @State private var memberCategories: CategorySummaryResponse?
 
     /// Hard cap on the share image. Anything longer than this gets
     /// truncated in the card and noted in the footer — ImageRenderer
@@ -57,20 +88,15 @@ struct ProjectEntriesDetailView: View {
 
     private var title: String {
         switch scope {
-        case .statement(_, let type, let category):
-            if let category { return category.displayName }
-            return type == .expense
-                ? L10n.string("projects.totalExpense", defaultValue: "Expenses")
-                : L10n.string("projects.totalIncome", defaultValue: "Income")
-        case .settlement(_, _, let name):
-            return name
+        case .statement(_, _, _, _, let title): title
+        case .settlement(_, _, let name): name
         }
     }
 
     private var emptyMessage: String {
         switch scope {
-        case .statement(_, _, let category):
-            if category != nil {
+        case .statement(_, _, let accountId, let parentAccountId, _):
+            if accountId != nil || parentAccountId != nil {
                 return L10n.string(
                     "projects.statement.noCategoryEntries",
                     defaultValue: "No entries in this category yet"
@@ -130,15 +156,17 @@ struct ProjectEntriesDetailView: View {
             // already scoped; their didSets are no-ops while the store has
             // no ledger yet.
             switch scope {
-            case .statement(let projectId, let type, let category):
+            case .statement(let projectId, let type, let accountId, let parentAccountId, _):
                 entryStore.projectFilterId = projectId
                 entryStore.accountType = type.rawValue
-                entryStore.accountId = category?.id
+                entryStore.accountId = accountId
+                entryStore.parentAccountId = parentAccountId
             case .settlement(let projectId, let userId, _):
                 entryStore.projectFilterId = projectId
                 entryStore.memberUserId = userId
             }
             await entryStore.load(ledgerId: ledger.id)
+            await loadMemberCategories()
         }
         .refreshable {
             await entryStore.reload()
@@ -302,8 +330,9 @@ struct ProjectEntriesDetailView: View {
 
     /// The scoped member's settlement summary as the list's scrolling
     /// header card: paid/share figures plus the signed balance hero, the
-    /// same design as the project page's member rows. Nil on statement
-    /// scopes, or until the report carries a row for this member.
+    /// same design as the project page's member rows — with the member's
+    /// composition chart beneath it. Nil on statement scopes, or until
+    /// the report carries a row for this member.
     private var settlementSummary: AnyView? {
         guard case .settlement = scope else { return nil }
         guard let report = projectStore.report,
@@ -312,13 +341,25 @@ struct ProjectEntriesDetailView: View {
               let row = report.settlement.first(where: { $0.userId == userId })
         else { return nil }
         return AnyView(
-            SettlementSummaryLabel(row: row, ledger: ledger)
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(backgroundSettings.cardSurface)
-                )
-                .padding(.vertical, 8)
+            VStack(spacing: 10) {
+                SettlementSummaryLabel(row: row, ledger: ledger)
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(backgroundSettings.cardSurface)
+                    )
+                // The composition card's own empty state covers a member
+                // whose involved entries carry no expense/income lines;
+                // drills stay off — this page already is the drill.
+                if let memberCategories {
+                    CategoryBreakdownCard(
+                        summary: memberCategories,
+                        currency: ledger.currency,
+                        locale: locale
+                    )
+                }
+            }
+            .padding(.vertical, 8)
         )
     }
 
@@ -334,6 +375,25 @@ struct ProjectEntriesDetailView: View {
     private func refreshReport() async {
         await projectStore.load(ledgerId: ledger.id, force: true)
         await projectStore.loadReport(ledgerId: ledger.id, projectId: scope.projectId)
+        await loadMemberCategories()
+    }
+
+    /// The member settlement page's composition: the category summary of
+    /// exactly the entry set this page lists, at the member's OWN share —
+    /// `shareMode=member` (the settlement table's split math, paired with
+    /// the settlement scope's `memberUserId` + project), so the slices sum
+    /// to the member's Share column, not the entries' gross. No window: a
+    /// project's books are all-time. Guests 403 the stat endpoints, so
+    /// they skip the fetch and the card never mounts.
+    private func loadMemberCategories() async {
+        guard case .settlement(let projectId, let userId, _) = scope else { return }
+        guard !ledger.isGuest else { return }
+        let path = ReportPaths.categorySummary(ledgerId: ledger.id, query: [
+            ("projectId", projectId),
+            ("memberUserId", userId),
+            ("shareMode", ReportShareMode.member.rawValue),
+        ])
+        memberCategories = try? await APIClient.shared.request("GET", path)
     }
 }
 

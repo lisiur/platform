@@ -39,6 +39,21 @@ export interface SettlementRow {
   balance: number;
 }
 
+export interface ProjectStatementRow {
+  id: string;
+  name: string | null;
+  code: string | null;
+  type: string;
+  sortOrder: number;
+  balance: number;
+  /** Composition-card badge glyph and 一级分类 rollup join. */
+  icon: string | null;
+  parentName: string | null;
+  parentCode: string | null;
+  parentAccountId: string | null;
+  parentIcon: string | null;
+}
+
 export interface ProjectReport {
   project: {
     id: string;
@@ -49,22 +64,8 @@ export interface ProjectReport {
     endDate: string | null;
   };
   statement: {
-    income: Array<{
-      id: string;
-      name: string | null;
-      code: string | null;
-      type: string;
-      sortOrder: number;
-      balance: number;
-    }>;
-    expense: Array<{
-      id: string;
-      name: string | null;
-      code: string | null;
-      type: string;
-      sortOrder: number;
-      balance: number;
-    }>;
+    income: ProjectStatementRow[];
+    expense: ProjectStatementRow[];
     totalIncome: number;
     totalExpense: number;
     net: number;

@@ -30,4 +30,17 @@ enum ReportPaths {
         "bookkeeping/ledgers/\(ledgerId)/reports/dashboard"
             + ApiQuery.build(windowPairs(window))
     }
+
+    /// The category-summary report's path — the composition card's
+    /// payload. The stats component fetches it windowed through its
+    /// generic `fetch` (which rides `windowPairs` for the range); the
+    /// settlement drill-down fetches it all-time at one member's own
+    /// share — no window — so its query pairs ride in whole.
+    static func categorySummary(
+        ledgerId: String,
+        query: [(String, String?)]
+    ) -> String {
+        "bookkeeping/ledgers/\(ledgerId)/reports/category-summary"
+            + ApiQuery.build(query)
+    }
 }

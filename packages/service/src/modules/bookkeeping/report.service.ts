@@ -1,6 +1,12 @@
+import { HTTPException } from "hono/http-exception";
 import type { Prisma } from "#generated/prisma/client";
 import { accountRepository } from "./account.repository";
-import type { AccountType, LedgerRole, StatShareMode } from "./domain";
+import type {
+  AccountType,
+  CategoryShareMode,
+  LedgerRole,
+  StatShareMode,
+} from "./domain";
 import {
   type CategoryAmountRow,
   type CategorySummary,
@@ -139,12 +145,43 @@ function splitSetOf(entry: ShareEntry): string[] {
  *  share plus one cent when this index carries the division remainder. */
 function sliceCents(
   value: number,
-  splitUserIds: string[],
+  splitUserIds: readonly string[],
   index: number,
 ): number {
   const base = Math.floor(value / splitUserIds.length);
   const remainder = value - base * splitUserIds.length;
   return base + (index < remainder ? 1 : 0);
+}
+
+/**
+ * The entry's split set with the untagged fallback applied: the deduped,
+ * sorted participant set when tagged, `untaggedFallback` otherwise —
+ * each share surface pins its own fallback.
+ */
+function splitUserIdsOf(
+  entry: ShareEntry,
+  untaggedFallback: readonly string[],
+): readonly string[] {
+  const tagged = splitSetOf(entry);
+  return tagged.length > 0 ? tagged : untaggedFallback;
+}
+
+/**
+ * One user's slice of an entry's value in cents: equal split across the
+ * resolved split set (see `splitUserIdsOf`), the remainder to the
+ * earliest ids. Zero when the user is not in the split set.
+ */
+function userShareCents(
+  entry: ShareEntry,
+  userId: string,
+  untaggedFallback: readonly string[],
+): number {
+  const value = entryValueCents(entry.lines);
+  if (value === 0) return 0;
+  const splitUserIds = splitUserIdsOf(entry, untaggedFallback);
+  const index = splitUserIds.indexOf(userId);
+  if (index === -1) return 0;
+  return sliceCents(value, splitUserIds, index);
 }
 
 /**
@@ -156,14 +193,7 @@ function sliceCents(
  * set.
  */
 function viewerShareCents(entry: ShareEntry, viewerUserId: string): number {
-  const value = entryValueCents(entry.lines);
-  if (value === 0) return 0;
-  const tagged = splitSetOf(entry);
-  const splitUserIds =
-    tagged.length > 0 ? tagged : [entry.paidById ?? viewerUserId];
-  const index = splitUserIds.indexOf(viewerUserId);
-  if (index === -1) return 0;
-  return sliceCents(value, splitUserIds, index);
+  return userShareCents(entry, viewerUserId, [entry.paidById ?? viewerUserId]);
 }
 
 /**
@@ -181,9 +211,10 @@ export function memberSharesCents(
 ): number {
   const value = entryValueCents(entry.lines);
   if (value === 0) return 0;
-  const tagged = splitSetOf(entry);
-  const splitUserIds =
-    tagged.length > 0 ? tagged : entry.paidById ? [entry.paidById] : [];
+  const splitUserIds = splitUserIdsOf(
+    entry,
+    entry.paidById ? [entry.paidById] : [],
+  );
   let share = 0;
   for (let index = 0; index < splitUserIds.length; index++) {
     if (memberUserIds.has(splitUserIds[index])) {
@@ -191,6 +222,26 @@ export function memberSharesCents(
     }
   }
   return share;
+}
+
+/**
+ * The member settlement page's slice of an entry's value in cents — the
+ * settlement table's own math, kept in exact step: equal split across the
+ * tagged participant set (deduped, sorted by userId, remainder to the
+ * earliest ids), untagged legacy entries split across the PROJECT's
+ * current members (the settlement table's fallback — not the payer-only
+ * one `viewerShareCents` uses for the personal-books statement). Zero
+ * when the member is not in the split set or the value nets to zero.
+ * Mirrors the client's `SettlementSplit.entryContribution` share half
+ * exactly, so the composition chart's per-category slices sum to the
+ * member's Share column.
+ */
+function settlementShareCents(
+  entry: ShareEntry,
+  memberUserId: string,
+  projectMemberUserIds: readonly string[],
+): number {
+  return userShareCents(entry, memberUserId, projectMemberUserIds);
 }
 
 /**
@@ -637,13 +688,24 @@ export function memberShareCategorySummary(
   entries: Array<ShareEntry & { date: Date; lines: AttributedLine[] }>,
   memberUserIds: ReadonlySet<string>,
 ): CategorySummary {
+  return shareCategorySummary(entries, (entry) =>
+    memberSharesCents(entry, memberUserIds),
+  );
+}
+
+/** The one-share-of closure every share-based category summary reduces
+ *  through — the bucketing, parent join, and amount ordering are shared;
+ *  only the numerator differs (the ledger's combined slices, or one
+ *  member's settlement slice). */
+function shareCategorySummary(
+  entries: Array<ShareEntry & { date: Date; lines: AttributedLine[] }>,
+  shareOf: (entry: ShareEntry) => number,
+): CategorySummary {
   const buckets: Record<
     "expense" | "income",
     Map<string, CategoryAmountRow>
   > = { expense: new Map(), income: new Map() };
-  for (const { flows } of attributedEntryFlows(entries, (entry) =>
-    memberSharesCents(entry, memberUserIds),
-  )) {
+  for (const { flows } of attributedEntryFlows(entries, shareOf)) {
     for (const f of flows) {
       const side = categorySideOf(f.account.type);
       if (!side) continue;
@@ -700,12 +762,39 @@ export async function dailySummary(
  * Per-category income/expense behind the composition chart — the daily
  * summary's `shareMode` numerator keyed per account, so the pie reconciles
  * with the trend chart beside it when they share a mode. Amounts are
- * integer cents.
+ * integer cents. The category-summary-only "member" numerator sums the
+ * memberUserId axis's member's own settlement slice attributed per
+ * category — the member settlement page's composition chart, whose slices
+ * sum to the member's Share column.
  */
 export async function categorySummary(
   ledgerId: string,
-  window: StatWindow,
+  window: EntryWindow & { shareMode: CategoryShareMode },
 ): Promise<CategorySummary> {
+  if (window.shareMode === "member") {
+    // The route schema requires the pair; the guard keeps direct callers
+    // honest — the untagged fallback splits across the project's members,
+    // so neither axis can be inferred.
+    const memberUserId = window.memberUserId;
+    const projectId = window.projectId;
+    if (!memberUserId || !projectId) {
+      throw new HTTPException(400, {
+        message: "shareMode=member requires projectId and memberUserId",
+      });
+    }
+    const [entries, projectMembers] = await Promise.all([
+      journalRepository.listActivityEntriesWithLines(ledgerId, window),
+      projectMemberRepository.listByProject(projectId),
+    ]);
+    // Sorted: the settlement remainder math hands extra cents to the
+    // earliest ids, the same ordering the client mirror uses.
+    const projectMemberUserIds = projectMembers
+      .map((member) => member.userId)
+      .sort();
+    return shareCategorySummary(entries, (entry) =>
+      settlementShareCents(entry, memberUserId, projectMemberUserIds),
+    );
+  }
   if (window.shareMode === "members") {
     const { entries, memberUserIds } = await memberShareInputs(
       ledgerId,

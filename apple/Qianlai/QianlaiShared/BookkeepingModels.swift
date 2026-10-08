@@ -832,6 +832,16 @@ struct StatementRow: Codable, Identifiable, Hashable {
     var type: AccountType
     var sortOrder: Int
     var balance: Double
+    /// The category's own glyph and its one-level parent join — the
+    /// composition card's legend badge and 一级分类 rollup. Only the
+    /// project report joins them today; the ledger income statement's
+    /// rows decode these as nil. Optional so older cached reports decode
+    /// unchanged.
+    var icon: String?
+    var parentName: String?
+    var parentCode: String?
+    var parentAccountId: String?
+    var parentIcon: String?
 
     var displayName: String {
         if let name, !name.isEmpty { return name }
@@ -1264,6 +1274,13 @@ struct EntriesResponse: Codable {
 nonisolated enum ReportShareMode: String {
     case line
     case members
+    /// Category-summary only: the `memberUserId` axis's member's OWN
+    /// settlement slice — the settlement table's split math (tagged
+    /// participants, untagged legacy entries across the project's current
+    /// members) attributed per category. The member settlement page's
+    /// composition chart speaks member, so its slices sum to the
+    /// member's Share column.
+    case member
 }
 
 /// One LOCAL day's income/expense totals in integer cents, from the
@@ -1326,6 +1343,27 @@ struct CategoryAmountRow: Codable, Equatable, Identifiable {
 struct CategorySummaryResponse: Codable, Equatable {
     var expense: [CategoryAmountRow]
     var income: [CategoryAmountRow]
+}
+
+/// A statement row reshaped for the composition card: the card runs on
+/// the category-summary row shape — integer cents plus the parent join —
+/// so a project report's row maps one-to-one (its balance is already the
+/// flow-side net, in yuan). In an extension so the memberwise init the
+/// rollup buckets use stays.
+extension CategoryAmountRow {
+    init(statementRow: StatementRow) {
+        self.init(
+            accountId: statementRow.id,
+            name: statementRow.name,
+            code: statementRow.code,
+            parentName: statementRow.parentName,
+            parentCode: statementRow.parentCode,
+            parentAccountId: statementRow.parentAccountId,
+            parentIcon: statementRow.parentIcon,
+            icon: statementRow.icon,
+            amountCents: Int((statementRow.balance * 100).rounded())
+        )
+    }
 }
 
 struct MembersResponse: Codable {

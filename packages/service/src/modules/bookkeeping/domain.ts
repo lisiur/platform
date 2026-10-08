@@ -27,6 +27,18 @@ export const STAT_SHARE_MODES = ["line", "members"] as const;
 export type StatShareMode = (typeof STAT_SHARE_MODES)[number];
 
 /**
+ * The category-summary route's extra numerator, deliberately OUTSIDE
+ * STAT_SHARE_MODES so the other stat routes reject it at the schema level
+ * instead of silently changing their numerator: "member" sums the
+ * memberUserId axis's member's own settlement slice (the settlement
+ * table's split math — tagged participants, untagged legacy entries
+ * across the current PROJECT members) attributed per category. The query
+ * must carry projectId + memberUserId.
+ */
+export const CATEGORY_SHARE_MODES = [...STAT_SHARE_MODES, "member"] as const;
+export type CategoryShareMode = (typeof CATEGORY_SHARE_MODES)[number];
+
+/**
  * Account types a RealAccount (owner-private master of a real-world
  * asset/liability) can represent — and whose BookAccount pockets may link to
  * one. Income/expense/equity are ledger-local by design.

@@ -485,19 +485,29 @@ export async function projectReport(userId: string, projectId: string) {
   // Every current member appears even at zero, so the table is complete.
   for (const id of memberUserIds) rowFor(id);
 
+  // One statement line's account with the parent join the statement rows
+  // and the composition card both need.
+  type StatementAccount = {
+    id: string;
+    name: string | null;
+    code: string | null;
+    type: string;
+    sortOrder: number;
+    icon: string | null;
+    parent: {
+      id: string;
+      name: string | null;
+      code: string | null;
+      icon: string | null;
+    } | null;
+  };
+
   const accountSums = new Map<
     string,
     {
       debit: number;
       credit: number;
-      account: {
-        id: string;
-        name: string | null;
-        code: string | null;
-        type: string;
-        sortOrder: number;
-        icon: string | null;
-      };
+      account: StatementAccount;
     }
   >();
   let totalExpenseCents = 0;
@@ -517,6 +527,7 @@ export async function projectReport(userId: string, projectId: string) {
           type: line.account.type,
           sortOrder: line.account.sortOrder,
           icon: line.account.icon,
+          parent: line.account.parent ?? null,
         },
       };
       const debitCents = Math.round(Number(line.debit) * 100);
@@ -563,14 +574,7 @@ export async function projectReport(userId: string, projectId: string) {
     debit,
     credit,
   }: {
-    account: {
-      id: string;
-      name: string | null;
-      code: string | null;
-      type: string;
-      sortOrder: number;
-      icon: string | null;
-    };
+    account: StatementAccount;
     debit: number;
     credit: number;
   }) => {
@@ -583,6 +587,13 @@ export async function projectReport(userId: string, projectId: string) {
       type: account.type,
       sortOrder: account.sortOrder,
       balance: cents(balance),
+      // The composition card's badge glyph and 一级分类 rollup join —
+      // the same fields the category-summary rows carry.
+      icon: account.icon,
+      parentName: account.parent?.name ?? null,
+      parentCode: account.parent?.code ?? null,
+      parentAccountId: account.parent?.id ?? null,
+      parentIcon: account.parent?.icon ?? null,
     };
   };
   const accountRows = [...accountSums.values()];

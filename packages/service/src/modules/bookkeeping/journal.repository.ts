@@ -1040,7 +1040,9 @@ export const journalRepository = {
    * raw lines (account types classify the flow), participants as userIds
    * (the split set — anchored to User, so departed members still carry
    * their historical share), and the payer (who fronted the money — not
-   * necessarily the creator).
+   * necessarily the creator). The account joins its parent (same fields
+   * the category summary exposes) so the report's statement rows can feed
+   * the composition card's 一级分类 rollup and icon badges.
    */
   listByProject(projectId: string, tx: Prisma.TransactionClient = prisma) {
     return tx.journalEntry.findMany({
@@ -1059,6 +1061,14 @@ export const journalRepository = {
                 type: true,
                 sortOrder: true,
                 icon: true,
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    icon: true,
+                  },
+                },
               },
             },
           },

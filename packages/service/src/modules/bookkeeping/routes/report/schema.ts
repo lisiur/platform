@@ -1,12 +1,15 @@
 import { z } from "@hono/zod-openapi";
+import type { CategoryShareMode, StatShareMode } from "../../domain";
 import {
   ACCOUNT_TYPES,
+  CATEGORY_SHARE_MODES,
   ENTRY_KINDS,
   LEDGER_ROLES,
   queryFlag,
   STAT_SHARE_MODES,
   triStateQueryFlag,
 } from "../../domain";
+import type { EntryWindow } from "../../journal.repository";
 import {
   journalEntrySchema,
   parentAccountIdFilterField,
@@ -248,12 +251,19 @@ export const statQuerySchema = z.object({
  * strips undeclared query keys, and an unforwarded declared key silently
  * drops from the stats (the parentAccountId drill bug was this split
  * drifting apart). projectId/scopeProjectIds ride in from the access
- * layer, not the query (guest clamping). */
-export function statWindowArgs(
-  query: z.infer<typeof statQuerySchema>,
+ * layer, not the query (guest clamping). Generic over the query so the
+ * category-summary route's wider `shareMode` enum (the member numerator)
+ * flows through with its own literal type instead of narrowing to the
+ * shared stat modes. */
+export function statWindowArgs<
+  Query extends Omit<z.infer<typeof statQuerySchema>, "shareMode"> & {
+    shareMode: StatShareMode | CategoryShareMode;
+  },
+>(
+  query: Query,
   projectId?: string,
   scopeProjectIds?: string[],
-) {
+): EntryWindow & { shareMode: Query["shareMode"] } {
   return {
     from: query.from,
     to: query.to,
@@ -325,6 +335,29 @@ export const categorySummaryResponseSchema = z
   })
   .openapi("QianlaiCategorySummaryResponse");
 
-export const categorySummaryQuerySchema = statQuerySchema.openapi(
-  "QianlaiCategorySummaryQuery",
-);
+export const categorySummaryQuerySchema = statQuerySchema
+  .extend({
+    shareMode: z.enum(CATEGORY_SHARE_MODES).openapi({
+      description:
+        "The aggregation's numerator. \"line\"/\"members\" as the shared stat surface documents them; \"member\" (category-summary only) sums the memberUserId axis's member's OWN settlement slice — the settlement table's split math, untagged legacy entries splitting across the project's current members — attributed per category, so the composition chart's slices sum to the member's Share column.",
+    }),
+  })
+  .superRefine((query, ctx) => {
+    if (query.shareMode !== "member") return;
+    if (!query.memberUserId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["memberUserId"],
+        message: "shareMode=member requires memberUserId",
+      });
+    }
+    if (!query.projectId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["projectId"],
+        message:
+          "shareMode=member requires projectId (the untagged fallback splits across the project's current members)",
+      });
+    }
+  })
+  .openapi("QianlaiCategorySummaryQuery");

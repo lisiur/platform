@@ -9459,23 +9459,6 @@
         }
       }
     },
-    "projects.statement" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Income & Expense"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "收入与支出"
-          }
-        }
-      }
-    },
     "projects.statement.noCategoryEntries" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9506,23 +9489,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无记录"
-          }
-        }
-      }
-    },
-    "projects.statementFooter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Split the totals equally — the settlement below suggests who owes whom."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总额平均分摊——下方结算将显示谁应付谁。"
           }
         }
       }

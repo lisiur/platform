@@ -23,7 +23,9 @@ import SwiftUI
 /// draw a non-positive slice: zero/negative nets (offsetting
 /// corrections) stay out of both the donut and the legend, and the
 /// center total is the sum of what's actually shown. Tapping a slice
-/// drills like its legend row — same `drillTarget`, same gating.
+/// drills like its legend row — same `drillTarget`, same gating. The
+/// center total taps through with the shown side when the host hands
+/// the card an `onSelectTotal`; without one it stays a plain readout.
 struct CategoryBreakdownCard: View {
     @Environment(BackgroundSettings.self) private var backgroundSettings
 
@@ -37,6 +39,11 @@ struct CategoryBreakdownCard: View {
     /// parent account. nil disables drilling (the page that mounted the
     /// card owns the rest of the flow).
     var onSelectCategory: ((JournalDrillDown) -> Void)? = nil
+    /// The center total's tap drill, fired with the side the card is
+    /// showing. nil keeps the total a plain readout (the dashboard). The
+    /// project page opens the whole flow's entries with it — the total
+    /// rows the card replaced there used to drill the same surface.
+    var onSelectTotal: ((QuickEntryKind) -> Void)? = nil
 
     @State private var side: QuickEntryKind = .expense
     /// The user's explicit granularity pick — nil until they tap the
@@ -78,12 +85,14 @@ struct CategoryBreakdownCard: View {
         currency: String?,
         locale: Locale,
         initialLevel: Level? = nil,
-        onSelectCategory: ((JournalDrillDown) -> Void)? = nil
+        onSelectCategory: ((JournalDrillDown) -> Void)? = nil,
+        onSelectTotal: ((QuickEntryKind) -> Void)? = nil
     ) {
         self.summary = summary
         self.currency = currency
         self.locale = locale
         self.onSelectCategory = onSelectCategory
+        self.onSelectTotal = onSelectTotal
         _userLevel = State(initialValue: initialLevel)
     }
 
@@ -185,24 +194,20 @@ struct CategoryBreakdownCard: View {
         .chartLegend(.hidden)
         .frame(width: Self.donutSide, height: Self.donutSide)
         .overlay {
-            VStack(spacing: 2) {
-                Text(L10n.string("dashboard.compositionCard.total", defaultValue: "Total"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(Money.format(Double(totalCents) / 100, currency: currency))
-                    .font(.callout.weight(.bold).monospacedDigit())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                // The budget is the ring hole, not the frame: tighter
-                // padding keeps the figure inside the donut's eye.
-                .padding(.horizontal, 26)
+            if onSelectTotal != nil {
+                // The whole-flow tap zone: the readout's own bounds are
+                // the hit area, wrapped the way the legend rows are —
+                // the hole beyond the text stays with the slice gesture.
+                totalReadout.statTapTarget { onSelectTotal?(side) }
+            } else {
+                totalReadout
             }
         }
         // Slice taps drill like the legend rows: the ring is the square
         // frame the pie centers in, so a local point maps straight to a
-        // slice — the radius gates the hole (the total's zone) and the
-        // rim exterior, the angle walks the same spans `drawCallouts`
-        // draws. VoiceOver gets the same drill as one activate action
+        // slice — the radius gates the hole (the total's tap zone when
+        // the host drills it) and the rim exterior, the angle walks the
+        // same spans `drawCallouts` draws. VoiceOver gets the same drill as one activate action
         // per slice (see the accessibilityChildren below).
         .contentShape(.rect)
         .onTapGesture(coordinateSpace: .local) { point in
@@ -217,6 +222,23 @@ struct CategoryBreakdownCard: View {
                         drillSlice(at: index)
                     }
             }
+        }
+    }
+
+    /// The donut's eye: the shown side's Total label and figure —
+    /// plain readout, or the total drill's tap target above.
+    private var totalReadout: some View {
+        VStack(spacing: 2) {
+            Text(L10n.string("dashboard.compositionCard.total", defaultValue: "Total"))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(Money.format(Double(totalCents) / 100, currency: currency))
+                .font(.callout.weight(.bold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            // The budget is the ring hole, not the frame: tighter
+            // padding keeps the figure inside the donut's eye.
+            .padding(.horizontal, 26)
         }
     }
 

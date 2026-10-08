@@ -125,6 +125,7 @@ struct ProjectDetailView: View {
     @Environment(ReportStore.self) private var reportStore
     @Environment(AuthManager.self) private var auth
     @Environment(ToastCenter.self) private var toast
+    @Environment(\.locale) private var locale
 
     let projectId: String
 
@@ -138,6 +139,10 @@ struct ProjectDetailView: View {
     @State private var isEditPresented = false
     @State private var confirmation: DetailAction?
     @State private var isLoadingReport = false
+    /// The composition card's drill push payload — everything captured at
+    /// tap time, pushed through the page-level destination below (a List
+    /// row never registers destinations itself).
+    @State private var statementDrill: ProjectEntryScope?
 
     private enum DetailAction: Hashable {
         case delete
@@ -249,6 +254,11 @@ struct ProjectDetailView: View {
                 await projectStore.loadReport(ledgerId: ledger.id, projectId: projectId)
             }
         }
+        .navigationDestination(item: $statementDrill) { scope in
+            if let ledger {
+                ProjectEntriesDetailView(ledger: ledger, scope: scope)
+            }
+        }
     }
 
     @ViewBuilder
@@ -272,82 +282,69 @@ struct ProjectDetailView: View {
         }
     }
 
+    /// The income & expense statement, presented as the composition card:
+    /// the report's per-category rows reshaped into the donut + legend,
+    /// with the card's own expense/income picker replacing the old
+    /// two-block row list. A legend row or slice drills into that
+    /// category's entries exactly as the old rows did.
     private func statementSection(
         _ project: QianlaiProject,
         _ ledger: QianlaiLedger,
         _ report: ProjectReport
     ) -> some View {
         Section {
-            statementTotalLink(project, ledger, type: .expense, amount: report.statement.totalExpense)
-            ForEach(report.statement.expense) { row in
-                statementRowLink(project, ledger, type: .expense, row: row)
-            .appCardRow()
-            }
-            statementTotalLink(project, ledger, type: .income, amount: report.statement.totalIncome)
-            ForEach(report.statement.income) { row in
-                statementRowLink(project, ledger, type: .income, row: row)
-            .appCardRow()
-            }
-        } header: {
-            Text(L10n.string("projects.statement", defaultValue: "Income & Expense"))
-        } footer: {
-            Text(L10n.string(
-                "projects.statementFooter",
-                defaultValue: "Split the totals equally — the settlement below suggests who owes whom."
-            ))
+            CategoryBreakdownCard(
+                summary: Self.compositionSummary(report.statement),
+                currency: ledger.currency,
+                locale: locale,
+                onSelectCategory: { drill in
+                    statementDrill = .statement(
+                        projectId: project.id,
+                        type: drill.kind == .income ? .income : .expense,
+                        accountId: drill.accountId,
+                        parentAccountId: drill.parentAccountId,
+                        title: drill.categoryLabel ?? flowTitle(drill.kind)
+                    )
+                },
+                // The center total opens the whole flow's entries — the
+                // total rows the card replaced used to drill the same
+                // surface.
+                onSelectTotal: { kind in
+                    statementDrill = .statement(
+                        projectId: project.id,
+                        type: kind == .income ? .income : .expense,
+                        accountId: nil,
+                        parentAccountId: nil,
+                        title: flowTitle(kind)
+                    )
+                }
+            )
+            // The card paints its own surface (the stats pages' rhythm):
+            // clear row background, zero insets, and the vertical 8pt
+            // that keeps iOS 26's section corner mask off the card's rim.
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+            .padding(.vertical, 8)
         }
     }
 
-    /// Total row of one flow, drilling into every entry of the project on
-    /// that side of the books.
-    private func statementTotalLink(
-        _ project: QianlaiProject,
-        _ ledger: QianlaiLedger,
-        type: AccountType,
-        amount: Double
-    ) -> some View {
-        NavigationLink {
-            ProjectEntriesDetailView(
-                ledger: ledger,
-                scope: .statement(projectId: project.id, type: type, category: nil)
-            )
-        } label: {
-            HStack {
-                Text(type == .expense
-                    ? L10n.string("projects.totalExpense", defaultValue: "Expenses")
-                    : L10n.string("projects.totalIncome", defaultValue: "Income"))
-                Spacer()
-                Text(Money.format(amount, currency: ledger.currency))
-                    .font(.callout.weight(.semibold).monospacedDigit())
-            }
-        }
-        .appCardRow()
+    /// A flow's display name — the total drill's pushed title and the
+    /// category drill's fallback title.
+    private func flowTitle(_ kind: QuickEntryKind?) -> String {
+        kind == .income
+            ? L10n.string("projects.totalIncome", defaultValue: "Income")
+            : L10n.string("projects.totalExpense", defaultValue: "Expenses")
     }
 
-    /// One category row, drilling into the project's entries of exactly
-    /// that category.
-    private func statementRowLink(
-        _ project: QianlaiProject,
-        _ ledger: QianlaiLedger,
-        type: AccountType,
-        row: StatementRow
-    ) -> some View {
-        NavigationLink {
-            ProjectEntriesDetailView(
-                ledger: ledger,
-                scope: .statement(projectId: project.id, type: type, category: row)
-            )
-        } label: {
-            HStack {
-                Text(row.displayName)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(Money.format(row.balance, currency: ledger.currency))
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .appCardRow()
+    /// The statement rows reshaped for the composition card: the card runs
+    /// on the category-summary row shape, so each statement row maps
+    /// one-to-one (see `CategoryAmountRow.init(statementRow:)`).
+    private static func compositionSummary(_ statement: IncomeStatement) -> CategorySummaryResponse {
+        CategorySummaryResponse(
+            expense: statement.expense.map { CategoryAmountRow(statementRow: $0) },
+            income: statement.income.map { CategoryAmountRow(statementRow: $0) }
+        )
     }
 
     private func settlementSection(

@@ -41,6 +41,7 @@ vi.mock("../ledger-member.repository", () => ({
 vi.mock("../project-member.repository", () => ({
   projectMemberRepository: {
     listUsersInLedger: vi.fn(),
+    listByProject: vi.fn(),
   },
 }));
 
@@ -81,6 +82,7 @@ const mockMemberRepo = ledgerMemberRepository as unknown as {
 };
 const mockProjectMemberRepo = projectMemberRepository as unknown as {
   listUsersInLedger: ReturnType<typeof vi.fn>;
+  listByProject: ReturnType<typeof vi.fn>;
 };
 
 function account(
@@ -160,6 +162,7 @@ beforeEach(() => {
     { id: "m-b", userId: "user-b", role: "editor" },
   ]);
   mockProjectMemberRepo.listUsersInLedger.mockResolvedValue([]);
+  mockProjectMemberRepo.listByProject.mockResolvedValue([]);
 });
 
 describe("incomeStatement (share-based)", () => {
@@ -787,6 +790,139 @@ describe("categorySummary (shareMode=members)", () => {
   });
 });
 
+describe("categorySummary (shareMode=member)", () => {
+  it("attributes the member's own settlement slice per category", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      // ¥100 tagged across two members → user-a's Share slice is ¥50,
+      // spread across the entry's two lines 60/40 → 30/20.
+      statEntry({
+        lines: [
+          {
+            accountId: "acc-food",
+            name: "Groceries",
+            icon: "🛒",
+            debit: 60,
+            credit: 0,
+          },
+          {
+            accountId: "acc-transport",
+            name: "Transport",
+            debit: 40,
+            credit: 0,
+          },
+        ],
+        participants: ["user-a", "user-b"],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", {
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
+
+    expect(
+      summary.expense.map((row) => [row.accountId, row.amountCents]),
+    ).toEqual([
+      ["acc-food", 3000],
+      ["acc-transport", 2000],
+    ]);
+    expect(summary.income).toEqual([]);
+  });
+
+  it("splits untagged legacy entries across the project's current members", async () => {
+    mockProjectMemberRepo.listByProject.mockResolvedValue([
+      { userId: "user-c" },
+      { userId: "user-a" },
+    ]);
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      statEntry({
+        paidById: "user-c",
+        lines: [
+          { accountId: "acc-food", name: "Groceries", debit: 80, credit: 0 },
+        ],
+        participants: [],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", {
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
+
+    expect(mockProjectMemberRepo.listByProject).toHaveBeenCalledWith("proj-1");
+    // ¥80 across user-a and user-c → user-a's Share slice is ¥40.
+    expect(summary.expense[0]?.amountCents).toBe(4000);
+  });
+
+  it("counts nothing when the member is not in the split set", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      statEntry({
+        lines: [
+          { accountId: "acc-food", name: "Groceries", debit: 90, credit: 0 },
+        ],
+        participants: ["user-b", "user-c"],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", {
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
+
+    expect(summary.expense).toEqual([]);
+    expect(summary.income).toEqual([]);
+  });
+
+  it("lands the member's income slice on the income side", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([
+      statEntry({
+        lines: [
+          {
+            accountId: "acc-salary",
+            name: "Salary",
+            type: "income",
+            debit: 0,
+            credit: 60,
+          },
+        ],
+        participants: ["user-a", "user-b"],
+      }),
+    ]);
+
+    const summary = await categorySummary("led-1", {
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
+
+    expect(summary.income[0]?.accountId).toBe("acc-salary");
+    expect(summary.income[0]?.amountCents).toBe(3000);
+    expect(summary.expense).toEqual([]);
+  });
+
+  it("fetches the settlement page's entry set (project + member window)", async () => {
+    mockJournalRepo.listActivityEntriesWithLines.mockResolvedValue([]);
+
+    await categorySummary("led-1", {
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
+
+    expect(mockJournalRepo.listActivityEntriesWithLines).toHaveBeenCalledWith(
+      "led-1",
+      expect.objectContaining({
+        projectId: "proj-1",
+        memberUserId: "user-a",
+        shareMode: "member",
+      }),
+    );
+  });
+});
+
 describe("report route query schemas", () => {
   // The composition card's 一级 rollup drill pushes parentAccountId to the
   // entry list AND the daily summary; zod silently strips query fields the
@@ -800,6 +936,39 @@ describe("report route query schemas", () => {
     expect(
       schema.parse({ shareMode: "members", parentAccountId: "acc-parent" }),
     ).toMatchObject({ parentAccountId: "acc-parent" });
+  });
+
+  // shareMode=member is the category-summary route's own numerator: the
+  // schema must reject it without the axes its untagged fallback needs,
+  // and the shared stat routes never see the value at all (their narrower
+  // enum is the rejection).
+  it("requires the projectId/memberUserId pair for shareMode=member", () => {
+    expect(() =>
+      categorySummaryQuerySchema.parse({ shareMode: "member" }),
+    ).toThrow();
+    expect(() =>
+      categorySummaryQuerySchema.parse({
+        shareMode: "member",
+        memberUserId: "user-a",
+      }),
+    ).toThrow();
+    expect(() =>
+      categorySummaryQuerySchema.parse({
+        shareMode: "member",
+        projectId: "proj-1",
+      }),
+    ).toThrow();
+    expect(
+      categorySummaryQuerySchema.parse({
+        shareMode: "member",
+        projectId: "proj-1",
+        memberUserId: "user-a",
+      }),
+    ).toMatchObject({
+      shareMode: "member",
+      projectId: "proj-1",
+      memberUserId: "user-a",
+    });
   });
 
   // The dashboard's stat-filter extension rides the same statWindowArgs
