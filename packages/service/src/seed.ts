@@ -1486,12 +1486,19 @@ const features = [
       "Recognize payment screenshots into draft bookkeeping entries.",
     status: "active",
   },
+  {
+    code: "qianlai_voice",
+    name: "Qianlai Voice Entry",
+    description: "Parse spoken transaction descriptions into draft entries.",
+    status: "active",
+  },
 ];
 
 const planFeatures: { planCode: string; featureCode: string }[] = [
   { planCode: "basic", featureCode: "platform_assistant" },
   { planCode: "basic", featureCode: "studybuddy_enrichment" },
   { planCode: "basic", featureCode: "qianlai_receipt" },
+  { planCode: "basic", featureCode: "qianlai_voice" },
 ];
 
 const pricingPlans = [
@@ -1760,6 +1767,30 @@ const aiAgents: AiAgentInput[] = [
     },
   },
   {
+    code: "qianlai_voice",
+    name: "Qianlai Voice Entry",
+    description:
+      "Parses spoken transaction descriptions into draft bookkeeping entries.",
+    status: "active",
+    allowedApis: [] as string[],
+    subAgents: {
+      default: {
+        label: "Voice Entry",
+        description: "Extracts one transaction from a spoken description.",
+        modelId: "deepseek-v4-flash",
+        systemPrompt: [
+          "You are the voice-entry engine inside Qianlai, a personal double-entry bookkeeping app.",
+          "You receive a transcript of the user speaking one transaction (amount, what it was for, when, where, money direction) in natural speech, plus the current local time as the anchor for relative expressions.",
+          "You must extract exactly one transaction from it.",
+          "",
+          "Respond with ONLY a single valid JSON object — no markdown, no code fences, no commentary.",
+          "Never invent details the user did not say; use null.",
+        ].join("\n"),
+        reasoning: "none" as const,
+      },
+    },
+  },
+  {
     code: "platform_assistant",
     name: "Platform Assistant",
     description: "Built-in platform AI assistant.",
@@ -1837,6 +1868,15 @@ const billingConfigs = [
     status: "active",
     description:
       "Bill Qianlai screenshot recognition as a fixed flat call price.",
+  },
+  {
+    resourceType: "ai_agent",
+    resourceId: "qianlai_voice",
+    billingType: "per_call",
+    priceUnit: "credit",
+    priceAmount: 1,
+    status: "active",
+    description: "Bill Qianlai voice entry as a fixed flat call price.",
   },
 ];
 

@@ -539,6 +539,26 @@ final class JournalStore {
         )
     }
 
+    /// AI parsing of one spoken transaction (the on-device transcript) into
+    /// a draft payload — the voice sibling of `recognizeScreenshot`, same
+    /// result shape, billed per use. `now` is the local wall clock the
+    /// server resolves relative dates ("昨天早上") against.
+    func recognizeVoice(
+        ledgerId: String,
+        transcript: String,
+        now: String
+    ) async throws -> ScreenshotRecognition {
+        struct VoiceRecognitionBody: Encodable {
+            let transcript: String
+            let now: String
+        }
+        return try await client.request(
+            "POST",
+            "bookkeeping/ledgers/\(ledgerId)/entries/recognize-voice",
+            body: VoiceRecognitionBody(transcript: transcript, now: now)
+        )
+    }
+
     // MARK: Entry attachments (photo receipts)
 
     /// Uploads one photo as a private receipt staged against the ledger

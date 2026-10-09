@@ -1,5 +1,5 @@
 //
-//  ScreenshotRecognizeView.swift
+//  AIBookkeepingView.swift
 //  Qianlai
 //
 //  Created by Lisiur Day on 2026/9/21.
@@ -18,13 +18,12 @@ struct RecognizedScreenshot {
     let imageData: Data?
 }
 
-/// The screenshot-recognition page: pick a screenshot, tile → upload → AI
-/// recognize — then hand the result to the quick-entry sheet, which is the
-/// result surface now (`QuickEntryView(recognition:)` seeds the recognized
-/// fields in). This page only covers picking and recognizing; a soft miss
-/// (nothing recognized) or an error falls back to the picker for the next
-/// attempt.
-struct ScreenshotRecognizeView: View {
+/// The AI-bookkeeping page: two doors into one seeded quick entry — pick a
+/// payment screenshot (tile → upload → AI vision recognize) or speak the
+/// transaction (on-device transcription → server parse). A soft miss
+/// (nothing recognized) or an error falls back to the door's idle state for
+/// the next attempt.
+struct AIBookkeepingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(JournalStore.self) private var journalStore
@@ -39,7 +38,15 @@ struct ScreenshotRecognizeView: View {
         case recognizing
     }
 
+    /// Which door is open — the picking cards, or the voice sub-page
+    /// (self-contained: its own stages, title, and cancel).
+    private enum Mode {
+        case screenshot
+        case voice
+    }
+
     @State private var stage: Stage = .picking
+    @State private var mode: Mode = .screenshot
     /// The picked photo — cleared as soon as its bytes are read so the same
     /// photo can be picked again later.
     @State private var screenshotItem: PhotosPickerItem?
@@ -57,16 +64,23 @@ struct ScreenshotRecognizeView: View {
 
     var body: some View {
         Group {
-            switch stage {
-            case .picking:
-                pickingStage
-            case .recognizing:
-                recognizingStage
+            if mode == .voice {
+                VoiceEntryView(
+                    onRecognition: onRecognition,
+                    onBack: { mode = .screenshot }
+                )
+            } else {
+                switch stage {
+                case .picking:
+                    pickingStage
+                case .recognizing:
+                    recognizingStage
+                }
             }
         }
         .appBackgroundCanvas()
         .background(Color.groupedCanvas)
-        .navigationTitle(Text(L10n.string("screenshot.title", defaultValue: "Receipt Recognition")))
+        .navigationTitle(Text(L10n.string("ai.title", defaultValue: "AI Bookkeeping")))
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -97,39 +111,52 @@ struct ScreenshotRecognizeView: View {
 
     // MARK: - Stages
 
-    /// The empty state: one big picker card, one hint line.
+    /// The input state: the screenshot card and the voice card — two doors
+    /// into the same seeded quick entry, each with its one-line hint.
     private var pickingStage: some View {
         // Read on the actor before the label closure: PhotosPicker's label
         // is @Sendable, and the store property is main-actor isolated.
         let surface = backgroundSettings.chipSurface
-        return VStack(spacing: 20) {
+        return VStack(spacing: 16) {
             Spacer()
             PhotosPicker(selection: $screenshotItem, matching: .images) {
-                VStack(spacing: 14) {
+                AIInputCard(surface: surface) {
                     Image(systemName: "doc.viewfinder")
-                        .font(.system(size: 46))
+                        .font(.system(size: 40))
                         .foregroundStyle(Color.accentColor)
                     Text(L10n.string("screenshot.pick", defaultValue: "Choose Screenshot"))
                         .font(.headline)
+                    Text(L10n.string(
+                        "screenshot.pickHint",
+                        defaultValue: "Works with Alipay, WeChat Pay and other payment screenshots"
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 190)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(surface)
-                )
-                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 24)
-            Text(L10n.string(
-                "screenshot.pickHint",
-                defaultValue: "Works with Alipay, WeChat Pay and other payment screenshots"
-            ))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 32)
+            Button {
+                mode = .voice
+            } label: {
+                AIInputCard(surface: surface) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.accentColor)
+                    Text(L10n.string("voice.cardTitle", defaultValue: "Speak an Entry"))
+                        .font(.headline)
+                    Text(L10n.string(
+                        "voice.cardHint",
+                        defaultValue: "One transaction, spoken out loud"
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -238,7 +265,7 @@ struct ScreenshotRecognizeView: View {
 /// flow: presenting a second cover from this one's onDismiss raced its
 /// content snapshot and opened the quick entry without the seed.
 extension View {
-    func screenshotRecognitionCover(
+    func aiBookkeepingCover(
         isPresented: Binding<Bool>,
         seed: Binding<RecognizedScreenshot?>
     ) -> some View {
@@ -247,10 +274,31 @@ extension View {
                 if let recognized = seed.wrappedValue {
                     QuickEntryView(recognition: recognized)
                 } else {
-                    ScreenshotRecognizeView(onRecognition: { seed.wrappedValue = $0 })
+                    AIBookkeepingView(onRecognition: { seed.wrappedValue = $0 })
                 }
             }
             .interactiveDismissDisabled()
         }
+    }
+}
+
+/// The rounded card chrome both AI-input doors render — the screenshot
+/// picker card here and the voice page's idle mic card share the shell,
+/// only the contents differ.
+struct AIInputCard<Content: View>: View {
+    let surface: Color
+    var spacing: CGFloat = 12
+    var height: CGFloat = 160
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(spacing: spacing) { content() }
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(surface)
+            )
+            .contentShape(Rectangle())
     }
 }

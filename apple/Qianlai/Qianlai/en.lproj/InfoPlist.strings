@@ -1,3 +1,5 @@
 "CFBundleDisplayName" = "Qianlai";
 "NSCameraUsageDescription" = "Qianlai uses the camera to scan invite QR codes. Nothing is recorded.";
+"NSMicrophoneUsageDescription" = "Qianlai uses the microphone only while you dictate a bookkeeping entry on the voice-entry page. Audio never leaves your device.";
 "NSPhotoLibraryAddUsageDescription" = "Saving the settlement share image to your photo library requires this permission.";
+"NSSpeechRecognitionUsageDescription" = "Qianlai transcribes your spoken transaction description on-device to fill in the entry form.";

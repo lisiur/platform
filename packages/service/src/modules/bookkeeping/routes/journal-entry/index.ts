@@ -4,6 +4,7 @@ import { deleteEntryRoute } from "./deleteEntry";
 import { getEntryRoute } from "./getEntry";
 import { listEntriesRoute } from "./listEntries";
 import { recognizeScreenshotRoute } from "./recognizeScreenshot";
+import { recognizeVoiceRoute } from "./recognizeVoice";
 import { updateEntryRoute } from "./updateEntry";
 import { uploadEntryAttachmentRoute } from "./uploadEntryAttachment";
 
@@ -16,6 +17,7 @@ const routes = journalEntryRoutes.openapiRoutes([
   updateEntryRoute,
   deleteEntryRoute,
   recognizeScreenshotRoute,
+  recognizeVoiceRoute,
   uploadEntryAttachmentRoute,
 ] as const);
 

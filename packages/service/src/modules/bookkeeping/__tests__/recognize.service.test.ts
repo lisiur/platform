@@ -39,11 +39,14 @@ import { jsonRequest, mountRoute } from "../../../test/helpers/app";
 import { accountRepository } from "../account.repository";
 import {
   buildRecognitionPrompt,
+  buildVoiceRecognitionPrompt,
   recognizeScreenshot,
+  recognizeVoice,
   resolveRecognitionImageConfig,
   screenshotRecognitionSchema,
 } from "../recognize.service";
 import { collectRecognitionTiles } from "../routes/journal-entry/recognizeScreenshot";
+import { recognizeVoiceBodySchema } from "../routes/journal-entry/recognizeVoice";
 import { getRecognitionConfigRoute } from "../routes/recognition/getRecognitionConfig";
 
 const findMany = vi.mocked(prisma.bookAccount.findMany);
@@ -508,5 +511,183 @@ describe("collectRecognitionTiles", () => {
         file0: tileFile([1], "a.jpg", ""),
       }),
     ).rejects.toMatchObject({ status: 415 });
+  });
+});
+
+describe("buildVoiceRecognitionPrompt", () => {
+  it("embeds the anchor time, both category lists, and the shape hint", () => {
+    const prompt = buildVoiceRecognitionPrompt(
+      { expense: ["餐饮", "服饰/衣服"], income: ["工资"] },
+      "2026-10-08T14:30:00",
+    );
+    expect(prompt).toContain("2026-10-08T14:30:00");
+    expect(prompt).toContain("- 餐饮");
+    expect(prompt).toContain("- 服饰/衣服");
+    expect(prompt).toContain("- 工资");
+    // Same stable-key + JSON-shape contract as the screenshot prompt — the
+    // json_object-mode model aligns on the embedded hint, not a wire schema.
+    expect(prompt).toContain("stable identifiers");
+    expect(prompt).toContain('"categoryAlternatives":[]');
+    // The single-entry contract keeps demoted extra transactions visible:
+    // their amounts ride amountAlternatives instead of vanishing.
+    expect(prompt).toContain("demoted transactions' amounts");
+    expect(prompt).toContain("at most 4");
+  });
+
+  it("keeps the miss paths inside the JSON contract", () => {
+    const prompt = buildVoiceRecognitionPrompt(
+      { expense: [], income: [] },
+      "2026-10-08T14:30:00",
+    );
+    expect(prompt).toContain("Expense categories:\n(none)");
+    expect(prompt).toContain("Income categories:\n(none)");
+    expect(prompt).toContain("every other field to null");
+    expect(prompt).toContain("MUST still reply with the JSON object");
+    // Own-account transfers are explicitly out of scope for the shared
+    // expense/income schema.
+    expect(prompt).toContain("own accounts");
+  });
+});
+
+describe("recognizeVoice", () => {
+  it("resolves the voice agent without a capability gate and sends a text-only prompt", async () => {
+    findMany.mockResolvedValue([]);
+    generateObjectMock.mockResolvedValue({
+      object: fixtureRecognition,
+      usage: { inputTokens: 10, outputTokens: 5 },
+      finishReason: "stop",
+    } as never);
+
+    const result = await recognizeVoice({
+      userId: "user-1",
+      ledgerId: "ledger-1",
+      transcript: "昨天打车 23 块",
+      now: "2026-10-08T14:30:00",
+    });
+
+    // No vision capability — the voice agent pins a text model.
+    expect(resolveAgentModelMock).toHaveBeenCalledWith({
+      agentCode: "qianlai_voice",
+      subAgent: "default",
+      principal: { type: "user", id: "user-1" },
+    });
+    expect(executeTrackedAiCallMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        resolved: resolvedRuntime,
+        billing: expect.objectContaining({ billingType: "per_call" }),
+      }),
+    );
+
+    const call = generateObjectMock.mock.calls[0]?.[0] as {
+      messages: Array<{ content: Array<Record<string, unknown>> }>;
+    };
+    const content = call.messages[0]?.content;
+    expect(content).toHaveLength(1);
+    expect(content?.[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("2026-10-08T14:30:00"),
+    });
+
+    expect(result).toEqual({
+      ...fixtureRecognition,
+      amountAlternatives: [],
+      categoryAlternatives: [],
+    });
+  });
+
+  it("injects the ledger's category paths into the model prompt", async () => {
+    findMany.mockResolvedValue([
+      account("food", "expense", null, null, "food"),
+      account("meals", "expense", null, "food", "meals"),
+    ] as never);
+    generateObjectMock.mockResolvedValue({
+      object: fixtureRecognition,
+      usage: { inputTokens: 10, outputTokens: 5 },
+      finishReason: "stop",
+    } as never);
+
+    await recognizeVoice({
+      userId: "user-1",
+      ledgerId: "ledger-1",
+      transcript: "昨天打车 23 块",
+      now: "2026-10-08T14:30:00",
+    });
+
+    const call = generateObjectMock.mock.calls[0]?.[0] as {
+      messages: Array<{ content: Array<{ text?: string }> }>;
+    };
+    const prompt = call.messages[0]?.content[0]?.text ?? "";
+    expect(prompt).toContain("- food/meals");
+  });
+
+  it("propagates billing 402 untouched", async () => {
+    findMany.mockResolvedValue([]);
+    executeTrackedAiCallMock.mockImplementation(() => {
+      throw new HTTPException(402, { message: "Insufficient credit balance" });
+    });
+
+    await expect(
+      recognizeVoice({
+        userId: "user-1",
+        ledgerId: "ledger-1",
+        transcript: "午饭 35 块",
+        now: "2026-10-08T14:30:00",
+      }),
+    ).rejects.toMatchObject({ status: 402 });
+  });
+
+  it("maps provider failures to 502", async () => {
+    findMany.mockResolvedValue([]);
+    executeTrackedAiCallMock.mockImplementation(() => {
+      throw new Error("model exploded");
+    });
+
+    await expect(
+      recognizeVoice({
+        userId: "user-1",
+        ledgerId: "ledger-1",
+        transcript: "午饭 35 块",
+        now: "2026-10-08T14:30:00",
+      }),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe("recognize-voice body schema", () => {
+  const valid = { transcript: "  午饭 35 块  ", now: "2026-10-08T14:30:00" };
+
+  it("accepts and trims a valid body", () => {
+    expect(recognizeVoiceBodySchema.parse(valid)).toEqual({
+      transcript: "午饭 35 块",
+      now: "2026-10-08T14:30:00",
+    });
+  });
+
+  it("rejects an empty or oversized transcript", () => {
+    expect(() =>
+      recognizeVoiceBodySchema.parse({ ...valid, transcript: "   " }),
+    ).toThrow();
+    expect(() =>
+      recognizeVoiceBodySchema.parse({
+        ...valid,
+        transcript: "记".repeat(1001),
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a timezone-aware now — the anchor must stay offset-free local", () => {
+    expect(() =>
+      recognizeVoiceBodySchema.parse({
+        ...valid,
+        now: "2026-10-08T14:30:00Z",
+      }),
+    ).toThrow();
+    expect(() =>
+      recognizeVoiceBodySchema.parse({
+        ...valid,
+        now: "2026-10-08T14:30:00+08:00",
+      }),
+    ).toThrow();
   });
 });

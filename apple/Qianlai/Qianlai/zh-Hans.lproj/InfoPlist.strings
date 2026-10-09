@@ -1,3 +1,5 @@
 "CFBundleDisplayName" = "钱来";
 "NSCameraUsageDescription" = "钱来使用相机扫描邀请二维码，不会录制任何内容。";
+"NSMicrophoneUsageDescription" = "钱来仅在你于语音记账页口述一笔账时使用麦克风，音频不会离开你的设备。";
 "NSPhotoLibraryAddUsageDescription" = "将结算分享图保存到相册需要此权限。";
+"NSSpeechRecognitionUsageDescription" = "钱来在设备上把你口述的交易内容转成文字，用于预填记账表单。";

@@ -205,7 +205,7 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
-        .screenshotRecognitionCover(
+        .aiBookkeepingCover(
             isPresented: $isRecognitionPresented,
             seed: $recognitionResult
         )

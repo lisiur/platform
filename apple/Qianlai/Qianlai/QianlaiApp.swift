@@ -68,6 +68,18 @@ struct QianlaiApp: App {
                     // AI-mode variant: the same sheet seeded with a fake
                     // recognition — suggestion grid + amount pad offline.
                     QuickEntryDemoScreen(isRecognitionMode: true)
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-voice-entry") {
+                    // Voice-entry harness: the real voice page pinned to a
+                    // stage offline (add --ui-demo-voice-recording or
+                    // --ui-demo-voice-parsing to move past the idle mic).
+                    VoiceEntryDemoScreen()
+                } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-ai-input") {
+                    // The dual-door AI page (screenshot card + voice card)
+                    // offline — the picking stage needs no backend; only a
+                    // successful pick/parse would.
+                    NavigationStack {
+                        AIBookkeepingView(onRecognition: { _ in })
+                    }
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-theme") {
                     // Theme page without login/backend: verifies the 边框高光
                     // section and the background controls offline. The page
@@ -279,6 +291,35 @@ private struct QuickEntryDemoScreen: View {
         shared: false
         )
     }()
+}
+
+/// Screenshot harness for the voice-entry page (`--ui-demo-voice-entry`;
+/// add `--ui-demo-voice-recording` / `--ui-demo-voice-parsing` to pin the
+/// later stages): renders the real `VoiceEntryView` with its pipelines
+/// short-circuited — the demo stage advances on tap and a fake recognition
+/// plays the handoff, so the three stages and the layout verify with no
+/// mic, no permissions dialog, and no backend.
+private struct VoiceEntryDemoScreen: View {
+    var body: some View {
+        NavigationStack {
+            VoiceEntryView(
+                onRecognition: { _ in },
+                demoStage: demoStage
+            )
+        }
+    }
+
+    private var demoStage: VoiceEntryModel.Stage {
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-voice-recording") {
+            return .recording
+        }
+        if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-voice-parsing") {
+            return .parsing
+        }
+        // Non-nil even at rest: nil means production, which would route the
+        // mic tap through the real permission dialogs.
+        return .idle
+    }
 }
 
 /// Screenshot harness for the sunk-wallpaper tab shell
