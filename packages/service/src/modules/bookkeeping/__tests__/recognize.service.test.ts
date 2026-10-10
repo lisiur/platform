@@ -515,12 +515,18 @@ describe("collectRecognitionTiles", () => {
 });
 
 describe("buildVoiceRecognitionPrompt", () => {
-  it("embeds the anchor time, both category lists, and the shape hint", () => {
+  it("embeds the anchor time, the transcript, both category lists, and the shape hint", () => {
     const prompt = buildVoiceRecognitionPrompt(
       { expense: ["餐饮", "服饰/衣服"], income: ["工资"] },
       "2026-10-08T14:30:00",
+      "昨天星巴克买了杯拿铁三十五",
     );
     expect(prompt).toContain("2026-10-08T14:30:00");
+    // The transcript itself rides in the prompt — without it the model has
+    // nothing to extract from and every parse soft-misses (real regression:
+    // it silently never was included, prod-shaped as recognized:false).
+    expect(prompt).toContain("Transcript:");
+    expect(prompt).toContain("昨天星巴克买了杯拿铁三十五");
     expect(prompt).toContain("- 餐饮");
     expect(prompt).toContain("- 服饰/衣服");
     expect(prompt).toContain("- 工资");
@@ -538,6 +544,7 @@ describe("buildVoiceRecognitionPrompt", () => {
     const prompt = buildVoiceRecognitionPrompt(
       { expense: [], income: [] },
       "2026-10-08T14:30:00",
+      "这个月花了多少",
     );
     expect(prompt).toContain("Expense categories:\n(none)");
     expect(prompt).toContain("Income categories:\n(none)");
@@ -588,6 +595,11 @@ describe("recognizeVoice", () => {
       type: "text",
       text: expect.stringContaining("2026-10-08T14:30:00"),
     });
+    // The spoken transcript must reach the model — the usage log's
+    // input.prompt mirrors this text and is how it gets audited.
+    expect(
+      (content?.[0] as { text?: string } | undefined)?.text,
+    ).toContain("昨天打车 23 块");
 
     expect(result).toEqual({
       ...fixtureRecognition,

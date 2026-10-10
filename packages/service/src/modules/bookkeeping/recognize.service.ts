@@ -311,6 +311,7 @@ export type VoiceRecognition = ScreenshotRecognition;
 export function buildVoiceRecognitionPrompt(
   categories: { expense: string[]; income: string[] },
   now: string,
+  transcript: string,
 ): string {
   return [
     "The transcript below is the user speaking ONE transaction out loud, in natural speech (usually Chinese). Extract that transaction.",
@@ -333,6 +334,9 @@ export function buildVoiceRecognitionPrompt(
     "- If the transcript contains no transaction at all (gibberish, a question, small talk, or no amount can be recovered), set recognized to false and every other field to null (arrays []).",
     "- Even in that case you MUST still reply with the JSON object — never plain text, never an explanation.",
     "- Do not invent details the user did not say — use null.",
+    "",
+    "Transcript:",
+    transcript,
     "",
     ...renderCategorySections(categories),
   ].join("\n");
@@ -357,7 +361,7 @@ export async function recognizeVoice(params: {
     agentCode: QIANLAI_VOICE_AGENT_CODE,
     failureLabel: "Voice",
     buildPrompt: (categories) =>
-      buildVoiceRecognitionPrompt(categories, params.now),
+      buildVoiceRecognitionPrompt(categories, params.now, params.transcript),
     messages: (prompt) => [
       { role: "user", content: [{ type: "text", text: prompt }] },
     ],

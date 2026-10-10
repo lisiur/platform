@@ -204,6 +204,7 @@ Field rules:（要点，全文以 recognize.service.ts 为准）
 - amountAlternatives：按本节原案实施 —— 预折价、显式更正（"不对,是 53"）、被降级交易的金额；去重、保持语序、至多 4 条。
 - occurredAt：相对表达对照锚点解析；口语时刻（下午 3 点 / 15:30）定时间；模糊时段映射代表时刻（凌晨→01:00、早上→08:00、中午→12:00、下午→15:00、晚上→19:00）；完全没提日期或「今天」未提时刻 → null（客户端沿用当前时刻）；**其他日期未提时刻 → 当日 00:00:00（保住日期，R4）**。
 - merchant / memo：说出的对手方与事由，verbatim；没有就 null，绝不从分类编造。
+- **transcript：原文以 `Transcript:` 块附在规则之后（R12）**——开头 "The transcript below" 指的就是它。
 - categoryName / categoryAlternatives：与截图 prompt 同一段稳定键规则。
 - confidence：high/medium/low；recognized:false 时为 null。
 
@@ -594,6 +595,9 @@ enum VoiceTranscriptionError: LocalizedError {
 
 
 | R11 | 结束管线（2026-10-09 真机实测缺陷） | **结束信号 = 结束输入流**（`inputContinuation.finish()`）+ Task 内显式 `finalizeAndFinishThroughEndOfInput()` 双保险（真机实测光 finish 流在部分设备不够）；`stop()` 带 2 秒看门狗（到期强制带已有转写收尾，管线永不楔死 UI）；`cancel()` 去守卫化（释放挂起的 stopWaiter 并无条件拆除）；音频会话 `setActive` 挪出主线程（`SessionCore.mm` UI-unresponsiveness 警告；异步 activate/deactivate API 是 iOS 27+，26.5 用 Task.detached 跑同步调用） | 原实现 `finalizeAndFinishThroughEndOfInput` 在活麦场景永不返回——「输入结束」正是那条从未 finish 的 `AsyncStream` → `stop()` 挂起（松手不停）→ 此刻 `cancel()` 被 `isRecording` 守卫拦下（stop 已置 false）→ **SpeechAnalyzer 泄漏**，几次即撞并发上限报 "Maximum number of recognizers reached" |
+
+
+| R12 | 转写缺失（2026-10-10 用户查 AI usage 日志发现） | **transcript 拼入 prompt 末尾**（`Transcript:` 块，§4.4 开头的 "The transcript below" 由此成立）；usage 日志的 `input.prompt` 因此可完整审计 | 初版实现丢了 §4.3 草案的第二个 text part（utterance），重构与两轴评审均未抓到——模型从未见过转写，每次解析必然 `recognized:false`，真机表现为正常话术也弹「没听出可记录的交易」 |
 
 Q3（埋点落点）、Q4（资产下载时机）、Q8（自定义语言模型）仍开放，归 M2。
 
