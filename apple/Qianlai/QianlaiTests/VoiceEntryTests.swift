@@ -192,8 +192,9 @@ final class VoiceEntryTests: XCTestCase {
         )
     }
 
-    /// The `--ui-demo-voice-entry` pin: pipelines short-circuit — no mic,
-    /// no server parse, and the handoff plays the fake demo recognition.
+    /// The `--ui-demo-voice-recording` / `-parsing` pin: pipelines
+    /// short-circuit — no mic, no server parse, and the handoff plays the
+    /// fake demo recognition.
     func testDemoHarnessSkipsMicAndServer() async {
         let fake = FakeTranscriber()
         let (model, handedOff) = makeModel(fake, demoStage: .idle)
@@ -212,5 +213,112 @@ final class VoiceEntryTests: XCTestCase {
         XCTAssertEqual(handedOff().count, 1)
         XCTAssertEqual(handedOff().first?.recognition.merchant, "盒马")
         XCTAssertEqual(handedOff().first?.recognition.amount, 35.0)
+    }
+
+    /// A start() that parks until released — simulates the first-run
+    /// permission prompt sitting between touch-down and listening.
+    private final class GatedTranscriber: VoiceTranscribing {
+        private(set) var partialText = ""
+        private var gate: CheckedContinuation<Void, Never>?
+
+        func releaseStart() {
+            gate?.resume()
+            gate = nil
+        }
+
+        func start() async throws {
+            await withCheckedContinuation { gate = $0 }
+        }
+
+        func stop() async -> String {
+            partialText = "昨天打车 23 块"
+            return partialText
+        }
+
+        func cancel() {}
+    }
+
+    /// Release while `start()` is still parked: the release parks in the
+    /// model and drains the moment listening begins — it must never wedge
+    /// the stage in `.recording`.
+    func testEarlyReleaseDuringStartDrainsOnceListening() async {
+        let fake = GatedTranscriber()
+        var handedOff: [RecognizedScreenshot] = []
+        let model = VoiceEntryModel(
+            transcriber: fake,
+            onRecognition: { handedOff.append($0) }
+        )
+
+        let startTask = Task { await model.startRecording(ledgerId: "ledger-1") }
+        try? await Task.sleep(for: .milliseconds(100))
+        // Touch-down flips the stage synchronously, engine still parked.
+        XCTAssertEqual(model.stage, .recording)
+
+        var parseCalls = 0
+        let finishTask = Task {
+            await model.stopAndParse(ledgerId: "ledger-1") { _, _, _ in
+                parseCalls += 1
+                return self.recognition()
+            }
+        }
+        try? await Task.sleep(for: .milliseconds(100))
+        // Still parked: the release is held, nothing parsed yet.
+        XCTAssertEqual(parseCalls, 0)
+
+        fake.releaseStart()
+        await startTask.value
+        await finishTask.value
+
+        XCTAssertEqual(parseCalls, 1)
+        XCTAssertEqual(handedOff.count, 1)
+        XCTAssertEqual(handedOff.first?.recognition.amount, 23.0)
+    }
+
+    /// A stop() that parks until released — mirrors the real transcriber's
+    /// wait-for-backend drain.
+    private final class GatedStopTranscriber: VoiceTranscribing {
+        private(set) var partialText = ""
+        private var gate: CheckedContinuation<Void, Never>?
+
+        func releaseStop() {
+            gate?.resume()
+            gate = nil
+        }
+
+        func start() async throws {}
+
+        func stop() async -> String {
+            await withCheckedContinuation { gate = $0 }
+            return "昨天打车 23 块"
+        }
+
+        func cancel() {}
+    }
+
+    /// Cancel while stop() is still draining: the page is gone, so the
+    /// parked stop must resolve into no parse and no handoff.
+    func testAbandonDuringStopSkipsTheParse() async {
+        let fake = GatedStopTranscriber()
+        var handedOff: [RecognizedScreenshot] = []
+        let model = VoiceEntryModel(
+            transcriber: fake,
+            onRecognition: { handedOff.append($0) }
+        )
+        await model.startRecording(ledgerId: "ledger-1")
+        XCTAssertEqual(model.stage, .recording)
+
+        let finishTask = Task {
+            await model.stopAndParse(ledgerId: "ledger-1") { _, _, _ in
+                XCTFail("parse must not run after abandon")
+                return self.recognition()
+            }
+        }
+        try? await Task.sleep(for: .milliseconds(100)) // stop() parked
+        model.abandon()
+        fake.releaseStop()
+        await finishTask.value
+
+        XCTAssertTrue(handedOff.isEmpty)
+        XCTAssertEqual(model.stage, .idle)
     }
 }

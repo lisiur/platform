@@ -404,7 +404,7 @@ iOS 26 Speech 框架提供 `SFCustomLanguageModelData`（iOS 17 已有）+ `SFSp
 | 动作 | 文件 |
 |---|---|
 | 新增 | `apple/Qianlai/Qianlai/Journal/VoiceTranscriber.swift`（`VoiceTranscribing` 协议 + `VoiceTranscriber` 实现 + 错误类型） |
-| 新增 | `apple/Qianlai/Qianlai/Journal/VoiceEntryView.swift`（页面 + `VoiceEntryModel` 状态机） |
+| 新增 | `apple/Qianlai/Qianlai/Journal/VoiceEntryModel.swift`（hold-to-talk 状态机；`VoiceEntryView` 子页已随 R10 移除，语音卡由 `AIBookkeepingView` 直接驱动） |
 | 改名 | `Journal/ScreenshotRecognizeView.swift` → `AIBookkeepingView.swift`（双入口页定名；`AIInputCard` 为两门共享卡片外壳，`screenshotRecognitionCover` → `aiBookkeepingCover`） |
 | 修改 | `JournalStore.swift` —— 紧邻 `recognizeScreenshot` 新增： |
 
@@ -438,15 +438,17 @@ func recognizeVoice(
 
 ### 5.10 UI 落点
 
+**2026-10-09 产品裁决（R10）：hold-to-talk 上卡片，语音子页移除。** AI 记账页的语音卡即录音面：**触摸当下即开始录音**（`DragGesture(minimumDistance: 0)`；初版 0.3s 长按门限因「起录延迟 + 按住不动时松手事件不可靠」被推翻），转写实时显示在卡上，**手指松开即停止并解析**——不再有「点卡片 → 进语音子页 → 点麦克风 → 点完成」的层级。竞态由模型兜住：stage 在触摸瞬间同步翻转（不等 `transcriber.start()` 返回），启动未完成时的松手挂进 `pendingFinish`、由 start 完成路径回收；页面 Cancel 走 `abandon()`，启动落地时发现已放弃则自行 stop，不留活引擎。
+
 ```
-VoiceEntryView
-  ├─ 麦克风按钮 + 实时转写文本 + 波形
-  └─ 解析完成 → RecognitionSeeding.kind/memo/merchant/suggestedCategoryEntries
-             → QuickEntryView（AI 模式，已预填）
-             → 用户确认 → JournalStore.post
+AI 记账页语音卡（hold-to-talk）
+  ├─ idle：mic + 「语音说一笔」+「按住说话，松开结束」
+  ├─ 录音中：脉冲 mic + 实时转写 + 「松开结束」
+  ├─ 松手 → 解析中：spinner
+  └─ 解析完成 → RecognitionSeeding → QuickEntryView（cover 原地换装）
 ```
 
-**不要**为语音再写一套确认 UI。`ScreenshotRecognizeView` 绑死图片预览和 `RecognitionAmountPad`，强行复用只会更绕。
+**不要**为语音再写一套确认 UI。页面外层 Cancel 兼任录音中断（`transcriber.cancel()`）。
 
 ### 5.11 测试策略
 
@@ -588,6 +590,10 @@ enum VoiceTranscriptionError: LocalizedError {
 | R7 | §5.9 文件布局 | 落位 `Journal/`（非 `Voice/`）；页改名 `AIBookkeepingView`；状态机抽成 `VoiceEntryModel` | 与双入口页现实一致；fake 可测（`VoiceEntryTests` 8 用例） |
 | R8 | 命名 | `recognizeVoice` / `buildVoiceRecognitionPrompt` | 与 `recognizeScreenshot` / `buildRecognitionPrompt` 对仗 |
 | R9 | 服务端结构 | 抽取共享 `runRecognitionAgent`（计费→解析→模型守卫→分类→generateObject→schema.parse→502 包装）+ prompt 公共段（shape hint 常量、categoryAlternatives 规则、分类清单尾段） | 两路只差四处声明式参数；shape hint 漂移风险清零 |
+| R10 | 交互层级（2026-10-09 产品裁决，同日两次修正） | 语音卡 **hold-to-talk**：触摸即录、松手即停并解析；`VoiceEntryView` 子页与 `Mode` 分支移除，页面外层 Cancel 走 `abandon()`。按压追踪的**载体必须恒定不变**——Button 标签是永远不变的空卡（`Color.clear`），转写/解析等全部动态内容画在 `allowsHitTesting(false)` 的 overlay 上（真机探针实证此结构松手事件稳定送达；此前 LongPress 序列、裸 `DragGesture(minimumDistance:0)`、挂在重建内容上的 ButtonStyle 三版全部丢失抬指事件，症状「松手不结束、再点一次才停」） | 层级太深；按住说话贴合「一句话一笔」的短时长。竞态由模型兜：stage 触摸瞬间同步翻转 + `pendingFinish` 挂起回收 + start 落地后的放弃自停 |
+
+
+| R11 | 结束管线（2026-10-09 真机实测缺陷） | **结束信号 = 结束输入流**（`inputContinuation.finish()`）+ Task 内显式 `finalizeAndFinishThroughEndOfInput()` 双保险（真机实测光 finish 流在部分设备不够）；`stop()` 带 2 秒看门狗（到期强制带已有转写收尾，管线永不楔死 UI）；`cancel()` 去守卫化（释放挂起的 stopWaiter 并无条件拆除）；音频会话 `setActive` 挪出主线程（`SessionCore.mm` UI-unresponsiveness 警告；异步 activate/deactivate API 是 iOS 27+，26.5 用 Task.detached 跑同步调用） | 原实现 `finalizeAndFinishThroughEndOfInput` 在活麦场景永不返回——「输入结束」正是那条从未 finish 的 `AsyncStream` → `stop()` 挂起（松手不停）→ 此刻 `cancel()` 被 `isRecording` 守卫拦下（stop 已置 false）→ **SpeechAnalyzer 泄漏**，几次即撞并发上限报 "Maximum number of recognizers reached" |
 
 Q3（埋点落点）、Q4（资产下载时机）、Q8（自定义语言模型）仍开放，归 M2。
 

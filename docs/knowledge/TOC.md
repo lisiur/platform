@@ -21,6 +21,7 @@
 | [bottom-add-pill-tab.md](bottom-add-pill-tab.md) | 动作型底部 Tab（单击弹模态/长按弹第二动作）：假 Tab + UIKit delegate 拦截 + 胶囊级长按手势，含版本分叉与方案演进记录 |
 | [list-swipe-actions.md](list-swipe-actions.md) | 侧滑菜单统一 allowsFullSwipe: false；删除按钮禁用 role: .destructive（UIKit 会直接播移除动画） |
 | [row-tap-navigation-without-chevron.md](row-tap-navigation-without-chevron.md) | 整行可点但隐藏系统 chevron：透明 NavigationLink 背景方案 |
+| [hold-to-talk-press-tracking.md](hold-to-talk-press-tracking.md) | 按住说话：按压载体必须恒定不变（Button 空壳标签 + overlay 动态内容）；松手丢失而「再点一次能停」= 按下引起的内容重建吃掉了进行中手势 |
 | [custom-background-image.md](custom-background-image.md) | 全局背景图（壁纸）：双磁盘槽 + 系统材质毛玻璃（非高斯）；沉底挂载（栈外 Tab 内）才做得到 push 时屏幕固定 |
 
 ## 图表
@@ -39,6 +40,7 @@
 | [ios26-liquid-glass.md](ios26-liquid-glass.md) | 液态玻璃 toolbar 合并/ToolbarSpacer、safeAreaBar、搜索框激活刷白改不了、Button 重着色、More 折叠 |
 | [swift6-isolation.md](swift6-isolation.md) | 默认 MainActor 下的 nonisolated 迁移模式；编译器假错「failed to produce diagnostic」 |
 | [sf-symbols.md](sf-symbols.md) | variableValue 需 .symbolVariableValueMode(.draw)；AppKit 一行量符号固有宽度定图标列 |
+| [speech-transcriber-live-mic-stop.md](speech-transcriber-live-mic-stop.md) | SpeechAnalyzer 活麦停止 = finish 输入流（finalize* API 永不返回）；cancel 去守卫化防分析器泄漏；setActive 挪出主线程 |
 
 ## 工程化
 

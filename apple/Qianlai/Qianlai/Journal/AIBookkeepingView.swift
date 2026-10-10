@@ -19,10 +19,11 @@ struct RecognizedScreenshot {
 }
 
 /// The AI-bookkeeping page: two doors into one seeded quick entry — pick a
-/// payment screenshot (tile → upload → AI vision recognize) or speak the
-/// transaction (on-device transcription → server parse). A soft miss
-/// (nothing recognized) or an error falls back to the door's idle state for
-/// the next attempt.
+/// payment screenshot (tile → upload → AI vision recognize), or hold the
+/// voice card and speak the transaction (release ends the dictation; the
+/// on-device transcript goes to the server parse). A soft miss (nothing
+/// recognized) or an error falls back to the door's idle state for the
+/// next attempt.
 struct AIBookkeepingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LedgerStore.self) private var ledgerStore
@@ -38,15 +39,7 @@ struct AIBookkeepingView: View {
         case recognizing
     }
 
-    /// Which door is open — the picking cards, or the voice sub-page
-    /// (self-contained: its own stages, title, and cancel).
-    private enum Mode {
-        case screenshot
-        case voice
-    }
-
     @State private var stage: Stage = .picking
-    @State private var mode: Mode = .screenshot
     /// The picked photo — cleared as soon as its bytes are read so the same
     /// photo can be picked again later.
     @State private var screenshotItem: PhotosPickerItem?
@@ -58,24 +51,36 @@ struct AIBookkeepingView: View {
     /// tiler follows a model switch made in the admin without an app
     /// update.
     @State private var budgetStore = RecognitionBudgetStore()
+    /// The hold-to-talk pipeline: the voice card drives this model directly
+    /// (press starts the transcriber, lifting the finger stops it and kicks
+    /// off the parse).
+    @State private var voiceModel: VoiceEntryModel
+
+    init(
+        onRecognition: @escaping (RecognizedScreenshot) -> Void,
+        voiceDemoStage: VoiceEntryModel.Stage? = nil
+    ) {
+        self.onRecognition = onRecognition
+        _voiceModel = State(initialValue: VoiceEntryModel(
+            transcriber: VoiceTranscriber(),
+            onRecognition: onRecognition,
+            demoStage: voiceDemoStage
+        ))
+    }
 
     /// Recognition always records into the app's active ledger.
     private var ledger: QianlaiLedger? { ledgerStore.activeLedger }
 
+    /// Voice occupies its card while dictating or parsing.
+    private var voiceBusy: Bool { voiceModel.stage != .idle }
+
     var body: some View {
         Group {
-            if mode == .voice {
-                VoiceEntryView(
-                    onRecognition: onRecognition,
-                    onBack: { mode = .screenshot }
-                )
-            } else {
-                switch stage {
-                case .picking:
-                    pickingStage
-                case .recognizing:
-                    recognizingStage
-                }
+            switch stage {
+            case .picking:
+                pickingStage
+            case .recognizing:
+                recognizingStage
             }
         }
         .appBackgroundCanvas()
@@ -84,7 +89,10 @@ struct AIBookkeepingView: View {
         .inlineNavigationBarTitle()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(L10n.string("common.cancel", defaultValue: "Cancel")) { dismiss() }
+                Button(L10n.string("common.cancel", defaultValue: "Cancel")) {
+                    voiceModel.abandon()
+                    dismiss()
+                }
             }
         }
         .alert(
@@ -111,8 +119,8 @@ struct AIBookkeepingView: View {
 
     // MARK: - Stages
 
-    /// The input state: the screenshot card and the voice card — two doors
-    /// into the same seeded quick entry, each with its one-line hint.
+    /// The input state: the screenshot card and the hold-to-talk voice card
+    /// — two doors into the same seeded quick entry.
     private var pickingStage: some View {
         // Read on the actor before the label closure: PhotosPicker's label
         // is @Sendable, and the store property is main-actor isolated.
@@ -136,11 +144,45 @@ struct AIBookkeepingView: View {
                 }
             }
             .buttonStyle(.plain)
+            .disabled(voiceBusy)
             .padding(.horizontal, 24)
+            voiceCard(surface: surface)
+                .padding(.horizontal, 24)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The hold-to-talk door: press and hold to dictate, release to stop
+    /// and parse.
+    ///
+    /// Structure is load-bearing: the Button's label is a byte-stable empty
+    /// card, and ALL stage-dependent visuals (transcript, spinner) render in
+    /// an overlay above it. Every prior attempt hung press tracking off the
+    /// live content — LongPress sequence, bare DragGesture, style onChange —
+    /// and the stage flip at touch-down rebuilt the tracked view mid-gesture,
+    /// swallowing the finger-up ("release never stops, a second tap does").
+    private func voiceCard(surface: Color) -> some View {
+        ZStack {
             Button {
-                mode = .voice
+                // Press edges are handled by the style; the tap action is
+                // intentionally empty — a bare tap is too short to dictate
+                // into and the model's gates absorb it.
             } label: {
-                AIInputCard(surface: surface) {
+                AIInputCard(surface: surface) { Color.clear }
+            }
+            .buttonStyle(HoldToTalkStyle { pressed in
+                if pressed {
+                    Task { await startVoice() }
+                } else {
+                    Task { await finishVoice() }
+                }
+            })
+        }
+        .overlay {
+            AIInputCard(surface: surface) {
+                switch voiceModel.stage {
+                case .idle:
                     Image(systemName: "mic.fill")
                         .font(.system(size: 40))
                         .foregroundStyle(Color.accentColor)
@@ -148,18 +190,66 @@ struct AIBookkeepingView: View {
                         .font(.headline)
                     Text(L10n.string(
                         "voice.cardHint",
-                        defaultValue: "One transaction, spoken out loud"
+                        defaultValue: "Hold to speak, release to finish"
                     ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                case .recording:
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.accentColor)
+                        .symbolEffect(.pulse, options: .repeating, isActive: true)
+                    Text(
+                        voiceModel.transcriber.partialText.isEmpty
+                            ? L10n.string("voice.listening", defaultValue: "Listening…")
+                            : voiceModel.transcriber.partialText
+                    )
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    Text(L10n.string("voice.releaseToFinish", defaultValue: "Release to finish"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                case .parsing:
+                    ProgressView()
+                    Text(L10n.string("voice.parsing", defaultValue: "Parsing…"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            Spacer()
+            .allowsHitTesting(false)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityLabel(Text(L10n.string("voice.cardTitle", defaultValue: "Speak an Entry")))
+        .accessibilityHint(Text(L10n.string(
+            "voice.cardHint",
+            defaultValue: "Hold to speak, release to finish"
+        )))
+        .alert(
+            L10n.string("voice.failedTitle", defaultValue: "Voice Entry Failed"),
+            isPresented: Binding(
+                get: { voiceModel.errorMessage != nil },
+                set: { if !$0 { voiceModel.clearError() } }
+            )
+        ) {
+            Button(L10n.string("common.ok", defaultValue: "OK"), role: .cancel) {}
+        } message: {
+            Text(voiceModel.errorMessage ?? "")
+        }
+    }
+
+    private func startVoice() async {
+        await voiceModel.startRecording(ledgerId: ledger?.id)
+    }
+
+    private func finishVoice() async {
+        await voiceModel.stopAndParse(ledgerId: ledger?.id) { ledgerId, transcript, now in
+            try await journalStore.recognizeVoice(
+                ledgerId: ledgerId,
+                transcript: transcript,
+                now: now
+            )
+        }
     }
 
     private var recognizingStage: some View {
@@ -282,9 +372,24 @@ extension View {
     }
 }
 
+/// Press tracking for the hold-to-talk card. Button's own press machinery
+/// survives the card's content swapping between idle/recording/parsing —
+/// a bare DragGesture attached to the changing content loses the finger-up
+/// mid-gesture, which is exactly the "release never stops" bug.
+private struct HoldToTalkStyle: ButtonStyle {
+    let onHoldChange: (Bool) -> Void
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, pressed in
+                onHoldChange(pressed)
+            }
+    }
+}
+
 /// The rounded card chrome both AI-input doors render — the screenshot
-/// picker card here and the voice page's idle mic card share the shell,
-/// only the contents differ.
+/// picker card and the hold-to-talk voice card share the shell, only the
+/// contents differ.
 struct AIInputCard<Content: View>: View {
     let surface: Color
     var spacing: CGFloat = 12

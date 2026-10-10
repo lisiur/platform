@@ -87,6 +87,8 @@ final class VoiceTranscriber: VoiceTranscribing {
     /// Set once the analyzer can produce no more results; guards the stop
     /// waiter against a finalize that already happened.
     private var backendDone = false
+    /// Bumped per `stop` so a stale watchdog can't release a newer wait.
+    private var stopGeneration = 0
     /// `stop` parks here until the analyzer's results stream drained (final
     /// result delivered). Resumed exactly once — by the completion path,
     /// which nils it.
@@ -102,6 +104,10 @@ final class VoiceTranscriber: VoiceTranscribing {
             throw VoiceTranscriptionError.speechPermissionDenied
         }
         partialText = ""
+        // Fresh session state: a previous pass on this instance ended
+        // through stop or cancel, either of which marks the backend done.
+        backendDone = false
+        stopWaiter = nil
         isRecording = true
         // A locale the on-device model doesn't cover is a dead end — there
         // is deliberately no server-side recognizer to fall back to.
@@ -125,9 +131,22 @@ final class VoiceTranscriber: VoiceTranscribing {
         guard isRecording else { return "" }
         isRecording = false
         if !backendDone {
+            finalizeBackend()
+            // Watchdog: completion is normally signalled by the results
+            // stream ending; if the backend never confirms, release the
+            // stop after a beat with whatever transcript exists — a wedged
+            // stop is worse than a truncated one.
+            stopGeneration += 1
+            let generation = stopGeneration
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(2))
+                guard let self, generation == self.stopGeneration,
+                      !self.backendDone, let waiter = self.stopWaiter else { return }
+                self.stopWaiter = nil
+                waiter.resume()
+            }
             await withCheckedContinuation { continuation in
                 self.stopWaiter = continuation
-                Task { await self.finalizeBackend() }
             }
         }
         teardown()
@@ -135,8 +154,13 @@ final class VoiceTranscriber: VoiceTranscribing {
     }
 
     func cancel() {
-        guard isRecording else { return }
+        // Deliberately guard-free: a stop() may be parked waiting for the
+        // backend (it already cleared isRecording) — release it and tear
+        // the plumbing down, so no analyzer leaks behind either path.
         isRecording = false
+        backendDone = true
+        stopWaiter?.resume()
+        stopWaiter = nil
         teardown()
     }
 
@@ -181,6 +205,10 @@ final class VoiceTranscriber: VoiceTranscribing {
 
     private var analyzer: SpeechAnalyzer?
     private var resultsTask: Task<Void, Never>?
+    /// The live tap's input side. Ending this stream is what makes the
+    /// analyzer finalize and its results sequence complete — without it a
+    /// live-tap stop can never finish.
+    private var inputContinuation: AsyncStream<AnalyzerInput>.Continuation?
     private var frozenText = ""
     private var volatileText = ""
 
@@ -228,6 +256,7 @@ final class VoiceTranscriber: VoiceTranscribing {
         try await analyzer.prepareToAnalyze(in: targetFormat)
 
         let (stream, continuation) = AsyncStream<AnalyzerInput>.makeStream()
+        inputContinuation = continuation
         guard
             let converter = AVAudioConverter(from: tapFormat, to: targetFormat)
         else {
@@ -244,7 +273,7 @@ final class VoiceTranscriber: VoiceTranscribing {
             tap.forward(buffer)
         }
 
-        try Self.activateRecordingSession()
+        try await Self.activateRecordingSession()
         try engine.start()
         try await analyzer.start(inputSequence: stream)
 
@@ -274,10 +303,14 @@ final class VoiceTranscriber: VoiceTranscribing {
 
     // MARK: - Stop / teardown
 
-    /// Signals the analyzer to produce its final result and end its results
-    /// stream — the completion path then releases `stop`.
+    /// Ends the input so the analyzer finalizes what it heard and its
+    /// results sequence completes — the completion path then releases
+    /// `stop`. The explicit finalize rides along for devices where the
+    /// results stream drags its feet after end-of-input; neither call can
+    /// block this synchronous context.
     private func finalizeBackend() {
         guard !backendDone else { return }
+        inputContinuation?.finish()
         Task {
             try? await analyzer?.finalizeAndFinishThroughEndOfInput()
         }
@@ -302,22 +335,33 @@ final class VoiceTranscriber: VoiceTranscribing {
     }
 
     /// Ends the audio plumbing; idempotent across the cancel/stop paths.
+    /// Deactivation runs off the main thread — the synchronous
+    /// `setActive(false)` warns it can stall the UI while the session is
+    /// live, and the engine is already stopped here anyway.
     private func finishRecordingSession() {
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
-        try? AVAudioSession.sharedInstance().setActive(
-            false, options: .notifyOthersOnDeactivation
-        )
+        Task.detached(priority: .utility) {
+            try? AVAudioSession.sharedInstance().setActive(
+                false, options: .notifyOthersOnDeactivation
+            )
+        }
+        inputContinuation?.finish()
+        inputContinuation = nil
         engine = nil
         analyzer = nil
         resultsTask = nil
     }
 
-    private static func activateRecordingSession() throws {
+    private static func activateRecordingSession() async throws {
         try AVAudioSession.sharedInstance().setCategory(
             .playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker]
         )
-        try AVAudioSession.sharedInstance().setActive(true)
+        // Off-main: the synchronous activation can block the UI thread
+        // while the audio server round-trips.
+        try await Task.detached(priority: .userInitiated) {
+            try AVAudioSession.sharedInstance().setActive(true)
+        }.value
     }
 }
 

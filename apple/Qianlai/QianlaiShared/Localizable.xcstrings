@@ -11572,13 +11572,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One transaction, spoken out loud"
+            "value" : "Hold to speak, release to finish"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "说出这笔账"
+            "value" : "按住说话，松开结束"
           }
         }
       }
@@ -11613,23 +11613,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "语音记账失败"
-          }
-        }
-      }
-    },
-    "voice.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try: “Lunch today, 35 yuan, at Hema”"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "试试：「今天午饭 35 块，在盒马」"
           }
         }
       }
@@ -11753,6 +11736,23 @@
         }
       }
     },
+    "voice.releaseToFinish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release to finish"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开结束"
+          }
+        }
+      }
+    },
     "voice.speechDenied" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11766,57 +11766,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "语音识别权限已关闭，请到系统设置中开启后再试。"
-          }
-        }
-      }
-    },
-    "voice.stop" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "说完了"
-          }
-        }
-      }
-    },
-    "voice.tapToSpeak" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap and Speak"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "点按说话"
-          }
-        }
-      }
-    },
-    "voice.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voice Entry"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "语音记账"
           }
         }
       }
