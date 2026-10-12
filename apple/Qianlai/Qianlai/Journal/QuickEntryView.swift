@@ -867,18 +867,26 @@ struct QuickEntryView: View {
             // loads land. Scope switches and the more sheet's close re-run
             // this below.
             applyPreferenceLayout()
-            await accountStore.load(ledgerId: ledger.id)
-            await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             // The sheet posts through (and prefills categories from) the
             // root JournalStore — this task is what targets it at the
             // active ledger, so posting works without ever visiting the
             // Journal tab. The load dedupes against the tab's own.
+            // Started here, not after the loads below: `load` aims the
+            // store at the ledger synchronously before its fetch, and the
+            // save guards (post/update/attachments) read exactly that aim
+            // — serialized last, a fast save on a cold start (fresh
+            // process, a resumed-from-background freeze, or a post-expiry
+            // cache wipe) beat the accounts/members round trips into
+            // `noActiveLedger`.
+            async let postingLedgerLoad: Void = postingJournal.load(ledgerId: ledger.id)
+            await accountStore.load(ledgerId: ledger.id)
+            await memberStore.load(ledgerId: ledger.id, myUserId: nil)
             // Bound sheets fill the project cache without claiming scope;
             // unbound ones already have it warm from the switcher.
             if binding != nil {
                 await appProjectStore.prefetch(ledgerId: ledger.id)
             }
-            await postingJournal.load(ledgerId: ledger.id)
+            await postingLedgerLoad
             // AI mode prefills the recognition's suggestion instead of the
             // recents-based default — the two prefills must never race.
             if recognitionSeed == nil {
