@@ -40,7 +40,7 @@
 | [ios26-liquid-glass.md](ios26-liquid-glass.md) | 液态玻璃 toolbar 合并/ToolbarSpacer、safeAreaBar、搜索框激活刷白改不了、Button 重着色、More 折叠 |
 | [swift6-isolation.md](swift6-isolation.md) | 默认 MainActor 下的 nonisolated 迁移模式；编译器假错「failed to produce diagnostic」 |
 | [sf-symbols.md](sf-symbols.md) | variableValue 需 .symbolVariableValueMode(.draw)；AppKit 一行量符号固有宽度定图标列 |
-| [speech-transcriber-live-mic-stop.md](speech-transcriber-live-mic-stop.md) | SpeechAnalyzer 活麦停止 = finish 输入流（finalize* API 永不返回）；cancel 去守卫化防分析器泄漏；setActive 挪出主线程 |
+| [speech-transcriber-live-mic-stop.md](speech-transcriber-live-mic-stop.md) | SpeechAnalyzer 活麦停止 = finish 输入流（finalize* API 永不返回）；尾音补采 400ms 防末字截断；cancel 去守卫化防分析器泄漏；setActive 挪出主线程 |
 
 ## 工程化
 

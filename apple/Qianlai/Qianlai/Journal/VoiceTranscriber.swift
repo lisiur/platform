@@ -83,10 +83,26 @@ final class VoiceTranscriber: VoiceTranscribing {
 
     private(set) var isRecording = false
 
+    /// Tail padding: the finger comes up *with* the last syllable, so the
+    /// tail's decay (a Chinese final rings 150–300ms past the release) and
+    /// the short trailing silence the transcriber needs to commit a segment
+    /// both land after the release. Ending the input stream at lift-off
+    /// throws that audio away for good — a finished continuation silently
+    /// drops every buffer the still-running tap yields — so what survives is
+    /// a last segment cut at its onset, which is exactly the shape on-device
+    /// transcription degrades on. The tap keeps feeding for a beat past the
+    /// release instead. Sized to the decay with margin, not to a bar: a
+    /// bookkeeping utterance is one sentence, so a longer window would only
+    /// hold the card open.
+    private static let tailPadding = Duration.milliseconds(400)
+
     private var engine: AVAudioEngine?
     /// Set once the analyzer can produce no more results; guards the stop
     /// waiter against a finalize that already happened.
     private var backendDone = false
+    /// The deferred input-stream close armed by `stop`; cancelled by
+    /// `teardown` so an abandon during the tail window never finalizes.
+    private var tailTask: Task<Void, Never>?
     /// Bumped per `stop` so a stale watchdog can't release a newer wait.
     private var stopGeneration = 0
     /// `stop` parks here until the analyzer's results stream drained (final
@@ -131,19 +147,15 @@ final class VoiceTranscriber: VoiceTranscribing {
         guard isRecording else { return "" }
         isRecording = false
         if !backendDone {
-            finalizeBackend()
-            // Watchdog: completion is normally signalled by the results
-            // stream ending; if the backend never confirms, release the
-            // stop after a beat with whatever transcript exists — a wedged
-            // stop is worse than a truncated one.
-            stopGeneration += 1
-            let generation = stopGeneration
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(2))
-                guard let self, generation == self.stopGeneration,
-                      !self.backendDone, let waiter = self.stopWaiter else { return }
-                self.stopWaiter = nil
-                waiter.resume()
+            tailTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: Self.tailPadding)
+                // Abandoned (or a second stop) while padding — the waiter is
+                // already resolved and the plumbing is gone.
+                guard let self, !Task.isCancelled else { return }
+                // Armed here, not at entry: the finalize drain gets the full
+                // budget on its own, never split with the padding.
+                self.armStopWatchdog()
+                self.finalizeBackend()
             }
             await withCheckedContinuation { continuation in
                 self.stopWaiter = continuation
@@ -151,6 +163,23 @@ final class VoiceTranscriber: VoiceTranscribing {
         }
         teardown()
         return partialText
+    }
+
+    /// Watchdog: completion is normally signalled by the results stream
+    /// ending; if the backend never confirms, release the stop after a beat
+    /// with whatever transcript exists — a wedged stop is worse than a
+    /// truncated one. Generation-scoped so a stale one can't release a newer
+    /// wait.
+    private func armStopWatchdog() {
+        stopGeneration += 1
+        let generation = stopGeneration
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard let self, generation == self.stopGeneration,
+                  !self.backendDone, let waiter = self.stopWaiter else { return }
+            self.stopWaiter = nil
+            waiter.resume()
+        }
     }
 
     func cancel() {
@@ -327,6 +356,11 @@ final class VoiceTranscriber: VoiceTranscribing {
     }
 
     private func teardown() {
+        // The padding task must never outlive the session: it holds the only
+        // reference to a finalize that would otherwise run against a torn
+        // down analyzer.
+        tailTask?.cancel()
+        tailTask = nil
         resultsTask?.cancel()
         if let analyzer {
             Task { await analyzer.cancelAndFinishNow() }

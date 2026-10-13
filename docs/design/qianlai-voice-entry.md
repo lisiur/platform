@@ -599,6 +599,8 @@ enum VoiceTranscriptionError: LocalizedError {
 
 | R12 | 转写缺失（2026-10-10 用户查 AI usage 日志发现） | **transcript 拼入 prompt 末尾**（`Transcript:` 块，§4.4 开头的 "The transcript below" 由此成立）；usage 日志的 `input.prompt` 因此可完整审计 | 初版实现丢了 §4.3 草案的第二个 text part（utterance），重构与两轴评审均未抓到——模型从未见过转写，每次解析必然 `recognized:false`，真机表现为正常话术也弹「没听出可记录的交易」 |
 
+| R13 | 末字截断（2026-10-13 使用场景推演） | **尾音补采（hangover）400ms**：抬指不立即关输入流，先挂一个 400ms Task 再 `finish()`；补采由 `teardown()` 取消，看门狗改从补采结束后起算 | hold-to-talk 的天然手势是「说到末字同时松手」，汉字韵母衰减 150–300ms 全在松手之后；抬指即 `finish()` 会让仍在跑的 tap 把后续 buffer `yield()` 到已关闭的流上**静默丢弃**，末段又恰切在音节起点、没有尾随静音可提交——记账话术里被截断的通常是**金额**，且截断不产生歧义候选、`amountAlternatives` 兜不住，会被模型自信地解析成错账。选固定补采而非 VAD 端点检测：松手语义已明确「说完了」，VAD 只会给句中停顿加延迟。400ms 按末字衰减留余量，记账是一句话，更长窗口只是白卡住卡片 |
+
 Q3（埋点落点）、Q4（资产下载时机）、Q8（自定义语言模型）仍开放，归 M2。
 
 ---
