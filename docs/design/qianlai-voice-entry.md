@@ -70,7 +70,7 @@ D3 的直接后果见 [§5.3](#53-一句话多笔的单笔契约降级语义) �
 | 确认流 | `apple/Qianlai/Qianlai/Journal/QuickEntryView.swift` | AI 模式草稿 → 确认 → `post` |
 | Store | `apple/Qianlai/Qianlai/Bookkeeping/JournalStore.swift:507` | `post(_ draft:)` → `client.send("POST", …, body: draft.body)` |
 | HTTP 客户端 | `apple/Qianlai/QianlaiShared/API/APIClient.swift:113` | `request(_:_:body:)` 泛型 JSON POST |
-| 部署目标 | `apple/Qianlai/Qianlai.xcodeproj/project.pbxproj:479` | `IPHONEOS_DEPLOYMENT_TARGET = 26.5` |
+| 部署目标 | `apple/Qianlai/Qianlai.xcodeproj/project.pbxproj:481` | `IPHONEOS_DEPLOYMENT_TARGET = 26.0` |
 
 ### 种子数据
 
@@ -328,7 +328,7 @@ packages/service/prisma/manual-20260928-qianlai-voice.sql
 
 ### 5.1 为什么是 `SpeechAnalyzer` 而不是 `SFSpeechRecognizer`
 
-部署目标 `26.5`（`project.pbxproj:479`）> `SpeechAnalyzer` 的引入版本 `26.0`。Apple 在 WWDC25 session 277 中明确：`SpeechAnalyzer` **replaces `SFSpeechRecognizer` introduced in iOS 10**。
+部署目标 `26.0`（`project.pbxproj:481`）= `SpeechAnalyzer` 的引入版本 `26.0`。Apple 在 WWDC25 session 277 中明确：`SpeechAnalyzer` **replaces `SFSpeechRecognizer` introduced in iOS 10**。
 
 因此：**无需 `@available` 分支、无需降级路径、无需兼容层**。
 
@@ -336,7 +336,7 @@ packages/service/prisma/manual-20260928-qianlai-voice.sql
 
 Apple 官方示例 "Recognizing speech in live audio" 使用 `CaptureInputSequenceProvider`（自动配置 capture session + 音频转换），但示例文档自述该类 **introduced in macOS and iOS 27**。
 
-26.5 够不着。必须自己搭 `AVAudioEngine` tap + `AnalyzerInputConverter`，即 WWDC 演示的路径。**实现者请不要照抄官方示例直接跑。**
+26.0 够不着。必须自己搭 `AVAudioEngine` tap + `AnalyzerInputConverter`，即 WWDC 演示的路径。**实现者请不要照抄官方示例直接跑。**
 
 ### 5.3 一句话多笔的单笔契约降级语义
 
@@ -594,7 +594,7 @@ enum VoiceTranscriptionError: LocalizedError {
 | R10 | 交互层级（2026-10-09 产品裁决，同日两次修正） | 语音卡 **hold-to-talk**：触摸即录、松手即停并解析；`VoiceEntryView` 子页与 `Mode` 分支移除，页面外层 Cancel 走 `abandon()`。按压追踪的**载体必须恒定不变**——Button 标签是永远不变的空卡（`Color.clear`），转写/解析等全部动态内容画在 `allowsHitTesting(false)` 的 overlay 上（真机探针实证此结构松手事件稳定送达；此前 LongPress 序列、裸 `DragGesture(minimumDistance:0)`、挂在重建内容上的 ButtonStyle 三版全部丢失抬指事件，症状「松手不结束、再点一次才停」） | 层级太深；按住说话贴合「一句话一笔」的短时长。竞态由模型兜：stage 触摸瞬间同步翻转 + `pendingFinish` 挂起回收 + start 落地后的放弃自停 |
 
 
-| R11 | 结束管线（2026-10-09 真机实测缺陷） | **结束信号 = 结束输入流**（`inputContinuation.finish()`）+ Task 内显式 `finalizeAndFinishThroughEndOfInput()` 双保险（真机实测光 finish 流在部分设备不够）；`stop()` 带 2 秒看门狗（到期强制带已有转写收尾，管线永不楔死 UI）；`cancel()` 去守卫化（释放挂起的 stopWaiter 并无条件拆除）；音频会话 `setActive` 挪出主线程（`SessionCore.mm` UI-unresponsiveness 警告；异步 activate/deactivate API 是 iOS 27+，26.5 用 Task.detached 跑同步调用） | 原实现 `finalizeAndFinishThroughEndOfInput` 在活麦场景永不返回——「输入结束」正是那条从未 finish 的 `AsyncStream` → `stop()` 挂起（松手不停）→ 此刻 `cancel()` 被 `isRecording` 守卫拦下（stop 已置 false）→ **SpeechAnalyzer 泄漏**，几次即撞并发上限报 "Maximum number of recognizers reached" |
+| R11 | 结束管线（2026-10-09 真机实测缺陷） | **结束信号 = 结束输入流**（`inputContinuation.finish()`）+ Task 内显式 `finalizeAndFinishThroughEndOfInput()` 双保险（真机实测光 finish 流在部分设备不够）；`stop()` 带 2 秒看门狗（到期强制带已有转写收尾，管线永不楔死 UI）；`cancel()` 去守卫化（释放挂起的 stopWaiter 并无条件拆除）；音频会话 `setActive` 挪出主线程（`SessionCore.mm` UI-unresponsiveness 警告；异步 activate/deactivate API 是 iOS 27+，26.0 用 Task.detached 跑同步调用） | 原实现 `finalizeAndFinishThroughEndOfInput` 在活麦场景永不返回——「输入结束」正是那条从未 finish 的 `AsyncStream` → `stop()` 挂起（松手不停）→ 此刻 `cancel()` 被 `isRecording` 守卫拦下（stop 已置 false）→ **SpeechAnalyzer 泄漏**，几次即撞并发上限报 "Maximum number of recognizers reached" |
 
 
 | R12 | 转写缺失（2026-10-10 用户查 AI usage 日志发现） | **transcript 拼入 prompt 末尾**（`Transcript:` 块，§4.4 开头的 "The transcript below" 由此成立）；usage 日志的 `input.prompt` 因此可完整审计 | 初版实现丢了 §4.3 草案的第二个 text part（utterance），重构与两轴评审均未抓到——模型从未见过转写，每次解析必然 `recognized:false`，真机表现为正常话术也弹「没听出可记录的交易」 |
