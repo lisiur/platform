@@ -6,6 +6,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import {
+  MAX_IMPORT_BODY_SIZE,
   MAX_JSON_BODY_SIZE,
   MAX_UPLOAD_BODY_SIZE,
   RATE_LIMIT_AUTH_DEFAULT_MAX,
@@ -162,7 +163,26 @@ openAPIApp.use("/auth/change-password", authLimiter);
 openAPIApp.use("/auth/webauthn/login-options", authLimiter);
 openAPIApp.use("/auth/webauthn/login-verify", authLimiter);
 
+/**
+ * The ledger transfer endpoints carry a whole export archive, not a single
+ * upload, so they get their own ceiling instead of the multipart one every
+ * other upload shares. Matched by suffix rather than by an exact path so the
+ * bookkeeping routes can move without silently falling back to the 6MB cap —
+ * the failure mode that just moved the limit back down to 413 on import.
+ *
+ * `c.req.path` inside a middleware registered on this app carries the
+ * app's own `basePath('/api')` prefix, so these are full paths.
+ */
+const LARGE_UPLOAD_PATH_SUFFIXES = [
+  "/api/bookkeeping/transfers/preview",
+  "/api/bookkeeping/transfers/commit",
+];
+
 openAPIApp.use("*", async (c, next) => {
+  const path = c.req.path;
+  if (LARGE_UPLOAD_PATH_SUFFIXES.some((suffix) => path.endsWith(suffix))) {
+    return bodyLimit({ maxSize: MAX_IMPORT_BODY_SIZE })(c, next);
+  }
   const contentType = c.req.raw.headers.get("content-type") ?? "";
   const maxSize = contentType.includes("multipart/form-data")
     ? MAX_UPLOAD_BODY_SIZE

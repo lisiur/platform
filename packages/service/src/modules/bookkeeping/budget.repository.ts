@@ -21,6 +21,16 @@ export const budgetRepository = {
     });
   },
 
+  /** Every year row with its overrides, oldest first — the transfer
+   *  export's whole budget (the settings route reads one year at a time). */
+  listAll(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.ledgerBudgetYear.findMany({
+      where: { ledgerId },
+      include: { months: { orderBy: { month: "asc" } } },
+      orderBy: { year: "asc" },
+    });
+  },
+
   upsertYear(
     ledgerId: string,
     data: { year: number; cents: number },

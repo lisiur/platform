@@ -597,9 +597,9 @@ describe("recognizeVoice", () => {
     });
     // The spoken transcript must reach the model — the usage log's
     // input.prompt mirrors this text and is how it gets audited.
-    expect(
-      (content?.[0] as { text?: string } | undefined)?.text,
-    ).toContain("昨天打车 23 块");
+    expect((content?.[0] as { text?: string } | undefined)?.text).toContain(
+      "昨天打车 23 块",
+    );
 
     expect(result).toEqual({
       ...fixtureRecognition,

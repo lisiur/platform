@@ -243,6 +243,103 @@ final class APIClient {
 
     private static let logger = Logger(subsystem: "top.hapaul.qianlai", category: "APIClient")
 
+    /// Downloads a response body to memory, for the endpoints that answer
+    /// with a file rather than JSON (the ledger export). Goes through
+    /// `URLSession.download` so the bytes stream to disk instead of piling
+    /// up in memory — a ledger export carries every entry and every photo
+    /// receipt, and the archive is built as a stream server-side.
+    func download(
+        _ path: String,
+        query: [URLQueryItem] = []
+    ) async throws -> Data {
+        var components = URLComponents(url: config.url(forPath: path), resolvingAgainstBaseURL: false)
+        if !query.isEmpty { components?.queryItems = query }
+        guard let url = components?.url else { throw APIError.invalidResponse }
+
+        var request = URLRequest(url: url)
+        request.setValue(config.appCode, forHTTPHeaderField: "X-App-Code")
+        if let sessionToken {
+            request.setValue("session_token=\(sessionToken)", forHTTPHeaderField: "Cookie")
+        }
+
+        let (tempURL, response) = try await session.download(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            // A refused export answers with JSON, so the message has to be
+            // read out of the body the download just stashed on disk.
+            let data = (try? Data(contentsOf: tempURL)) ?? Data()
+            if http.statusCode == 401, !path.hasPrefix("auth/"), let onSessionExpired {
+                onSessionExpired()
+            }
+            throw APIError.server(
+                status: http.statusCode,
+                message: Self.errorMessage(from: data, status: http.statusCode, path: path)
+            )
+        }
+        return try Data(contentsOf: tempURL)
+    }
+
+    /// Posts a `multipart/form-data` body carrying one file plus plain
+    /// text fields — the ledger import's shape, where the file picks the
+    /// target and the fields say where it lands.
+    func postMultipart<T: Decodable>(
+        _ path: String,
+        fileData: Data,
+        fileName: String,
+        mimeType: String,
+        fields: [(name: String, value: String)] = []
+    ) async throws -> T {
+        let boundary = "Qianlai.boundary.\(UUID().uuidString)"
+        var request = URLRequest(url: config.url(forPath: path))
+        // URLRequest defaults to GET, which would 404 against these POST
+        // routes — the field-carrying sibling above sets this explicitly.
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue(config.appCode, forHTTPHeaderField: "X-App-Code")
+        if let sessionToken {
+            request.setValue("session_token=\(sessionToken)", forHTTPHeaderField: "Cookie")
+        }
+
+        var body = Data()
+        for field in fields {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(field.name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append(field.value.data(using: .utf8)!)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 401, let onSessionExpired {
+                onSessionExpired()
+            }
+            throw APIError.server(
+                status: http.statusCode,
+                message: Self.errorMessage(from: data, status: http.statusCode, path: path)
+            )
+        }
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            Self.logger.error(
+                "Decoding \(String(describing: T.self), privacy: .public) failed: \(String(describing: error), privacy: .public)"
+            )
+            throw APIError.decodingFailed
+        }
+    }
+
     private static func errorMessage(from data: Data, status: Int, path: String) -> String {
         struct ServerError: Decodable {
             let message: String?

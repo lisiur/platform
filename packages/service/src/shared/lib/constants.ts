@@ -11,6 +11,24 @@ export const MAX_UPLOAD_BODY_SIZE = MAX_UPLOAD_FILE_SIZE + 1024 * 1024; // 5MB +
 // globally by the Hono bodyLimit middleware.
 export const MAX_JSON_BODY_SIZE = 2 * 1024 * 1024; // 2MB
 
+// Maximum body size for the ledger transfer endpoints, which carry a whole
+// export archive (workbook + lossless document + photo receipts) rather than
+// one upload. The two paths are exempted from the multipart cap above in
+// app.ts; this is their own ceiling, and it is deliberately finite — an
+// archive past it is refused instead of being read into memory.
+//
+// Deploy note: this is above nginx's default client_max_body_size (1m), so a
+// host serving the gateway has to raise it (see DEPLOY.md) or the import 413s
+// at the proxy before it ever reaches here.
+export const MAX_IMPORT_BODY_SIZE = 32 * 1024 * 1024; // 32MB
+
+// Ceiling on the photo bytes one export may carry. Deliberately the same
+// number as the import body cap: an export bigger than this would produce an
+// archive that restore then refuses, so the export is the one that says no.
+// The workbook-only format is the escape hatch for a ledger holding more
+// receipts than this.
+export const MAX_EXPORT_PHOTO_BYTES = 32 * 1024 * 1024; // 32MB
+
 // How long a signed upload access URL stays valid.
 export const UPLOAD_SIGN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 

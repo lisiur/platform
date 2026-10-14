@@ -39,6 +39,13 @@ packages/
 - Collection export and import.
 - Self-service credit usage page backed by a personal ledger endpoint.
 
+**Ledger export & import (潜望 / Qianlai)**
+
+- Per-ledger export as a backup archive (`.zip`: an Excel workbook, a lossless `data.json`, and the photo receipts) or as the workbook alone.
+- Editors and owners only; member emails are the owner's to see, so an editor's file restores people by name.
+- Import is preview-then-commit: the preview resolves accounts, projects and people against the target and reports every problem with its row number; the commit refuses a file that isn't byte-identical to the previewed one.
+- Restore into a new ledger, or merge into an existing one — merging reuses accounts by their stable code or type+name and skips entries already there by a local-day/amount fingerprint.
+
 **Authentication & authorization**
 
 - Email/password sign-in and sign-up with argon2 hashing.

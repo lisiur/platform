@@ -199,6 +199,17 @@ terminates TLS for your domain (see `nginx/server-block.example.conf`):
 ```nginx
     include /home/you/platform/nginx/apps/*.conf;
     # replace the path with your real tarball extract directory
+
+    # Uploads and downloads: nginx caps a request body at 1 MB by default,
+    # which is below what the app itself accepts (a photo receipt is 5 MB,
+    # a ledger export import is 32 MB). Raise it, or those uploads 413 at
+    # the proxy and never reach the service.
+    client_max_body_size 32m;
+
+    # A ledger export streams a whole archive; the 60s default cuts a big
+    # one off mid-download.
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
 ```
 
 Then validate and reload once:

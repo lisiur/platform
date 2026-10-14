@@ -56,6 +56,19 @@ nonisolated enum LedgerPolicy {
         atLeast(role, .editor)
     }
 
+    /// Editors and owners may export a ledger. An archived ledger exports
+    /// fine — export only reads, and a backup of a closed book is exactly
+    /// when someone wants one — so no ledgerActive gate here.
+    static func canExportLedger(_ role: LedgerRole) -> Bool {
+        atLeast(role, .editor)
+    }
+
+    /// Importing writes, so it needs what posting needs: editors and
+    /// owners, on an active ledger.
+    static func canImportInto(role: LedgerRole, ledgerActive: Bool) -> Bool {
+        ledgerActive && atLeast(role, .editor)
+    }
+
     static func canManageMembers(_ role: LedgerRole) -> Bool {
         isOwner(role)
     }

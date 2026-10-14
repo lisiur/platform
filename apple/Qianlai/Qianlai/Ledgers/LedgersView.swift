@@ -12,8 +12,13 @@ import SwiftUI
 struct LedgersView: View {
     @Environment(LedgerStore.self) private var ledgerStore
     @Environment(ProjectStore.self) private var projectStore
+    @Environment(LedgerTransferStore.self) private var transferStore
     @Environment(ToastCenter.self) private var toast
     @State private var editingLedger: QianlaiLedger?
+    @State private var exportingLedger: QianlaiLedger?
+    /// The import sheet's destination, fixed by where it was opened from:
+    /// the toolbar restores into a new ledger, a row merges into that one.
+    @State private var importTarget: ImportTarget?
     @State private var isShowingCreate = false
     @State private var membersLedger: QianlaiLedger?
     @State private var ledgerPendingDelete: QianlaiLedger?
@@ -29,6 +34,28 @@ struct LedgersView: View {
 
     init(expandGuestLedgers: Bool = false) {
         self.expandGuestLedgers = expandGuestLedgers
+    }
+
+    /// Where an import sheet lands. Distinct from the store's own
+    /// `LedgerImportTarget` so the sheet binding stays `Identifiable`
+    /// without teaching the store about SwiftUI.
+    private enum ImportTarget: Identifiable {
+        case new
+        case merge(QianlaiLedger)
+
+        var id: String {
+            switch self {
+            case .new: return "new"
+            case .merge(let ledger): return "merge-\(ledger.id)"
+            }
+        }
+
+        var transferTarget: LedgerImportTarget {
+            switch self {
+            case .new: return .new(name: nil)
+            case .merge(let ledger): return .merge(ledgerId: ledger.id)
+            }
+        }
     }
 
     /// One row in the manage list — either a ledger or a project. The enum
@@ -168,6 +195,18 @@ struct LedgersView: View {
                 }
                 .accessibilityLabel(Text(L10n.string("ledgers.create", defaultValue: "Create Ledger")))
             }
+            ToolbarItem(placement: .secondaryAction) {
+                // Restore is account-level — the file brings its own
+                // ledger — so it lives on the toolbar rather than on any
+                // one row.
+                Button {
+                    transferStore.resetImport()
+                    importTarget = .new
+                } label: {
+                    Image(systemName: "square.and.arrow.down")
+                }
+                .accessibilityLabel(Text(L10n.string("transfer.import.title", defaultValue: "Import Ledger")))
+            }
         }
         .task {
             await ledgerStore.load()
@@ -196,6 +235,12 @@ struct LedgersView: View {
             NavigationStack {
                 MembersView(ledger: ledger)
             }
+        }
+        .sheet(item: $exportingLedger) { ledger in
+            LedgerExportView(ledger: ledger)
+        }
+        .sheet(item: $importTarget) { target in
+            LedgerImportView(target: target.transferTarget)
         }
         .alert(
             L10n.string("ledgers.delete", defaultValue: "Delete"),
@@ -457,6 +502,36 @@ struct LedgersView: View {
         }
     }
 
+    /// Export reads only, so it rides the same editor floor as posting an
+    /// entry and works on an archived ledger too.
+    private func exportAction(_ ledger: QianlaiLedger) -> some View {
+        Button {
+            transferStore.resetExport()
+            exportingLedger = ledger
+        } label: {
+            Label(
+                L10n.string("transfer.export.title", defaultValue: "Export Ledger"),
+                systemImage: "square.and.arrow.up"
+            )
+        }
+        .tint(.blue)
+    }
+
+    /// Merging an import writes entries into this ledger, so it needs what
+    /// posting does — an active ledger the user edits.
+    private func importIntoAction(_ ledger: QianlaiLedger) -> some View {
+        Button {
+            transferStore.resetImport()
+            importTarget = .merge(ledger)
+        } label: {
+            Label(
+                L10n.string("transfer.import.intoLedger", defaultValue: "Import into This Ledger"),
+                systemImage: "square.and.arrow.down"
+            )
+        }
+        .tint(.blue)
+    }
+
     private func leaveAction(_ ledger: QianlaiLedger) -> some View {
         Button(role: .destructive) {
             ledgerPendingLeave = ledger
@@ -473,6 +548,15 @@ struct LedgersView: View {
     @ViewBuilder
     private func ledgerRowMenuItems(_ ledger: QianlaiLedger) -> some View {
         membersAction(ledger)
+        // Gated on the same floors the server's transfer routes enforce, so
+        // an editor never sees an action that would come back 403 and a
+        // guest never sees one that would leak the whole ledger.
+        if LedgerPolicy.canExportLedger(ledger.myRole) {
+            exportAction(ledger)
+        }
+        if LedgerPolicy.canImportInto(role: ledger.myRole, ledgerActive: ledger.isActive) {
+            importIntoAction(ledger)
+        }
         if LedgerPolicy.isOwner(ledger.myRole) {
             editAction(ledger)
             archiveAction(ledger)

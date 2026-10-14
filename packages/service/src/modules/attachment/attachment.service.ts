@@ -54,6 +54,49 @@ function computeHash(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
+/** Receipt photos only this phase — recognizeScreenshot's tile set plus
+ *  image/gif (the recognition pipeline wants lossless UI captures, the
+ *  receipt picker accepts whatever the library offers). iOS compresses
+ *  every pick to JPEG anyway, so the extra latitude is defensive. Declared
+ *  here rather than in the upload route so a ledger import replaying an
+ *  export's photos accepts exactly the same set. */
+export const PHOTO_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+/** mime → the extension the storage layer writes it under. */
+export function photoExtension(mimeType: string): string {
+  return extensionForMime(mimeType) ?? "bin";
+}
+
+/**
+ * One attachment's bytes off disk. The caller owns authorization — this
+ * is the transfer export's streaming read, which hands a ledger-wide
+ * export to any editor rather than to one member's signed url.
+ */
+export function openUploadStream(uploadPath: string) {
+  return createReadStream(join(uploadsDir(), uploadPath));
+}
+
+/** The attachments claimed onto a set of business rows, upload order
+ *  preserved (createdAt asc, the same order the entry surfaces render). */
+export function listBizAttachments(params: {
+  bizType: string;
+  bizIds: string[];
+  tx?: Prisma.TransactionClient;
+}) {
+  const { bizType, bizIds, tx = prisma } = params;
+  if (bizIds.length === 0) return Promise.resolve([]);
+  return tx.attachment.findMany({
+    where: { bizType, bizId: { in: bizIds } },
+    include: { upload: true },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
+}
+
 function shardPath(hash: string, ext: string): string {
   return `${hash.slice(0, 2)}/${hash.slice(2, 4)}/${hash}${ext}`;
 }

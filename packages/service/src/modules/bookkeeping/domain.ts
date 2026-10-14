@@ -149,6 +149,20 @@ export type StarterAccount = {
 };
 
 /**
+ * Entry-kind classification, mirrored from the repository's lines clause
+ * (`entryKindLines`) so a surface that already holds the lines can label an
+ * entry without another query: an expense line wins over an income line,
+ * and an entry with neither is pocket-to-pocket movement.
+ */
+export function classifyEntryKind(
+  lines: ReadonlyArray<{ account: { type: string } }>,
+): EntryKind {
+  if (lines.some((line) => line.account.type === "expense")) return "expense";
+  if (lines.some((line) => line.account.type === "income")) return "income";
+  return "transfer";
+}
+
+/**
  * The default pocket is flagged so clients can treat it as the implicit
  * asset side (`defaultDebit` = "Received Into" for income, `defaultCredit`
  * = "Paid From" for expenses/transfers); it is hidden from user-facing

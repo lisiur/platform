@@ -21,6 +21,15 @@ export const categoryBudgetRepository = {
     });
   },
 
+  /** Every category budget of the ledger — the transfer export's read;
+   *  the settings and report surfaces are year-scoped. */
+  listAll(ledgerId: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.ledgerCategoryBudgetYear.findMany({
+      where: { ledgerId },
+      orderBy: [{ year: "asc" }, { accountId: "asc" }],
+    });
+  },
+
   upsert(
     ledgerId: string,
     data: { year: number; accountId: string; cents: number },

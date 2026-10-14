@@ -32,6 +32,18 @@ export const realAccountRepository = {
     return tx.realAccount.findUnique({ where: { id } });
   },
 
+  /** The subset of the owner's masters a given ledger's pockets link to —
+   *  the transfer export's read. Ownership is not re-checked here: the
+   *  ids come from this ledger's own accounts, and the caller holds the
+   *  ledger. */
+  listByIds(ids: string[], tx: Prisma.TransactionClient = prisma) {
+    if (ids.length === 0) return Promise.resolve([]);
+    return tx.realAccount.findMany({
+      where: { id: { in: ids } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+  },
+
   /**
    * SELECT ... FOR UPDATE on the master row. Linking (account.service) and
    * deletion both hold this lock while validating, so neither can slip past

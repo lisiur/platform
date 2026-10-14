@@ -319,8 +319,12 @@ export async function withEntryAttachments<T extends { id: string }>(
  * must not already belong to another entry — the claim IS the repoint of
  * bizId to the entry id. Runs after the entry row exists, so the post and
  * its receipts commit or roll back together.
+ *
+ * Exported for the ledger transfer importer, which stages an export's
+ * photos inside the same transaction that creates the entry claiming them
+ * (the same two-step the live uploader performs, minus the round trips).
  */
-async function claimEntryAttachments(
+export async function claimEntryAttachments(
   tx: Prisma.TransactionClient,
   userId: string,
   ledgerId: string,

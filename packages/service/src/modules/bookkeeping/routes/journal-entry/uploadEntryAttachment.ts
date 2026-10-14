@@ -14,6 +14,7 @@ import {
 import {
   createAttachment,
   JOURNAL_ENTRY_BIZ_TYPE,
+  PHOTO_MEDIA_TYPES,
 } from "#modules/attachment/attachment.service";
 import { assertLedgerWritable, requireLedgerAccess } from "../../access";
 import {
@@ -21,17 +22,10 @@ import {
   uploadEntryAttachmentResponseSchema,
 } from "./schema";
 
-/** Photo receipts only this phase — recognizeScreenshot's tile set plus
- * image/gif (the recognition pipeline wants lossless UI captures, the
- * receipt picker accepts whatever the library offers). iOS compresses
- * every pick to JPEG anyway, so the extra latitude is defensive. */
-const PHOTO_MEDIA_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-
+/** Photo receipts only this phase — the shared set lives in
+ *  attachment.service so the ledger import accepts exactly what a live
+ *  upload does. iOS compresses every pick to JPEG anyway, so the extra
+ *  latitude beyond image/jpeg|png|webp|gif is defensive. */
 const uploadEntryAttachmentFormSchema = z.object({
   file: z.any().openapi({
     description: "One photo (image/jpeg, image/png, image/webp, or image/gif)",
