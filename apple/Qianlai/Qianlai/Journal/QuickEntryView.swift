@@ -945,45 +945,6 @@ struct QuickEntryView: View {
         )
     }
 
-    /// The AI-seeded date review row. A recognition seeds the screenshot's
-    /// own transaction time, while the journal surfaces pin to the current
-    /// month — a draft dated outside it posts fine (success toast, no
-    /// error) yet lands where the homepage doesn't look, which reads as
-    /// "confirmed but the record is gone". When the seeded time isn't
-    /// today, this row names the divergence and hands the user the date
-    /// picker, so posting with it is a choice, never a surprise. Creation
-    /// only: an edit already round-trips the stored date deliberately.
-    @ViewBuilder
-    private var recognitionDateReviewRow: some View {
-        if isRecognitionMode, editedEntry == nil, !isEntryToday {
-            Button {
-                isDateTimePresented = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "clock.badge.exclamationmark")
-                        .font(.footnote)
-                        .foregroundStyle(Color.accentColor)
-                    Text(L10n.string(
-                        "quick.recognitionDateReview",
-                        defaultValue: "Recognized time %@ — not today. Tap to change.",
-                        quickTimeValue
-                    ))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.horizontal, 16)
-            }
-            .buttonStyle(.plain)
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-        }
-    }
-
     /// The kind's category side as an icon grid — the common path for
     /// picking a category, replacing the old form row. A "recently used"
     /// capsule row leads (fed by `RecentCategoryStore`, so it survives
@@ -1015,8 +976,6 @@ struct QuickEntryView: View {
                     // grouped card behind it.
                     .listRowBackground(Color.clear)
                 }
-
-                recognitionDateReviewRow
 
                 categoryGrid(side: side)
                 // Zero horizontal insets let the grid span the grouped
@@ -2139,13 +2098,20 @@ struct QuickEntryView: View {
 
     /// The collapsed time display as a plain string for the quick bar chip
     /// — same rule as the form row: time only on today, date + time once
-    /// the entry falls on another day. Formatted with the in-app override
-    /// locale (`\.locale`), not the device language.
+    /// the entry falls on another day, and the year joins in once the date
+    /// leaves the current year (a bare 月日 is ambiguous across years, the
+    /// AI 识图's seeded screenshot time included). Formatted with the
+    /// in-app override locale (`\.locale`), not the device language — the
+    /// year follows the locale's own convention (zh-Hans
+    /// 「2025年11月10日 17:09」, en 「Nov 10, 2025 at 5:09 PM」).
     private var quickTimeValue: String {
         if isEntryToday {
             return draft.date.formatted(.dateTime.hour().minute().locale(locale))
         }
-        return draft.date.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(locale))
+        if Calendar.current.isDate(draft.date, equalTo: .now, toGranularity: .year) {
+            return draft.date.formatted(.dateTime.day().month(.abbreviated).hour().minute().locale(locale))
+        }
+        return draft.date.formatted(.dateTime.year().day().month(.abbreviated).hour().minute().locale(locale))
     }
 
     /// Capsule chip matching the recents row's styling: secondary icon +
