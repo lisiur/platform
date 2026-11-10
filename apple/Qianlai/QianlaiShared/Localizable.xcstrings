@@ -10458,6 +10458,23 @@
         }
       }
     },
+    "quick.recognitionDateReview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognized time %@ — not today. Tap to change."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "识别到的时间为 %@（不是今天），点击修改"
+          }
+        }
+      }
+    },
     "quick.sameAccountError" : {
       "extractionState" : "manual",
       "localizations" : {
