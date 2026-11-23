@@ -2467,34 +2467,19 @@ struct QuickEntryView: View {
         RecentCategoryStore.record(id, ledgerId: ledger.id, kind: draft.kind)
     }
 
-    /// The kind's category to prefill: the one on the most recent entry of
-    /// the same kind in the journal — repeated spending/earning is the
-    /// common case — falling back to the first leaf category in picker
-    /// order for a fresh ledger. Only leaves are pickable in the grid, so
-    /// parents never prefill: a posted category that has since gained subs
-    /// is skipped in the scan the same way.
+    /// The kind's category to prefill: the most recently posted category
+    /// for this ledger + kind — the recents row's first entry — that still
+    /// resolves to a leaf of the current tree, so the prefill and the
+    /// recents row read the same source. Recents empty or all stale falls
+    /// back to the first leaf category in picker order (the journal takes
+    /// no part, per the product call); a transfer has no category side,
+    /// and only leaves are pickable in the grid, so parents never prefill.
     private var defaultCategoryId: String? {
-        let parentIds = Set(categoryTree.compactMap(\.account.parentId))
-        let leafIds = Set(categoryTree.map(\.account.id)).subtracting(parentIds)
-        // Entries are newest-first; the kind's category line is the debit
-        // side for expenses, the credit side for incomes.
-        switch draft.kind {
-        case .expense:
-            for entry in postingJournal.entries {
-                if let line = entry.lines.first(where: { $0.debit > 0 && leafIds.contains($0.accountId) }) {
-                    return line.accountId
-                }
-            }
-        case .income:
-            for entry in postingJournal.entries {
-                if let line = entry.lines.first(where: { $0.credit > 0 && leafIds.contains($0.accountId) }) {
-                    return line.accountId
-                }
-            }
-        case .transfer:
-            break
-        }
-        return categoryTree.first(where: { leafIds.contains($0.account.id) })?.account.id
+        guard let ledger = self.ledger, categorySide != nil else { return nil }
+        return RecentCategoryDefault.categoryId(
+            recentIds: RecentCategoryStore.ids(ledgerId: ledger.id, kind: draft.kind),
+            tree: categoryTree
+        )
     }
 
     /// Seeds the kind's category once accounts are in; an explicit pick is

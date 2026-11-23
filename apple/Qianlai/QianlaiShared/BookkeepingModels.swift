@@ -357,6 +357,29 @@ enum RecognitionSeeding {
     }
 }
 
+/// The quick-entry default category: the derivation run once per sheet
+/// open / kind round-trip. Foundation-only, `nonisolated`, and total (any
+/// recents/tree pair is accepted) so tests can pin the contract — same
+/// shape as `RecognitionSeeding` above.
+enum RecentCategoryDefault {
+    /// The prefill, in order: the first recent id that is still a leaf of
+    /// the built tree (posted recents that were since deleted, archived,
+    /// or grown subs drop out — only leaves are pickable in the grid);
+    /// else the tree's first leaf in picker order (recents empty or all
+    /// stale — the journal deliberately takes no part in the fallback);
+    /// nil when the tree itself is empty (transfer, or no pickable
+    /// categories at all).
+    nonisolated static func categoryId(
+        recentIds: [String],
+        tree: [AccountTreeEntry]
+    ) -> String? {
+        let parentIds = Set(tree.compactMap(\.account.parentId))
+        let leafIds = Set(tree.map(\.account.id)).subtracting(parentIds)
+        return recentIds.first { leafIds.contains($0) }
+            ?? tree.first { leafIds.contains($0.id) }?.account.id
+    }
+}
+
 // MARK: - Journal entries
 
 struct EntryUserRef: Codable, Hashable {
