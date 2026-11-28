@@ -390,7 +390,9 @@ private struct EntryAttachmentViewer: View {
                     .tag(pageIndex)
             }
         }
+        #if os(iOS)
         .tabViewStyle(.page)
+        #endif
         .background(Color.black.ignoresSafeArea())
         .onTapGesture { dismiss() }
     }

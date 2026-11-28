@@ -23,11 +23,11 @@ import SwiftUI
 final class AttachmentImageCache {
     static let shared = AttachmentImageCache()
 
-    private let images = NSCache<NSString, UIImage>()
+    private let images = NSCache<NSString, PlatformImage>()
     /// Settled fetches are removed as soon as they finish; a lookup that
     /// arrives while one is still running awaits it instead of stacking a
     /// second sign+fetch for the same attachment.
-    private var inflight: [String: Task<UIImage?, Never>] = [:]
+    private var inflight: [String: Task<PlatformImage?, Never>] = [:]
 
     /// Private attachments are served off the signed url with no auth —
     /// a plain session works where the API client would attach one.
@@ -43,25 +43,25 @@ final class AttachmentImageCache {
     /// attachments directory (no signing, no network). Failures are not
     /// cached — the next caller retries, and views show their placeholder
     /// in the meantime.
-    func image(for attachmentId: String) async -> UIImage? {
+    func image(for attachmentId: String) async -> PlatformImage? {
         if let cached = images.object(forKey: attachmentId as NSString) {
             return cached
         }
         if let running = inflight[attachmentId] {
             return await running.value
         }
-        let task = Task<UIImage?, Never> {
+        let task = Task<PlatformImage?, Never> {
             defer { inflight.removeValue(forKey: attachmentId) }
             // Local branch (T2.4): local receipts load from the store —
             // no signing, no network.
             if let data = await LocalStoreGateway.shared.localAttachmentData(attachmentId),
-               let image = UIImage(data: data) {
+               let image = PlatformImage(data: data) {
                 images.setObject(image, forKey: attachmentId as NSString)
                 return image
             }
             guard let url = await Self.signedURL(attachmentId) else { return nil }
             let data = (try? await session.data(from: url))?.0
-            let image = data.flatMap(UIImage.init(data:))
+            let image = data.flatMap(PlatformImage.init(data:))
             if let image {
                 images.setObject(image, forKey: attachmentId as NSString)
             }
@@ -93,12 +93,12 @@ struct CachedAttachmentImage: View {
     let attachmentId: String
     var contentMode: ContentMode = .fill
 
-    @State private var image: UIImage?
+    @State private var image: PlatformImage?
 
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
             } else {

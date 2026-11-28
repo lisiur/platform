@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 /// What a project's entry drill-down shows.
 enum ProjectEntryScope: Hashable {
@@ -116,10 +115,11 @@ struct ProjectEntriesDetailView: View {
 
     /// The member settlement drill-down keeps the pushed-page large title
     /// like the top-level surfaces; statement drill-downs (totals and
-    /// category rows) stay inline.
-    private var titleDisplayMode: NavigationBarItem.TitleDisplayMode {
-        if case .settlement = scope { return .large }
-        return .inline
+    /// category rows) stay inline. macOS has no title-display-mode API —
+    /// the modifier is iOS-only and the gate skips it there.
+    private var prefersLargeTitle: Bool {
+        if case .settlement = scope { return true }
+        return false
     }
 
     var body: some View {
@@ -133,7 +133,7 @@ struct ProjectEntriesDetailView: View {
         .environment(entryStore)
         .toolbar { settlementToolbar }
         .navigationTitle(Text(title))
-        .navigationBarTitleDisplayMode(titleDisplayMode)
+        .modifier(TitleDisplayModeCompat(prefersLargeTitles: prefersLargeTitle))
         .sheet(item: $shareCard) { request in
             ShareSheet(items: [request.image])
                 // The scrim must outlive `prepareShare` — dropping it there
@@ -265,7 +265,7 @@ struct ProjectEntriesDetailView: View {
         }
     }
 
-    private func renderShareImage() async -> UIImage? {
+    private func renderShareImage() async -> PlatformImage? {
         guard case .settlement(let projectId, let userId, _) = scope,
               let summaryRow = projectStore.report?.settlement
                 .first(where: { $0.userId == userId }),
@@ -293,7 +293,11 @@ struct ProjectEntriesDetailView: View {
         .environment(\.locale, AppLanguage.resolvedLocale)
         let renderer = ImageRenderer(content: content)
         renderer.scale = shareRendererScale(entryCount: truncated.count)
+        #if canImport(UIKit)
         return renderer.uiImage
+        #elseif canImport(AppKit)
+        return renderer.nsImage
+        #endif
     }
 
     /// ImageRenderer snapshots synchronously — AsyncImage never lands. The
@@ -301,7 +305,7 @@ struct ProjectEntriesDetailView: View {
     /// (usually already warm from the rows the share was opened from) so
     /// the rendered circle is either the bitmap or the initial-letter
     /// fallback, never blank.
-    private func loadAvatar(for path: String?) async -> UIImage? {
+    private func loadAvatar(for path: String?) async -> PlatformImage? {
         guard let url = ProfileStore.absoluteAvatarURL(path, baseURL: auth.apiBaseURL)
         else { return nil }
         return await AvatarImageCache.shared.image(for: url)
@@ -547,7 +551,7 @@ enum SettlementSplit {
 /// and handed straight to the share sheet.
 private struct ShareCardRequest: Identifiable {
     let id = UUID()
-    let image: UIImage
+    let image: PlatformImage
 }
 
 /// Drops ImageRenderer's pixel scale with the entry count: a 20-row card
@@ -561,3 +565,19 @@ private func shareRendererScale(entryCount: Int) -> CGFloat {
     return 1.5
 }
 
+
+
+/// `.navigationBarTitleDisplayMode` is iOS-only; macOS skips it (large
+/// titles don't exist there). A modifier (not an inline #if) so the call
+/// site stays one chain.
+struct TitleDisplayModeCompat: ViewModifier {
+    let prefersLargeTitles: Bool
+
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content.navigationBarTitleDisplayMode(prefersLargeTitles ? .large : .inline)
+        #else
+        content
+        #endif
+    }
+}

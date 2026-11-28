@@ -48,7 +48,7 @@ struct TabCustomizationView: View {
         }
         .appBackgroundSink()
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 Button(L10n.string("preferences.restoreDefaults", defaultValue: "Reset")) {
                     restoreDefaults()
                 }

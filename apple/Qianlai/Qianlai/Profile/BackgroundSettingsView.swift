@@ -52,7 +52,7 @@ struct BackgroundSettingsView: View {
                     // Downsample before editing so a 48MP library photo
                     // never decodes whole in the adjust step.
                     guard let prepared = BackgroundSettings.downsampledJPEG(data),
-                        let picked = UIImage(data: prepared)
+                        let picked = PlatformImage(data: prepared)
                     else {
                         throw BackgroundSettings.BackgroundError.cannotProcess
                     }
@@ -315,7 +315,7 @@ struct BackgroundSettingsView: View {
                           ? AnyShapeStyle(Color.clear)
                           : AnyShapeStyle(Color.primary.opacity(0.06)))
                 if let image = backgroundSettings.image {
-                    Image(uiImage: image)
+                    Image(platformImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 64, height: 120)
@@ -349,7 +349,7 @@ struct BackgroundSettingsView: View {
             }
         } label: {
             VStack(spacing: 6) {
-                Image(uiImage: BackgroundPresetCatalog.thumbnail(for: preset))
+                Image(platformImage: BackgroundPresetCatalog.thumbnail(for: preset))
                     .resizable()
                     .frame(width: 64, height: 120)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -418,5 +418,5 @@ struct BackgroundSettingsView: View {
 /// `fullScreenCover(item:)`.
 private struct AdjustTarget: Identifiable {
     let id = UUID()
-    let image: UIImage
+    let image: PlatformImage
 }

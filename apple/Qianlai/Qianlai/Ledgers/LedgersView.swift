@@ -734,6 +734,7 @@ struct LedgerFormView: View {
     }
 }
 
+#if os(iOS)
 /// Join someone else's ledger by scanning their invite QR — the scanner
 /// is the whole surface. Nothing is shown for a recognized payload; the
 /// join request fires immediately (the scan itself is the confirmation).
@@ -845,3 +846,5 @@ struct JoinLedgerScanView: View {
         }
     }
 }
+
+#endif

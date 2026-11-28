@@ -712,7 +712,7 @@ struct AppBackgroundWallpaperLayer: View {
     var body: some View {
         if backgroundSettings.isActive, let image = backgroundSettings.activeImage {
             ZStack {
-                Image(uiImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .scaledToFill()
                 if !reduceTransparency, let material = backgroundSettings.frost.material {

@@ -226,7 +226,9 @@ struct DashboardView: View {
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                         Button {
+                            #if os(iOS)
                             isShowingJoin = true
+                            #endif
                         } label: {
                             Label(L10n.string("dashboard.joinViaQrcode", defaultValue: "Join via qrcode"), systemImage: "qrcode")
                         }
@@ -253,10 +255,10 @@ struct DashboardView: View {
         )
         .toolbar {
             #if os(iOS)
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .platformTopBarLeading) {
                 LedgerSwitcherMenu(isShowingManage: $isShowingLedgerManager, iconOnly: true)
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 calendarStatsGroup
             }
             #else
@@ -417,9 +419,11 @@ struct DashboardView: View {
                 LedgerFormView(ledger: nil)
             }
         }
+        #if os(iOS)
         .sheet(isPresented: $isShowingJoin) {
             JoinLedgerScanView()
         }
+        #endif
         // Presented here instead of from the switcher's toolbar menu: a
         // sheet attached inside `ToolbarItem` content is cancelled when the
         // toolbar rebuilds mid-presentation — with no active ledger, the

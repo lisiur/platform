@@ -375,11 +375,13 @@ final class VoiceTranscriber: VoiceTranscribing {
     private func finishRecordingSession() {
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
+        #if os(iOS)
         Task.detached(priority: .utility) {
             try? AVAudioSession.sharedInstance().setActive(
                 false, options: .notifyOthersOnDeactivation
             )
         }
+        #endif
         inputContinuation?.finish()
         inputContinuation = nil
         engine = nil
@@ -388,6 +390,7 @@ final class VoiceTranscriber: VoiceTranscribing {
     }
 
     private static func activateRecordingSession() async throws {
+        #if os(iOS)
         try AVAudioSession.sharedInstance().setCategory(
             .playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker]
         )
@@ -396,6 +399,7 @@ final class VoiceTranscriber: VoiceTranscribing {
         try await Task.detached(priority: .userInitiated) {
             try AVAudioSession.sharedInstance().setActive(true)
         }.value
+        #endif
     }
 }
 

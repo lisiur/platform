@@ -418,7 +418,7 @@ struct QuickEntryView: View {
             Label {
                 Text(member.displayName)
             } icon: {
-                Image(uiImage: MenuAvatarImage.image(
+                Image(platformImage: MenuAvatarImage.image(
                     url: ProfileStore.absoluteAvatarURL(member.avatar, baseURL: auth.apiBaseURL),
                     initial: member.avatarInitial
                 ))
@@ -429,7 +429,7 @@ struct QuickEntryView: View {
             Label {
                 Text(historicalPayer.label)
             } icon: {
-                Image(uiImage: MenuAvatarImage.image(url: nil, initial: historicalPayer.initial))
+                Image(platformImage: MenuAvatarImage.image(url: nil, initial: historicalPayer.initial))
             }
             .tag(historicalPayer.id)
         }
@@ -678,7 +678,7 @@ struct QuickEntryView: View {
                 .inlineNavigationBarTitle()
                 .toolbar {
                     if ledger != nil {
-                        ToolbarItem(placement: .navigationBarLeading) {
+                        ToolbarItem(placement: .platformTopBarLeading) {
                             Button {
                                 isChipCustomizationPresented = true
                             } label: {

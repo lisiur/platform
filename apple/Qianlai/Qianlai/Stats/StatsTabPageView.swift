@@ -82,7 +82,7 @@ struct StatsTabPageView: View {
         .navigationTitle(Text(L10n.string("stats.title", defaultValue: "Stats")))
         .toolbar {
             #if os(iOS)
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 monthCalendarButton
             }
             #else

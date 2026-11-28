@@ -309,7 +309,7 @@ final class AppLockShieldWindow {
     /// still visible (at deactivation), 1x is plenty — the blur erases the
     /// detail the downsample costs. Returns nil when no window can be
     /// captured; the curtain falls back to the thinnest system material.
-    private func blurredSnapshot() -> UIImage? {
+    private func blurredSnapshot() -> PlatformImage? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         guard let scene = scenes.first(where: { $0.activationState != .background }) ?? scenes.first,
               let target = scene.windows.first(where: { $0 !== window && !$0.isHidden && $0.rootViewController != nil })
@@ -326,7 +326,7 @@ final class AppLockShieldWindow {
             .applyingGaussianBlur(sigma: Double(Self.curtainBlurSigma))
             .cropped(to: base.extent)
         guard let cgImage = ciContext.createCGImage(blurred, from: blurred.extent) else { return nil }
-        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
+        return PlatformImage(cgImage: cgImage, scale: 1, orientation: .up)
     }
 }
 
@@ -334,7 +334,7 @@ final class AppLockShieldWindow {
 /// the already-installed shield root re-renders with each new capture.
 @MainActor @Observable
 private final class CurtainSnapshotBox {
-    var image: UIImage?
+    var image: PlatformImage?
 }
 
 /// The shield window's root: swaps curtain and lock screen off the
@@ -364,11 +364,11 @@ private struct LockShieldRoot: View {
 /// materials can't tune a radius, and their fixed frost is the look this
 /// curtain exists to improve on.
 private struct PrivacyCurtainView: View {
-    var snapshot: UIImage?
+    var snapshot: PlatformImage?
 
     var body: some View {
         if let snapshot {
-            Image(uiImage: snapshot)
+            Image(platformImage: snapshot)
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()

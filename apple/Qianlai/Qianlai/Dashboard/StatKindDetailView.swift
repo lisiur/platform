@@ -176,7 +176,7 @@ struct StatKindDetailView: View {
         // chrome).
         .toolbar {
             #if os(iOS)
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 statsButton
             }
             #else

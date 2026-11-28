@@ -28,7 +28,7 @@ struct MemberSettlementShareCard: View {
     let entries: [JournalEntry]
     let memberUserIds: [String]?
     /// Preloaded avatar bitmap; nil renders the initial-letter circle.
-    let avatarImage: UIImage?
+    let avatarImage: PlatformImage?
     /// Entries behind `entries` in total — larger means the image was
     /// truncated to the cap and the footer says so.
     let totalEntries: Int
@@ -120,7 +120,7 @@ struct MemberSettlementShareCard: View {
         let initial = String(member.name.prefix(1)).uppercased()
         return Group {
             if let avatarImage {
-                Image(uiImage: avatarImage)
+                Image(platformImage: avatarImage)
                     .resizable()
                     .scaledToFill()
             } else {

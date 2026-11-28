@@ -72,7 +72,7 @@ struct JournalView: View {
         .navigationTitle(Text(L10n.string("journal.title", defaultValue: "Journal")))
         .toolbar {
             #if os(iOS)
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 calendarStatsGroup
             }
             #else

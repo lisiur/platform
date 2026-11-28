@@ -10,11 +10,11 @@ import SwiftUI
 struct BackgroundPreset: Identifiable {
     enum Style {
         /// Soft radial color blobs over a base color.
-        case blobs(base: UIColor, blobs: [(center: CGPoint, radius: CGFloat, color: UIColor)])
+        case blobs(base: PlatformColor, blobs: [(center: CGPoint, radius: CGFloat, color: PlatformColor)])
         /// Diagonal color bands, each holding then blending into the next.
-        case stripes(colors: [UIColor], angle: CGFloat)
+        case stripes(colors: [PlatformColor], angle: CGFloat)
         /// Hard-edged diagonal color bands — solid fills, no blending.
-        case hardStripes(colors: [UIColor], angle: CGFloat)
+        case hardStripes(colors: [PlatformColor], angle: CGFloat)
     }
 
     let id: String
@@ -40,11 +40,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.aurora",
             nameFallback: "Aurora",
             style: .blobs(
-                base: UIColor(red: 0.06, green: 0.13, blue: 0.15, alpha: 1),
+                base: PlatformColor(red: 0.06, green: 0.13, blue: 0.15, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.30, y: 0.20), 0.50, UIColor(red: 0.20, green: 0.83, blue: 0.60, alpha: 0.60)),
-                    (CGPoint(x: 0.70, y: 0.45), 0.55, UIColor(red: 0.13, green: 0.83, blue: 0.93, alpha: 0.55)),
-                    (CGPoint(x: 0.40, y: 0.80), 0.60, UIColor(red: 0.65, green: 0.55, blue: 0.98, alpha: 0.60)),
+                    (CGPoint(x: 0.30, y: 0.20), 0.50, PlatformColor(red: 0.20, green: 0.83, blue: 0.60, alpha: 0.60)),
+                    (CGPoint(x: 0.70, y: 0.45), 0.55, PlatformColor(red: 0.13, green: 0.83, blue: 0.93, alpha: 0.55)),
+                    (CGPoint(x: 0.40, y: 0.80), 0.60, PlatformColor(red: 0.65, green: 0.55, blue: 0.98, alpha: 0.60)),
                 ]
             )
         ),
@@ -54,10 +54,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Candy",
             style: .stripes(
                 colors: [
-                    UIColor(red: 1.00, green: 0.75, blue: 0.85, alpha: 1),
-                    UIColor(red: 0.80, green: 0.72, blue: 0.98, alpha: 1),
-                    UIColor(red: 0.65, green: 0.90, blue: 0.85, alpha: 1),
-                    UIColor(red: 1.00, green: 0.88, blue: 0.70, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.75, blue: 0.85, alpha: 1),
+                    PlatformColor(red: 0.80, green: 0.72, blue: 0.98, alpha: 1),
+                    PlatformColor(red: 0.65, green: 0.90, blue: 0.85, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.88, blue: 0.70, alpha: 1),
                 ],
                 angle: 55
             )
@@ -67,11 +67,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.dawn",
             nameFallback: "Dawn",
             style: .blobs(
-                base: UIColor(red: 1.00, green: 0.95, blue: 0.90, alpha: 1),
+                base: PlatformColor(red: 1.00, green: 0.95, blue: 0.90, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.20, y: 0.15), 0.50, UIColor(red: 1.00, green: 0.73, blue: 0.54, alpha: 0.90)),
-                    (CGPoint(x: 0.85, y: 0.35), 0.55, UIColor(red: 1.00, green: 0.56, blue: 0.64, alpha: 0.80)),
-                    (CGPoint(x: 0.30, y: 0.75), 0.60, UIColor(red: 0.79, green: 0.71, blue: 0.96, alpha: 0.80)),
+                    (CGPoint(x: 0.20, y: 0.15), 0.50, PlatformColor(red: 1.00, green: 0.73, blue: 0.54, alpha: 0.90)),
+                    (CGPoint(x: 0.85, y: 0.35), 0.55, PlatformColor(red: 1.00, green: 0.56, blue: 0.64, alpha: 0.80)),
+                    (CGPoint(x: 0.30, y: 0.75), 0.60, PlatformColor(red: 0.79, green: 0.71, blue: 0.96, alpha: 0.80)),
                 ]
             )
         ),
@@ -80,11 +80,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.dusk",
             nameFallback: "Dusk",
             style: .blobs(
-                base: UIColor(red: 0.17, green: 0.14, blue: 0.31, alpha: 1),
+                base: PlatformColor(red: 0.17, green: 0.14, blue: 0.31, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.25, y: 0.25), 0.60, UIColor(red: 0.55, green: 0.36, blue: 0.96, alpha: 0.70)),
-                    (CGPoint(x: 0.85, y: 0.45), 0.55, UIColor(red: 0.96, green: 0.45, blue: 0.71, alpha: 0.65)),
-                    (CGPoint(x: 0.35, y: 0.85), 0.60, UIColor(red: 0.30, green: 0.11, blue: 0.58, alpha: 0.80)),
+                    (CGPoint(x: 0.25, y: 0.25), 0.60, PlatformColor(red: 0.55, green: 0.36, blue: 0.96, alpha: 0.70)),
+                    (CGPoint(x: 0.85, y: 0.45), 0.55, PlatformColor(red: 0.96, green: 0.45, blue: 0.71, alpha: 0.65)),
+                    (CGPoint(x: 0.35, y: 0.85), 0.60, PlatformColor(red: 0.30, green: 0.11, blue: 0.58, alpha: 0.80)),
                 ]
             )
         ),
@@ -93,11 +93,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.forest",
             nameFallback: "Forest",
             style: .blobs(
-                base: UIColor(red: 0.94, green: 0.97, blue: 0.93, alpha: 1),
+                base: PlatformColor(red: 0.94, green: 0.97, blue: 0.93, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.25, y: 0.25), 0.55, UIColor(red: 0.53, green: 0.79, blue: 0.61, alpha: 0.85)),
-                    (CGPoint(x: 0.80, y: 0.60), 0.60, UIColor(red: 0.24, green: 0.61, blue: 0.42, alpha: 0.70)),
-                    (CGPoint(x: 0.40, y: 0.90), 0.50, UIColor(red: 0.77, green: 0.88, blue: 0.48, alpha: 0.70)),
+                    (CGPoint(x: 0.25, y: 0.25), 0.55, PlatformColor(red: 0.53, green: 0.79, blue: 0.61, alpha: 0.85)),
+                    (CGPoint(x: 0.80, y: 0.60), 0.60, PlatformColor(red: 0.24, green: 0.61, blue: 0.42, alpha: 0.70)),
+                    (CGPoint(x: 0.40, y: 0.90), 0.50, PlatformColor(red: 0.77, green: 0.88, blue: 0.48, alpha: 0.70)),
                 ]
             )
         ),
@@ -106,10 +106,10 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.graphite",
             nameFallback: "Graphite",
             style: .blobs(
-                base: UIColor(red: 0.95, green: 0.95, blue: 0.96, alpha: 1),
+                base: PlatformColor(red: 0.95, green: 0.95, blue: 0.96, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.30, y: 0.30), 0.50, UIColor(red: 0.78, green: 0.80, blue: 0.82, alpha: 0.70)),
-                    (CGPoint(x: 0.80, y: 0.70), 0.60, UIColor(red: 0.60, green: 0.63, blue: 0.66, alpha: 0.50)),
+                    (CGPoint(x: 0.30, y: 0.30), 0.50, PlatformColor(red: 0.78, green: 0.80, blue: 0.82, alpha: 0.70)),
+                    (CGPoint(x: 0.80, y: 0.70), 0.60, PlatformColor(red: 0.60, green: 0.63, blue: 0.66, alpha: 0.50)),
                 ]
             )
         ),
@@ -118,11 +118,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.ice",
             nameFallback: "Ice",
             style: .blobs(
-                base: UIColor(red: 0.94, green: 0.97, blue: 0.98, alpha: 1),
+                base: PlatformColor(red: 0.94, green: 0.97, blue: 0.98, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.30, y: 0.20), 0.50, UIColor(red: 0.66, green: 0.85, blue: 0.94, alpha: 0.90)),
-                    (CGPoint(x: 0.75, y: 0.50), 0.55, UIColor(red: 0.49, green: 0.76, blue: 0.91, alpha: 0.85)),
-                    (CGPoint(x: 0.40, y: 0.85), 0.60, UIColor(red: 0.82, green: 0.93, blue: 0.97, alpha: 0.90)),
+                    (CGPoint(x: 0.30, y: 0.20), 0.50, PlatformColor(red: 0.66, green: 0.85, blue: 0.94, alpha: 0.90)),
+                    (CGPoint(x: 0.75, y: 0.50), 0.55, PlatformColor(red: 0.49, green: 0.76, blue: 0.91, alpha: 0.85)),
+                    (CGPoint(x: 0.40, y: 0.85), 0.60, PlatformColor(red: 0.82, green: 0.93, blue: 0.97, alpha: 0.90)),
                 ]
             )
         ),
@@ -131,11 +131,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.lavender",
             nameFallback: "Lavender",
             style: .blobs(
-                base: UIColor(red: 0.96, green: 0.94, blue: 0.99, alpha: 1),
+                base: PlatformColor(red: 0.96, green: 0.94, blue: 0.99, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.30, y: 0.20), 0.50, UIColor(red: 0.79, green: 0.72, blue: 0.96, alpha: 0.90)),
-                    (CGPoint(x: 0.80, y: 0.50), 0.55, UIColor(red: 0.65, green: 0.55, blue: 0.98, alpha: 0.85)),
-                    (CGPoint(x: 0.35, y: 0.85), 0.60, UIColor(red: 0.85, green: 0.78, blue: 1.00, alpha: 0.90)),
+                    (CGPoint(x: 0.30, y: 0.20), 0.50, PlatformColor(red: 0.79, green: 0.72, blue: 0.96, alpha: 0.90)),
+                    (CGPoint(x: 0.80, y: 0.50), 0.55, PlatformColor(red: 0.65, green: 0.55, blue: 0.98, alpha: 0.85)),
+                    (CGPoint(x: 0.35, y: 0.85), 0.60, PlatformColor(red: 0.85, green: 0.78, blue: 1.00, alpha: 0.90)),
                 ]
             )
         ),
@@ -145,10 +145,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Midnight",
             style: .stripes(
                 colors: [
-                    UIColor(red: 0.10, green: 0.16, blue: 0.42, alpha: 1),
-                    UIColor(red: 0.18, green: 0.30, blue: 0.65, alpha: 1),
-                    UIColor(red: 0.09, green: 0.20, blue: 0.31, alpha: 1),
-                    UIColor(red: 0.24, green: 0.49, blue: 0.69, alpha: 1),
+                    PlatformColor(red: 0.10, green: 0.16, blue: 0.42, alpha: 1),
+                    PlatformColor(red: 0.18, green: 0.30, blue: 0.65, alpha: 1),
+                    PlatformColor(red: 0.09, green: 0.20, blue: 0.31, alpha: 1),
+                    PlatformColor(red: 0.24, green: 0.49, blue: 0.69, alpha: 1),
                 ],
                 angle: 60
             )
@@ -159,10 +159,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Ocean",
             style: .stripes(
                 colors: [
-                    UIColor(red: 0.11, green: 0.42, blue: 0.58, alpha: 1),
-                    UIColor(red: 0.25, green: 0.65, blue: 0.77, alpha: 1),
-                    UIColor(red: 0.50, green: 0.85, blue: 0.85, alpha: 1),
-                    UIColor(red: 0.09, green: 0.31, blue: 0.42, alpha: 1),
+                    PlatformColor(red: 0.11, green: 0.42, blue: 0.58, alpha: 1),
+                    PlatformColor(red: 0.25, green: 0.65, blue: 0.77, alpha: 1),
+                    PlatformColor(red: 0.50, green: 0.85, blue: 0.85, alpha: 1),
+                    PlatformColor(red: 0.09, green: 0.31, blue: 0.42, alpha: 1),
                 ],
                 angle: 35
             )
@@ -172,11 +172,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.sakura",
             nameFallback: "Sakura",
             style: .blobs(
-                base: UIColor(red: 1.00, green: 0.94, blue: 0.96, alpha: 1),
+                base: PlatformColor(red: 1.00, green: 0.94, blue: 0.96, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.25, y: 0.20), 0.50, UIColor(red: 1.00, green: 0.76, blue: 0.83, alpha: 0.90)),
-                    (CGPoint(x: 0.80, y: 0.45), 0.55, UIColor(red: 1.00, green: 0.62, blue: 0.73, alpha: 0.85)),
-                    (CGPoint(x: 0.35, y: 0.80), 0.60, UIColor(red: 0.96, green: 0.79, blue: 0.94, alpha: 0.90)),
+                    (CGPoint(x: 0.25, y: 0.20), 0.50, PlatformColor(red: 1.00, green: 0.76, blue: 0.83, alpha: 0.90)),
+                    (CGPoint(x: 0.80, y: 0.45), 0.55, PlatformColor(red: 1.00, green: 0.62, blue: 0.73, alpha: 0.85)),
+                    (CGPoint(x: 0.35, y: 0.80), 0.60, PlatformColor(red: 0.96, green: 0.79, blue: 0.94, alpha: 0.90)),
                 ]
             )
         ),
@@ -185,11 +185,11 @@ enum BackgroundPresetCatalog {
             nameKey: "profile.theme.preset.sea",
             nameFallback: "Sea",
             style: .blobs(
-                base: UIColor(red: 0.92, green: 0.96, blue: 1.00, alpha: 1),
+                base: PlatformColor(red: 0.92, green: 0.96, blue: 1.00, alpha: 1),
                 blobs: [
-                    (CGPoint(x: 0.20, y: 0.20), 0.55, UIColor(red: 0.49, green: 0.78, blue: 0.96, alpha: 0.85)),
-                    (CGPoint(x: 0.85, y: 0.55), 0.60, UIColor(red: 0.37, green: 0.83, blue: 0.77, alpha: 0.80)),
-                    (CGPoint(x: 0.40, y: 0.90), 0.60, UIColor(red: 0.35, green: 0.56, blue: 0.94, alpha: 0.75)),
+                    (CGPoint(x: 0.20, y: 0.20), 0.55, PlatformColor(red: 0.49, green: 0.78, blue: 0.96, alpha: 0.85)),
+                    (CGPoint(x: 0.85, y: 0.55), 0.60, PlatformColor(red: 0.37, green: 0.83, blue: 0.77, alpha: 0.80)),
+                    (CGPoint(x: 0.40, y: 0.90), 0.60, PlatformColor(red: 0.35, green: 0.56, blue: 0.94, alpha: 0.75)),
                 ]
             )
         ),
@@ -199,10 +199,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Sunrise",
             style: .stripes(
                 colors: [
-                    UIColor(red: 1.00, green: 0.54, blue: 0.36, alpha: 1),
-                    UIColor(red: 1.00, green: 0.71, blue: 0.42, alpha: 1),
-                    UIColor(red: 1.00, green: 0.49, blue: 0.62, alpha: 1),
-                    UIColor(red: 0.84, green: 0.54, blue: 0.72, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.54, blue: 0.36, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.71, blue: 0.42, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.49, blue: 0.62, alpha: 1),
+                    PlatformColor(red: 0.84, green: 0.54, blue: 0.72, alpha: 1),
                 ],
                 angle: 50
             )
@@ -213,10 +213,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Lagoon",
             style: .hardStripes(
                 colors: [
-                    UIColor(red: 0.05, green: 0.23, blue: 0.31, alpha: 1),
-                    UIColor(red: 0.08, green: 0.34, blue: 0.31, alpha: 1),
-                    UIColor(red: 0.11, green: 0.48, blue: 0.37, alpha: 1),
-                    UIColor(red: 0.24, green: 0.63, blue: 0.53, alpha: 1),
+                    PlatformColor(red: 0.05, green: 0.23, blue: 0.31, alpha: 1),
+                    PlatformColor(red: 0.08, green: 0.34, blue: 0.31, alpha: 1),
+                    PlatformColor(red: 0.11, green: 0.48, blue: 0.37, alpha: 1),
+                    PlatformColor(red: 0.24, green: 0.63, blue: 0.53, alpha: 1),
                 ],
                 angle: 40
             )
@@ -227,10 +227,10 @@ enum BackgroundPresetCatalog {
             nameFallback: "Pop",
             style: .hardStripes(
                 colors: [
-                    UIColor(red: 1.00, green: 0.32, blue: 0.32, alpha: 1),
-                    UIColor(red: 1.00, green: 0.84, blue: 0.25, alpha: 1),
-                    UIColor(red: 0.25, green: 0.77, blue: 1.00, alpha: 1),
-                    UIColor(red: 0.41, green: 0.94, blue: 0.68, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.32, blue: 0.32, alpha: 1),
+                    PlatformColor(red: 1.00, green: 0.84, blue: 0.25, alpha: 1),
+                    PlatformColor(red: 0.25, green: 0.77, blue: 1.00, alpha: 1),
+                    PlatformColor(red: 0.41, green: 0.94, blue: 0.68, alpha: 1),
                 ],
                 angle: 55
             )
@@ -238,23 +238,19 @@ enum BackgroundPresetCatalog {
     ]
 
     /// Small cached preview for the picker row.
-    static func thumbnail(for preset: BackgroundPreset) -> UIImage {
+    static func thumbnail(for preset: BackgroundPreset) -> PlatformImage {
         if let cached = thumbnails[preset.id] { return cached }
         let image = render(preset, size: CGSize(width: 64, height: 120), scale: 2)
         thumbnails[preset.id] = image
         return image
     }
 
-    private static var thumbnails: [String: UIImage] = [:]
+    private static var thumbnails: [String: PlatformImage] = [:]
 
     /// Renders the preset at `size` points; `scale` nil uses the device's
     /// main-screen scale (the fullscreen wallpaper render).
-    static func render(_ preset: BackgroundPreset, size: CGSize, scale: CGFloat? = nil) -> UIImage {
-        let format = UIGraphicsImageRendererFormat()
-        if let scale { format.scale = scale }
-        format.opaque = true
-        return UIGraphicsImageRenderer(size: size, format: format).image { context in
-            let cg = context.cgContext
+    static func render(_ preset: BackgroundPreset, size: CGSize, scale: CGFloat? = nil) -> PlatformImage {
+        PlatformCanvas.render(size: size, scale: scale, opaque: true) { cg in
             switch preset.style {
             case let .blobs(base, blobs):
                 base.setFill()
@@ -285,7 +281,7 @@ enum BackgroundPresetCatalog {
                 cg.translateBy(x: size.width / 2, y: size.height / 2)
                 cg.rotate(by: degrees * .pi / 180)
                 let span = hypot(size.width, size.height) * 1.4
-                var stops: [(location: CGFloat, color: UIColor)] = []
+                var stops: [(location: CGFloat, color: PlatformColor)] = []
                 let band = 1.0 / CGFloat(colors.count)
                 for (index, color) in colors.enumerated() {
                     let start = CGFloat(index) * band

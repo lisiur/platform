@@ -67,7 +67,7 @@ struct OnboardingView: View {
             .scrollDismissesKeyboard(.interactively)
             #endif
             .navigationTitle(Text(L10n.string("onboarding.welcome", defaultValue: "Welcome")))
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineTitleCompat()
             .animation(.smooth, value: step)
         }
     }

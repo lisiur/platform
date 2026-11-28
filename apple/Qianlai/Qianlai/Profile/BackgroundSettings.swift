@@ -42,7 +42,7 @@ final class BackgroundSettings {
     /// photo" tile in the wallpaper picker reads this directly, so it
     /// always shows the last-picked thumbnail even when a preset is
     /// currently the active background. Mirrors `photoFileURL`.
-    private(set) var image: UIImage?
+    private(set) var image: PlatformImage?
     private(set) var dim: Double
     private(set) var cardOpacity: Double
     /// The frosted-glass tier layered over the wallpaper; `.off`
@@ -51,7 +51,7 @@ final class BackgroundSettings {
     /// The wallpaper currently shown on screen: the picked photo when
     /// it owns the slot, else the rendered preset, else nothing.
     /// Mirrors `activeFileURL`.
-    private(set) var activeImage: UIImage?
+    private(set) var activeImage: PlatformImage?
     /// Set when the active slot came from a preset; a photo pick or a
     /// photo removal (when the photo was active) clears it.
     private(set) var selectedPresetID: String?
@@ -92,7 +92,7 @@ final class BackgroundSettings {
             selectedPresetID = nil
         }
         enabled = (Self.defaults.object(forKey: Self.enabledKey) as? Bool) ?? false
-        image = UIImage(contentsOfFile: Self.photoFileURL.path)
+        image = PlatformImage(contentsOfFile: Self.photoFileURL.path)
         // Migration for installs that pre-date the photo-slot split:
         // before, a picked photo and the active wallpaper shared one
         // file, so applying a preset overwrote the photo. If we find
@@ -103,12 +103,12 @@ final class BackgroundSettings {
         if image == nil,
            selectedPresetID == nil,
            FileManager.default.fileExists(atPath: Self.activeFileURL.path),
-           let legacy = UIImage(contentsOfFile: Self.activeFileURL.path)
+           let legacy = PlatformImage(contentsOfFile: Self.activeFileURL.path)
         {
             try? FileManager.default.copyItem(at: Self.activeFileURL, to: Self.photoFileURL)
             image = legacy
         }
-        activeImage = UIImage(contentsOfFile: Self.activeFileURL.path)
+        activeImage = PlatformImage(contentsOfFile: Self.activeFileURL.path)
     }
 
     /// A background shows exactly while the switch is on and an active
@@ -132,10 +132,16 @@ final class BackgroundSettings {
     /// first render) and cached — the pinned wallpaper layer never
     /// re-flows. Portrait-only app; a rotation would need invalidation.
     static let sharedScreenSize: CGSize = {
+        #if canImport(UIKit)
         let scenes = UIApplication.shared.connectedScenes.compactMap {
             ($0 as? UIWindowScene)?.screen.bounds.size
         }
         return scenes.first ?? CGSize(width: 393, height: 852)
+        #else
+        // macOS windows resize freely — the design size is the wallpaper
+        // layer's anchor (it renders scaledToFill regardless).
+        CGSize(width: 393, height: 852)
+        #endif
     }()
 
     func setDim(_ value: Double) {
@@ -164,7 +170,7 @@ final class BackgroundSettings {
         }
         try jpeg.write(to: Self.photoFileURL, options: .atomic)
         try storeActive(jpeg)
-        guard let photo = UIImage(contentsOfFile: Self.photoFileURL.path) else {
+        guard let photo = PlatformImage(contentsOfFile: Self.photoFileURL.path) else {
             throw BackgroundError.cannotProcess
         }
         image = photo
@@ -228,7 +234,7 @@ final class BackgroundSettings {
     /// stored.
     private func storeActive(_ jpeg: Data) throws {
         try jpeg.write(to: Self.activeFileURL, options: .atomic)
-        guard let stored = UIImage(contentsOfFile: Self.activeFileURL.path) else {
+        guard let stored = PlatformImage(contentsOfFile: Self.activeFileURL.path) else {
             throw BackgroundError.cannotProcess
         }
         activeImage = stored

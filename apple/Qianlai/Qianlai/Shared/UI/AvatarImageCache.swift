@@ -27,11 +27,11 @@ import SwiftUI
 final class AvatarImageCache {
     static let shared = AvatarImageCache()
 
-    private let images = NSCache<NSURL, UIImage>()
+    private let images = NSCache<NSURL, PlatformImage>()
     /// Settled fetches are removed as soon as they finish; a lookup that
     /// arrives while one is still running awaits it instead of stacking a
     /// second request for the same URL.
-    private var inflight: [URL: Task<UIImage?, Never>] = [:]
+    private var inflight: [URL: Task<PlatformImage?, Never>] = [:]
 
     /// Avatar attachments are public — the server serves them with no auth,
     /// so a plain session works where the API client would attach one.
@@ -45,17 +45,17 @@ final class AvatarImageCache {
     /// The cached photo for `url`, fetching it once on first ask. Failures
     /// are not cached — the next caller retries, and views fall back to
     /// their initial in the meantime.
-    func image(for url: URL) async -> UIImage? {
+    func image(for url: URL) async -> PlatformImage? {
         if let cached = images.object(forKey: url as NSURL) {
             return cached
         }
         if let running = inflight[url] {
             return await running.value
         }
-        let task = Task<UIImage?, Never> {
+        let task = Task<PlatformImage?, Never> {
             defer { inflight.removeValue(forKey: url) }
             let data = (try? await session.data(from: url))?.0
-            let image = data.flatMap(UIImage.init(data:))
+            let image = data.flatMap(PlatformImage.init(data:))
             if let image {
                 images.setObject(image, forKey: url as NSURL)
             }
@@ -68,7 +68,7 @@ final class AvatarImageCache {
     /// The photo only if it is already in the cache — the synchronous read
     /// for surfaces that snapshot at presentation (menus): an async fetch
     /// would land after their frame is taken.
-    func synchronousImage(for url: URL?) -> UIImage? {
+    func synchronousImage(for url: URL?) -> PlatformImage? {
         guard let url else { return nil }
         return images.object(forKey: url as NSURL)
     }
@@ -79,7 +79,7 @@ final class AvatarImageCache {
 /// snapshot is taken synchronously at presentation, so an avatar not
 /// already warm in the session cache can't be fetched in time. This
 /// produces the same two states `CachedAvatarImage` renders, as one
-/// UIImage sized for the menu's icon slot: the cached photo circle-clipped,
+/// PlatformImage sized for the menu's icon slot: the cached photo circle-clipped,
 /// else the initial on the accent circle.
 @MainActor
 enum MenuAvatarImage {
@@ -87,7 +87,7 @@ enum MenuAvatarImage {
     /// fit, so there is no headroom to buy.
     static let pointSize: CGFloat = 20
 
-    static func image(url: URL?, initial: String) -> UIImage {
+    static func image(url: URL?, initial: String) -> PlatformImage {
         if let url,
            let photo = AvatarImageCache.shared.synchronousImage(for: url) {
             return circleClipped(photo)
@@ -95,50 +95,33 @@ enum MenuAvatarImage {
         return monogram(initial)
     }
 
-    /// Aspect-fill the square and clip to the circle — the raster
-    /// equivalent of `scaledToFill` + `clipShape(Circle())`.
-    private static func circleClipped(_ photo: UIImage) -> UIImage {
-        let format = UIGraphicsImageRendererFormat()
-        return UIGraphicsImageRenderer(
-            size: CGSize(width: pointSize, height: pointSize),
-            format: format
-        ).image { context in
-            let square = CGRect(x: 0, y: 0, width: pointSize, height: pointSize)
-            context.cgContext.addPath(CGPath(ellipseIn: square, transform: nil))
-            context.cgContext.clip()
-            let aspect = photo.size.width / photo.size.height
-            let fillSize = aspect > 1
-                ? CGSize(width: pointSize * aspect, height: pointSize)
-                : CGSize(width: pointSize, height: pointSize / aspect)
-            photo.draw(in: CGRect(
-                x: (pointSize - fillSize.width) / 2,
-                y: (pointSize - fillSize.height) / 2,
-                width: fillSize.width,
-                height: fillSize.height
-            ))
-        }
+    /// Aspect-fill the square and clip to the circle — the SwiftUI render
+    /// of `scaledToFill` + `clipShape(Circle())`. (The pre-macOS build drew
+    /// this with UIGraphicsImageRenderer; ImageRenderer renders the same
+    /// thing on both platforms and keeps one code path.)
+    private static func circleClipped(_ photo: PlatformImage) -> PlatformImage {
+        PlatformCanvas.renderImage(
+            Image(platformImage: photo)
+                .resizable()
+                .scaledToFill()
+                .frame(width: pointSize, height: pointSize)
+                .clipShape(Circle()),
+            scale: 2
+        )
     }
 
-    private static func monogram(_ initial: String) -> UIImage {
-        let format = UIGraphicsImageRendererFormat()
-        return UIGraphicsImageRenderer(
-            size: CGSize(width: pointSize, height: pointSize),
-            format: format
-        ).image { context in
-            let square = CGRect(x: 0, y: 0, width: pointSize, height: pointSize)
-            UIColor(Color.accentColor.opacity(0.85)).setFill()
-            context.cgContext.fillEllipse(in: square)
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: pointSize * 0.55, weight: .semibold),
-                .foregroundColor: UIColor.white,
-            ]
-            let letter = initial as NSString
-            let letterSize = letter.size(withAttributes: attributes)
-            letter.draw(at: CGPoint(
-                x: (pointSize - letterSize.width) / 2,
-                y: (pointSize - letterSize.height) / 2
-            ), withAttributes: attributes)
-        }
+    private static func monogram(_ initial: String) -> PlatformImage {
+        PlatformCanvas.renderImage(
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.85))
+                Text(initial)
+                    .font(.system(size: pointSize * 0.55, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+            .frame(width: pointSize, height: pointSize),
+            scale: 2
+        )
     }
 }
 
@@ -152,12 +135,12 @@ struct CachedAvatarImage: View {
     let url: URL?
     let initial: String
 
-    @State private var image: UIImage?
+    @State private var image: PlatformImage?
 
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .scaledToFill()
             } else {

@@ -172,36 +172,11 @@ struct ContentView: View {
                         NavigationStack {
                             page(tab)
                                 .modifier(AppTabTitleChrome(tab: tab))
-                                .background(QuickAddTabBarIntrospection(proxy: quickAddTabBarProxy))
                         }
                     }
                     .modifier(ToastHostModifier())
                     .id(privacyRemount(for: tab))
                 }
-                }
-                // The quick-entry pill's role is version-split: iOS 26
-                // reserves the trailing capsule for `role: .search` (the
-                // only slot with real tab avoidance), while iOS 27 stopped
-                // granting search tabs that capsule — there a plain
-                // `.search` pill merges into the main capsule even with
-                // only two tabs (2026-09-16 probe on the 27.0 GM runtime),
-                // and `role: .prominent` (new in 27) is what keeps it
-                // separated. Both gestures are refused one layer down, at
-                // the UITabBarControllerDelegate (QuickAddTabBarProxy): the
-                // tap presents quick entry, a ~0.5 s hold presents the
-                // screenshot-recognition cover, and the pill never becomes
-                // selected, so this page never mounts and no park/resync
-                // choreography is needed on either OS.
-                // It must stay search-free: a `.searchable` here is what
-                // let the iOS 26 search-role tap morph latch onto the
-                // drawer search and persist after the sheet closed.
-                Tab(
-                    AppTab.quickAdd.label,
-                    systemImage: AppTab.quickAdd.icon,
-                    value: AppTab.quickAdd,
-                    role: quickAddTabRole
-                ) {
-                    Color.clear
                 }
             }
             #endif
@@ -216,10 +191,12 @@ struct ContentView: View {
             isPresented: $isRecognitionPresented,
             seed: $recognitionResult
         )
+        #if os(iOS)
         .onAppear {
             quickAddTabBarProxy.pillTapped = { tryPresentQuickAdd() }
             quickAddTabBarProxy.pillLongPressed = { tryPresentRecognition() }
         }
+        #endif
         .onOpenURL { url in
             // Widget deep links: qianlai://quick-entry opens the quick-entry
             // sheet (a bound widget's link carries its target as query
@@ -265,7 +242,9 @@ struct ContentView: View {
     /// The UIKit-level tap/long-press interception for the pill (see
     /// QuickAddTabBarProxy). The proxy object must live as long as the
     /// screen — the tab bar controller holds it as its delegate.
+    #if os(iOS)
     @State private var quickAddTabBarProxy = QuickAddTabBarProxy()
+    #endif
     /// The bound widget's target when the sheet was opened from its deep
     /// link; nil keeps the sheet on the active-ledger defaults. The bound
     /// sheet records against its own ledger — the global scope is untouched.
@@ -276,12 +255,17 @@ struct ContentView: View {
 
     /// The pill's role, version-split for the trailing capsule — the full
     /// story lives in the TabView comment. Availability-guarded because
-    /// `TabRole.prominent` doesn't exist below 27.
+    /// `TabRole.prominent` doesn't exist below 27, and iOS-only — the
+    /// macOS tab bar carries no pill Tab at all.
     private var quickAddTabRole: TabRole {
+        #if os(iOS)
         if #available(iOS 27.0, *) {
             return .prominent
         }
         return .search
+        #else
+        return .search
+        #endif
     }
 
     /// Pill taps are normally refused at the UIKit layer

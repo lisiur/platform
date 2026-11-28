@@ -58,8 +58,8 @@ struct EntryAttachmentPickerSheet: View {
             case .existing(let ref):
                 CachedAttachmentImage(attachmentId: ref.id)
             case .local(let data):
-                if let image = UIImage(data: data) {
-                    Image(uiImage: image)
+                if let image = PlatformImage(data: data) {
+                    Image(platformImage: image)
                         .resizable()
                         .scaledToFill()
                 } else {

@@ -559,7 +559,9 @@ struct JournalFilterButton: View {
             // One row per Section reads as separate cards; the compact
             // section spacing keeps them a tight stack instead of the
             // default airiness a five-row sheet floats in.
+            #if os(iOS)
             .listSectionSpacing(.compact)
+            #endif
             .toolbar {
                 if hasListFilters {
                     ToolbarItem(placement: .cancellationAction) {

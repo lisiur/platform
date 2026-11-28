@@ -13,7 +13,7 @@ import SwiftUI
 /// The editor fills the whole screen — the crop window IS the screen, so
 /// what you see is exactly what gets saved (chrome floats on top).
 struct BackgroundImageAdjustView: View {
-    let image: UIImage
+    let image: PlatformImage
     let onConfirm: (Data) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -35,7 +35,7 @@ struct BackgroundImageAdjustView: View {
     var body: some View {
         ZStack {
             GeometryReader { geo in
-                Image(uiImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .frame(width: laidSize.width * scale, height: laidSize.height * scale)
                     .offset(offset)
@@ -127,12 +127,16 @@ struct BackgroundImageAdjustView: View {
     /// screen-sized at device pixel scale, no scrim baked in (the app
     /// layers the dim live).
     private func confirm() {
-        let rendered = UIGraphicsImageRenderer(size: screenSize).image { _ in
-            image.draw(in: CGRect(
-                x: (screenSize.width - laidSize.width * scale) / 2 + offset.width,
-                y: (screenSize.height - laidSize.height * scale) / 2 + offset.height,
-                width: laidSize.width * scale,
-                height: laidSize.height * scale
+        let source = image
+        let laid = laidSize
+        let scale = scale
+        let offset = offset
+        let rendered = PlatformCanvas.render(size: screenSize, opaque: true) { _ in
+            source.draw(in: CGRect(
+                x: (screenSize.width - laid.width * scale) / 2 + offset.width,
+                y: (screenSize.height - laid.height * scale) / 2 + offset.height,
+                width: laid.width * scale,
+                height: laid.height * scale
             ))
         }
         onConfirm(rendered.jpegData(compressionQuality: 0.75) ?? Data())

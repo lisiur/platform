@@ -122,7 +122,7 @@ struct ProfileView: View {
             // share code. Inviting lives on the members page (ledger) and
             // the projects list (project).
             #if os(iOS)
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 if auth.isLoggedIn {
                     collaborationMenu
                 }
@@ -150,9 +150,11 @@ struct ProfileView: View {
                 }
             }
         }
+        #if os(iOS)
         .sheet(isPresented: $isShowingJoin) {
             JoinLedgerScanView()
         }
+        #endif
         .sheet(isPresented: $isShowingNameSheet) {
             NavigationStack {
                 EditNameView(store: store)

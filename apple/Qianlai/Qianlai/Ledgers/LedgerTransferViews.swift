@@ -127,7 +127,7 @@ struct LedgerExportView: View {
                 }
             }
             .navigationTitle(L10n.string("transfer.export.title", defaultValue: "Export Ledger"))
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineTitleCompat()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.string("common.done", defaultValue: "Done")) { dismiss() }
@@ -289,7 +289,7 @@ struct LedgerImportView: View {
                 }
             }
             .navigationTitle(L10n.string("transfer.import.title", defaultValue: "Import Ledger"))
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineTitleCompat()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.string("common.close", defaultValue: "Close")) {

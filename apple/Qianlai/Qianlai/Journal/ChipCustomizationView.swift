@@ -55,7 +55,7 @@ struct ChipCustomizationView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .platformTopBarLeading) {
                 Button(L10n.string("preferences.restoreDefaults", defaultValue: "Reset")) {
                     restoreDefaults()
                 }

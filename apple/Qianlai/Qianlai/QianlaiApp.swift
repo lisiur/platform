@@ -390,7 +390,7 @@ private struct WallpaperDemoPage: View {
         .appBackgroundSink()
         .navigationTitle(Text(title))
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .platformTopBarTrailing) {
                 Button {
                 } label: {
                     Image(systemName: "plus")
