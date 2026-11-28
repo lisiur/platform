@@ -55,6 +55,13 @@ final class RealAccountStore {
         icon: String?,
         meta: [String: JSONValue]?
     ) async throws {
+        if let write = LocalStoreGateway.shared.realAccountWrite() {
+            _ = try await write.createRealAccount(
+                ownerId: LocalIdentity.userId, name: name, type: type, icon: icon, meta: meta
+            )
+            await load()
+            return
+        }
         _ = try await client.send(
             "POST",
             "bookkeeping/real-accounts",
@@ -69,6 +76,13 @@ final class RealAccountStore {
         icon: String?,
         meta: [String: JSONValue]?
     ) async throws {
+        if let write = LocalStoreGateway.shared.realAccountWrite() {
+            try await write.updateRealAccount(
+                id: real.id, name: name, status: nil, icon: icon, meta: meta
+            )
+            await load()
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/real-accounts/\(real.id)",
@@ -79,6 +93,11 @@ final class RealAccountStore {
 
     func archiveToggle(_ real: RealAccount) async throws {
         let status = real.isArchived ? "active" : "archived"
+        if let write = LocalStoreGateway.shared.realAccountWrite() {
+            try await write.updateRealAccount(id: real.id, name: nil, status: status, icon: nil, meta: nil)
+            await load()
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/real-accounts/\(real.id)",
@@ -88,6 +107,11 @@ final class RealAccountStore {
     }
 
     func delete(_ real: RealAccount) async throws {
+        if let write = LocalStoreGateway.shared.realAccountWrite() {
+            try await write.deleteRealAccount(id: real.id)
+            await load()
+            return
+        }
         _ = try await client.send(
             "DELETE",
             "bookkeeping/real-accounts/\(real.id)"

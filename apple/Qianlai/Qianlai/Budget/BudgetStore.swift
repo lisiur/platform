@@ -40,6 +40,13 @@ final class BudgetStore {
     /// Sets (or re-sets) the year's monthly budget.
     @discardableResult
     func setYear(ledgerId: String, year: Int, cents: Int) async throws -> BudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.setYearBudget(ledgerId: ledgerId, year: year, cents: cents)
+            let saved = try await reportRepository.budgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let saved: BudgetSettings = try await client.request(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/budget",
@@ -53,6 +60,13 @@ final class BudgetStore {
     /// exist — the settings page disables the section until it does).
     @discardableResult
     func setMonth(ledgerId: String, year: Int, month: Int, cents: Int) async throws -> BudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.setMonthBudget(ledgerId: ledgerId, year: year, month: month, cents: cents)
+            let saved = try await reportRepository.budgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let saved: BudgetSettings = try await client.request(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/budget/month",
@@ -66,6 +80,13 @@ final class BudgetStore {
     /// year query only shapes the settings payload the write returns.
     @discardableResult
     func setExcludedCategories(ledgerId: String, year: Int, accountIds: [String]) async throws -> BudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.setExcludedCategories(ledgerId: ledgerId, accountIds: accountIds)
+            let saved = try await reportRepository.budgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let query = ApiQuery.build([("year", String(year))])
         let saved: BudgetSettings = try await client.request(
             "PUT",
@@ -81,6 +102,13 @@ final class BudgetStore {
     /// again.
     @discardableResult
     func closeYear(ledgerId: String, year: Int) async throws -> BudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.closeYearBudget(ledgerId: ledgerId, year: year)
+            let saved = try await reportRepository.budgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let query = ApiQuery.build([("year", String(year))])
         let saved: BudgetSettings = try await client.request(
             "DELETE",

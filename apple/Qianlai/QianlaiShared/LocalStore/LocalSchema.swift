@@ -33,10 +33,10 @@ nonisolated enum LocalSchema {
     /// `grdb_migrations`.
     static func register(migrator: inout DatabaseMigrator) {
         registerV1(&migrator)
+        registerV2(&migrator)
     }
 
-    private static func registerV1(_ migrator: inout DatabaseMigrator) {
-        migrator.registerMigration("v1") { db in
+    private static func registerV1(_ migrator: inout DatabaseMigrator) {        migrator.registerMigration("v1") { db in
             // Ledger -----------------------------------------------------------------
             try db.execute(sql: """
                 CREATE TABLE qianlai_ledger (
@@ -247,39 +247,74 @@ nonisolated enum LocalSchema {
                 )
                 """)
 
-            // Search -----------------------------------------------------------------
-            // Contentless FTS5 over the entry's free-text columns; the UNINDEXED
-            // entry id joins back to the row. unicode61 splits CJK per codepoint
-            // (per-character recall) — phase 2 validates the quality and the LIKE
-            // fallback remains the degradation path.
+            // Search: EXTERNAL-CONTENT FTS5 over the entry's free-text
+            // columns, keyed on the table's rowid — the documented shape
+            // whose special delete/update commands work on every SQLite
+            // with FTS5 (the contentless variant's delete command needs a
+            // newer SQLite build). unicode61 splits CJK per codepoint —
+            // phase 2 validates Chinese recall; the LIKE fallback remains
+            // the degradation path either way.
             try db.execute(sql: """
                 CREATE VIRTUAL TABLE journal_entry_fts USING fts5(
-                    entry_id UNINDEXED,
                     memo,
                     merchant,
                     address_name,
+                    content = 'qianlai_journal_entry',
+                    content_rowid = 'rowid',
                     tokenize = 'unicode61'
                 )
                 """)
             try db.execute(sql: """
                 CREATE TRIGGER journal_entry_ai AFTER INSERT ON qianlai_journal_entry BEGIN
-                    INSERT INTO journal_entry_fts (entry_id, memo, merchant, address_name)
-                    VALUES (new.id, new.memo, new.merchant, new.address_name);
+                    INSERT INTO journal_entry_fts (rowid, memo, merchant, address_name)
+                    VALUES (new.rowid, COALESCE(new.memo, ''), COALESCE(new.merchant, ''), COALESCE(new.address_name, ''));
                 END
                 """)
             try db.execute(sql: """
                 CREATE TRIGGER journal_entry_ad AFTER DELETE ON qianlai_journal_entry BEGIN
-                    INSERT INTO journal_entry_fts (journal_entry_fts, entry_id, memo, merchant, address_name)
-                    VALUES ('delete', old.id, old.memo, old.merchant, old.address_name);
+                    INSERT INTO journal_entry_fts (journal_entry_fts, rowid, memo, merchant, address_name)
+                    VALUES ('delete', old.rowid, COALESCE(old.memo, ''), COALESCE(old.merchant, ''), COALESCE(old.address_name, ''));
                 END
                 """)
             try db.execute(sql: """
                 CREATE TRIGGER journal_entry_au AFTER UPDATE ON qianlai_journal_entry BEGIN
-                    INSERT INTO journal_entry_fts (journal_entry_fts, entry_id, memo, merchant, address_name)
-                    VALUES ('delete', old.id, old.memo, old.merchant, old.address_name);
-                    INSERT INTO journal_entry_fts (entry_id, memo, merchant, address_name)
-                    VALUES (new.id, new.memo, new.merchant, new.address_name);
+                    INSERT INTO journal_entry_fts (journal_entry_fts, rowid, memo, merchant, address_name)
+                    VALUES ('delete', old.rowid, COALESCE(old.memo, ''), COALESCE(old.merchant, ''), COALESCE(old.address_name, ''));
+                    INSERT INTO journal_entry_fts (rowid, memo, merchant, address_name)
+                    VALUES (new.rowid, COALESCE(new.memo, ''), COALESCE(new.merchant, ''), COALESCE(new.address_name, ''));
                 END
+                """)
+        }
+    }
+
+    /// v2 — entry photo receipts (T2.4). The server stores attachment rows
+    /// claimed onto entries; locally the BYTES live in the attachments
+    /// directory (`LocalAttachmentStore`) and the row carries the relative
+    /// path, so the CKAsset record (phase 2's sync mapping) has one row
+    /// per receipt to mirror. `entry_id` is NULL while the receipt sits in
+    /// the staging area (uploaded before the entry exists — the same
+    /// claim-on-save flow the cloud path runs); `pending_sync` is the sync
+    /// state the engine drives: 0 = clean, 1 = pending upload.
+    private static func registerV2(_ migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("v2") { db in
+            try db.execute(sql: """
+                CREATE TABLE qianlai_entry_attachment (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    entry_id TEXT REFERENCES qianlai_journal_entry(id) ON DELETE CASCADE,
+                    mime_type TEXT NOT NULL,
+                    size INTEGER NOT NULL,
+                    -- sha256 of the bytes — the transfer format's dedupe +
+                    -- integrity check (transfer/format.ts attachment hash).
+                    hash TEXT NOT NULL,
+                    -- Path relative to the attachments directory.
+                    file_path TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    pending_sync BOOLEAN NOT NULL DEFAULT 0
+                )
+                """)
+            try db.execute(sql: """
+                CREATE INDEX qianlai_entry_attachment_entry
+                    ON qianlai_entry_attachment (entry_id)
                 """)
         }
     }

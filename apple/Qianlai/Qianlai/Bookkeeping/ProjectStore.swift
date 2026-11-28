@@ -389,6 +389,15 @@ final class ProjectStore {
         startDate: Date?,
         endDate: Date?
     ) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            _ = try await write.createProject(
+                ledgerId: ledgerId, creatorId: LocalIdentity.userId,
+                name: name, description: description,
+                startDate: startDate, endDate: endDate
+            )
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/projects",
@@ -410,6 +419,15 @@ final class ProjectStore {
         startDate: Date?,
         endDate: Date?
     ) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.updateProject(
+                ledgerId: ledgerId, projectId: project.id,
+                name: name, description: description, status: nil,
+                startDate: startDate, endDate: endDate
+            )
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(project.id)",
@@ -426,6 +444,16 @@ final class ProjectStore {
     }
 
     func setStatus(ledgerId: String, _ project: QianlaiProject, active: Bool) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.updateProject(
+                ledgerId: ledgerId, projectId: project.id,
+                name: nil, description: nil,
+                status: active ? "active" : "archived",
+                startDate: nil, endDate: nil
+            )
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(project.id)",
@@ -442,6 +470,14 @@ final class ProjectStore {
     }
 
     func delete(ledgerId: String, _ project: QianlaiProject) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.deleteProject(ledgerId: ledgerId, projectId: project.id)
+            if selectedProjectId == project.id {
+                setSelectedProjectId(nil)
+            }
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "DELETE",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(project.id)"
@@ -455,6 +491,11 @@ final class ProjectStore {
     // MARK: - Members
 
     func addMember(ledgerId: String, projectId: String, userId: String) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.addProjectMember(ledgerId: ledgerId, projectId: projectId, userId: userId)
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/members",
@@ -464,6 +505,11 @@ final class ProjectStore {
     }
 
     func removeMember(ledgerId: String, projectId: String, userId: String) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.removeProjectMember(ledgerId: ledgerId, projectId: projectId, userId: userId)
+            await load(ledgerId: ledgerId, force: true)
+            return
+        }
         _ = try await client.send(
             "DELETE",
             "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/members/\(userId)"

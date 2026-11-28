@@ -67,15 +67,19 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"LocalStore/LocalAggregation.swift",
+				"LocalStore/LocalAttachmentStore.swift",
 				"LocalStore/LocalDatabase.swift",
 				"LocalStore/LocalIdentity.swift",
 				"LocalStore/LocalJournalRepository.swift",
+				"LocalStore/LocalJournalWriteRepository.swift",
 				"LocalStore/LocalLedgerRepository.swift",
 				"LocalStore/LocalReportRepository.swift",
 				"LocalStore/LocalRows.swift",
 				"LocalStore/LocalSchema.swift",
 				"LocalStore/LocalSeed.swift",
+				"LocalStore/LocalSettingsWriteRepository.swift",
 				"LocalStore/LocalStoreGateway.swift",
+				"LocalStore/LocalValidation.swift",
 				"LocalStore/LocalValues.swift",
 			);
 			target = 7E6BA00130357BDB000F3F45 /* QianlaiWidget */;

@@ -552,6 +552,18 @@ final class JournalStore {
         // Throw, never silently return: save() shows success the moment this
         // doesn't throw, so a nil-ledger no-op would fake a successful post.
         guard let ledgerId else { throw APIError.noActiveLedger }
+        // Local branch (C3/T2.2): the offline write lands through the
+        // repository's transaction (validation, entryNo counter, receipts).
+        if let write = LocalStoreGateway.shared.journalWrite(for: ledgerId) {
+            _ = try await write.createEntry(
+                ledgerId: ledgerId,
+                creatorId: LocalIdentity.userId,
+                draft: Self.localDraft(draft)
+            )
+            // Reset to page 1: the fresh entry should be visible at the top.
+            await reloadFromStart()
+            return
+        }
         _ = try await client.send(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/entries",
@@ -559,6 +571,31 @@ final class JournalStore {
         )
         // Reset to page 1: the fresh entry should be visible at the top.
         await reloadFromStart()
+    }
+
+    /// The store's `QuickEntryDraft` mapped onto the local write draft —
+    /// the field set mirrors `CreateEntryBody` one to one (C3). The
+    /// receipts' claimed ids ride as the final set (create claims staged
+    /// refs onto the new entry).
+    static func localDraft(
+        _ draft: QuickEntryDraft,
+        attachmentIds: [String]? = nil
+    ) -> LocalJournalWriteRepository.EntryDraft {
+        let trimmedMemo = draft.memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        return LocalJournalWriteRepository.EntryDraft(
+            date: draft.date,
+            memo: trimmedMemo.isEmpty ? nil : trimmedMemo,
+            lines: draft.body.lines.map { ($0.accountId, $0.debit, $0.credit, $0.memo) },
+            participantUserIds: draft.participants.isEmpty ? nil : Array(draft.participants).sorted(),
+            paidByUserId: draft.paidByUserId,
+            projectId: draft.projectId,
+            countsInLedger: draft.countsInLedger,
+            excludedFromBudget: draft.excludedFromBudget,
+            location: draft.location.map { LocalJournalWriteRepository.EntryDraft.LocationWrite.replace($0) }
+                ?? (draft.isLocationCleared ? .clear : nil),
+            merchant: draft.merchant.trimmingCharacters(in: .whitespacesAndNewlines),
+            attachmentIds: attachmentIds ?? draft.attachments.map(\.id)
+        )
     }
 
     /// AI recognition of a payment screenshot into a draft payload — one
@@ -608,14 +645,20 @@ final class JournalStore {
     /// Uploads one photo as a private receipt staged against the ledger
     /// (the route fixes the bizType/bizId). The returned id joins the
     /// entry's `attachments` when the entry posts, which is what claims it
-    /// onto the entry.
+    /// onto the entry. Local branch (T2.4): the bytes stage locally and
+    /// claim on save — no network, no signed urls.
     func uploadEntryAttachment(
         ledgerId: String,
         data: Data,
         fileName: String,
         mimeType: String
     ) async throws -> EntryAttachmentUploadResponse {
-        try await client.uploadMultipart(
+        if let store = LocalStoreGateway.shared.attachmentStore,
+           LocalStoreGateway.shared.isLocal(ledgerId) {
+            let ref = try await store.stage(data: data, mimeType: mimeType)
+            return EntryAttachmentUploadResponse(attachmentId: ref.id, url: "")
+        }
+        return try await client.uploadMultipart(
             "bookkeeping/ledgers/\(ledgerId)/entries/attachments",
             fileData: data,
             fileName: fileName,
@@ -642,6 +685,27 @@ final class JournalStore {
         if let index {
             entries.remove(at: index)
             if total > 0 { total -= 1 }
+        }
+        // Local branch (T2.2): the delete is a local transaction — it
+        // cannot fail like a request, so the task only repairs sidecars.
+        if let write = LocalStoreGateway.shared.journalWrite(for: ledgerId) {
+            return Task {
+                do {
+                    try await write.deleteEntry(ledgerId: ledgerId, entryId: entry.id)
+                    if wasLastLoaded, hasMore {
+                        await loadMore()
+                    }
+                    refreshDayTotals()
+                } catch {
+                    guard self.ledgerId == ledgerId else { return }
+                    if let index, index <= entries.count,
+                       !entries.contains(where: { $0.id == entry.id }) {
+                        entries.insert(entry, at: index)
+                        total += 1
+                    }
+                    onSyncFailure(error.localizedDescription)
+                }
+            }
         }
         return Task {
             do {
@@ -692,6 +756,24 @@ final class JournalStore {
     /// predicate mirrors the query.
     func update(_ entry: JournalEntry, draft: QuickEntryDraft) async throws {
         guard let ledgerId else { throw APIError.noActiveLedger }
+        // Local branch (T2.2): the keep-rules (entryNo/creator/createdAt)
+        // live in the repository; the receipts' final set rides along.
+        if let write = LocalStoreGateway.shared.journalWrite(for: ledgerId) {
+            let attachmentIds: [String]?
+            switch draft.attachmentsPayload {
+            case .clear: attachmentIds = []
+            case .set(let ids): attachmentIds = ids
+            case nil: attachmentIds = draft.isEditingExisting ? draft.attachments.map(\.id) : nil
+            }
+            _ = try await write.updateEntry(
+                ledgerId: ledgerId,
+                entryId: entry.id,
+                editorId: LocalIdentity.userId,
+                draft: Self.localDraft(draft, attachmentIds: attachmentIds)
+            )
+            await refreshEditedEntry(entry, updated: try await write.entry(id: entry.id, ledgerId: ledgerId))
+            return
+        }
         let updated: JournalEntry = try await client.request(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/entries/\(entry.id)",

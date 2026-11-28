@@ -42,6 +42,13 @@ final class CategoryBudgetStore {
     /// Pins (or re-pins) one category's whole-year amount.
     @discardableResult
     func upsert(ledgerId: String, year: Int, accountId: String, cents: Int) async throws -> CategoryBudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.upsertCategoryBudget(ledgerId: ledgerId, year: year, accountId: accountId, cents: cents)
+            let saved = try await reportRepository.categoryBudgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let saved: CategoryBudgetSettings = try await client.request(
             "PUT",
             "bookkeeping/ledgers/\(ledgerId)/category-budgets",
@@ -55,6 +62,13 @@ final class CategoryBudgetStore {
     /// swipe-to-delete). Idempotent server-side.
     @discardableResult
     func delete(ledgerId: String, year: Int, accountId: String) async throws -> CategoryBudgetSettings {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            try await write.deleteCategoryBudget(ledgerId: ledgerId, year: year, accountId: accountId)
+            let saved = try await reportRepository.categoryBudgetSettings(ledgerId: ledgerId, year: year)
+            settings = saved
+            return saved
+        }
         let query = ApiQuery.build([
             ("year", String(year)),
             ("accountId", accountId),

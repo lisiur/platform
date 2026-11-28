@@ -412,6 +412,15 @@ nonisolated final class LocalJournalRepository {
 
         let linesByEntry = Dictionary(grouping: lineRows, by: \.entryId)
         let participantsByEntry = Dictionary(grouping: participantRows, by: \.entryId)
+        // Photo receipts ride their rows (T2.4): entries with receipts
+        // carry refs like the cloud list endpoint echoes them; entries
+        // without stay nil (no paperclip).
+        let attachmentRows = try LocalAttachmentRow.fetchAll(
+            db,
+            sql: "SELECT * FROM qianlai_entry_attachment WHERE entry_id IN (\(placeholders)) ORDER BY created_at ASC, id ASC",
+            arguments: StatementArguments(ids)
+        )
+        let attachmentsByEntry = Dictionary(grouping: attachmentRows, by: \.entryId)
 
         return rows.map { row in
             let lines = (linesByEntry[row.id] ?? []).map { line -> JournalLine in
@@ -442,6 +451,7 @@ nonisolated final class LocalJournalRepository {
             let participants = (participantsByEntry[row.id] ?? []).map { participant in
                 EntryParticipant(id: participant.id, userId: participant.userId, user: LocalIdentity.userRef(id: participant.userId))
             }
+            let attachmentRefs = (attachmentsByEntry[row.id] ?? []).map(\.ref)
             let projectRef = row.projectId.flatMap { id in
                 projectsById[id].map {
                     EntryProjectRef(id: $0.id, name: $0.name, status: $0.status)
@@ -475,7 +485,7 @@ nonisolated final class LocalJournalRepository {
                 project: projectRef,
                 location: location,
                 merchant: row.merchant,
-                attachments: nil,
+                attachments: attachmentRefs.isEmpty ? nil : attachmentRefs,
                 lines: lines,
                 participants: participants,
                 memberSharesCents: LocalAggregation.memberSharesCents(

@@ -28,6 +28,9 @@ final class LocalStoreGateway {
     private(set) var ledgerRepository: LocalLedgerRepository?
     private(set) var journalRepository: LocalJournalRepository?
     private(set) var reportRepository: LocalReportRepository?
+    private(set) var journalWriteRepository: LocalJournalWriteRepository?
+    private(set) var settingsWriteRepository: LocalSettingsWriteRepository?
+    private(set) var attachmentStore: LocalAttachmentStore?
     private var localLedgerIds: Set<String> = []
     private var activated = false
 
@@ -46,6 +49,9 @@ final class LocalStoreGateway {
         ledgerRepository = ledger
         journalRepository = LocalJournalRepository(database: database)
         reportRepository = LocalReportRepository(database: database)
+        journalWriteRepository = LocalJournalWriteRepository(database: database)
+        settingsWriteRepository = LocalSettingsWriteRepository(database: database)
+        attachmentStore = LocalAttachmentStore(database: database)
         Task { [weak self] in
             guard let self else { return }
             let ids = (try? await ledger.ledgerIds()) ?? []
@@ -94,5 +100,23 @@ final class LocalStoreGateway {
     func ledgerIdForRealAccounts() -> String? {
         guard let id = WidgetDataStore.loadAppActiveLedgerId() else { return nil }
         return isLocal(id) ? id : nil
+    }
+
+    /// The journal write repository, when the ledger routes local — the
+    /// one-liner the write-path stores branch on.
+    func journalWrite(for ledgerId: String) -> LocalJournalWriteRepository? {
+        isLocal(ledgerId) ? journalWriteRepository : nil
+    }
+
+    /// The settings/chart write repository, same rule.
+    func settingsWrite(for ledgerId: String) -> LocalSettingsWriteRepository? {
+        isLocal(ledgerId) ? settingsWriteRepository : nil
+    }
+
+    /// The real-account write repository — owner-scoped surfaces route on
+    /// the ACTIVE ledger being local (their pockets belong to it).
+    func realAccountWrite() -> LocalSettingsWriteRepository? {
+        guard ledgerIdForRealAccounts() != nil else { return nil }
+        return settingsWriteRepository
     }
 }

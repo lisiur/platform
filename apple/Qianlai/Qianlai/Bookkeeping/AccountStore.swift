@@ -176,6 +176,15 @@ final class AccountStore {
         meta: [String: JSONValue]?,
         realAccountId: String?
     ) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            _ = try await write.createAccount(
+                ledgerId: ledgerId, name: name, type: type,
+                parentId: parent?.id, icon: icon, meta: meta,
+                realAccountId: realAccountId
+            )
+            await reload()
+            return
+        }
         _ = try await client.send(
             "POST",
             "bookkeeping/ledgers/\(ledgerId)/accounts",
@@ -204,6 +213,20 @@ final class AccountStore {
         realAccountId: String?,
         linkRealAccount: Bool
     ) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: account.ledgerId) {
+            try await write.updateAccount(
+                ledgerId: account.ledgerId,
+                accountId: account.id,
+                name: name,
+                icon: icon,
+                meta: meta,
+                status: nil,
+                realAccountId: linkRealAccount ? realAccountId : nil,
+                linkRealAccount: linkRealAccount && account.isAssetLike
+            )
+            await reload()
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/ledgers/\(account.ledgerId)/accounts/\(account.id)",
@@ -221,6 +244,11 @@ final class AccountStore {
 
     func archiveToggle(_ account: BookAccount) async throws {
         let status = account.isArchived ? "active" : "archived"
+        if let write = LocalStoreGateway.shared.settingsWrite(for: account.ledgerId) {
+            try await write.setAccountStatus(ledgerId: account.ledgerId, accountId: account.id, status: status)
+            await reload()
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/ledgers/\(account.ledgerId)/accounts/\(account.id)",
@@ -237,6 +265,11 @@ final class AccountStore {
     }
 
     func delete(_ account: BookAccount) async throws {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: account.ledgerId) {
+            try await write.deleteAccount(ledgerId: account.ledgerId, accountId: account.id)
+            await reload()
+            return
+        }
         _ = try await client.send(
             "DELETE",
             "bookkeeping/ledgers/\(account.ledgerId)/accounts/\(account.id)"
@@ -321,6 +354,14 @@ final class AccountStore {
     /// the optimistic local order drops back to the server's.
     func commitMove(_ body: ReorderAccountsBody) async throws {
         guard let ledgerId else { return }
+        if let write = LocalStoreGateway.shared.settingsWrite(for: ledgerId) {
+            try await write.reorderAccounts(
+                ledgerId: ledgerId,
+                items: body.items.map { ($0.id, $0.parentId, $0.sortOrder) }
+            )
+            await reload()
+            return
+        }
         do {
             _ = try await client.send(
                 "POST",
@@ -344,6 +385,22 @@ final class AccountStore {
         date: Date,
         memo: String?
     ) async throws -> Bool {
+        if let write = LocalStoreGateway.shared.settingsWrite(for: account.ledgerId),
+           let journalWrite = LocalStoreGateway.shared.journalWrite(for: account.ledgerId) {
+            // The local adjustment posts through the same validation and
+            // entryNo counter as any entry — `write` here is the settings
+            // facade's guard, the entry lands via the journal writer.
+            let adjusted = try await journalWrite.setBalance(
+                ledgerId: account.ledgerId,
+                accountId: account.id,
+                balance: balance,
+                date: date,
+                memo: memo,
+                actorId: LocalIdentity.userId
+            ).adjusted
+            await reload()
+            return adjusted
+        }
         let response: SetBalanceResponse = try await client.request(
             "POST",
             "bookkeeping/ledgers/\(account.ledgerId)/accounts/\(account.id)/balance",
