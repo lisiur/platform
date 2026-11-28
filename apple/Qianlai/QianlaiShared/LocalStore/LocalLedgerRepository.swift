@@ -175,11 +175,16 @@ nonisolated final class LocalLedgerRepository {
 
     /// Deletes the ledger — the row cascade (FK) wipes members, accounts,
     /// entries, lines, participants, projects, and budget rows with it.
-    /// The CloudKit zone deletion rides the outbox (the engine deletes
-    /// the zone atomically; Q3's 全端删除语义).
+    /// The deletion writes a TOMBSTONE (v3) in the same transaction: the
+    /// engine's zone deletion races its fetch, and a replayed `ledger`
+    /// record landing before the deleteZone does would otherwise
+    /// resurrect the deleted ledger on the next launch (the observed
+    /// 删了又回来/每次重启多一个). The engine's fetched-apply consults the
+    /// tombstone and skips the ledger and its children.
     func delete(_ ledgerId: String) async throws {
         try await database.writer.write { db in
             _ = try LocalLedgerRow.deleteOne(db, key: ledgerId)
+            try SyncTombstone.record(ledgerId: ledgerId).insert(db)
         }
         CloudSyncOutbox.shared.enqueueZoneDeletion(CloudSyncOutbox.ledgerZone(ledgerId))
     }

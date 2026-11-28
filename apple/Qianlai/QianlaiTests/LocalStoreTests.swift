@@ -21,14 +21,14 @@ final class LocalStoreTests: XCTestCase {
 
     func testOpeningMigratesAndIsIdempotent() throws {
         let database = try makeDatabase()
-        XCTAssertEqual(database.appliedMigrationCount, 2, "v1 (schema) + v2 (attachments) registered")
+        XCTAssertEqual(database.appliedMigrationCount, 3, "v1 schema + v2 attachments + v3 tombstones registered")
         // Re-opening the SAME FILE re-runs the migrator — a no-op, no throw
         // (GRDB records applied versions in grdb_migrations).
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("local-store-tests-\(UUID().uuidString).sqlite3")
         _ = try LocalDatabase(fileURL: url)
         let reopened = try LocalDatabase(fileURL: url)
-        XCTAssertEqual(reopened.appliedMigrationCount, 2, "idempotent re-migration")
+        XCTAssertEqual(reopened.appliedMigrationCount, 3, "idempotent re-migration")
         try? FileManager.default.removeItem(at: url)
     }
 

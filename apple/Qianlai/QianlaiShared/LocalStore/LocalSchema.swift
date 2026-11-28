@@ -34,6 +34,7 @@ nonisolated enum LocalSchema {
     static func register(migrator: inout DatabaseMigrator) {
         registerV1(&migrator)
         registerV2(&migrator)
+        registerV3(&migrator)
     }
 
     private static func registerV1(_ migrator: inout DatabaseMigrator) {        migrator.registerMigration("v1") { db in
@@ -315,6 +316,25 @@ nonisolated enum LocalSchema {
             try db.execute(sql: """
                 CREATE INDEX qianlai_entry_attachment_entry
                     ON qianlai_entry_attachment (entry_id)
+                """)
+        }
+    }
+
+    /// v3 — deletion tombstones (the 重复账本 fix): when a local ledger is
+    /// deleted, its CloudKit zone deletion races the engine's fetch — a
+    /// fetched `ledger` record replayed before the deleteZone lands would
+    /// re-insert the deleted ledger (observed as 删了又回来/每次重启多一个).
+    /// The tombstone (one row per deleted ledger id, permanent — ids are
+    /// UUIDs and never legitimately resurrect) makes fetched applies skip
+    /// the deleted ledger and its direct children.
+    private static func registerV3(_ migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("v3") { db in
+            try db.execute(sql: """
+                CREATE TABLE qianlai_sync_tombstone (
+                    -- The deleted ledger's id.
+                    id TEXT PRIMARY KEY NOT NULL,
+                    deleted_at TEXT NOT NULL
+                )
                 """)
         }
     }

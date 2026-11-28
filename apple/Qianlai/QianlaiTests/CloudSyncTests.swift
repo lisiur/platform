@@ -241,4 +241,81 @@ final class CloudSyncTests: XCTestCase {
         }
         XCTAssertEqual(afterDelete, 0, "the delete trigger cleaned the index")
     }
+
+    // MARK: - Deletion tombstones (the 重复账本 fix)
+
+    func testTombstonedLedgerDoesNotResurrectFromFetchedReplay() async throws {
+        let database = try makeDatabase()
+        let ledgerRepository = LocalLedgerRepository(database: database)
+        let ledger = try await ledgerRepository.create(
+            name: "旧账本", description: nil, currency: "CNY",
+            seedStarterAccounts: true, ownerId: "old-install"
+        )
+        // Delete — the tombstone lands with the row.
+        try await ledgerRepository.delete(ledger.id)
+
+        // The delete/fetch race replays the ledger record (and a child).
+        let zoneID = CKRecordZone.ID(
+            zoneName: CloudSyncOutbox.ledgerZone(ledger.id), ownerName: CKCurrentUserDefaultName
+        )
+        let row = try await ledgerRepository.ledger(id: ledger.id) // nil — gone locally
+        XCTAssertNil(row)
+        let record = CKRecord(
+            recordType: CloudSyncMapping.RecordType.ledger,
+            recordID: CloudSyncMapping.recordID(ledger.id, zoneID: zoneID)
+        )
+        record["ownerId"] = "old-install"
+        record["name"] = "旧账本"
+        record["currency"] = "CNY"
+        record["status"] = "active"
+        record["createdAt"] = Date()
+        record["updatedAt"] = Date()
+
+        let resurrected: Bool = try await database.writer.write { db in
+            let tombstones = try SyncTombstone.allIds(db)
+            // The gate the engine's fetched-apply runs.
+            if tombstones.contains(record.recordID.recordName) {
+                return false
+            }
+            if let decoded = CloudSyncMapping.decodeLedger(record) {
+                try decoded.save(db)
+                return true
+            }
+            return false
+        }
+        XCTAssertFalse(resurrected, "the tombstone blocks the replayed ledger")
+        let afterReplay = try await ledgerRepository.ledger(id: ledger.id)
+        XCTAssertNil(afterReplay, "the replayed record must not re-insert the ledger")
+    }
+
+    func testNonTombstonedFetchedLedgerStillLands() async throws {
+        // AC3.1's channel stays open: a ledger synced from ANOTHER device
+        // (no tombstone) must land through the same fetched-apply path.
+        let database = try makeDatabase()
+        let ledgerRepository = LocalLedgerRepository(database: database)
+        let zoneID = CKRecordZone.ID(
+            zoneName: CloudSyncOutbox.ledgerZone("remote-1"), ownerName: CKCurrentUserDefaultName
+        )
+        let record = CKRecord(
+            recordType: CloudSyncMapping.RecordType.ledger,
+            recordID: CloudSyncMapping.recordID("remote-1", zoneID: zoneID)
+        )
+        record["ownerId"] = "other-device"
+        record["name"] = "另一台的账本"
+        record["currency"] = "CNY"
+        record["status"] = "active"
+        record["createdAt"] = Date()
+        record["updatedAt"] = Date()
+
+        try await database.writer.write { db in
+            let tombstones = try SyncTombstone.allIds(db)
+            XCTAssertFalse(tombstones.contains(record.recordID.recordName))
+            if let decoded = CloudSyncMapping.decodeLedger(record) {
+                try decoded.save(db)
+            }
+        }
+        let landed = try await ledgerRepository.ledger(id: "remote-1")
+        XCTAssertEqual(landed?.name, "另一台的账本")
+        XCTAssertEqual(landed?.storage, .local)
+    }
 }

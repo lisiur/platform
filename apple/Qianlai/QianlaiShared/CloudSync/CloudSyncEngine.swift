@@ -348,11 +348,36 @@ final class CloudSyncEngine: NSObject {
 
     // MARK: - Fetched-change application
 
-    /// Applies one fetched record (upsert by stable id). Attachment
-    /// records also write their CKAsset bytes into the attachments
-    /// directory. Fetched applies never re-enqueue sends — the write
-    /// repositories are the only outbox feed.
-    nonisolated private static func applyRecord(_ record: CKRecord, db: Database) {
+    /// Applies one fetched record (upsert by stable id). A record of a
+    /// TOMBSTONED ledger — the delete/fetch race's replay — is dropped:
+    /// the ledger itself, and every direct child whose `ledgerId` names a
+    /// tombstoned ledger. Attachment records lack a ledgerId (their chain
+    /// runs through the entry); a race-window replay lands as a harmless
+    /// orphan row the ledger's absence keeps invisible, and the zone
+    /// deletion removes it server-side moments later. Fetched applies
+    /// never re-enqueue sends — the write repos are the only outbox feed.
+    nonisolated private static func applyRecord(
+        _ record: CKRecord, db: Database, tombstones: Set<String>
+    ) {
+        if tombstones.contains(record.recordID.recordName) {
+            return
+        }
+        // Direct children: their decoded row carries the ledger id — drop
+        // rows of tombstoned ledgers before the type dispatch.
+        if let ledgerId = childLedgerId(record), tombstones.contains(ledgerId) {
+            return
+        }
+        applyByType(record, db: db)
+    }
+
+    /// The ledger id a direct-child record carries, for the tombstone
+    /// gate (nil for second-level/ledger-independent records).
+    nonisolated private static func childLedgerId(_ record: CKRecord) -> String? {
+        record["ledgerId"] as? String
+    }
+
+    /// The type dispatch behind the tombstone gate.
+    nonisolated private static func applyByType(_ record: CKRecord, db: Database) {
         switch record.recordType {
         case CloudSyncMapping.RecordType.ledger:
             if let row = CloudSyncMapping.decodeLedger(record) { try? row.save(db) }
@@ -474,8 +499,13 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             if let database {
                 do {
                     try await database.writer.write { db in
+                        // The tombstone set rides the batch: a replayed
+                        // record of a deleted ledger (and its direct
+                        // children) must not resurrect — the zone deletion
+                        // may still be in flight while the fetch runs.
+                        let tombstones = try SyncTombstone.allIds(db)
                         for modification in event.modifications {
-                            Self.applyRecord(modification.record, db: db)
+                            Self.applyRecord(modification.record, db: db, tombstones: tombstones)
                         }
                         for deletion in event.deletions {
                             Self.applyDeletion(recordID: deletion.recordID, db: db)
