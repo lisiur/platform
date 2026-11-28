@@ -130,6 +130,11 @@ nonisolated final class LocalLedgerRepository {
             }
             row.updatedAt = LocalValues.timestamp(from: Date())
             try row.update(db)
+            CloudSyncOutbox.shared.enqueue(
+                zoneName: CloudSyncOutbox.ledgerZone(row.id),
+                recordType: CloudSyncMapping.RecordType.ledger,
+                recordName: row.id
+            )
         }
     }
 
@@ -141,6 +146,11 @@ nonisolated final class LocalLedgerRepository {
             row.status = status
             row.updatedAt = LocalValues.timestamp(from: Date())
             try row.update(db)
+            CloudSyncOutbox.shared.enqueue(
+                zoneName: CloudSyncOutbox.ledgerZone(row.id),
+                recordType: CloudSyncMapping.RecordType.ledger,
+                recordName: row.id
+            )
         }
     }
 
@@ -155,17 +165,23 @@ nonisolated final class LocalLedgerRepository {
             row.budgetExcludedAccountIds = LocalLedgerRow.build(excludedAccountIds: deduped)
             row.updatedAt = LocalValues.timestamp(from: Date())
             try row.update(db)
+            CloudSyncOutbox.shared.enqueue(
+                zoneName: CloudSyncOutbox.ledgerZone(row.id),
+                recordType: CloudSyncMapping.RecordType.ledger,
+                recordName: row.id
+            )
         }
     }
 
     /// Deletes the ledger — the row cascade (FK) wipes members, accounts,
     /// entries, lines, participants, projects, and budget rows with it.
-    /// The CloudSync zone deletion rides on top in phase 2; this method
-    /// stays storage-only.
+    /// The CloudKit zone deletion rides the outbox (the engine deletes
+    /// the zone atomically; Q3's 全端删除语义).
     func delete(_ ledgerId: String) async throws {
         try await database.writer.write { db in
             _ = try LocalLedgerRow.deleteOne(db, key: ledgerId)
         }
+        CloudSyncOutbox.shared.enqueueZoneDeletion(CloudSyncOutbox.ledgerZone(ledgerId))
     }
 
     // MARK: - Serialization

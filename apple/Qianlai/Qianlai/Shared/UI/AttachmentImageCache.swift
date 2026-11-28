@@ -39,8 +39,10 @@ final class AttachmentImageCache {
     }
 
     /// The cached image for an attachment id, signing + fetching it once
-    /// on first ask. Failures are not cached — the next caller retries,
-    /// and views show their placeholder in the meantime.
+    /// on first ask. Local-ledger receipts read straight from the
+    /// attachments directory (no signing, no network). Failures are not
+    /// cached — the next caller retries, and views show their placeholder
+    /// in the meantime.
     func image(for attachmentId: String) async -> UIImage? {
         if let cached = images.object(forKey: attachmentId as NSString) {
             return cached
@@ -50,6 +52,13 @@ final class AttachmentImageCache {
         }
         let task = Task<UIImage?, Never> {
             defer { inflight.removeValue(forKey: attachmentId) }
+            // Local branch (T2.4): local receipts load from the store —
+            // no signing, no network.
+            if let data = await LocalStoreGateway.shared.localAttachmentData(attachmentId),
+               let image = UIImage(data: data) {
+                images.setObject(image, forKey: attachmentId as NSString)
+                return image
+            }
             guard let url = await Self.signedURL(attachmentId) else { return nil }
             let data = (try? await session.data(from: url))?.0
             let image = data.flatMap(UIImage.init(data:))

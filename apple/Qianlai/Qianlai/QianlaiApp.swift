@@ -203,6 +203,13 @@ struct QianlaiApp: App {
                     // registry the stores consult (F9: ledger data works
                     // signed out, so activation is login-independent).
                     LocalStoreGateway.shared.activate()
+                    // The sync engine rides the same database — iCloud
+                    // availability governs only the sync, never the
+                    // local read/write paths (Q2③).
+                    if let database = LocalStoreGateway.shared.database {
+                        WidgetSyncReloadHook.reload = { WidgetSync.reloadTimelines() }
+                        CloudSyncEngine.shared.activate(database: database)
+                    }
                     // Cold launch starts already active — no scene
                     // transition will fire — so a restored session arms
                     // the app lock itself. The screenshot flag arms the

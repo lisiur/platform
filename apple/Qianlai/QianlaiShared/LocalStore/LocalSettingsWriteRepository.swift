@@ -31,6 +31,20 @@ nonisolated final class LocalSettingsWriteRepository {
         return row
     }
 
+
+    // MARK: - Sync outbox hooks (T2.3)
+
+    /// Enqueues one row for send after a write (the row's table/zone is
+    /// derivable from the ledger id; a nil ledger id routes the profile
+    /// zone).
+    private func enqueue(
+        ledgerId: String?, recordType: String, recordName: String
+    ) {
+        let zoneName = ledgerId.map { CloudSyncOutbox.ledgerZone($0) }
+            ?? CloudSyncOutbox.profileZone
+        CloudSyncOutbox.shared.enqueue(zoneName: zoneName, recordType: recordType, recordName: recordName)
+    }
+
     // MARK: - Budget (budget.service)
 
     /// `setYearBudget`: upserts the year row (retroactive mid-year
@@ -41,15 +55,20 @@ nonisolated final class LocalSettingsWriteRepository {
             let existing = try LocalBudgetYearRow
                 .filter(Column("ledger_id") == ledgerId && Column("year") == year)
                 .fetchOne(db)
+            var rowId: String
             if let existing {
                 var row = existing
                 row.cents = cents
                 try row.update(db)
+                rowId = row.id
             } else {
-                try LocalBudgetYearRow(
+                let row = LocalBudgetYearRow(
                     id: UUID().uuidString, ledgerId: ledgerId, year: year, cents: cents
-                ).insert(db)
+                )
+                try row.insert(db)
+                rowId = row.id
             }
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.budgetYear, recordName: rowId)
         }
     }
 
@@ -67,27 +86,42 @@ nonisolated final class LocalSettingsWriteRepository {
             let existing = try LocalBudgetMonthOverrideRow
                 .filter(Column("budget_year_id") == yearRow.id && Column("month") == month)
                 .fetchOne(db)
+            var rowId: String
             if let existing {
                 var row = existing
                 row.cents = cents
                 try row.update(db)
+                rowId = row.id
             } else {
-                try LocalBudgetMonthOverrideRow(
+                let row = LocalBudgetMonthOverrideRow(
                     id: UUID().uuidString, budgetYearId: yearRow.id, month: month, cents: cents
-                ).insert(db)
+                )
+                try row.insert(db)
+                rowId = row.id
             }
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.budgetMonthOverride, recordName: rowId)
         }
     }
 
     /// `closeYearBudget`: the year row (and its month pins, by cascade)
     /// disappear — the only deletion the budget has.
     func closeYearBudget(ledgerId: String, year: Int) async throws {
+        let zoneName = CloudSyncOutbox.ledgerZone(ledgerId)
+        let removed = try await database.writer.read { db in
+            try LocalBudgetYearRow
+                .filter(Column("ledger_id") == ledgerId && Column("year") == year)
+                .fetchAll(db)
+        }
         try await database.writer.write { db in
             _ = try activeLedgerRow(ledgerId: ledgerId, db: db)
             try db.execute(
                 sql: "DELETE FROM qianlai_ledger_budget_year WHERE ledger_id = ? AND year = ?",
                 arguments: [ledgerId, year]
             )
+        }
+        let outbox = CloudSyncOutbox.shared
+        for row in removed {
+            outbox.enqueueDeletion(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.budgetYear, recordName: row.id)
         }
     }
 
@@ -109,6 +143,7 @@ nonisolated final class LocalSettingsWriteRepository {
             ledger.budgetExcludedAccountIds = LocalLedgerRow.build(excludedAccountIds: deduped)
             ledger.updatedAt = LocalValues.timestamp(from: Date())
             try ledger.update(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.ledger, recordName: ledger.id)
         }
     }
 
@@ -130,16 +165,21 @@ nonisolated final class LocalSettingsWriteRepository {
                     && Column("year") == year
                     && Column("account_id") == accountId)
                 .fetchOne(db)
+            var rowId: String
             if let existing {
                 var row = existing
                 row.cents = cents
                 try row.update(db)
+                rowId = row.id
             } else {
-                try LocalCategoryBudgetRow(
+                let row = LocalCategoryBudgetRow(
                     id: UUID().uuidString, ledgerId: ledgerId,
                     accountId: accountId, year: year, cents: cents
-                ).insert(db)
+                )
+                try row.insert(db)
+                rowId = row.id
             }
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.categoryBudgetYear, recordName: rowId)
         }
     }
 
@@ -209,6 +249,7 @@ nonisolated final class LocalSettingsWriteRepository {
                 updatedAt: timestamp
             )
             try row.insert(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.bookAccount, recordName: row.id)
             return row.domainAccount
         }
     }
@@ -246,6 +287,7 @@ nonisolated final class LocalSettingsWriteRepository {
             }
             row.updatedAt = LocalValues.timestamp(from: now)
             try row.update(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.bookAccount, recordName: row.id)
         }
     }
 
@@ -275,6 +317,7 @@ nonisolated final class LocalSettingsWriteRepository {
                 updated.sortOrder = sortOrder
                 updated.updatedAt = timestamp
                 try updated.update(db)
+                enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.bookAccount, recordName: row.id)
             }
         }
     }
@@ -292,6 +335,7 @@ nonisolated final class LocalSettingsWriteRepository {
             row.status = status
             row.updatedAt = LocalValues.timestamp(from: Date())
             try row.update(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.bookAccount, recordName: row.id)
         }
     }
 
@@ -324,6 +368,12 @@ nonisolated final class LocalSettingsWriteRepository {
                 throw LocalValidationError(message: "Delete or move this account's children first")
             }
             _ = try LocalBookAccountRow.deleteOne(db, key: accountId)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.bookAccount, recordName: accountId)
+            CloudSyncOutbox.shared.enqueueDeletion(
+                zoneName: CloudSyncOutbox.ledgerZone(ledgerId),
+                recordType: CloudSyncMapping.RecordType.bookAccount,
+                recordName: accountId
+            )
         }
     }
 
@@ -361,6 +411,7 @@ nonisolated final class LocalSettingsWriteRepository {
                 userId: creatorId,
                 createdAt: timestamp
             ).insert(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.project, recordName: id)
             return id
         }
     }
@@ -389,6 +440,7 @@ nonisolated final class LocalSettingsWriteRepository {
             if let endDate { row.endDate = LocalValues.timestamp(from: endDate) }
             row.updatedAt = LocalValues.timestamp(from: now)
             try row.update(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.project, recordName: row.id)
         }
     }
 
@@ -403,6 +455,12 @@ nonisolated final class LocalSettingsWriteRepository {
                 throw LocalValidationError(message: "Project not found")
             }
             _ = try LocalProjectRow.deleteOne(db, key: projectId)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.project, recordName: row.id)
+            CloudSyncOutbox.shared.enqueueDeletion(
+                zoneName: CloudSyncOutbox.ledgerZone(ledgerId),
+                recordType: CloudSyncMapping.RecordType.project,
+                recordName: row.id
+            )
         }
     }
 
@@ -422,12 +480,14 @@ nonisolated final class LocalSettingsWriteRepository {
             guard existing == nil else {
                 throw LocalValidationError(message: "Already a member of this project")
             }
-            try LocalProjectMemberRow(
+            let row = LocalProjectMemberRow(
                 id: UUID().uuidString,
                 projectId: projectId,
                 userId: userId,
                 createdAt: LocalValues.timestamp(from: now)
-            ).insert(db)
+            )
+            try row.insert(db)
+            enqueue(ledgerId: ledgerId, recordType: CloudSyncMapping.RecordType.projectMember, recordName: row.id)
         }
     }
 
@@ -469,6 +529,7 @@ nonisolated final class LocalSettingsWriteRepository {
                 createdAt: timestamp,
                 updatedAt: timestamp
             ).insert(db)
+            enqueue(ledgerId: nil, recordType: CloudSyncMapping.RecordType.realAccount, recordName: id)
         }
         return id
     }
@@ -491,6 +552,7 @@ nonisolated final class LocalSettingsWriteRepository {
             if let meta { row.meta = LocalValues.jsonObject(meta) }
             row.updatedAt = LocalValues.timestamp(from: now)
             try row.update(db)
+            enqueue(ledgerId: nil, recordType: CloudSyncMapping.RecordType.realAccount, recordName: row.id)
         }
     }
 
@@ -505,6 +567,12 @@ nonisolated final class LocalSettingsWriteRepository {
                 arguments: [row.id]
             )
             _ = try LocalRealAccountRow.deleteOne(db, key: id)
+            enqueue(ledgerId: nil, recordType: CloudSyncMapping.RecordType.realAccount, recordName: id)
+            CloudSyncOutbox.shared.enqueueDeletion(
+                zoneName: CloudSyncOutbox.profileZone,
+                recordType: CloudSyncMapping.RecordType.realAccount,
+                recordName: id
+            )
         }
     }
 }

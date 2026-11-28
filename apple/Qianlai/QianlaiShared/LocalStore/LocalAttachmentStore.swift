@@ -8,7 +8,7 @@ import CryptoKit
 import GRDB
 
 /// One photo receipt's storage row (`qianlai_entry_attachment`, v2).
-nonisolated struct LocalAttachmentRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalAttachmentRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_entry_attachment"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -180,17 +180,22 @@ nonisolated final class LocalAttachmentStore {
 
     /// Reads one receipt's bytes (the display path's local branch).
     func data(for ref: EntryAttachmentRef) -> Data? {
+        data(forId: ref.id)
+    }
+
+    /// Bytes by id alone (the cache's lookup key is the attachment id).
+    func data(forId attachmentId: String) -> Data? {
         guard
             let directory = try? Self.directory()
         else { return nil }
         // Row lookup resolves the file name (the ref alone carries no
         // path); fall back to the id-based name the writer uses.
         if let row = try? database.writer.read({ db in
-            try LocalAttachmentRow.fetchOne(db, key: ref.id)
+            try LocalAttachmentRow.fetchOne(db, key: attachmentId)
         }), let data = try? Data(contentsOf: directory.appendingPathComponent(row.filePath)) {
             return data
         }
-        return try? Data(contentsOf: directory.appendingPathComponent("\(ref.id).jpg"))
+        return try? Data(contentsOf: directory.appendingPathComponent("\(attachmentId).jpg"))
     }
 
     // MARK: - Helpers

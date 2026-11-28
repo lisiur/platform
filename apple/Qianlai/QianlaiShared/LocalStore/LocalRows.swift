@@ -13,8 +13,10 @@ import GRDB
 ///
 /// Timestamps are the `LocalValues` TEXT encoding; money is INTEGER cents;
 /// Postgres arrays / Json columns are JSON TEXT stored and read whole.
+/// `Equatable` backs the sync mapping round-trip tests (a decoded record
+/// must equal its source row, field for field).
 
-nonisolated struct LocalLedgerRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalLedgerRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_ledger"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -40,7 +42,7 @@ nonisolated struct LocalLedgerRow: Codable, FetchableRecord, PersistableRecord {
     }
 }
 
-nonisolated struct LocalLedgerMemberRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalLedgerMemberRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_ledger_member"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -52,7 +54,7 @@ nonisolated struct LocalLedgerMemberRow: Codable, FetchableRecord, PersistableRe
     var createdAt: String
 }
 
-nonisolated struct LocalBookAccountRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalBookAccountRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_book_account"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -79,7 +81,7 @@ nonisolated struct LocalBookAccountRow: Codable, FetchableRecord, PersistableRec
     }
 }
 
-nonisolated struct LocalRealAccountRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalRealAccountRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_real_account"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -95,7 +97,7 @@ nonisolated struct LocalRealAccountRow: Codable, FetchableRecord, PersistableRec
     var updatedAt: String
 }
 
-nonisolated struct LocalJournalEntryRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalJournalEntryRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_journal_entry"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -121,7 +123,7 @@ nonisolated struct LocalJournalEntryRow: Codable, FetchableRecord, PersistableRe
     var createdAt: String
 }
 
-nonisolated struct LocalJournalLineRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalJournalLineRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_journal_line"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -134,7 +136,7 @@ nonisolated struct LocalJournalLineRow: Codable, FetchableRecord, PersistableRec
     var memo: String?
 }
 
-nonisolated struct LocalEntryParticipantRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalEntryParticipantRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_journal_entry_participant"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -145,7 +147,7 @@ nonisolated struct LocalEntryParticipantRow: Codable, FetchableRecord, Persistab
     var createdAt: String
 }
 
-nonisolated struct LocalProjectRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalProjectRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_project"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -161,7 +163,7 @@ nonisolated struct LocalProjectRow: Codable, FetchableRecord, PersistableRecord 
     var updatedAt: String
 }
 
-nonisolated struct LocalProjectMemberRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalProjectMemberRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_project_member"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -172,7 +174,7 @@ nonisolated struct LocalProjectMemberRow: Codable, FetchableRecord, PersistableR
     var createdAt: String
 }
 
-nonisolated struct LocalBudgetYearRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalBudgetYearRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_ledger_budget_year"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -183,7 +185,7 @@ nonisolated struct LocalBudgetYearRow: Codable, FetchableRecord, PersistableReco
     var cents: Int
 }
 
-nonisolated struct LocalBudgetMonthOverrideRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalBudgetMonthOverrideRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_ledger_budget_month_override"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -194,7 +196,7 @@ nonisolated struct LocalBudgetMonthOverrideRow: Codable, FetchableRecord, Persis
     var cents: Int
 }
 
-nonisolated struct LocalCategoryBudgetRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalCategoryBudgetRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_ledger_category_budget_year"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -206,7 +208,7 @@ nonisolated struct LocalCategoryBudgetRow: Codable, FetchableRecord, Persistable
     var cents: Int
 }
 
-nonisolated struct LocalPreferenceRow: Codable, FetchableRecord, PersistableRecord {
+nonisolated struct LocalPreferenceRow: Codable, Equatable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "qianlai_user_preference"
     static var databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     static var databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase

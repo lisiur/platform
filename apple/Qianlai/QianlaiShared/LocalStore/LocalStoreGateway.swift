@@ -119,4 +119,14 @@ final class LocalStoreGateway {
         guard ledgerIdForRealAccounts() != nil else { return nil }
         return settingsWriteRepository
     }
+
+    /// A local receipt's bytes, when the id exists in the local store —
+    /// the image cache's local branch (T2.4). nil for cloud-only ids.
+    func localAttachmentData(_ attachmentId: String) async -> Data? {
+        let database = self.database
+        guard database != nil else { return nil }
+        return await Task.detached(priority: .userInitiated) {
+            LocalAttachmentStore(database: database!).data(forId: attachmentId)
+        }.value
+    }
 }

@@ -66,6 +66,10 @@
 		7EAA00040000000000000001 /* Exceptions for "QianlaiShared" folder in "QianlaiWidget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"CloudSync/CloudSyncEngine.swift",
+				"CloudSync/CloudSyncMapping.swift",
+				"CloudSync/CloudSyncOutbox.swift",
+				"CloudSync/CloudSyncStatus.swift",
 				"LocalStore/LocalAggregation.swift",
 				"LocalStore/LocalAttachmentStore.swift",
 				"LocalStore/LocalDatabase.swift",

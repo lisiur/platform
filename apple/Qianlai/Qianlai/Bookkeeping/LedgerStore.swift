@@ -178,13 +178,16 @@ final class LedgerStore {
             guard let localRepository = LocalStoreGateway.shared.ledgerRepository else {
                 throw LocalStoreError.storageUnavailable
             }
-            _ = try await localRepository.create(
+            let created = try await localRepository.create(
                 name: name,
                 description: description,
                 currency: currency,
                 seedStarterAccounts: true,
                 ownerId: LocalIdentity.userId
             )
+            // The new zone's rows ride the engine (idempotent full enqueue
+            // of the ledger row, the member row, and the seeded chart).
+            await CloudSyncEngine.shared.enqueueLedgerZone(ledgerId: created.id)
             await load()
             // A first local ledger becomes active automatically — the
             // cloud path's default-ledger resolution never sees it, so

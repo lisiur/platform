@@ -158,10 +158,67 @@ nonisolated final class LocalJournalWriteRepository {
             }
             return id
         }
+        // Sync outbox: the entry's records (T2.3 — the write path feeds
+        // the engine's pending changes; idempotent sends).
+        enqueueEntryRecords(ledgerId: ledgerId, entryId: entryId)
         // Attachments claim onto the entry (file I/O already done at
         // stage time; the ids ride the draft).
         try await attachments.claim(ids: draft.attachmentIds ?? [], entryId: entryId)
+        enqueueAttachments(ledgerId: ledgerId, entryId: entryId)
         return try await entry(id: entryId, ledgerId: ledgerId)
+    }
+
+    /// Enqueues the entry's own record plus its lines' and participants'
+    /// (re-selected after the write, so replaced children ride too).
+    private func enqueueEntryRecords(ledgerId: String, entryId: String) {
+        let zoneName = CloudSyncOutbox.ledgerZone(ledgerId)
+        let outbox = CloudSyncOutbox.shared
+        outbox.enqueue(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.journalEntry, recordName: entryId)
+        Task { [database] in
+            do {
+                let ids = try await database.writer.read { db in
+                    let lines = try String.fetchAll(
+                        db, sql: "SELECT id FROM qianlai_journal_line WHERE entry_id = ?",
+                        arguments: [entryId]
+                    )
+                    let participants = try String.fetchAll(
+                        db, sql: "SELECT id FROM qianlai_journal_entry_participant WHERE entry_id = ?",
+                        arguments: [entryId]
+                    )
+                    return (lines, participants)
+                }
+                for id in ids.0 {
+                    outbox.enqueue(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.journalLine, recordName: id)
+                }
+                for id in ids.1 {
+                    outbox.enqueue(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.entryParticipant, recordName: id)
+                }
+            } catch {
+                // The full-enqueue healing pass covers missed children.
+            }
+        }
+    }
+
+    /// Enqueues the entry's receipt records (their bytes ride the record's
+    /// CKAsset at send time).
+    private func enqueueAttachments(ledgerId: String, entryId: String) {
+        let zoneName = CloudSyncOutbox.ledgerZone(ledgerId)
+        let outbox = CloudSyncOutbox.shared
+        Task { [database] in
+            do {
+                let ids = try await database.writer.read { db in
+                    try String.fetchAll(
+                        db, sql: "SELECT id FROM qianlai_entry_attachment WHERE entry_id = ?",
+                        arguments: [entryId]
+                    )
+                }
+                for id in ids {
+                    outbox.enqueue(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.attachment, recordName: id)
+                }
+            } catch {
+                // The full-enqueue healing pass covers missed receipts.
+            }
+        }
     }
 
     /// Fetches one assembled entry by id (the update/delete returns).
@@ -270,18 +327,29 @@ nonisolated final class LocalJournalWriteRepository {
                 ).insert(db)
             }
         }
+        // Sync outbox: the entry's records ride their writes.
+        enqueueEntryRecords(ledgerId: ledgerId, entryId: entryId)
         // Attachments: the final id set claims (idempotent) and everything
         // not in it prunes — the update endpoint's set semantics.
         if let kept = draft.attachmentIds {
             try await attachments.claim(ids: kept, entryId: entryId)
             try await attachments.prune(entryId: entryId, keeping: kept)
         }
+        enqueueAttachments(ledgerId: ledgerId, entryId: entryId)
         return try await entry(id: entryId, ledgerId: ledgerId)
     }
 
     /// Deletes one entry (its receipts' files go with it — the rows
     /// cascade through the FK).
     func deleteEntry(ledgerId: String, entryId: String) async throws {
+        let zoneName = CloudSyncOutbox.ledgerZone(ledgerId)
+        let childIds: (lines: [String], participants: [String], receipts: [String]) = try await database.writer.read { db in
+            (
+                try String.fetchAll(db, sql: "SELECT id FROM qianlai_journal_line WHERE entry_id = ?", arguments: [entryId]),
+                try String.fetchAll(db, sql: "SELECT id FROM qianlai_journal_entry_participant WHERE entry_id = ?", arguments: [entryId]),
+                try String.fetchAll(db, sql: "SELECT id FROM qianlai_entry_attachment WHERE entry_id = ?", arguments: [entryId])
+            )
+        }
         try await database.writer.write { db in
             guard let row = try LocalJournalEntryRow.fetchOne(db, key: entryId),
                   row.ledgerId == ledgerId
@@ -291,6 +359,18 @@ nonisolated final class LocalJournalWriteRepository {
             _ = try LocalJournalEntryRow.deleteOne(db, key: entryId)
         }
         try await attachments.deleteAll(entryId: entryId)
+        // Sync outbox: the entry and its children leave the cloud too.
+        let outbox = CloudSyncOutbox.shared
+        outbox.enqueueDeletion(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.journalEntry, recordName: entryId)
+        for id in childIds.lines {
+            outbox.enqueueDeletion(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.journalLine, recordName: id)
+        }
+        for id in childIds.participants {
+            outbox.enqueueDeletion(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.entryParticipant, recordName: id)
+        }
+        for id in childIds.receipts {
+            outbox.enqueueDeletion(zoneName: zoneName, recordType: CloudSyncMapping.RecordType.attachment, recordName: id)
+        }
     }
 
     /// The balance adjustment (`setAccountBalance`): the account's signed
