@@ -606,6 +606,9 @@ struct LedgerFormView: View {
     @State private var name = ""
     @State private var description = ""
     @State private var currency = "CNY"
+    /// The ledger's storage class — chosen once at creation, immutable
+    /// after (the migration path is the upgrade flow, not a form field).
+    @State private var storage: LedgerStorage = .cloud
     @State private var nameError: String?
     @State private var isSaving = false
 
@@ -633,6 +636,9 @@ struct LedgerFormView: View {
                     Text(L10n.string("ledgers.createFooter", defaultValue: "A starter chart of accounts is seeded automatically."))
                 }
             }
+            if ledger == nil {
+                storageSection
+            }
         }
         .navigationTitle(Text(ledger != nil ? L10n.string("ledgers.edit", defaultValue: "Edit Ledger") : L10n.string("ledgers.create", defaultValue: "Create Ledger")))
         .inlineNavigationBarTitle()
@@ -654,6 +660,36 @@ struct LedgerFormView: View {
                 description = ledger.description ?? ""
                 currency = ledger.currency
             }
+        }
+    }
+
+    /// The storage picker (F1/AC1.4's control): cloud by default (current
+    /// behavior untouched), local with the offline hint. The footer copy
+    /// names each class's data home — the one wording AC1.4 pins.
+    private var storageSection: some View {
+        Section {
+            Picker(
+                L10n.string("ledgers.storage", defaultValue: "Ledger Type"),
+                selection: $storage
+            ) {
+                Text(L10n.string("ledgers.storage.cloud", defaultValue: "Cloud")).tag(LedgerStorage.cloud)
+                Text(L10n.string("ledgers.storage.local", defaultValue: "Local")).tag(LedgerStorage.local)
+            }
+            .pickerStyle(.inline)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        } header: {
+            Text(L10n.string("ledgers.storage.section", defaultValue: "Data Stored"))
+        } footer: {
+            Text(storage == .local
+                ? L10n.string(
+                    "ledgers.storage.localHint",
+                    defaultValue: "数据存本机 + iCloud，离线可用，仅自己可见。"
+                )
+                : L10n.string(
+                    "ledgers.storage.cloudHint",
+                    defaultValue: "数据存服务端，可多人共享，需要联网。"
+                ))
         }
     }
 
@@ -679,7 +715,8 @@ struct LedgerFormView: View {
                 try await ledgerStore.create(
                     name: trimmed,
                     description: description.isEmpty ? nil : description,
-                    currency: currency
+                    currency: currency,
+                    storage: storage
                 )
                 toast.show(L10n.string("ledgers.createSuccess", defaultValue: "Ledger created"))
             }

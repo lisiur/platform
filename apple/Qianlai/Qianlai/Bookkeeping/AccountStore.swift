@@ -62,16 +62,24 @@ final class AccountStore {
         isLoading = true
         defer { isLoading = false }
         do {
-            let response: AccountsResponse = try await client.request(
-                "GET",
-                "bookkeeping/ledgers/\(ledgerId)/accounts"
-            )
+            let accounts: [BookAccount]
+            // Local branch (C3): the chart reads from the on-device store.
+            if LocalStoreGateway.shared.isLocal(ledgerId),
+               let reportRepository = LocalStoreGateway.shared.reportRepository {
+                accounts = try await reportRepository.accounts(ledgerId: ledgerId)
+            } else {
+                let response: AccountsResponse = try await client.request(
+                    "GET",
+                    "bookkeeping/ledgers/\(ledgerId)/accounts"
+                )
+                accounts = response.accounts
+            }
             guard self.ledgerId == ledgerId else { return }
-            items = response.accounts
+            items = accounts
             loadError = nil
             Self.cache.write(
                 key: Self.snapshotKey(ledgerId: ledgerId),
-                payload: response.accounts
+                payload: accounts
             )
         } catch {
             guard self.ledgerId == ledgerId else { return }

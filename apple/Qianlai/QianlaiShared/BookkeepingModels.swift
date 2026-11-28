@@ -68,6 +68,19 @@ enum AccountType: String, Codable, Hashable, CaseIterable {
 
 // MARK: - Ledger
 
+/// Where a ledger's data lives (ISSUE-141): the service's database reached
+/// through the cloud API, or the on-device GRDB store synced to the user's
+/// iCloud private database. Encoded as its rawValue so cached payloads and
+/// widget mirrors stay plain JSON strings.
+nonisolated enum LedgerStorage: String, Codable, Hashable, Sendable {
+    /// Server-backed ledger — the pre-local-ledger shape: multi-member,
+    /// share-capable, online-only.
+    case cloud
+    /// Local ledger — on-device first (offline read/write), mirrored to
+    /// iCloud private storage by CKSyncEngine. Never shared.
+    case local
+}
+
 nonisolated struct QianlaiLedger: Codable, Identifiable, Hashable {
     let id: String
     let ownerId: String
@@ -81,6 +94,10 @@ nonisolated struct QianlaiLedger: Codable, Identifiable, Hashable {
     var myRole: LedgerRole
     var membersCount: Int
     var shared: Bool
+    /// The ledger's storage class. Decodes as `.cloud` when absent (or
+    /// malformed) — every payload written before the field shipped, and
+    /// every cloud API response, describes a cloud ledger.
+    var storage: LedgerStorage = .cloud
 
     var isActive: Bool { status == "active" }
     var isArchived: Bool { status == "archived" }
@@ -96,6 +113,39 @@ nonisolated struct QianlaiLedger: Codable, Identifiable, Hashable {
     /// but guests are excluded: their entries are project-pinned, which the
     /// recognition prefill (no project surface) can't express yet.
     var canRecognizeScreenshots: Bool { !isGuest && canPost }
+
+    /// Local ledgers are always the user's own (owner role, one member).
+    /// The local repository stamps these literally at creation; this helper
+    /// is the read-side accessor the capability gate routes on.
+    var isLocal: Bool { storage == .local }
+}
+
+/// The decode fallback lives in an extension so the memberwise initializer
+/// (every fixture and harness constructs ledgers with it) survives — an
+/// init declared inside the type body would suppress it. `nonisolated`
+/// because Decodable's synthesized-conformance domain is nonisolated (the
+/// struct is `nonisolated`); a MainActor-isolated init would cross the
+/// conformance into actor-isolated code.
+extension QianlaiLedger {
+    /// Custom decoding so `storage` can default: synthesized decoding would
+    /// throw on every pre-field payload (server responses, caches, widget
+    /// mirrors), and C1 pins the fallback to `.cloud`.
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        ownerId = try container.decode(String.self, forKey: .ownerId)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        currency = try container.decode(String.self, forKey: .currency)
+        status = try container.decode(String.self, forKey: .status)
+        isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        myRole = try container.decode(LedgerRole.self, forKey: .myRole)
+        membersCount = try container.decode(Int.self, forKey: .membersCount)
+        shared = try container.decode(Bool.self, forKey: .shared)
+        storage = (try? container.decodeIfPresent(LedgerStorage.self, forKey: .storage)) ?? .cloud
+    }
 }
 
 // MARK: - Accounts

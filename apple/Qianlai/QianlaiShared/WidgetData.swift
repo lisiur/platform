@@ -216,6 +216,10 @@ nonisolated enum WidgetDataStore {
     static let activeLedgerKey = "widget.activeLedger"
     /// JSON-encoded `WidgetSnapshot`, the offline fallback.
     static let snapshotKey = "widget.snapshot"
+    /// JSON-encoded `WidgetSnapshot` for a LOCAL active ledger — the
+    /// `local.` key domain (C9): cloud sign-out sweeps leave it untouched,
+    /// so the widget keeps rendering local figures signed out.
+    static let localSnapshotKey = "local.widget.snapshot"
     /// JSON-encoded `WidgetProjectSnapshot`, the project-mode fallback.
     static let projectSnapshotKey = "widget.projectSnapshot"
     /// The project claiming quick-entry/dashboard scope — the explicit
@@ -265,8 +269,19 @@ nonisolated enum WidgetDataStore {
     }
 
     static func loadSnapshot(defaults: UserDefaults? = WidgetAppGroup.defaults) -> WidgetSnapshot? {
+        guard let defaults else { return nil }
+        // A local active ledger renders from the local key domain — its
+        // snapshots never ride the cloud key (a stale cloud snapshot for a
+        // different ledger must not resurface after a switch).
+        let active = loadActiveLedger(defaults: defaults)
+        if active?.isLocal == true,
+           let data = defaults.data(forKey: localSnapshotKey),
+           let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data),
+           snapshot.ledgerId == active?.id {
+            return snapshot
+        }
         guard
-            let data = defaults?.data(forKey: snapshotKey),
+            let data = defaults.data(forKey: snapshotKey),
             let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data)
         else { return nil }
         return snapshot
@@ -275,6 +290,13 @@ nonisolated enum WidgetDataStore {
     static func saveSnapshot(_ snapshot: WidgetSnapshot, defaults: UserDefaults? = WidgetAppGroup.defaults) {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         defaults?.set(data, forKey: snapshotKey)
+    }
+
+    /// The local domain's writer — `WidgetSnapshotSync` routes local-ledger
+    /// dashboards here.
+    static func saveLocalSnapshot(_ snapshot: WidgetSnapshot, defaults: UserDefaults? = WidgetAppGroup.defaults) {
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        defaults?.set(data, forKey: localSnapshotKey)
     }
 
     static func loadProjectSnapshot(defaults: UserDefaults? = WidgetAppGroup.defaults) -> WidgetProjectSnapshot? {
@@ -299,6 +321,21 @@ nonisolated enum WidgetDataStore {
         defaults?.removeObject(forKey: projectSnapshotKey)
         defaults?.removeObject(forKey: appActiveLedgerIdKey)
         defaults?.removeObject(forKey: appActiveLedgerIsGuestKey)
+    }
+
+    /// The cloud-scoped sign-out sweep (C9/AC9.2): a local-ledger context
+    /// survives logout — the mirror and its local-domain snapshot stay;
+    /// only the cloud-owned keys (cloud snapshot, project scopes) drop.
+    /// Every other state is today's full sweep: the keys hold cloud-ledger
+    /// data and the widget has nothing to show without a session.
+    static func clearCloudScoped(defaults: UserDefaults? = WidgetAppGroup.defaults) {
+        if let active = loadActiveLedger(defaults: defaults), active.isLocal {
+            defaults?.removeObject(forKey: snapshotKey)
+            defaults?.removeObject(forKey: scopedProjectKey)
+            defaults?.removeObject(forKey: projectSnapshotKey)
+            return
+        }
+        clearAll(defaults: defaults)
     }
 
     /// The active-ledger fallback chain shared with `LedgerStore.activeLedger`:

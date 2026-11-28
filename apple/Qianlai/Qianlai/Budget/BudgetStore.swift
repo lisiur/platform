@@ -24,6 +24,12 @@ final class BudgetStore {
     func load(ledgerId: String, year: Int) async {
         isLoading = true
         defer { isLoading = false }
+        // Local branch (C3): the settings read from the on-device store.
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            settings = try? await reportRepository.budgetSettings(ledgerId: ledgerId, year: year)
+            return
+        }
         let query = ApiQuery.build([("year", String(year))])
         settings = try? await client.request(
             "GET",

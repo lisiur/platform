@@ -134,14 +134,29 @@ final class PreferenceStore {
     /// The full tab list: dashboard pinned first, profile pinned last, the
     /// configurable middle from the user's saved arrangement. A fixed
     /// context (guest / project scope) renders `fixedTabs` and ignores the
-    /// arrangement entirely.
-    func visibleTabs(isGuest: Bool, isProjectScoped: Bool) -> [AppTab] {
+    /// arrangement entirely. `canManageMembers` strips the members tab
+    /// from every slot (the C7 gate: signed out, or a context where the
+    /// members surface is absent).
+    func visibleTabs(
+        isGuest: Bool,
+        isProjectScoped: Bool,
+        canManageMembers: Bool = true
+    ) -> [AppTab] {
         if Self.isTabBarFixed(isGuest: isGuest, isProjectScoped: isProjectScoped) {
-            return Self.fixedTabs
+            return canManageMembers
+                ? Self.fixedTabs
+                : Self.fixedTabs.filter { $0 != .members }
         }
-        var middle = configuredTabs ?? Self.defaultTabs
+        var middle = (configuredTabs ?? Self.defaultTabs).filter {
+            canManageMembers || $0 != .members
+        }
         if middle.isEmpty {
-            middle = Self.defaultTabs
+            middle = Self.defaultTabs.filter { canManageMembers || $0 != .members }
+            if middle.isEmpty {
+                // The arrangement only held the members tab and it's gated
+                // off: fall back to the journal alone.
+                middle = [.journal]
+            }
         }
         return [.dashboard] + middle.prefix(Self.tabLimits.upperBound) + [.profile]
     }
@@ -163,9 +178,12 @@ final class PreferenceStore {
 
     /// Fetches every scope once per login. Silent failure: the defaults
     /// keep every surface working offline; the next launch retries.
+    /// Signed out (F9): no fetch — preferences run local-only (the
+    /// UserDefaults mirrors are the store) until a session exists.
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        guard APIClient.shared.sessionToken != nil else { return }
         guard let response: UserPreferencesResponse = try? await client.request(
             "GET", "bookkeeping/preferences"
         ) else {
@@ -194,6 +212,8 @@ final class PreferenceStore {
     func setTabs(_ tabs: [AppTab]) async throws {
         let previous = configuredTabs
         configuredTabs = tabs
+        // Signed out: the local mirror is the store — nothing to sync.
+        guard APIClient.shared.sessionToken != nil else { return }
         do {
             let _: TabsPreference = try await client.request(
                 "PUT", "bookkeeping/preferences/user",
@@ -208,6 +228,7 @@ final class PreferenceStore {
     func restoreTabs() async throws {
         let previous = configuredTabs
         configuredTabs = nil
+        guard APIClient.shared.sessionToken != nil else { return }
         do {
             let _: PreferenceDeleteResponse = try await client.request(
                 "DELETE", "bookkeeping/preferences/user"
@@ -219,11 +240,13 @@ final class PreferenceStore {
     }
 
     /// Persists the chip arrangement for the quick-entry scope — the
-    /// project when one is pinned, else the ledger.
+    /// project when one is pinned, else the ledger. Signed out: local
+    /// mirror only.
     func setChipFields(ledgerId: String, projectId: String?, _ fields: [QuickEntryField]) async throws {
         if let projectId {
             let previous = projectChipFields[projectId]
             projectChipFields[projectId] = fields
+            guard APIClient.shared.sessionToken != nil else { return }
             do {
                 let _: QuickEntryPreference = try await client.request(
                     "PUT", "bookkeeping/preferences/project/\(projectId)",
@@ -236,6 +259,7 @@ final class PreferenceStore {
         } else {
             let previous = ledgerChipFields[ledgerId]
             ledgerChipFields[ledgerId] = fields
+            guard APIClient.shared.sessionToken != nil else { return }
             do {
                 let _: QuickEntryPreference = try await client.request(
                     "PUT", "bookkeeping/preferences/ledger/\(ledgerId)",
@@ -249,11 +273,12 @@ final class PreferenceStore {
     }
 
     /// Drops the scope's stored arrangement — the next read resolves to
-    /// `.standard`.
+    /// `.standard`. Signed out: local mirror only.
     func restoreChipFields(ledgerId: String, projectId: String?) async throws {
         if let projectId {
             let previous = projectChipFields[projectId]
             projectChipFields[projectId] = nil
+            guard APIClient.shared.sessionToken != nil else { return }
             do {
                 let _: PreferenceDeleteResponse = try await client.request(
                     "DELETE", "bookkeeping/preferences/project/\(projectId)"
@@ -265,6 +290,7 @@ final class PreferenceStore {
         } else {
             let previous = ledgerChipFields[ledgerId]
             ledgerChipFields[ledgerId] = nil
+            guard APIClient.shared.sessionToken != nil else { return }
             do {
                 let _: PreferenceDeleteResponse = try await client.request(
                     "DELETE", "bookkeeping/preferences/ledger/\(ledgerId)"

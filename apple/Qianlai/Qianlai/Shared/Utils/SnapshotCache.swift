@@ -147,6 +147,28 @@ nonisolated enum SnapshotCache {
         }
     }
 
+    /// The cloud-scoped sweep (C9/AC9.2): snapshots whose key describes a
+    /// local ledger survive logout (the store's cache keys embed the
+    /// ledger id as a pipe-separated segment); every other snapshot is
+    /// cloud data a signed-out app must not keep. Empty registry → full
+    /// sweep (safe default — a not-yet-loaded registry can't vouch for
+    /// anything).
+    static func clearCloudScoped(
+        localLedgerIds: Set<String>,
+        defaults: UserDefaults = .standard
+    ) {
+        guard !localLedgerIds.isEmpty else {
+            clearAll(defaults: defaults)
+            return
+        }
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(keyPrefix) {
+            let describesLocal = localLedgerIds.contains { key.contains($0) }
+            if !describesLocal {
+                defaults.removeObject(forKey: key)
+            }
+        }
+    }
+
     private static func storageKey(namespace: String, key: String) -> String {
         keyPrefix + namespace + "." + key
     }

@@ -113,19 +113,22 @@ struct QianlaiApp: App {
                     RangeCardDemo()
                 } else if ProcessInfo.processInfo.hasLaunchFlag("--ui-demo-drill-toolbar") {
                     DrillToolbarDemo()
-                } else if authManager.isLoggedIn {
-                    // First-login guide: self-registered users (flag still
-                    // set) see onboarding instead of the main tabs.
-                    if authManager.isOnboardingPending {
-                        OnboardingView()
-                    } else {
-                        ContentView()
-                    }
                 } else if authManager.isRestoringSession {
+                    // Session restore spinner — the brief state between a
+                    // cold launch and the cached/validated session landing.
+                    // The main UI no longer gates on LOGIN (F9): local
+                    // ledgers work signed out, so after restore the app
+                    // always reaches ContentView; the login form lives on
+                    // the profile tab instead of owning the root.
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if authManager.isLoggedIn, authManager.isOnboardingPending {
+                    // First-login guide: self-registered users (flag still
+                    // set) see onboarding instead of the main tabs — the
+                    // one branch that still keys on login.
+                    OnboardingView()
                 } else {
-                    LoginView()
+                    ContentView()
                 }
             }
             .environment(authManager)
@@ -184,8 +187,7 @@ struct QianlaiApp: App {
                 appLock.handleSceneChange(
                     phase,
                     lockEnabled: privacySettings.appLockEnabled,
-                    curtainEnabled: privacySettings.hideAmounts,
-                    isLoggedIn: authManager.isLoggedIn
+                    curtainEnabled: privacySettings.hideAmounts
                 )
             }
             #if os(macOS)
@@ -196,29 +198,36 @@ struct QianlaiApp: App {
                 // render branch for why.
                 if !ProcessInfo.processInfo.isTabShellDemo {
                     await authManager.restoreSession()
+                    // The local-ledger stack activates with the process —
+                    // the gateway opens the database and loads the routing
+                    // registry the stores consult (F9: ledger data works
+                    // signed out, so activation is login-independent).
+                    LocalStoreGateway.shared.activate()
                     // Cold launch starts already active — no scene
                     // transition will fire — so a restored session arms
                     // the app lock itself. The screenshot flag arms the
                     // shield without evaluating, keeping it up for the
-                    // capture.
+                    // capture. The lock no longer keys on login (F9):
+                    // 隐私兜底 must hold signed out too.
                     if ProcessInfo.processInfo.hasLaunchFlag("--privacy-locked") {
                         appLock.lockForScreenshots()
                     } else if ProcessInfo.processInfo.hasLaunchFlag("--privacy-curtain") {
                         appLock.curtainForScreenshots()
-                    } else if authManager.isLoggedIn, privacySettings.appLockEnabled {
+                    } else if privacySettings.appLockEnabled {
                         appLock.lockAtLaunch()
                     }
                 }
             }
             .task(id: authManager.isLoggedIn) {
-                // Ledgers load once per login; the switcher and views refresh
-                // from there. Preferences load alongside — the tab bar
-                // renders the cached arrangement instantly and the fetch
-                // only corrects it when the config changed elsewhere.
-                if authManager.isLoggedIn {
-                    await ledgerStore.load()
-                    await preferenceStore.load()
-                }
+                // Ledgers load once per session boundary (login/logout) —
+                // and at launch regardless of login state: local ledgers
+                // list signed-out (F9), the cloud fetch inside skips
+                // itself without a session token. Preferences load
+                // alongside — the tab bar renders the cached arrangement
+                // instantly and the fetch only corrects it when the
+                // config changed elsewhere.
+                await ledgerStore.load()
+                await preferenceStore.load()
             }
         }
         #if os(macOS)

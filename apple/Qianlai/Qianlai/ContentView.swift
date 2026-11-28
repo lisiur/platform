@@ -105,6 +105,7 @@ enum AppTab: String, Hashable, Codable {
 
 struct ContentView: View {
     @Environment(LedgerStore.self) private var ledgerStore
+    @Environment(AuthManager.self) private var authManager
     @Environment(ProjectStore.self) private var projectStore
     @Environment(PreferenceStore.self) private var preferenceStore
     @Environment(PrivacySettings.self) private var privacySettings
@@ -131,11 +132,17 @@ struct ContentView: View {
     /// the configurable middle from the user's saved arrangement. Guest
     /// ledgers and project scopes render the fixed four instead — the
     /// arrangement never applies there. The add pill is appended by each
-    /// platform's tab bar.
+    /// platform's tab bar. The members tab rides the C7 capability gate:
+    /// signed out (or otherwise member-less contexts) never see it.
     private var visibleTabs: [AppTab] {
-        preferenceStore.visibleTabs(
+        let capabilities = LedgerCapabilityGate.capabilities(
+            isLoggedIn: authManager.isLoggedIn,
+            ledger: ledgerStore.activeLedger
+        )
+        return preferenceStore.visibleTabs(
             isGuest: ledgerStore.activeLedger?.isGuest ?? false,
-            isProjectScoped: scopedProject != nil
+            isProjectScoped: scopedProject != nil,
+            canManageMembers: capabilities.canManageMembers
         )
     }
 
@@ -350,12 +357,17 @@ struct ContentView: View {
     /// active ledger allows it: full-role ledgers with posting rights
     /// only — guests are project-pinned expense loggers the recognition
     /// prefill doesn't cover, and viewers can't post (the gate the
-    /// retired Journal toolbar button applied). Anything else falls back
-    /// to the tap action, so a long press never dead-ends: a guest or
-    /// post-locked ledger gets the regular quick-add flow (which surfaces
-    /// its own denial alert).
+    /// retired Journal toolbar button applied). The C7 gate adds the
+    /// session + storage rules: signed out, or a local ledger (whose
+    /// recognition endpoint is server-side by construction), the AI
+    /// surface is absent and the long press falls back to the plain
+    /// quick-add flow — a long press never dead-ends.
     private func tryPresentRecognition() {
-        if ledgerStore.activeLedger?.canRecognizeScreenshots == true {
+        let capabilities = LedgerCapabilityGate.capabilities(
+            isLoggedIn: authManager.isLoggedIn,
+            ledger: ledgerStore.activeLedger
+        )
+        if capabilities.canRecognize {
             isRecognitionPresented = true
             return
         }

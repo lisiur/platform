@@ -24,7 +24,9 @@ enum WidgetSync {
 /// range containing today carries range totals, not the month-to-date
 /// figures the widget surfaces), and browsing an older month never
 /// overwrites it. Shared by the stats component's overview fetch and the
-/// posting path's snapshot refresh.
+/// posting path's snapshot refresh. The snapshot lands in the domain the
+/// active ledger's storage class owns (C9): local ledgers publish into
+/// the `local.` key domain, cloud ledgers into the cloud key.
 @MainActor
 enum WidgetSnapshotSync {
     static func publishIfCurrentMonth(
@@ -33,13 +35,16 @@ enum WidgetSnapshotSync {
         window: MonthWindow
     ) {
         guard window == AppDates.monthWindow(containing: Date()) else { return }
-        WidgetDataStore.saveSnapshot(
-            WidgetSnapshot(
-                ledgerId: ledgerId,
-                dashboard: dashboard,
-                month: AppDates.currentYearMonth
-            )
+        let snapshot = WidgetSnapshot(
+            ledgerId: ledgerId,
+            dashboard: dashboard,
+            month: AppDates.currentYearMonth
         )
+        if LocalStoreGateway.shared.isLocal(ledgerId) {
+            WidgetDataStore.saveLocalSnapshot(snapshot)
+        } else {
+            WidgetDataStore.saveSnapshot(snapshot)
+        }
         WidgetSync.reloadTimelines()
     }
 }

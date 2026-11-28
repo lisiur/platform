@@ -384,6 +384,71 @@ final class StatsStore {
         query: [(String, String?)] = [],
         publish: (P) -> Void
     ) async {
+        // Local-ledger branch (C3): the three stats payloads served from
+        // the local aggregation — same window pairs, same filter axes,
+        // same numerator rule. The stats endpoints speak the activity set
+        // (includeExcluded=false, the server's route default).
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            var local = LocalJournalFilter()
+            local.from = window.from
+            local.to = AppDates.localEndOfDay(window.to)
+            local.includeExcluded = false
+            if let filters {
+                local.participantUserId = filters.participantUserId
+                local.projectId = filters.projectId
+                local.accountId = filters.accountId
+                local.parentAccountId = filters.parentAccountId
+                local.kind = filters.kind
+                local.budgetExcluded = filters.budgetExcluded
+                local.countsInLedger = filters.notCountedOnly == true ? false : nil
+            }
+            let shareMode: LocalReportShareMode = (filters?.shareMode ?? .members) == .line ? .line : .members
+            do {
+                let payload: P
+                switch endpoint {
+                case "dashboard":
+                    guard let dashboard = try await reportRepository.dashboard(
+                        ledgerId: ledgerId,
+                        from: window.from,
+                        to: window.to,
+                        filter: local,
+                        shareMode: shareMode,
+                        viewerUserId: LocalIdentity.userId
+                    ) as? P else { return }
+                    payload = dashboard
+                case "daily-summary":
+                    let days = try await reportRepository.dailySummary(
+                        ledgerId: ledgerId,
+                        filter: local,
+                        shareMode: shareMode,
+                        tzOffsetMinutes: AppDates.localTzOffsetMinutes
+                    )
+                    guard let response = DailySummaryResponse(days: days) as? P else { return }
+                    payload = response
+                case "category-summary":
+                    let summary = try await reportRepository.categorySummary(
+                        ledgerId: ledgerId,
+                        filter: local,
+                        shareMode: shareMode
+                    )
+                    guard let response = summary as? P else { return }
+                    payload = response
+                default:
+                    return
+                }
+                guard
+                    self.ledgerId == ledgerId,
+                    self.window == window,
+                    self.filters == filters,
+                    !Task.isCancelled
+                else { return }
+                publish(payload)
+            } catch {
+                // Keep the previous window's payload; the next reload retries.
+            }
+            return
+        }
         let path = "bookkeeping/ledgers/\(ledgerId)/reports/\(endpoint)"
             + ApiQuery.build(
                 Self.baseQueryPairs(window: window, filters: filters) + query

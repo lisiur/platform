@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7E6BA00E30357BDB000F3F45 /* QianlaiWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E6BA00230357BDB000F3F45 /* QianlaiWidget.appex */; platformFilter = ios; };
+		7EAA00010000000000000001 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7EAA00020000000000000001 /* GRDB */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,23 @@
 			);
 			target = 7E6BA00130357BDB000F3F45 /* QianlaiWidget */;
 		};
+		7EAA00040000000000000001 /* Exceptions for "QianlaiShared" folder in "QianlaiWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"LocalStore/LocalAggregation.swift",
+				"LocalStore/LocalDatabase.swift",
+				"LocalStore/LocalIdentity.swift",
+				"LocalStore/LocalJournalRepository.swift",
+				"LocalStore/LocalLedgerRepository.swift",
+				"LocalStore/LocalReportRepository.swift",
+				"LocalStore/LocalRows.swift",
+				"LocalStore/LocalSchema.swift",
+				"LocalStore/LocalSeed.swift",
+				"LocalStore/LocalStoreGateway.swift",
+				"LocalStore/LocalValues.swift",
+			);
+			target = 7E6BA00130357BDB000F3F45 /* QianlaiWidget */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -80,6 +98,9 @@
 		};
 		7E6BA00330357BDB000F3F45 /* QianlaiShared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7EAA00040000000000000001 /* Exceptions for "QianlaiShared" folder in "QianlaiWidget" target */,
+			);
 			path = QianlaiShared;
 			sourceTree = "<group>";
 		};
@@ -98,6 +119,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7EAA00010000000000000001 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,6 +184,7 @@
 			);
 			name = Qianlai;
 			packageProductDependencies = (
+				7EAA00020000000000000001 /* GRDB */,
 			);
 			productName = Qianlai;
 			productReference = 25A4A06730357BDB000F3F45 /* Qianlai.app */;
@@ -245,6 +268,9 @@
 			);
 			mainGroup = 25A4A05E30357BDB000F3F45;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7EAA00030000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 25A4A06830357BDB000F3F45 /* Products */;
 			projectDirPath = "";
@@ -717,6 +743,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7EAA00030000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.12.0;
+			};
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7EAA00020000000000000001 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7EAA00030000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 25A4A05F30357BDB000F3F45 /* Project object */;
 }

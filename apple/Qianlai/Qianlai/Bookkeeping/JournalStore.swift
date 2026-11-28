@@ -264,6 +264,19 @@ final class JournalStore {
         resolvedFilters.from = from
         resolvedFilters.to = to
         if !includingSearch { resolvedFilters.q = "" }
+        // Local-ledger branch (C3): the same page contract served from the
+        // on-device repository — the cloud code below stays untouched.
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let journalRepository = LocalStoreGateway.shared.journalRepository {
+            let result = try await journalRepository.entries(
+                ledgerId: ledgerId,
+                filter: localFilter(resolvedFilters, includeExcluded: includeExcluded),
+                sort: localSort(sort, dateAscending: dateAscending),
+                limit: limit,
+                offset: offset
+            )
+            return EntriesResponse(entries: result.entries, total: result.total)
+        }
         let query = Self.listQuery(
             filters: resolvedFilters,
             limit: limit,
@@ -276,6 +289,37 @@ final class JournalStore {
             "GET",
             "bookkeeping/ledgers/\(ledgerId)/entries" + query
         )
+    }
+
+    /// The store's live filter surface mapped onto the local query shape —
+    /// the axis set is one-to-one (C3); `notCountedOnly` rides the
+    /// countsInLedger axis exactly as its query pair does.
+    private func localFilter(_ filters: Filters, includeExcluded: Bool) -> LocalJournalFilter {
+        var local = LocalJournalFilter()
+        local.q = filters.q
+        local.from = filters.from
+        local.to = filters.to
+        local.participantUserId = filters.participantUserId
+        local.projectId = filters.projectId
+        local.accountId = filters.accountId
+        local.parentAccountId = filters.parentAccountId
+        local.accountType = filters.accountType.flatMap(AccountType.init(rawValue:))
+        local.memberUserId = filters.memberUserId
+        local.kind = filters.kind
+        local.budgetExcluded = filters.budgetExcluded
+        local.countsInLedger = filters.notCountedOnly ? false : nil
+        local.includeExcluded = includeExcluded
+        return local
+    }
+
+    /// Sort mapping: the date mode's direction comes from the extent read's
+    /// `dateAscending`, the amount modes carry their own.
+    private func localSort(_ sort: EntrySort, dateAscending: Bool) -> LocalJournalSort {
+        switch sort {
+        case .date: return dateAscending ? .dateOldestFirst : .dateNewestFirst
+        case .amountDescending: return .amountDescending
+        case .amountAscending: return .amountAscending
+        }
     }
 
     // MARK: snapshot cache
@@ -811,6 +855,36 @@ final class JournalStore {
         // key it merges under must describe the same filters, even if the
         // visible filters move before the task body runs.
         let snapshotKey = currentSnapshotKey
+        // Local branch (C3): the same summary contract from the local
+        // aggregation — including the budget drill's includeExcluded
+        // ride-along (its rows DO include creator opt-outs, so the header
+        // totals must too).
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let capture = currentFilters
+            let includeExcluded = capture.budgetExcluded != nil
+            dayTotalsTask?.cancel()
+            dayTotalsTask = Task {
+                do {
+                    let localFilter = localFilter(capture, includeExcluded: includeExcluded)
+                    let days = try await reportRepository.dailySummary(
+                        ledgerId: ledgerId,
+                        filter: localFilter,
+                        shareMode: capture.shareMode == .line ? .line : .members,
+                        tzOffsetMinutes: AppDates.localTzOffsetMinutes
+                    )
+                    guard self.ledgerId == ledgerId, !Task.isCancelled else { return }
+                    let map = Dictionary(
+                        uniqueKeysWithValues: days.map { ($0.day, $0) }
+                    )
+                    if dayTotals != map { dayTotals = map }
+                    mergeIntoCache(snapshotKey: snapshotKey) { $0.dayTotals = map }
+                } catch {
+                    // Keep the previous totals; the next reload retries.
+                }
+            }
+            return
+        }
         let summaryPath = "bookkeeping/ledgers/\(ledgerId)/reports/daily-summary"
             + Self.dailySummaryQuery(filters: currentFilters)
         dayTotalsTask?.cancel()

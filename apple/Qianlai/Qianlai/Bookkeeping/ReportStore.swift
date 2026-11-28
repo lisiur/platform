@@ -304,17 +304,48 @@ final class ReportStore {
     private func refreshWidgetSnapshot(ledgerId: String) async {
         let window = AppDates.monthWindow(containing: Date())
         guard !StatsSurfaceWatch.isLive(ledgerId: ledgerId, window: window) else { return }
-        if let dashboard: Dashboard = try? await client.request(
-            "GET",
-            ReportPaths.dashboard(ledgerId: ledgerId, window: window)
-        ) {
+        let dashboard: Dashboard?
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            dashboard = try? await reportRepository.dashboard(
+                ledgerId: ledgerId,
+                from: window.from,
+                to: window.to,
+                filter: .unfiltered,
+                shareMode: .members,
+                viewerUserId: LocalIdentity.userId
+            )
+        } else {
+            dashboard = try? await client.request(
+                "GET",
+                ReportPaths.dashboard(ledgerId: ledgerId, window: window)
+            )
+        }
+        if let dashboard {
             WidgetSnapshotSync.publishIfCurrentMonth(dashboard, ledgerId: ledgerId, window: window)
         }
     }
 
     /// One budget report fetch; a failure clears the card (guests 403 —
-    /// callers gate the card the same way as the dashboard).
+    /// callers gate the card the same way as the dashboard). Local branch:
+    /// the aggregation twin (no network, always available).
     private func loadBudgetReport(ledgerId: String, month: YearMonth) async {
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let report = try? await reportRepository.budgetReport(
+                ledgerId: ledgerId,
+                year: month.year,
+                month: month.month,
+                tzOffsetMinutes: AppDates.localTzOffsetMinutes
+            )
+            budget = report
+            Self.cache.write(
+                key: Self.budgetKey(ledgerId: ledgerId, month: month),
+                payload: report
+            )
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
+            return
+        }
         await loadCached(
             path: "bookkeeping/ledgers/\(ledgerId)/reports/budget" + ApiQuery.build([
                 ("year", String(month.year)),
@@ -343,6 +374,17 @@ final class ReportStore {
     /// One category-budget report fetch; a failure clears the card (guests
     /// 403 — callers gate the card the same way as the dashboard).
     func loadCategoryBudget(ledgerId: String, year: Int) async {
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let report = try? await reportRepository.categoryBudgetReport(ledgerId: ledgerId, year: year)
+            categoryBudget = report
+            Self.cache.write(
+                key: Self.categoryBudgetKey(ledgerId: ledgerId, year: year),
+                payload: report
+            )
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
+            return
+        }
         await loadCached(
             path: "bookkeeping/ledgers/\(ledgerId)/reports/category-budgets" + ApiQuery.build([
                 ("year", String(year)),
@@ -378,6 +420,28 @@ final class ReportStore {
         filters: StatsFilters? = nil
     ) async -> Dashboard? {
         guard let ledgerId else { return nil }
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            var local = LocalJournalFilter()
+            local.from = from
+            local.to = AppDates.localEndOfDay(to)
+            if let filters {
+                local.participantUserId = filters.participantUserId
+                local.projectId = filters.projectId
+                local.accountId = filters.accountId
+                local.parentAccountId = filters.parentAccountId
+                local.kind = filters.kind
+                local.budgetExcluded = filters.budgetExcluded
+                local.countsInLedger = filters.notCountedOnly == true ? false : nil
+            }
+            return try? await reportRepository.windowSummary(
+                ledgerId: ledgerId,
+                from: from,
+                to: to,
+                filter: local,
+                viewerUserId: LocalIdentity.userId
+            )
+        }
         var pairs: [(String, String?)] = [
             ("from", ApiQuery.iso(from)),
             ("to", ApiQuery.iso(AppDates.localEndOfDay(to))),
@@ -397,6 +461,19 @@ final class ReportStore {
         guard let ledgerId else { return }
         isLoadingTrialBalance = true
         defer { isLoadingTrialBalance = false }
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let report = try? await reportRepository.trialBalance(
+                ledgerId: ledgerId, from: fromDate, to: toDate
+            )
+            trialBalance = report
+            Self.cache.write(
+                key: Self.windowKey("trial", ledgerId: ledgerId, from: nil, to: toDate),
+                payload: report
+            )
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
+            return
+        }
         await loadCached(
             path: "bookkeeping/ledgers/\(ledgerId)/reports/trial-balance" + ApiQuery.build([
                 ("to", toDate.map { ApiQuery.iso(AppDates.localEndOfDay($0)) }),
@@ -414,6 +491,22 @@ final class ReportStore {
         guard let ledgerId else { return }
         isLoadingStatement = true
         defer { isLoadingStatement = false }
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let report = try? await reportRepository.incomeStatement(
+                ledgerId: ledgerId,
+                from: fromDate,
+                to: toDate,
+                viewerUserId: LocalIdentity.userId
+            )
+            incomeStatement = report
+            Self.cache.write(
+                key: Self.windowKey("statement", ledgerId: ledgerId, from: fromDate, to: toDate),
+                payload: report
+            )
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
+            return
+        }
         await loadCached(
             path: "bookkeeping/ledgers/\(ledgerId)/reports/income-statement" + ApiQuery.build([
                 ("from", fromDate.map { ApiQuery.iso($0) }),
@@ -432,6 +525,19 @@ final class ReportStore {
         guard let ledgerId else { return }
         isLoadingTurnover = true
         defer { isLoadingTurnover = false }
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let report = try? await reportRepository.memberTurnover(
+                ledgerId: ledgerId, from: fromDate, to: toDate
+            )
+            memberTurnover = report
+            Self.cache.write(
+                key: Self.windowKey("turnover", ledgerId: ledgerId, from: fromDate, to: toDate),
+                payload: report
+            )
+            Self.cache.write(key: Self.lastKey, payload: LastReportMeta(ledgerId: ledgerId))
+            return
+        }
         await loadCached(
             path: "bookkeeping/ledgers/\(ledgerId)/reports/member-turnover" + ApiQuery.build([
                 ("from", fromDate.map { ApiQuery.iso($0) }),

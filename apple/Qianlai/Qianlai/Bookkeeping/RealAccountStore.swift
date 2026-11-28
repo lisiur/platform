@@ -23,6 +23,19 @@ final class RealAccountStore {
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        // Local branch (C3): the owner's real accounts resolve from the
+        // on-device store against the active local ledger's pockets.
+        if let active = LocalStoreGateway.shared.ledgerIdForRealAccounts(),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let result = try? await reportRepository.realAccounts(
+                ownerId: LocalIdentity.userId,
+                ledgerId: active
+            )
+            realAccounts = result?.accounts ?? []
+            totals = result?.totals ?? RealAccountTotals(assets: 0, liabilities: 0, netWorth: 0)
+            loadError = nil
+            return
+        }
         do {
             let response: RealAccountsResponse = try await client.request(
                 "GET",

@@ -100,14 +100,16 @@ struct ProfileView: View {
             }
             languageSection
             privacySection
-            Section {
-                Button(role: .destructive) {
-                    Task { await auth.logout() }
-                } label: {
-                    Label(L10n.string("profile.signOut", defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundStyle(.red)
+            if auth.isLoggedIn {
+                Section {
+                    Button(role: .destructive) {
+                        Task { await auth.logout() }
+                    } label: {
+                        Label(L10n.string("profile.signOut", defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
+                            .foregroundStyle(.red)
+                    }
+                    .appCardRow()
                 }
-                .appCardRow()
             }
         }
         .appBackgroundSink()
@@ -121,11 +123,15 @@ struct ProfileView: View {
             // the projects list (project).
             #if os(iOS)
             ToolbarItem(placement: .topBarTrailing) {
-                collaborationMenu
+                if auth.isLoggedIn {
+                    collaborationMenu
+                }
             }
             #else
             ToolbarItem(placement: .primaryAction) {
-                collaborationMenu
+                if auth.isLoggedIn {
+                    collaborationMenu
+                }
             }
             #endif
         }
@@ -173,33 +179,57 @@ struct ProfileView: View {
 
     private var userSection: some View {
         Section {
-            HStack(spacing: 14) {
-                avatar
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(auth.currentUser?.name ?? L10n.string("profile.unnamedUser", defaultValue: "Unnamed user"))
-                        .font(.body.weight(.semibold))
-                    if let email = auth.currentUser?.email {
-                        Text(email)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            if auth.isLoggedIn {
+                HStack(spacing: 14) {
+                    avatar
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(auth.currentUser?.name ?? L10n.string("profile.unnamedUser", defaultValue: "Unnamed user"))
+                            .font(.body.weight(.semibold))
+                        if let email = auth.currentUser?.email {
+                            Text(email)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    Spacer()
                 }
-                Spacer()
+                .padding(.vertical, 4)
+                .appCardRow()
+                Button {
+                    isShowingNameSheet = true
+                } label: {
+                    Label(L10n.string("profile.editName", defaultValue: "Edit Name"), systemImage: "pencil")
+                }
+                .appCardRow()
+                Button {
+                    isShowingPasswordSheet = true
+                } label: {
+                    Label(L10n.string("profile.changePassword", defaultValue: "Change Password"), systemImage: "key")
+                }
+                .appCardRow()
+            } else {
+                // Signed out (F9): the identity section becomes the
+                // persistent login entry (AC9.5's functional core — the
+                // exact presentation is human-acceptance scope).
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.string("profile.signedOut.title", defaultValue: "未登录"))
+                        .font(.body.weight(.semibold))
+                    Text(L10n.string(
+                        "profile.signedOut.subtitle",
+                        defaultValue: "登录后可使用云账本与多人共享；本地账本无需登录。"
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+                .appCardRow()
+                NavigationLink {
+                    LoginView()
+                } label: {
+                    Label(L10n.string("profile.signIn", defaultValue: "登录 / 注册"), systemImage: "person.crop.circle.badge.plus")
+                }
+                .appCardRow()
             }
-            .padding(.vertical, 4)
-            .appCardRow()
-            Button {
-                isShowingNameSheet = true
-            } label: {
-                Label(L10n.string("profile.editName", defaultValue: "Edit Name"), systemImage: "pencil")
-            }
-            .appCardRow()
-            Button {
-                isShowingPasswordSheet = true
-            } label: {
-                Label(L10n.string("profile.changePassword", defaultValue: "Change Password"), systemImage: "key")
-            }
-            .appCardRow()
         }
     }
 

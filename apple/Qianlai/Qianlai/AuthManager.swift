@@ -307,12 +307,16 @@ final class AuthManager {
         currentUser = nil
         permissions = []
         isOnboardingPending = false
-        // No session, nothing for the widget to show.
-        WidgetDataStore.clearAll()
+        // No session, nothing for the widget to show — EXCEPT a local
+        // ledger's data (AC9.2): the sweeps are cloud-scoped, so a local
+        // context's mirror, snapshot, and store caches survive logout
+        // (F9). The registry snapshot (loaded synchronously when needed)
+        // is what tells the two sweeps what to spare.
+        LocalStoreGateway.shared.activate()
+        let localLedgerIds = LocalStoreGateway.shared.localLedgerIdSnapshot()
+        WidgetDataStore.clearCloudScoped()
+        SnapshotCache.clearCloudScoped(localLedgerIds: localLedgerIds)
         WidgetSync.reloadTimelines()
-        // The render-seed snapshots describe the signed-out account's
-        // ledgers — the next sign-in must start cold, not on stale rows.
-        SnapshotCache.clearAll()
     }
 
     private func acceptSession(_ response: SignInResponse) {

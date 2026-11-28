@@ -71,6 +71,17 @@ final class LedgerStore {
             isLoading = false
             hasLoaded = true
         }
+        // Local ledgers load first, login-independent (F9): the merged
+        // list is the local rows plus whatever the cloud API returns.
+        // With the local stack active the registry refreshes here so the
+        // stores' routing predicate never trails a lifecycle mutation.
+        let gateway = LocalStoreGateway.shared
+        gateway.activate()
+        var merged: [QianlaiLedger] = []
+        if let localRepository = gateway.ledgerRepository {
+            merged += (try? await localRepository.list()) ?? []
+            await gateway.refreshRegistry()
+        }
         // A cold app paints its cached ledger list first: activeLedger
         // resolves from the persisted id and the dashboard renders
         // last-known content while the fetch below silently corrects it.
@@ -78,13 +89,27 @@ final class LedgerStore {
         // settled" (the deep-link quick-add retry gate and the launch
         // title's restored-scope window both read it), and a cached render
         // is not that.
-        if ledgers.isEmpty,
+        if merged.isEmpty,
            let cached: [QianlaiLedger] = Self.cache.read(key: Self.cacheKey, as: [QianlaiLedger].self) {
-            ledgers = cached
+            // Old caches decode with storage defaulting to .cloud (C1) —
+            // correct, they only ever held cloud ledgers.
+            merged = cached
+        }
+        // The cloud fetch needs a session; a signed-out run (F9) simply has
+        // no cloud ledgers to add — no request, no error state.
+        guard APIClient.shared.sessionToken != nil else {
+            if ledgers != merged { ledgers = merged }
+            loadError = nil
+            if !merged.isEmpty {
+                mirrorWidgetState()
+                WidgetSync.reloadTimelines()
+            }
+            return
         }
         do {
             let response: LedgersResponse = try await client.request("GET", "bookkeeping/ledgers")
-            ledgers = response.ledgers
+            merged += response.ledgers
+            if ledgers != merged { ledgers = merged }
             loadError = nil
             Self.cache.write(key: Self.cacheKey, payload: ledgers)
             // The resolved active ledger may differ from the persisted id
@@ -93,7 +118,14 @@ final class LedgerStore {
             mirrorWidgetState()
             WidgetSync.reloadTimelines()
         } catch {
+            // Keep whatever the merged list already holds (local rows and
+            // any cache) — offline, the local ledgers must still list.
+            if ledgers != merged { ledgers = merged }
             loadError = error.localizedDescription
+            if !merged.isEmpty {
+                mirrorWidgetState()
+                WidgetSync.reloadTimelines()
+            }
         }
     }
 
@@ -131,7 +163,37 @@ final class LedgerStore {
 
     // MARK: - CRUD
 
-    func create(name: String, description: String?, currency: String?) async throws {
+    /// Creates a ledger of the requested storage class (F1's type picker;
+    /// default cloud keeps every existing call site intact). Local
+    /// creation is fully offline (AC1.2): the repository transaction
+    /// plants the ledger, its owner member row, and the seeded starter
+    /// chart — nothing touches the network.
+    func create(
+        name: String,
+        description: String?,
+        currency: String?,
+        storage: LedgerStorage = .cloud
+    ) async throws {
+        if storage == .local {
+            guard let localRepository = LocalStoreGateway.shared.ledgerRepository else {
+                throw LocalStoreError.storageUnavailable
+            }
+            _ = try await localRepository.create(
+                name: name,
+                description: description,
+                currency: currency,
+                seedStarterAccounts: true,
+                ownerId: LocalIdentity.userId
+            )
+            await load()
+            // A first local ledger becomes active automatically — the
+            // cloud path's default-ledger resolution never sees it, so
+            // pick it when nothing valid is active yet.
+            if activeLedger == nil, let first = ledgers.first(where: { $0.isLocal && $0.isActive }) {
+                setActive(first.id)
+            }
+            return
+        }
         let trimmedCurrency = currency?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         _ = try await client.send(
             "POST",
@@ -152,6 +214,16 @@ final class LedgerStore {
         description: String?,
         currency: String
     ) async throws {
+        if ledger.isLocal {
+            guard let localRepository = LocalStoreGateway.shared.ledgerRepository else {
+                throw LocalStoreError.storageUnavailable
+            }
+            try await localRepository.update(
+                ledger, name: name, description: description, currency: currency
+            )
+            await load()
+            return
+        }
         let trimmedCurrency = currency.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         _ = try await client.send(
             "PATCH",
@@ -169,6 +241,14 @@ final class LedgerStore {
 
     func archiveToggle(_ ledger: QianlaiLedger) async throws {
         let status = ledger.isActive ? "archived" : "active"
+        if ledger.isLocal {
+            guard let localRepository = LocalStoreGateway.shared.ledgerRepository else {
+                throw LocalStoreError.storageUnavailable
+            }
+            try await localRepository.setStatus(ledger.id, status: status)
+            await load()
+            return
+        }
         _ = try await client.send(
             "PATCH",
             "bookkeeping/ledgers/\(ledger.id)",
@@ -178,6 +258,22 @@ final class LedgerStore {
     }
 
     func delete(_ ledger: QianlaiLedger) async throws {
+        if ledger.isLocal {
+            guard let localRepository = LocalStoreGateway.shared.ledgerRepository else {
+                throw LocalStoreError.storageUnavailable
+            }
+            // Storage-level deletion: the FK cascade wipes members,
+            // accounts, entries, and budgets in one transaction. The
+            // CloudKit zone deletion rides the sync engine in phase 2
+            // (T3.5); this path stays complete for the on-device store.
+            try await localRepository.delete(ledger.id)
+            await LocalStoreGateway.shared.refreshRegistry()
+            if activeLedgerId == ledger.id {
+                setActive(nil)
+            }
+            await load()
+            return
+        }
         _ = try await client.send("DELETE", "bookkeeping/ledgers/\(ledger.id)")
         if activeLedgerId == ledger.id {
             setActive(nil)

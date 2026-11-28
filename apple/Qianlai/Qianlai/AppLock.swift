@@ -104,14 +104,16 @@ final class AppLockController {
         }
     }
 
+    /// One privacy gate per scene transition. The lock no longer keys on
+    /// login (F9): the app lock and the amount curtain are device privacy
+    /// features — signed-out use is exactly the scenario they must cover.
     func handleSceneChange(
         _ phase: ScenePhase,
         lockEnabled: Bool,
-        curtainEnabled: Bool,
-        isLoggedIn: Bool
+        curtainEnabled: Bool
     ) {
         guard !isPinnedForScreenshots else { return }
-        let shouldLock = lockEnabled && isLoggedIn
+        let shouldLock = lockEnabled
         guard shouldLock || curtainEnabled else {
             // No privacy protection on: never lock, never curtain, and
             // release a lock a toggle-off may have raced.

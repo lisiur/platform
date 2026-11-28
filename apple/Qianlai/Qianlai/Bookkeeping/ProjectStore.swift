@@ -189,6 +189,11 @@ final class ProjectStore {
     }
 
     private func fetch(ledgerId: String) async throws -> [QianlaiProject] {
+        // Local branch (C3): the project list reads from the on-device store.
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            return try await reportRepository.projects(ledgerId: ledgerId)
+        }
         let response: ProjectsResponse = try await client.request(
             "GET",
             "bookkeeping/ledgers/\(ledgerId)/projects"
@@ -271,7 +276,6 @@ final class ProjectStore {
     }
 
     func loadReport(ledgerId: String, projectId: String) async {
-        let path = "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/report"
         let key = Self.reportKey(ledgerId: ledgerId, projectId: projectId)
         // A cold project page paints its cached report first; the fetch
         // below silently corrects it. Only nil is filled — a published
@@ -280,6 +284,50 @@ final class ProjectStore {
            let cached: ProjectReport = Self.cache.read(key: key, as: ProjectReport.self) {
             report = cached
         }
+        // Local branch (C3): the report computes from the on-device store.
+        if LocalStoreGateway.shared.isLocal(ledgerId),
+           let reportRepository = LocalStoreGateway.shared.reportRepository {
+            let requestID = UUID()
+            reportRequestID = requestID
+            reportLoadTask?.cancel()
+            let task = Task(priority: .userInitiated) { () -> Result<ProjectReport, Error> in
+                do {
+                    return .success(try await reportRepository.projectReport(ledgerId: ledgerId, projectId: projectId))
+                } catch {
+                    return .failure(error)
+                }
+            }
+            reportLoadTask = task
+            let result = await task.value
+            guard reportRequestID == requestID else { return }
+            switch result {
+            case .success(let loaded):
+                report = loaded
+                Self.cache.write(key: key, payload: loaded)
+                // Keep the summary widget's project-mode fallback fresh —
+                // the same duty the cloud path performs.
+                if WidgetDataStore.loadScopedProject()?.id == loaded.project.id {
+                    WidgetDataStore.saveProjectSnapshot(
+                        WidgetProjectSnapshot(
+                            project: WidgetScopedProject(
+                                id: loaded.project.id,
+                                ledgerId: loaded.project.ledgerId,
+                                name: loaded.project.name
+                            ),
+                            report: loaded
+                        )
+                    )
+                    WidgetSync.reloadTimelines()
+                }
+            case .failure(let error):
+                if Self.isCancellation(error) {
+                    return
+                }
+                report = nil
+            }
+            return
+        }
+        let path = "bookkeeping/ledgers/\(ledgerId)/projects/\(projectId)/report"
         let requestID = UUID()
         reportRequestID = requestID
         reportLoadTask?.cancel()
