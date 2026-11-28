@@ -6,6 +6,7 @@
 import CloudKit
 import Foundation
 import GRDB
+import os
 
 /// The one `CKSyncEngine` per process (T2.3): every local ledger's rows
 /// sync through it to the user's iCloud PRIVATE database.
@@ -41,6 +42,13 @@ final class CloudSyncEngine: NSObject {
 
     /// The container from the entitlements (the app's own identifier).
     private static let containerID = "iCloud.top.hapaul.qianlai"
+
+    /// Diagnostics: every sync-relevant step lands here — Console.app,
+    /// filter subsystem `top.hapaul.qianlai` category `cloudsync`. The
+    /// cross-device sync's first-line debugging tool (AC3.1 triage).
+    private static let log = Logger(
+        subsystem: "top.hapaul.qianlai", category: "cloudsync"
+    )
 
     /// The engine state's persistence file (Application Support — the
     /// plan's pinned home; the attachments directory's sibling).
@@ -82,13 +90,33 @@ final class CloudSyncEngine: NSObject {
             return
         }
         let container = CKContainer(identifier: Self.containerID)
+        Self.log.info("activate: engine starting (container \(Self.containerID, privacy: .public))")
+        // The engine only fires accountChange on ACCOUNT CHANGES — a cold
+        // start with no account produces no event, and the status would
+        // sit at idle claiming 已同步 while nothing can sync. Probe the
+        // account up front and set the truth.
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let accountStatus = try await container.accountStatus()
+                Self.log.info("activate: accountStatus=\(String(describing: accountStatus), privacy: .public)")
+                if accountStatus != .available {
+                    status.update(.icloudUnavailable)
+                }
+            } catch {
+                Self.log.error("activate: accountStatus probe failed: \(error.localizedDescription, privacy: .public)")
+                status.update(.icloudUnavailable, message: error.localizedDescription)
+            }
+        }
         let saved: CKSyncEngine.State.Serialization? = Self.readStateSerialization()
+        Self.log.info("activate: persisted state \(saved != nil ? "found" : "absent (first run)", privacy: .public)")
         let configuration = CKSyncEngine.Configuration(
             database: container.privateCloudDatabase,
             stateSerialization: saved,
             delegate: self
         )
         syncEngine = CKSyncEngine(configuration)
+        Self.log.info("activate: CKSyncEngine created")
         status.update(.idle)
         Task { await fullEnqueueIfFirstRun(savedExists: saved != nil) }
         tick()
@@ -225,7 +253,11 @@ final class CloudSyncEngine: NSObject {
     /// On later runs the engine's persisted pending changes already carry
     /// the work; a clean resync rides the accountChange sign-in path.
     private func fullEnqueueIfFirstRun(savedExists: Bool) async {
-        guard !savedExists, let database else { return }
+        guard !savedExists, let database else {
+            Self.log.info("full enqueue skipped (state \(savedExists ? "exists" : "no database", privacy: .public))")
+            return
+        }
+        Self.log.info("full enqueue: first run — enqueuing every zone's rows")
         // Profile zone first (real accounts + local preferences).
         let outbox = CloudSyncOutbox.shared
         do {
@@ -380,7 +412,10 @@ final class CloudSyncEngine: NSObject {
     nonisolated private static func applyByType(_ record: CKRecord, db: Database) {
         switch record.recordType {
         case CloudSyncMapping.RecordType.ledger:
-            if let row = CloudSyncMapping.decodeLedger(record) { try? row.save(db) }
+            if let row = CloudSyncMapping.decodeLedger(record) {
+                try? row.save(db)
+                CloudSyncEngine.log.info("applied ledger record: \(row.id, privacy: .public) name=\(row.name, privacy: .public)")
+            }
         case CloudSyncMapping.RecordType.ledgerMember:
             if let row = CloudSyncMapping.decodeLedgerMember(record) { try? row.save(db) }
         case CloudSyncMapping.RecordType.bookAccount:
@@ -470,6 +505,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     /// changes apply, sent changes clean up. Every branch ends with a
     /// `tick()` — write hooks land while sends run.
     func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+        Self.log.info("event: \(String(describing: type(of: event)), privacy: .public)")
         switch event {
         case .stateUpdate(let event):
             // R1's whole point: the engine hands us its serialized state —
@@ -477,6 +513,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             persistState(event.stateSerialization)
 
         case .accountChange(let event):
+            Self.log.info("accountChange: \(String(describing: event.changeType), privacy: .public)")
             switch event.changeType {
             case .signIn, .switchAccounts:
                 // 重登录 → 自动续传: a fresh account gets the full enqueue
@@ -496,6 +533,9 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             status.update(.idle)
 
         case .fetchedRecordZoneChanges(let event):
+            Self.log.info(
+                "fetched: \(event.modifications.count) modifications, \(event.deletions.count) deletions [types: \(event.modifications.map(\.record.recordType).joined(separator: ","))]"
+            )
             if let database {
                 do {
                     try await database.writer.write { db in
@@ -504,6 +544,9 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                         // children) must not resurrect — the zone deletion
                         // may still be in flight while the fetch runs.
                         let tombstones = try SyncTombstone.allIds(db)
+                        if !tombstones.isEmpty {
+                            Self.log.info("tombstones active: \(tombstones.count)")
+                        }
                         for modification in event.modifications {
                             Self.applyRecord(modification.record, db: db, tombstones: tombstones)
                         }
@@ -511,6 +554,8 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                             Self.applyDeletion(recordID: deletion.recordID, db: db)
                         }
                     }
+                    let ledgerCount = (try? await LocalStoreGateway.shared.ledgerRepository?.ledgerIds()) ?? nil
+                    Self.log.info("applied fetched batch: ledgers now \(ledgerCount?.count ?? -1)")
                     // Another device may have created a ledger (its ledger
                     // record just landed) — refresh the routing registry
                     // and the widget mirror so the switcher sees it.
@@ -528,6 +573,13 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             let quota = event.failedRecordSaves.contains {
                 ($0.error as? CKError)?.code == .quotaExceeded
             }
+            if !event.failedRecordSaves.isEmpty {
+                for failure in event.failedRecordSaves {
+                    Self.log.error(
+                        "send failed: \(failure.record.recordType)/\(failure.record.recordID.recordName, privacy: .public): \(String(describing: failure.error), privacy: .public)"
+                    )
+                }
+            }
             if quota {
                 status.update(.quotaExceeded)
             }
@@ -543,10 +595,18 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                 }
             }
 
-        case .fetchedDatabaseChanges, .sentDatabaseChanges:
+        case .fetchedDatabaseChanges(let event):
             // Zone discovery (another device's new ledger zone) rides the
-            // engine's automatic fetch; nothing to apply here.
-            break
+            // engine's automatic fetch; nothing to apply here, but the
+            // discovered zone names are the triage evidence.
+            Self.log.info(
+                "database changes: \(event.modifications.count) zone modifications [\(event.modifications.map(\.zoneID.zoneName).joined(separator: ","))]"
+            )
+
+        case .sentDatabaseChanges(let event):
+            Self.log.info(
+                "sent database changes: \(event.savedZones.count) saved, \(event.deletedZoneIDs.count) deleted"
+            )
         }
         tick()
     }
