@@ -341,6 +341,13 @@ struct LedgersView: View {
                 }
                 Text(ledger.name)
                     .font(.body.weight(.medium))
+                if ledger.isLocal {
+                    // AC1.1's marker: local ledgers are distinguishable at
+                    // a glance from cloud ledgers — including the same-named
+                    // pair (a synced-in ledger from another device or a
+                    // pre-uninstall install must never read as a duplicate).
+                    BadgeView(text: L10n.string("ledgers.local", defaultValue: "本地"), color: .blue)
+                }
                 if ledger.shared {
                     BadgeView(text: L10n.string("ledgers.shared", defaultValue: "Shared"), outlined: true)
                 }

@@ -109,6 +109,11 @@ final class LedgerStore {
         do {
             let response: LedgersResponse = try await client.request("GET", "bookkeeping/ledgers")
             merged += response.ledgers
+            // Defensive dedup by id, local-first: a fetched/synced row must
+            // never render twice even if some upstream ever echoes the same
+            // ledger through both sources (the observed 重复账本 guard).
+            var seen = Set<String>()
+            merged = merged.filter { seen.insert($0.id).inserted }
             if ledgers != merged { ledgers = merged }
             loadError = nil
             Self.cache.write(key: Self.cacheKey, payload: ledgers)

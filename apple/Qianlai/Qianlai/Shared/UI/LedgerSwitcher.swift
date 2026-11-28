@@ -220,11 +220,24 @@ struct LedgerSwitcherMenu: View {
             // role.)
             Image(systemName: "text.book.closed")
             Text(ledger.name)
-            Text([ledger.description, ledger.currency, ledger.myRole.label]
-                .compactMap { $0 }
-                .filter { !$0.isEmpty }
-                .joined(separator: " · "))
+            Text(subtitle(for: ledger))
         }
+    }
+
+    /// The switcher row's subtitle: the LOCAL marker leads for local
+    /// ledgers (AC1.1's at-a-glance class distinction), then description,
+    /// currency, and role.
+    private func subtitle(for ledger: QianlaiLedger) -> String {
+        var parts: [String] = []
+        if ledger.isLocal {
+            parts.append(L10n.string("ledgers.local", defaultValue: "本地"))
+        }
+        if let description = ledger.description, !description.isEmpty {
+            parts.append(description)
+        }
+        parts.append(ledger.currency)
+        parts.append(ledger.myRole.label)
+        return parts.joined(separator: " · ")
     }
 
     private func projectButton(for project: QianlaiProject, in ledger: QianlaiLedger) -> some View {
